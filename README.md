@@ -15,3 +15,15 @@ Standalone SDKs and shared packages for the Skalpai platform.
 
 JS packages form a single pnpm workspace (`pnpm-workspace.yaml`). `sdk-react`
 depends on `sdk-feedback-widget` via `workspace:*`.
+
+## go/
+
+Brand-agnostic Go libraries. Independent Go modules (not part of the pnpm
+workspace), each versioned with a path-prefixed tag (e.g. `go/eda/v0.1.1`).
+
+| Package | Description |
+| --- | --- |
+| `eda` | Event-Driven Architecture toolkit — durable JetStream consumer, outbox, projection, process-manager, CQRS/DDD building blocks. `go get github.com/lalternative/packages/go/eda@go/eda/v0.1.1` |
+
+Submodules `go/eda/pkg/obs/{otelobs,prom}` carry their own `go.mod` (optional
+observability adapters) and are tagged independently if needed.
