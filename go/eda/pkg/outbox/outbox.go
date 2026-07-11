@@ -60,9 +60,14 @@ type Store[ID comparable] interface {
 	FetchPending(ctx context.Context, limit int) ([]OutboxRecord[ID], error)
 	// MarkDispatched promotes the record to StatusDispatched.
 	MarkDispatched(ctx context.Context, recordID string) error
-	// MarkFailed increments Attempts and records the error. Records that
-	// exhausted their retries should be set to StatusFailed by the caller.
-	MarkFailed(ctx context.Context, recordID string, err error, terminal bool) error
+	// MarkFailed increments Attempts and records the error. retryAfter is the
+	// delay the Relay computed before this record should be polled again;
+	// SQL implementations persist it as next_attempt_at = NOW() + retryAfter and
+	// gate FetchPending on (next_attempt_at IS NULL OR next_attempt_at <= NOW()),
+	// so a failing record backs off instead of being retried on the very next
+	// poll. When terminal is true the record exhausted its retries and should be
+	// set to StatusFailed (retryAfter is then irrelevant).
+	MarkFailed(ctx context.Context, recordID string, err error, retryAfter time.Duration, terminal bool) error
 }
 
 // Publisher is what the Relay calls to deliver an envelope. The CQRS
@@ -88,6 +93,13 @@ type RelayConfig struct {
 	// MaxAttempts caps the per-record retry count. After this many failed
 	// attempts the record is marked terminal (StatusFailed).
 	MaxAttempts int
+	// BaseBackoff is the first retry delay; each further attempt doubles it,
+	// capped at MaxBackoff. The Relay passes the computed delay to
+	// Store.MarkFailed so a failing record is deferred instead of hammered on
+	// every poll. Default: 10s.
+	BaseBackoff time.Duration
+	// MaxBackoff caps the exponential backoff. Default: 10m.
+	MaxBackoff time.Duration
 	// OnError is invoked for every publish failure (transient or terminal).
 	OnError func(record OutboxRecord[any], err error)
 }
@@ -110,7 +122,32 @@ func NewRelay[ID comparable](store Store[ID], publisher Publisher[ID], cfg Relay
 	if cfg.MaxAttempts <= 0 {
 		cfg.MaxAttempts = 10
 	}
+	if cfg.BaseBackoff <= 0 {
+		cfg.BaseBackoff = 10 * time.Second
+	}
+	if cfg.MaxBackoff <= 0 {
+		cfg.MaxBackoff = 10 * time.Minute
+	}
 	return &Relay[ID]{store: store, publisher: publisher, cfg: cfg}
+}
+
+// backoffFor computes the retry delay for a record that has just failed its
+// nth attempt: BaseBackoff * 2^(attempts-1), capped at MaxBackoff.
+func (r *Relay[ID]) backoffFor(attempts int) time.Duration {
+	if attempts < 1 {
+		attempts = 1
+	}
+	d := r.cfg.BaseBackoff
+	for i := 1; i < attempts; i++ {
+		d *= 2
+		if d >= r.cfg.MaxBackoff {
+			return r.cfg.MaxBackoff
+		}
+	}
+	if d > r.cfg.MaxBackoff {
+		d = r.cfg.MaxBackoff
+	}
+	return d
 }
 
 // Run blocks until ctx is canceled, polling the store and publishing.
@@ -145,8 +182,9 @@ func (r *Relay[ID]) RunOnce(ctx context.Context) (int, error) {
 	dispatched := 0
 	for _, rec := range records {
 		if perr := r.publisher.Publish(ctx, rec.Envelope); perr != nil {
-			terminal := rec.Attempts+1 >= r.cfg.MaxAttempts
-			_ = r.store.MarkFailed(ctx, rec.RecordID, perr, terminal)
+			attempts := rec.Attempts + 1
+			terminal := attempts >= r.cfg.MaxAttempts
+			_ = r.store.MarkFailed(ctx, rec.RecordID, perr, r.backoffFor(attempts), terminal)
 			continue
 		}
 		if merr := r.store.MarkDispatched(ctx, rec.RecordID); merr != nil {
@@ -231,8 +269,12 @@ func (s *InMemoryStore[ID]) MarkDispatched(_ context.Context, id string) error {
 	return nil
 }
 
-// MarkFailed increments attempts; if terminal, status becomes Failed.
-func (s *InMemoryStore[ID]) MarkFailed(_ context.Context, id string, err error, terminal bool) error {
+// MarkFailed increments attempts; if terminal, status becomes Failed. The
+// in-memory store has no wall-clock scheduling, so retryAfter is accepted for
+// interface conformance but not enforced — a failed non-terminal record stays
+// Pending and is re-fetched on the next poll. SQL stores persist retryAfter as
+// next_attempt_at to honour the backoff.
+func (s *InMemoryStore[ID]) MarkFailed(_ context.Context, id string, err error, _ time.Duration, terminal bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	rec, ok := s.records[id]
