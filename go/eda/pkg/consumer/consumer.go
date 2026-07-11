@@ -139,6 +139,13 @@ type Config struct {
 	// StreamSubjects are the subjects bound to StreamName when it is created.
 	// Default: ["integration.>"].
 	StreamSubjects []string
+	// StreamStorage is the storage type used when the work-queue stream is
+	// created. It must match the storage of a pre-existing stream of the same
+	// name — JetStream rejects an update that changes storage type (err 10052),
+	// so an app that provisions the stream itself with MemoryStorage (e.g. in
+	// tests) must set this accordingly. The zero value is FileStorage, so the
+	// default needs no withDefaults entry.
+	StreamStorage jetstream.StorageType
 	// DLQStreamName captures MAX_DELIVERIES advisories (the dead letters).
 	// Default: "DLQ".
 	DLQStreamName string
@@ -499,7 +506,7 @@ func ensurePipelineStream(ctx context.Context, js jetstream.JetStream, cfg Confi
 	_, err := js.CreateOrUpdateStream(ctx, jetstream.StreamConfig{
 		Name:      cfg.StreamName,
 		Subjects:  cfg.StreamSubjects,
-		Storage:   jetstream.FileStorage,
+		Storage:   cfg.StreamStorage,
 		Retention: jetstream.LimitsPolicy,
 	})
 	if err != nil {
