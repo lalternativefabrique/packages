@@ -48,6 +48,25 @@ func TestExtractEventID(t *testing.T) {
 	}
 }
 
+func TestAlreadyDoneWrapsSentinel(t *testing.T) {
+	base := errors.New("unique violation")
+	err := AlreadyDone(base)
+	if !errors.Is(err, ErrAlreadyDone) {
+		t.Fatalf("AlreadyDone() result should match ErrAlreadyDone")
+	}
+	if !errors.Is(err, base) {
+		t.Fatalf("AlreadyDone() should preserve the wrapped error")
+	}
+	if AlreadyDone(nil) != nil {
+		t.Fatalf("AlreadyDone(nil) should be nil")
+	}
+	// An already-done error must not be confused with a permanent one: they
+	// drive different ack decisions (Ack vs Term).
+	if errors.Is(err, ErrPermanent) {
+		t.Fatalf("ErrAlreadyDone must not match ErrPermanent")
+	}
+}
+
 func TestConfigDefaults(t *testing.T) {
 	var c Config
 	c.withDefaults()
@@ -67,10 +86,36 @@ func TestConfigDefaults(t *testing.T) {
 	if c.MaxAckPending != 1000 {
 		t.Errorf("MaxAckPending default = %d", c.MaxAckPending)
 	}
+	if c.ClaimTTL != 3*time.Minute {
+		t.Errorf("ClaimTTL default = %v, want 3m", c.ClaimTTL)
+	}
 	if c.Logger == nil {
 		t.Error("Logger default should be non-nil (Nop)")
 	}
 }
+
+// fakeIdempotency records the claim lifecycle so tests can assert the
+// pre-claim ordering (claim before handler, done/release after).
+type fakeIdempotency struct {
+	claimOK  bool
+	claimErr error
+	calls    []string
+}
+
+func (f *fakeIdempotency) TryClaim(_ context.Context, _, eventID string, _ time.Duration) (bool, error) {
+	f.calls = append(f.calls, "claim:"+eventID)
+	return f.claimOK, f.claimErr
+}
+func (f *fakeIdempotency) MarkDone(_ context.Context, _, eventID string) error {
+	f.calls = append(f.calls, "done:"+eventID)
+	return nil
+}
+func (f *fakeIdempotency) Release(_ context.Context, _, eventID string) error {
+	f.calls = append(f.calls, "release:"+eventID)
+	return nil
+}
+
+var _ IdempotencyStore = (*fakeIdempotency)(nil)
 
 // seqHandler is a minimal EventHandler with no concurrency opt-in.
 type seqHandler struct{}

@@ -10,11 +10,13 @@
 //	Concern                       Provided by
 //	----------------------------- ------------------------------
 //	Permanent error -> Term()     ErrPermanent sentinel
+//	Already-applied -> Ack()      ErrAlreadyDone sentinel
 //	Bounded MaxDeliver            EventHandler.MaxDeliver()
 //	Staged BackOff                Config.BackOff (sane default)
 //	Dead-letter stream (DLQ)      advisory MAX_DELIVERIES stream
-//	Heartbeat anti-AckWait        InProgress() ticker
-//	Idempotency                   optional IdempotencyStore
+//	Heartbeat anti-AckWait        InProgress() ticker (immediate + interval)
+//	Pre-claim idempotency         optional IdempotencyStore (claim/done/release)
+//	Trace propagation             optional Config.TraceExtractor
 //	Reconnect / retry loop        Run()
 //
 // Contrast: JetStreamStore.Subscribe uses an OrderedConsumer for event-sourcing
@@ -52,6 +54,27 @@ func Permanent(err error) error {
 	return fmt.Errorf("%w: %w", ErrPermanent, err)
 }
 
+// ErrAlreadyDone marks an error as "this effect was already applied" — the
+// message is Ack()'d as an idempotent success rather than retried. Return it
+// (or wrap it with AlreadyDone) when the handler detects that its side effect
+// is already in place: e.g. a unique-constraint violation on an INSERT the
+// handler is responsible for, or a state that a prior delivery already reached.
+//
+// This closes the residual race a pre-claim IdempotencyStore cannot: two claims
+// expiring at the same instant, both handlers running, the second losing the
+// INSERT. Without this sentinel that second delivery would Nak and redeliver
+// forever until MaxDeliver dead-letters a message that in fact succeeded.
+var ErrAlreadyDone = errors.New("already done")
+
+// AlreadyDone wraps err as an idempotent-success signal (see ErrAlreadyDone).
+// AlreadyDone(nil) returns nil.
+func AlreadyDone(err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w: %w", ErrAlreadyDone, err)
+}
+
 // EventHandler is the contract an application handler implements. The consumer
 // owns all JetStream wiring; the handler owns only business logic in Handle.
 type EventHandler interface {
@@ -79,13 +102,32 @@ type ConcurrentHandler interface {
 	MaxConcurrency() int
 }
 
-// IdempotencyStore is an optional dedup gate keyed by (durable, eventID).
-// When supplied, the consumer skips any message whose event_id was already
-// processed by this durable, making at-least-once delivery effectively
-// exactly-once for the handler. Inject nil to disable.
+// IdempotencyStore is an optional pre-claim dedup gate keyed by
+// (durable, eventID). When supplied, the consumer claims an event BEFORE running
+// the handler, so two replicas that both receive the same delivery cannot both
+// run the (often expensive) handler. Inject nil to disable.
+//
+// The model is a three-state claim: none → in_progress → done.
+//
+//   - TryClaim atomically reserves the event. It returns true when THIS caller
+//     won the claim and must run the handler. It returns false when another
+//     replica holds a fresh in_progress claim or the event is already done — the
+//     caller then skips and Acks. A claim older than ttl is treated as orphaned
+//     (its replica died mid-handler) and is reclaimable, so processing is never
+//     wedged forever.
+//   - MarkDone transitions a won claim to done after the handler succeeded.
+//     Later deliveries of the same event then skip.
+//   - Release removes an in_progress claim after the handler failed, so the NATS
+//     redelivery can reclaim and retry immediately instead of waiting out ttl.
+//     It must only delete in_progress rows, never a done row.
+//
+// Writing the in_progress claim before running the handler is the whole point:
+// it closes the race where two replicas both read "not done" and both run the
+// handler. See ErrAlreadyDone for the residual same-instant-expiry race.
 type IdempotencyStore interface {
-	IsProcessed(ctx context.Context, durable, eventID string) (bool, error)
-	MarkProcessed(ctx context.Context, durable, eventID string) error
+	TryClaim(ctx context.Context, durable, eventID string, ttl time.Duration) (bool, error)
+	MarkDone(ctx context.Context, durable, eventID string) error
+	Release(ctx context.Context, durable, eventID string) error
 }
 
 // Config tunes the consumer. The zero value is usable: missing fields fall
@@ -124,6 +166,18 @@ type Config struct {
 	RetryBackoff time.Duration
 	// Idempotency, when non-nil, gates duplicate event_ids. Default: disabled.
 	Idempotency IdempotencyStore
+	// ClaimTTL bounds how long an in_progress idempotency claim is honoured.
+	// Past it, the claim is treated as orphaned (its replica died mid-handler)
+	// and a later delivery may reclaim it. Size it well above the slowest
+	// expected handler so a live handler is never reclaimed from under itself.
+	// Only used when Idempotency is set. Default: 3 minutes.
+	ClaimTTL time.Duration
+	// TraceExtractor, when set, derives the handler's context from the message
+	// headers — restoring the producer's trace context across the async NATS
+	// boundary so publish→consume spans link up. It keeps this core package free
+	// of any OpenTelemetry dependency: the otel wiring lives in an obs adapter
+	// that supplies this hook. Default: nil (handler runs with the base context).
+	TraceExtractor func(msg *nats.Msg) context.Context
 	// Logger receives structured progress logs. Default: a discard logger.
 	Logger logger.Logger
 }
@@ -152,6 +206,9 @@ func (c *Config) withDefaults() {
 	}
 	if c.HeartbeatInterval == 0 {
 		c.HeartbeatInterval = 10 * time.Second
+	}
+	if c.ClaimTTL == 0 {
+		c.ClaimTTL = 3 * time.Minute
 	}
 	if c.RetryBackoff == 0 {
 		c.RetryBackoff = 2 * time.Second
@@ -243,6 +300,15 @@ func Start(ctx context.Context, nc *nats.Conn, handler EventHandler, cfg Config)
 			switch {
 			case err == nil:
 				_ = msg.Ack()
+			case errors.Is(err, ErrAlreadyDone):
+				// The effect was already applied (idempotent success). Ack
+				// instead of retrying — a redelivery would only fail the same
+				// way until MaxDeliver dead-letters a message that succeeded.
+				log.Info("message already applied (idempotent success)",
+					logger.String("handler", handler.Name()),
+					logger.String("subject", msg.Subject()),
+				)
+				_ = msg.Ack()
 			case errors.Is(err, ErrPermanent):
 				log.Warn("message terminated (permanent)",
 					logger.String("handler", handler.Name()),
@@ -300,8 +366,9 @@ func Run(ctx context.Context, nc *nats.Conn, handler EventHandler, cfg Config) {
 	}
 }
 
-// process runs the idempotency gate then the handler. The returned error keeps
-// its ErrPermanent wrapping (if any) so the caller can choose Term vs Nak.
+// process runs the pre-claim idempotency gate then the handler. The returned
+// error keeps its ErrPermanent / ErrAlreadyDone wrapping (if any) so the caller
+// can choose Term / Ack / Nak.
 func process(ctx context.Context, msg jetstream.Msg, handler EventHandler, cfg Config) error {
 	natsMsg := &nats.Msg{
 		Subject: msg.Subject(),
@@ -309,6 +376,11 @@ func process(ctx context.Context, msg jetstream.Msg, handler EventHandler, cfg C
 		Header:  msg.Headers(),
 	}
 	log := cfg.Logger
+
+	// Restore the producer's trace context across the async boundary, if wired.
+	if cfg.TraceExtractor != nil {
+		ctx = cfg.TraceExtractor(natsMsg)
+	}
 
 	if cfg.Idempotency == nil {
 		return handler.Handle(ctx, natsMsg)
@@ -324,11 +396,15 @@ func process(ctx context.Context, msg jetstream.Msg, handler EventHandler, cfg C
 		return handler.Handle(ctx, natsMsg)
 	}
 
-	processed, err := cfg.Idempotency.IsProcessed(ctx, handler.DurableName(), eventID)
+	durable := handler.DurableName()
+
+	// Pre-claim BEFORE running the handler. Losing the claim means another
+	// replica owns it or it is already done → skip and Ack.
+	claimed, err := cfg.Idempotency.TryClaim(ctx, durable, eventID, cfg.ClaimTTL)
 	if err != nil {
-		return fmt.Errorf("idempotency check: %w", err)
+		return fmt.Errorf("idempotency claim: %w", err)
 	}
-	if processed {
+	if !claimed {
 		log.Info("duplicate event skipped",
 			logger.String("handler", handler.Name()),
 			logger.String("subject", natsMsg.Subject),
@@ -337,13 +413,34 @@ func process(ctx context.Context, msg jetstream.Msg, handler EventHandler, cfg C
 		return nil
 	}
 
-	if err := handler.Handle(ctx, natsMsg); err != nil {
-		return err
+	if herr := handler.Handle(ctx, natsMsg); herr != nil {
+		// Handler failed: release the claim so redelivery can retry immediately
+		// instead of waiting out ClaimTTL. On ErrAlreadyDone the effect is in
+		// place (idempotent success) — mark done, don't release.
+		if errors.Is(herr, ErrAlreadyDone) {
+			if merr := cfg.Idempotency.MarkDone(ctx, durable, eventID); merr != nil {
+				log.Error("failed to mark idempotency done after already-applied",
+					logger.String("handler", handler.Name()),
+					logger.String("event_id", eventID),
+					logger.String("error", merr.Error()),
+				)
+			}
+			return herr
+		}
+		if rerr := cfg.Idempotency.Release(ctx, durable, eventID); rerr != nil {
+			log.Error("failed to release idempotency claim",
+				logger.String("handler", handler.Name()),
+				logger.String("event_id", eventID),
+				logger.String("error", rerr.Error()),
+			)
+		}
+		return herr
 	}
 
-	if err := cfg.Idempotency.MarkProcessed(ctx, handler.DurableName(), eventID); err != nil {
+	if err := cfg.Idempotency.MarkDone(ctx, durable, eventID); err != nil {
 		// Handler already succeeded; a mark failure is logged, not retried,
-		// to avoid re-running side effects.
+		// to avoid re-running side effects. The stale in_progress claim expires
+		// after ClaimTTL and a later delivery re-runs — acceptable at-least-once.
 		log.Error("failed to record idempotency",
 			logger.String("handler", handler.Name()),
 			logger.String("event_id", eventID),
@@ -372,9 +469,15 @@ func handlerConcurrency(h EventHandler) int {
 	return 1
 }
 
-// startAckHeartbeat sends InProgress() on interval to defer AckWait during
-// long-running processing. The returned func stops the ticker.
+// startAckHeartbeat sends InProgress() immediately and then on interval to
+// defer AckWait during long-running processing. The immediate t=0 signal
+// matters: without it a handler slower than AckWait but faster than interval
+// could be redelivered before the first tick ever fires. The returned func
+// stops the ticker.
 func startAckHeartbeat(msg jetstream.Msg, interval time.Duration) func() {
+	// Immediate signal so a handler that outlives AckWait but finishes before
+	// the first tick is still protected.
+	_ = msg.InProgress()
 	done := make(chan struct{})
 	go func() {
 		t := time.NewTicker(interval)

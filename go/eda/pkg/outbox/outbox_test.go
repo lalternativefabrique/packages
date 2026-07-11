@@ -113,3 +113,61 @@ func TestInMemoryStore_FetchPendingRespectsLimit(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, got, 3)
 }
+
+func TestRelay_BackoffForIsExponentialAndCapped(t *testing.T) {
+	r := NewRelay[string](
+		NewInMemoryStore[string](ddd.SystemClock{}),
+		PublisherFunc[string](func(context.Context, ddd.EventEnvelope[string]) error { return nil }),
+		RelayConfig{BaseBackoff: 10 * time.Second, MaxBackoff: 600 * time.Second},
+	)
+
+	cases := []struct {
+		attempts int
+		want     time.Duration
+	}{
+		{1, 10 * time.Second},
+		{2, 20 * time.Second},
+		{3, 40 * time.Second},
+		{7, 600 * time.Second}, // 10*2^6 = 640 -> capped at 600
+		{99, 600 * time.Second},
+		{0, 10 * time.Second}, // clamped to attempt 1
+	}
+	for _, tc := range cases {
+		if got := r.backoffFor(tc.attempts); got != tc.want {
+			t.Errorf("backoffFor(%d) = %v, want %v", tc.attempts, got, tc.want)
+		}
+	}
+}
+
+func TestRelay_MarkFailedReceivesBackoff(t *testing.T) {
+	store := NewInMemoryStore[string](ddd.SystemClock{})
+	env, err := store.Enqueue(context.Background(), mkEnv(t, 1))
+	require.NoError(t, err)
+	_ = env
+
+	var gotRetryAfter time.Duration
+	spy := &backoffSpyStore[string]{Store: store, onFail: func(d time.Duration) { gotRetryAfter = d }}
+
+	r := NewRelay[string](
+		spy,
+		PublisherFunc[string](func(context.Context, ddd.EventEnvelope[string]) error {
+			return errors.New("boom")
+		}),
+		RelayConfig{BaseBackoff: 10 * time.Second, MaxBackoff: 600 * time.Second, MaxAttempts: 5},
+	)
+
+	_, err = r.RunOnce(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 10*time.Second, gotRetryAfter, "first failure should back off BaseBackoff")
+}
+
+// backoffSpyStore wraps a Store to capture the retryAfter passed to MarkFailed.
+type backoffSpyStore[ID comparable] struct {
+	Store[ID]
+	onFail func(time.Duration)
+}
+
+func (s *backoffSpyStore[ID]) MarkFailed(ctx context.Context, id string, err error, retryAfter time.Duration, terminal bool) error {
+	s.onFail(retryAfter)
+	return s.Store.MarkFailed(ctx, id, err, retryAfter, terminal)
+}
