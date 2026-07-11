@@ -146,6 +146,13 @@ type Config struct {
 	// tests) must set this accordingly. The zero value is FileStorage, so the
 	// default needs no withDefaults entry.
 	StreamStorage jetstream.StorageType
+	// StreamRetention is the retention policy used when the stream is created.
+	// Like StreamStorage it must match a pre-existing stream of the same name —
+	// JetStream rejects an update that changes retention policy. Set it to
+	// WorkQueuePolicy for a true work-queue (each message delivered to exactly
+	// one consumer, removed on ack), or InterestPolicy as needed. The zero value
+	// is LimitsPolicy (the default work-queue-of-events shape).
+	StreamRetention jetstream.RetentionPolicy
 	// DLQStreamName captures MAX_DELIVERIES advisories (the dead letters).
 	// Default: "DLQ".
 	DLQStreamName string
@@ -507,7 +514,7 @@ func ensurePipelineStream(ctx context.Context, js jetstream.JetStream, cfg Confi
 		Name:      cfg.StreamName,
 		Subjects:  cfg.StreamSubjects,
 		Storage:   cfg.StreamStorage,
-		Retention: jetstream.LimitsPolicy,
+		Retention: cfg.StreamRetention,
 	})
 	if err != nil {
 		return fmt.Errorf("ensure stream %s: %w", cfg.StreamName, err)
