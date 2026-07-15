@@ -8,16 +8,11 @@
 //   - Subject layout: <prefix>.<aggregateType>.<aggregateID>.<eventType>
 //     Storing the event type in the subject makes per-type subscriptions
 //     trivial and avoids parsing headers during routing.
-//   - Optimistic concurrency: Save reads the aggregate's last stored
-//     version and rejects the batch with ErrConcurrencyConflict when it
-//     does not match expectedVersion. The check is not atomic with the
-//     publish: two writers racing inside that window can both pass.
-//     Server-side expectations (ExpectLastSequencePerSubject) cannot
-//     express "last sequence across the aggregate's subjects" with this
-//     layout — the subject includes the event type, so a per-subject
-//     expectation breaks as soon as an aggregate emits a second event
-//     type. Callers needing a stronger guarantee must serialize writers
-//     per aggregate themselves.
+//   - Optimistic concurrency: Save checks expectedVersion against the
+//     last stored version. OCCModeAtomic (default, NATS >= 2.11) also
+//     sets a server-side expectation on the aggregate subject filter;
+//     OCCModeBestEffort skips it, leaving a small non-atomic window.
+//     See OCCMode for details.
 //   - Idempotency: every publish carries Nats-Msg-Id = EventID, so a
 //     replayed Save will be deduped by the server within the dedupe window.
 //   - Replay: load uses an ephemeral ordered consumer that filters by
@@ -33,6 +28,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -97,6 +93,22 @@ type StringIDCodec struct{}
 func (StringIDCodec) Encode(s string) string          { return s }
 func (StringIDCodec) Decode(s string) (string, error) { return s, nil }
 
+// OCCMode selects how Save enforces optimistic concurrency.
+type OCCMode int
+
+const (
+	// OCCModeAtomic anchors a server-side expectation on the aggregate
+	// subject filter, making the concurrency check atomic with the write —
+	// including between two concurrent creates. Requires NATS Server >= 2.11
+	// (Nats-Expected-Last-Subject-Sequence-Subject); NewJetStreamStore fails
+	// on older servers, which would silently ignore the header.
+	OCCModeAtomic OCCMode = iota
+	// OCCModeBestEffort only runs the client-side version check before
+	// publishing. Two writers racing between check and publish can both
+	// pass. Works on any NATS Server.
+	OCCModeBestEffort
+)
+
 // JetStreamStoreConfig configures a JetStreamStore.
 type JetStreamStoreConfig[ID comparable] struct {
 	// StreamName is the JetStream stream backing the event log.
@@ -119,6 +131,8 @@ type JetStreamStoreConfig[ID comparable] struct {
 	// stream when absent. Set to false in production if stream lifecycle is
 	// managed externally.
 	CreateStreamIfMissing bool
+	// OCC selects the concurrency mode. Defaults to OCCModeAtomic.
+	OCC OCCMode
 }
 
 // JetStreamStore is the generic, JetStream-backed event store.
@@ -145,6 +159,13 @@ func NewJetStreamStore[ID comparable](
 	}
 	if cfg.Payloads == nil {
 		return nil, errors.New("eventstore: PayloadRegistry required")
+	}
+
+	if cfg.OCC == OCCModeAtomic {
+		if v := nc.ConnectedServerVersion(); !serverSupportsFilteredExpectation(v) {
+			return nil, fmt.Errorf(
+				"eventstore: OCCModeAtomic requires NATS Server >= 2.11 (connected to %s); set OCC: OCCModeBestEffort to run without atomic OCC", v)
+		}
 	}
 
 	js, err := jetstream.New(nc)
@@ -202,9 +223,9 @@ func (s *JetStreamStore[ID]) Save(
 		return nil
 	}
 
-	// Read the last stored version to detect stale writers. Best-effort:
-	// this check is not atomic with the publishes below.
-	_, lastVersion, err := s.lastAggregateState(ctx, aggregateID)
+	// Client-side check: gives stale writers a precise error before
+	// anything is published.
+	lastSeq, lastVersion, err := s.lastAggregateState(ctx, aggregateID)
 	if err != nil {
 		return err
 	}
@@ -213,6 +234,7 @@ func (s *JetStreamStore[ID]) Save(
 			ErrConcurrencyConflict, aggregateID, expectedVersion, lastVersion)
 	}
 
+	expectedSeq := lastSeq
 	for _, env := range envelopes {
 		payload, err := json.Marshal(env.Payload)
 		if err != nil {
@@ -245,10 +267,21 @@ func (s *JetStreamStore[ID]) Save(
 		opts := []jetstream.PublishOpt{
 			jetstream.WithMsgID(env.EventID), // idempotent within the dedupe window
 		}
+		if s.cfg.OCC == OCCModeAtomic {
+			// Anchor the expectation on the aggregate filter, not the
+			// published (per-type) subject. seq 0 asserts a fresh aggregate.
+			opts = append(opts, jetstream.WithExpectLastSequenceForSubject(
+				expectedSeq, s.aggregateSubjectFilter(aggregateID)))
+		}
 
-		if _, err := s.js.PublishMsg(ctx, msg, opts...); err != nil {
+		ack, err := s.js.PublishMsg(ctx, msg, opts...)
+		if err != nil {
+			if isWrongLastSeqErr(err) {
+				return fmt.Errorf("%w: %s", ErrConcurrencyConflict, err.Error())
+			}
 			return fmt.Errorf("eventstore: publish %s: %w", env.EventType, err)
 		}
+		expectedSeq = ack.Sequence
 	}
 
 	return nil
@@ -399,6 +432,31 @@ func (s *JetStreamStore[ID]) decode(h nats.Header, data []byte, aggregateID ID) 
 		}
 	}
 	return env, nil
+}
+
+// serverSupportsFilteredExpectation reports whether the connected server
+// understands Nats-Expected-Last-Subject-Sequence-Subject (NATS >= 2.11).
+func serverSupportsFilteredExpectation(version string) bool {
+	parts := strings.SplitN(version, ".", 3)
+	if len(parts) < 2 {
+		return false
+	}
+	major, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return false
+	}
+	minor, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return false
+	}
+	return major > 2 || (major == 2 && minor >= 11)
+}
+
+// isWrongLastSeqErr matches the server-side "wrong last sequence" error
+// (code 10071) returned when a publish expectation fails.
+func isWrongLastSeqErr(err error) bool {
+	var apiErr *jetstream.APIError
+	return errors.As(err, &apiErr) && apiErr.ErrorCode == 10071
 }
 
 // lastAggregateState returns (last subject sequence, last version). Both 0

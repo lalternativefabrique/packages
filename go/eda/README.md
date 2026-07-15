@@ -69,7 +69,7 @@ Two implementations behind one mental model:
 | Store | Use case | Notes |
 |---|---|---|
 | `InMemoryStore[ID]` | tests, local dev | OCC enforced, contiguous versions, optional `Subscribe` |
-| `JetStreamStore[ID]` | production | NATS JetStream v2 API, best-effort OCC (version check on save, not atomic with publish), idempotent publish via `Nats-Msg-Id`, ordered consumer replay |
+| `JetStreamStore[ID]` | production | NATS JetStream v2 API, atomic OCC on the aggregate subject filter (default, NATS >= 2.11) or best-effort mode (`OCCModeBestEffort`, any server), idempotent publish via `Nats-Msg-Id`, ordered consumer replay |
 
 Snapshots are first-class: `SnapshotStore[ID]` with an in-memory impl and a KV (NATS JetStream) impl.
 
