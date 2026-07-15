@@ -10,6 +10,7 @@ package db
 import (
 	"context"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -43,9 +44,13 @@ func newRegistry() *PayloadRegistry {
 
 func connectOrSkip(t *testing.T) *nats.Conn {
 	t.Helper()
-	nc, err := nats.Connect(nats.DefaultURL, nats.Timeout(2*time.Second))
+	url := os.Getenv("NATS_URL")
+	if url == "" {
+		url = nats.DefaultURL
+	}
+	nc, err := nats.Connect(url, nats.Timeout(2*time.Second))
 	if err != nil {
-		t.Skipf("nats server not reachable at %s: %v", nats.DefaultURL, err)
+		t.Skipf("nats server not reachable at %s: %v", url, err)
 	}
 	return nc
 }
@@ -55,10 +60,14 @@ func uniqueStream(prefix string) string {
 }
 
 func mkEnv(version int, payload ddd.EventPayload) ddd.EventEnvelope[string] {
+	return mkEnvFor("agg-1", version, payload)
+}
+
+func mkEnvFor(aggregateID string, version int, payload ddd.EventPayload) ddd.EventEnvelope[string] {
 	return ddd.NewEnvelope[string](
 		ddd.SystemClock{},
 		"Test",
-		"agg-1",
+		aggregateID,
 		version,
 		payload,
 	)
@@ -97,6 +106,45 @@ func TestIntegration_JetStreamStore_SaveLoad(t *testing.T) {
 	assert.Equal(t, "it.created", got[0].EventType)
 	assert.Equal(t, "it.renamed", got[1].EventType)
 	assert.Equal(t, 3, got[2].AggregateVersion)
+}
+
+// Regression: a second Save introducing a new event type publishes to a
+// subject that has never seen a message. The store must not reject it
+// (v0.3.1 failed here with "wrong last sequence: 0" because the OCC
+// expectation was anchored on the per-type subject).
+func TestIntegration_JetStreamStore_SecondEventType(t *testing.T) {
+	nc := connectOrSkip(t)
+	defer nc.Close()
+
+	stream := uniqueStream("EVENTS")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	store, err := NewJetStreamStore[string](ctx, nc, JetStreamStoreConfig[string]{
+		StreamName:            stream,
+		SubjectPrefix:         "events",
+		AggregateType:         "Test",
+		Payloads:              newRegistry(),
+		IDs:                   StringIDCodec{},
+		CreateStreamIfMissing: true,
+	})
+	require.NoError(t, err)
+	defer cleanupStream(ctx, nc, stream)
+
+	require.NoError(t, store.Save(ctx, "agg-multi", 0, []ddd.EventEnvelope[string]{
+		mkEnvFor("agg-multi", 1, itCreated{Name: "first"}),
+	}))
+
+	// New event type => new subject with no prior message.
+	require.NoError(t, store.Save(ctx, "agg-multi", 1, []ddd.EventEnvelope[string]{
+		mkEnvFor("agg-multi", 2, itRenamed{Name: "second"}),
+	}))
+
+	got, err := store.Load(ctx, "agg-multi")
+	require.NoError(t, err)
+	require.Len(t, got, 2)
+	assert.Equal(t, "it.renamed", got[1].EventType)
+	assert.Equal(t, 2, got[1].AggregateVersion)
 }
 
 func TestIntegration_JetStreamStore_OCCConflict(t *testing.T) {
