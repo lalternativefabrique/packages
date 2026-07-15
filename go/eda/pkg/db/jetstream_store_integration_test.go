@@ -2,15 +2,18 @@
 
 // Run: go test -tags=integration ./pkg/db/...
 //
-// Requires a local NATS server with JetStream enabled. Quick start:
-//
-//	docker run --rm -p 4222:4222 nats:2.10 -js
+// Requires a NATS server with JetStream enabled (>= 2.11 to cover the
+// atomic OCC tests; they skip on older servers). Target a non-default
+// server with NATS_URL.
 package db
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -55,6 +58,22 @@ func connectOrSkip(t *testing.T) *nats.Conn {
 	return nc
 }
 
+// occModeFor picks the strongest OCC mode the connected server supports,
+// so the suite runs against both 2.10 and 2.11+ servers.
+func occModeFor(nc *nats.Conn) OCCMode {
+	if serverSupportsFilteredExpectation(nc.ConnectedServerVersion()) {
+		return OCCModeAtomic
+	}
+	return OCCModeBestEffort
+}
+
+func requireAtomicOCC(t *testing.T, nc *nats.Conn) {
+	t.Helper()
+	if !serverSupportsFilteredExpectation(nc.ConnectedServerVersion()) {
+		t.Skipf("atomic OCC needs NATS >= 2.11, connected to %s", nc.ConnectedServerVersion())
+	}
+}
+
 func uniqueStream(prefix string) string {
 	return prefix + "-" + uuid.NewString()[:8]
 }
@@ -88,6 +107,7 @@ func TestIntegration_JetStreamStore_SaveLoad(t *testing.T) {
 		Payloads:              newRegistry(),
 		IDs:                   StringIDCodec{},
 		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
 		MaxAge:                10 * time.Minute,
 	})
 	require.NoError(t, err)
@@ -127,6 +147,7 @@ func TestIntegration_JetStreamStore_SecondEventType(t *testing.T) {
 		Payloads:              newRegistry(),
 		IDs:                   StringIDCodec{},
 		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
 	})
 	require.NoError(t, err)
 	defer cleanupStream(ctx, nc, stream)
@@ -147,6 +168,106 @@ func TestIntegration_JetStreamStore_SecondEventType(t *testing.T) {
 	assert.Equal(t, 2, got[1].AggregateVersion)
 }
 
+// With atomic OCC, N writers racing on the same expectedVersion must
+// yield exactly one winner — no lost updates, no double-appends.
+func TestIntegration_JetStreamStore_AtomicOCC_ConcurrentSaves(t *testing.T) {
+	nc := connectOrSkip(t)
+	defer nc.Close()
+	requireAtomicOCC(t, nc)
+
+	stream := uniqueStream("EVENTS")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	store, err := NewJetStreamStore[string](ctx, nc, JetStreamStoreConfig[string]{
+		StreamName:            stream,
+		SubjectPrefix:         "events",
+		AggregateType:         "Test",
+		Payloads:              newRegistry(),
+		IDs:                   StringIDCodec{},
+		CreateStreamIfMissing: true,
+		OCC:                   OCCModeAtomic,
+	})
+	require.NoError(t, err)
+	defer cleanupStream(ctx, nc, stream)
+
+	require.NoError(t, store.Save(ctx, "agg-race", 0, []ddd.EventEnvelope[string]{
+		mkEnvFor("agg-race", 1, itCreated{Name: "base"}),
+	}))
+
+	const writers = 8
+	var wg sync.WaitGroup
+	var successes atomic.Int32
+	for i := 0; i < writers; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			err := store.Save(ctx, "agg-race", 1, []ddd.EventEnvelope[string]{
+				mkEnvFor("agg-race", 2, itRenamed{Name: fmt.Sprintf("writer-%d", n)}),
+			})
+			if err == nil {
+				successes.Add(1)
+			} else {
+				assert.True(t, errors.Is(err, ErrConcurrencyConflict), "unexpected error: %v", err)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(1), successes.Load())
+	got, err := store.Load(ctx, "agg-race")
+	require.NoError(t, err)
+	assert.Len(t, got, 2)
+}
+
+// With atomic OCC, N writers racing to create the same aggregate must
+// yield exactly one winner (expectation seq 0 = "filter must be empty").
+func TestIntegration_JetStreamStore_AtomicOCC_ConcurrentCreates(t *testing.T) {
+	nc := connectOrSkip(t)
+	defer nc.Close()
+	requireAtomicOCC(t, nc)
+
+	stream := uniqueStream("EVENTS")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	store, err := NewJetStreamStore[string](ctx, nc, JetStreamStoreConfig[string]{
+		StreamName:            stream,
+		SubjectPrefix:         "events",
+		AggregateType:         "Test",
+		Payloads:              newRegistry(),
+		IDs:                   StringIDCodec{},
+		CreateStreamIfMissing: true,
+		OCC:                   OCCModeAtomic,
+	})
+	require.NoError(t, err)
+	defer cleanupStream(ctx, nc, stream)
+
+	const writers = 8
+	var wg sync.WaitGroup
+	var successes atomic.Int32
+	for i := 0; i < writers; i++ {
+		wg.Add(1)
+		go func(n int) {
+			defer wg.Done()
+			err := store.Save(ctx, "agg-create", 0, []ddd.EventEnvelope[string]{
+				mkEnvFor("agg-create", 1, itCreated{Name: fmt.Sprintf("creator-%d", n)}),
+			})
+			if err == nil {
+				successes.Add(1)
+			} else {
+				assert.True(t, errors.Is(err, ErrConcurrencyConflict), "unexpected error: %v", err)
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(1), successes.Load())
+	got, err := store.Load(ctx, "agg-create")
+	require.NoError(t, err)
+	assert.Len(t, got, 1)
+}
+
 func TestIntegration_JetStreamStore_OCCConflict(t *testing.T) {
 	nc := connectOrSkip(t)
 	defer nc.Close()
@@ -162,6 +283,7 @@ func TestIntegration_JetStreamStore_OCCConflict(t *testing.T) {
 		Payloads:              newRegistry(),
 		IDs:                   StringIDCodec{},
 		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
 	})
 	require.NoError(t, err)
 	defer cleanupStream(ctx, nc, stream)
@@ -189,6 +311,7 @@ func TestIntegration_JetStreamStore_Idempotent(t *testing.T) {
 		Payloads:              newRegistry(),
 		IDs:                   StringIDCodec{},
 		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
 	})
 	require.NoError(t, err)
 	defer cleanupStream(ctx, nc, stream)
@@ -219,6 +342,7 @@ func TestIntegration_JetStreamStore_Subscribe(t *testing.T) {
 		Payloads:              newRegistry(),
 		IDs:                   StringIDCodec{},
 		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
 	})
 	require.NoError(t, err)
 	defer cleanupStream(ctx, nc, stream)
