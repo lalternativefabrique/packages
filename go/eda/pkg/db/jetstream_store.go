@@ -1,18 +1,23 @@
 // Package db: generic event store backed by NATS JetStream (v2 API).
 //
 // This file provides JetStreamStore[ID], the modern, type-safe event store
-// built on github.com/nats-io/nats.go/jetstream. It coexists with the
-// legacy NATSEventStore (event_store.go) which uses the deprecated v1
-// JetStreamContext.
+// built on github.com/nats-io/nats.go/jetstream.
 //
 // Design choices:
 //
 //   - Subject layout: <prefix>.<aggregateType>.<aggregateID>.<eventType>
 //     Storing the event type in the subject makes per-type subscriptions
 //     trivial and avoids parsing headers during routing.
-//   - Optimistic concurrency: ExpectLastSequencePerSubject is set so two
-//     writers cannot interleave on the same aggregate. The store reads the
-//     last sequence per <prefix>.<aggregateType>.<aggregateID>.> on save.
+//   - Optimistic concurrency: Save reads the aggregate's last stored
+//     version and rejects the batch with ErrConcurrencyConflict when it
+//     does not match expectedVersion. The check is not atomic with the
+//     publish: two writers racing inside that window can both pass.
+//     Server-side expectations (ExpectLastSequencePerSubject) cannot
+//     express "last sequence across the aggregate's subjects" with this
+//     layout — the subject includes the event type, so a per-subject
+//     expectation breaks as soon as an aggregate emits a second event
+//     type. Callers needing a stronger guarantee must serialize writers
+//     per aggregate themselves.
 //   - Idempotency: every publish carries Nats-Msg-Id = EventID, so a
 //     replayed Save will be deduped by the server within the dedupe window.
 //   - Replay: load uses an ephemeral ordered consumer that filters by
@@ -89,8 +94,8 @@ type IDCodec[ID comparable] interface {
 // StringIDCodec is the identity codec for string aggregate IDs.
 type StringIDCodec struct{}
 
-func (StringIDCodec) Encode(s string) string             { return s }
-func (StringIDCodec) Decode(s string) (string, error)    { return s, nil }
+func (StringIDCodec) Encode(s string) string          { return s }
+func (StringIDCodec) Decode(s string) (string, error) { return s, nil }
 
 // JetStreamStoreConfig configures a JetStreamStore.
 type JetStreamStoreConfig[ID comparable] struct {
@@ -197,8 +202,9 @@ func (s *JetStreamStore[ID]) Save(
 		return nil
 	}
 
-	// Read the last sequence on the aggregate subject filter to drive OCC.
-	lastSeq, lastVersion, err := s.lastAggregateState(ctx, aggregateID)
+	// Read the last stored version to detect stale writers. Best-effort:
+	// this check is not atomic with the publishes below.
+	_, lastVersion, err := s.lastAggregateState(ctx, aggregateID)
 	if err != nil {
 		return err
 	}
@@ -207,7 +213,6 @@ func (s *JetStreamStore[ID]) Save(
 			ErrConcurrencyConflict, aggregateID, expectedVersion, lastVersion)
 	}
 
-	expectedSeq := lastSeq
 	for _, env := range envelopes {
 		payload, err := json.Marshal(env.Payload)
 		if err != nil {
@@ -240,23 +245,10 @@ func (s *JetStreamStore[ID]) Save(
 		opts := []jetstream.PublishOpt{
 			jetstream.WithMsgID(env.EventID), // idempotent within the dedupe window
 		}
-		// Last-seq-per-subject is computed across the aggregate filter,
-		// not a single subject, so we use ExpectLastSequence (stream-wide
-		// would be too strict). Per-subject is sufficient because all
-		// aggregate events live under <prefix>.<type>.<id>.>.
-		if expectedSeq > 0 {
-			opts = append(opts, jetstream.WithExpectLastSequencePerSubject(expectedSeq))
-		}
 
-		ack, err := s.js.PublishMsg(ctx, msg, opts...)
-		if err != nil {
-			// Translate server-side OCC failure.
-			if isWrongLastSeqErr(err) {
-				return fmt.Errorf("%w: %s", ErrConcurrencyConflict, err.Error())
-			}
+		if _, err := s.js.PublishMsg(ctx, msg, opts...); err != nil {
 			return fmt.Errorf("eventstore: publish %s: %w", env.EventType, err)
 		}
-		expectedSeq = ack.Sequence
 	}
 
 	return nil
@@ -443,18 +435,4 @@ func (s *JetStreamStore[ID]) lastAggregateState(ctx context.Context, aggregateID
 		}
 	}
 	return maxSeq, maxVersion, nil
-}
-
-// isWrongLastSeqErr matches the server-side "wrong last sequence" error
-// returned when ExpectLastSequence(PerSubject) fails.
-func isWrongLastSeqErr(err error) bool {
-	if err == nil {
-		return false
-	}
-	var apiErr *jetstream.APIError
-	if errors.As(err, &apiErr) {
-		// 10071 = wrong last sequence; see NATS error codes.
-		return apiErr.ErrorCode == 10071
-	}
-	return false
 }
