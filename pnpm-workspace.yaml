@@ -1,6 +1,7 @@
 packages:
   - "skalpai/*"
   - "auth"
+  - "admin"
 allowBuilds:
   esbuild: true
   protobufjs: false
