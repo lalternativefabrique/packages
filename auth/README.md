@@ -11,12 +11,8 @@ and the auth UI forms (verify-email, forgot/reset password, auth layout).
 pnpm add @lalternative/auth better-auth react react-dom
 ```
 
-The package is published to GitHub Packages. Consumers need a `.npmrc`:
-
-```
-@lalternative:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
+The package is published to the public npmjs.org registry — install is
+anonymous, no `.npmrc` override or token needed.
 
 ## Usage
 

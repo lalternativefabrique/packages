@@ -16,12 +16,8 @@ delete/setup routes stay in each app.
 pnpm add @lalternative/admin react react-dom
 ```
 
-Published to GitHub Packages. Consumers need a `.npmrc`:
-
-```
-@lalternative:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
+Published to the public npmjs.org registry — install is anonymous, no `.npmrc`
+override or token needed.
 
 ## Why a capability interface, not the auth client
 
