@@ -15,6 +15,33 @@ type Confirm =
   | { kind: "ban"; user: AdminUser }
   | null
 
+const PILL_TONES = {
+  ok: "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  danger: "border-destructive/25 bg-destructive/10 text-destructive",
+  muted: "border-border bg-muted text-muted-foreground",
+} as const
+
+/**
+ * Account state as a pill: colour alone would not survive a colour-blind reader
+ * or a greyscale print, so the state is also carried by its own label and a
+ * bordered chip that reads as a distinct object in the row.
+ */
+function StatusPill({
+  tone,
+  children,
+}: {
+  tone: keyof typeof PILL_TONES
+  children: React.ReactNode
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${PILL_TONES[tone]}`}
+    >
+      {children}
+    </span>
+  )
+}
+
 /**
  * The shared admin users table: list + delete + ban/unban + promote/demote.
  *
@@ -103,36 +130,38 @@ export function UsersTable({
     )
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-light tracking-tight">Utilisateurs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Utilisateurs</h1>
+        <p className="text-sm text-muted-foreground tabular-nums">
           {users.length} compte{users.length > 1 ? "s" : ""}
         </p>
       </div>
 
       {banner ? (
         <div
+          role="status"
           className={
-            "mb-4 rounded-lg px-3 py-2 text-sm " +
+            "rounded-lg border px-3 py-2 text-sm " +
             (banner.tone === "ok"
-              ? "bg-green-500/10 text-green-600"
-              : "bg-red-500/10 text-red-600")
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
+              : "border-destructive/20 bg-destructive/10 text-destructive")
           }
         >
           {banner.text}
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border">
+      {/* Its own scroll container so the page body never scrolls sideways. */}
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="border-b text-xs uppercase text-muted-foreground">
+          <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Rôle</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Créé le</th>
-              <th className="px-4 py-3" />
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -144,23 +173,31 @@ export function UsersTable({
               </tr>
             ) : loadError ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-red-500">
+                <td colSpan={5} className="px-4 py-10 text-center text-destructive">
                   {loadError}
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
                   Aucun utilisateur.
                 </td>
               </tr>
             ) : (
               users.map((u) => (
-                <tr key={u.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">{u.email}</td>
+                <tr
+                  key={u.id}
+                  className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                >
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{u.email}</div>
+                    {u.name ? (
+                      <div className="text-xs text-muted-foreground">{u.name}</div>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3">
                     {u.role === "admin" ? (
-                      <span className="rounded bg-violet-500/10 px-1.5 py-0.5 text-xs text-violet-500">
+                      <span className="inline-flex items-center rounded-full border border-violet-500/25 bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-600 dark:text-violet-400">
                         admin
                       </span>
                     ) : (
@@ -169,23 +206,23 @@ export function UsersTable({
                   </td>
                   <td className="px-4 py-3">
                     {u.banned ? (
-                      <span className="text-xs text-red-500">suspendu</span>
+                      <StatusPill tone="danger">suspendu</StatusPill>
                     ) : u.emailVerified ? (
-                      <span className="text-xs text-green-600">actif</span>
+                      <StatusPill tone="ok">actif</StatusPill>
                     ) : (
-                      <span className="text-xs text-muted-foreground">non vérifié</span>
+                      <StatusPill tone="muted">non vérifié</StatusPill>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
+                  <td className="px-4 py-3 text-muted-foreground tabular-nums">
                     {formatDate(u.createdAt)}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => doRoleToggle(u)}
-                        className="rounded px-2 py-1 text-xs hover:bg-foreground/5 disabled:opacity-50"
+                        className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
                       >
                         {u.role === "admin" ? "Rétrograder" : "Promouvoir"}
                       </button>
@@ -195,7 +232,7 @@ export function UsersTable({
                         onClick={() =>
                           u.banned ? doBanToggle(u) : setConfirm({ kind: "ban", user: u })
                         }
-                        className="rounded px-2 py-1 text-xs hover:bg-amber-500/10 hover:text-amber-600 disabled:opacity-50"
+                        className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-amber-500/10 hover:text-amber-600 disabled:opacity-50"
                       >
                         {u.banned ? "Réactiver" : "Suspendre"}
                       </button>
@@ -204,7 +241,7 @@ export function UsersTable({
                         disabled={busy}
                         onClick={() => setConfirm({ kind: "delete", user: u })}
                         aria-label={`Supprimer ${u.email}`}
-                        className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-red-500/10 hover:text-red-500 disabled:opacity-50"
+                        className="rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
                       >
                         Supprimer
                       </button>
@@ -223,7 +260,9 @@ export function UsersTable({
           onClick={() => !busy && setConfirm(null)}
         >
           <div
-            className="w-full max-w-md rounded-xl bg-background p-6 shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-xl border bg-card p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {confirm.kind === "delete" ? (
