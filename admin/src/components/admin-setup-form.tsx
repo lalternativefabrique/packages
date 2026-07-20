@@ -1,18 +1,37 @@
 import { useState, type FormEvent } from "react"
-import type { AdminSetupFormProps } from "../types"
+import type { AdminSetupFormProps, AdminSetupLabels } from "../types"
+import { ALERT, BUTTON_PRIMARY, CARD, INPUT, LABEL } from "../styles"
+
+const DEFAULT_LABELS: AdminSetupLabels = {
+  name: "Nom",
+  email: "Email",
+  password: "Mot de passe",
+  passwordHint: "Min. 8 caractères",
+  submit: "Créer le compte admin",
+  submitting: "Création…",
+  created: "Compte administrateur créé.",
+  redirecting: "Redirection…",
+  setupFailed: "La configuration a échoué",
+}
 
 /**
  * First-admin bootstrap form. The actual creation (a direct SQL insert, run
  * before any admin exists and thus before the normal auth flow can gate it)
  * stays app-side and is passed as `onSubmit`. This component only collects the
  * fields and reports success/error.
+ *
+ * Renders the card only — no page shell. The app owns centering, background and
+ * width, so it can place the form alongside its own chrome (theme/language
+ * switchers, footer links) without fighting a nested full-screen wrapper.
  */
 export function AdminSetupForm({
   onSubmit,
   onSuccess,
   title = "Configuration initiale",
   subtitle = "Créer le premier compte administrateur",
+  labels,
 }: AdminSetupFormProps) {
+  const t = { ...DEFAULT_LABELS, ...labels }
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -29,7 +48,7 @@ export function AdminSetupForm({
       setDone(true)
       await onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "La configuration a échoué")
+      setError(err instanceof Error ? err.message : t.setupFailed)
     } finally {
       setSubmitting(false)
     }
@@ -37,90 +56,89 @@ export function AdminSetupForm({
 
   if (done) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-        <div className="w-full max-w-md text-center">
-          <h2 className="text-lg font-medium">Compte administrateur créé.</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Redirection…</p>
-        </div>
+      <div className="rounded-xl border bg-card p-8 text-center shadow-sm">
+        <h2 className="text-base font-medium">{t.created}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t.redirecting}</p>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
-      <div className="w-full max-w-md">
-        <div className="mb-10 text-center">
-          <h1 className="text-[32px] font-light tracking-tight">{title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>
+    <div>
+      <div className="mb-6 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className={`space-y-5 p-6 ${CARD}`}
+      >
+        {error ? (
+          <div
+            role="alert"
+            className={ALERT}
+          >
+            {error}
+          </div>
+        ) : null}
+
+        <div className="space-y-1.5">
+          <label htmlFor="setup-name" className={LABEL}>
+            {t.name}
+          </label>
+          <input
+            id="setup-name"
+            type="text"
+            required
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={INPUT}
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border p-8">
-          {error ? (
-            <div className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
-              {error}
-            </div>
-          ) : null}
+        <div className="space-y-1.5">
+          <label htmlFor="setup-email" className={LABEL}>
+            {t.email}
+          </label>
+          <input
+            id="setup-email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="admin@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={INPUT}
+          />
+        </div>
 
-          <div>
-            <label htmlFor="setup-name" className="mb-1.5 block text-sm font-medium">
-              Nom
-            </label>
-            <input
-              id="setup-name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <label htmlFor="setup-password" className={LABEL}>
+            {t.password}
+          </label>
+          <input
+            id="setup-password"
+            type="password"
+            required
+            minLength={8}
+            autoComplete="new-password"
+            placeholder={t.passwordHint}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={INPUT}
+          />
+        </div>
 
-          <div>
-            <label htmlFor="setup-email" className="mb-1.5 block text-sm font-medium">
-              Email
-            </label>
-            <input
-              id="setup-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="setup-password"
-              className="mb-1.5 block text-sm font-medium"
-            >
-              Mot de passe
-            </label>
-            <input
-              id="setup-password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 caractères"
-              className="w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-foreground py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? "Création…" : "Créer le compte admin"}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Cette page n'est disponible que tant qu'aucun administrateur n'existe.
-        </p>
-      </div>
+        <button
+          type="submit"
+          disabled={submitting}
+          className={BUTTON_PRIMARY}
+        >
+          {submitting ? t.submitting : t.submit}
+        </button>
+      </form>
     </div>
   )
 }

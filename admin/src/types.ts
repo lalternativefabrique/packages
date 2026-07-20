@@ -89,6 +89,8 @@ export interface AdminHomeProps {
   api: Pick<AdminUserApi, "listUsers">
   /** Router-supplied link to the users page (wraps the count card). */
   usersLink: (opts: { className: string; children: ReactNode }) => ReactNode
+  /** Page heading. Defaults to "Tableau de bord". */
+  title?: string
 }
 
 export interface UsersTableProps {
@@ -113,6 +115,21 @@ export interface AdminLoginFormProps {
   /** Optional label overrides. */
   title?: string
   subtitle?: string
+  /**
+   * Per-string overrides so i18n-enabled apps can translate the form. Defaults
+   * are French; pass the keys you need from your own catalogue.
+   */
+  labels?: Partial<AdminLoginLabels>
+}
+
+/** Inner strings of {@link AdminLoginFormProps}, overridable for i18n. */
+export interface AdminLoginLabels {
+  email: string
+  password: string
+  submit: string
+  submitting: string
+  signInFailed: string
+  notAnAdmin: string
 }
 
 export interface AdminSetupFormProps {
@@ -129,4 +146,22 @@ export interface AdminSetupFormProps {
   onSuccess?: () => void | Promise<void>
   title?: string
   subtitle?: string
+  /**
+   * Per-string overrides so i18n-enabled apps can translate the form. Defaults
+   * are French; pass the keys you need from your own catalogue.
+   */
+  labels?: Partial<AdminSetupLabels>
+}
+
+/** Inner strings of {@link AdminSetupFormProps}, overridable for i18n. */
+export interface AdminSetupLabels {
+  name: string
+  email: string
+  password: string
+  passwordHint: string
+  submit: string
+  submitting: string
+  created: string
+  redirecting: string
+  setupFailed: string
 }
