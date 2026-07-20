@@ -1,6 +1,14 @@
 import { useState, type FormEvent } from "react"
 import type { AdminSetupFormProps, AdminSetupLabels } from "../types"
-import { ALERT, BUTTON_PRIMARY, CARD, INPUT, LABEL } from "../styles"
+import {
+  ALERT,
+  BUTTON_PRIMARY,
+  CARD,
+  FORM_SUBTITLE,
+  FORM_TITLE,
+  INPUT,
+  LABEL,
+} from "../styles"
 
 const DEFAULT_LABELS: AdminSetupLabels = {
   name: "Nom",
@@ -20,9 +28,13 @@ const DEFAULT_LABELS: AdminSetupLabels = {
  * stays app-side and is passed as `onSubmit`. This component only collects the
  * fields and reports success/error.
  *
- * Renders the card only — no page shell. The app owns centering, background and
- * width, so it can place the form alongside its own chrome (theme/language
- * switchers, footer links) without fighting a nested full-screen wrapper.
+ * Renders the card only — no page shell — at a readable default width
+ * (`w-full max-w-sm`, override via `className`). The app owns centering and
+ * page background, so it can place the form alongside its own chrome
+ * (theme/language switchers, footer links) without nesting full-screen
+ * wrappers. The width lives here because it is a property of the form, not of
+ * where it sits: leaving it to the app made the card span the whole viewport
+ * wherever the wrapper forgot a max-width.
  */
 export function AdminSetupForm({
   onSubmit,
@@ -30,6 +42,9 @@ export function AdminSetupForm({
   title = "Configuration initiale",
   subtitle = "Créer le premier compte administrateur",
   labels,
+  className = "",
+  icon,
+  footer,
 }: AdminSetupFormProps) {
   const t = { ...DEFAULT_LABELS, ...labels }
   const [name, setName] = useState("")
@@ -56,29 +71,23 @@ export function AdminSetupForm({
 
   if (done) {
     return (
-      <div className="rounded-xl border bg-card p-8 text-center shadow-sm">
-        <h2 className="text-base font-medium">{t.created}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{t.redirecting}</p>
+      <div className={`w-full max-w-md ${className}`}>
+        <div className={`${CARD} p-8 text-center`}>
+          <h2 className="text-base font-medium">{t.created}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t.redirecting}</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>
-      </div>
+    <div className={`w-full max-w-md ${className}`}>
+      <h1 className={FORM_TITLE}>{title}</h1>
+      {subtitle ? <p className={FORM_SUBTITLE}>{subtitle}</p> : null}
 
-      <form
-        onSubmit={handleSubmit}
-        className={`space-y-5 p-6 ${CARD}`}
-      >
+      <form onSubmit={handleSubmit} className={`mt-8 space-y-5 p-6 ${CARD}`}>
         {error ? (
-          <div
-            role="alert"
-            className={ALERT}
-          >
+          <div role="alert" className={ALERT}>
             {error}
           </div>
         ) : null}
@@ -131,14 +140,17 @@ export function AdminSetupForm({
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className={BUTTON_PRIMARY}
-        >
+        <button type="submit" disabled={submitting} className={BUTTON_PRIMARY}>
+          {icon}
           {submitting ? t.submitting : t.submit}
         </button>
       </form>
+
+      {footer ? (
+        <div className="mt-5 text-center text-sm text-muted-foreground">
+          {footer}
+        </div>
+      ) : null}
     </div>
   )
 }
