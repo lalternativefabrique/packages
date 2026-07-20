@@ -120,6 +120,19 @@ export interface AdminLoginFormProps {
    * are French; pass the keys you need from your own catalogue.
    */
   labels?: Partial<AdminLoginLabels>
+  /**
+   * Optional leading icon inside the submit button (e.g. a lucide <LogIn/>).
+   * Passed as a node so the package needs no icon dependency.
+   */
+  icon?: ReactNode
+  /** Rendered under the card — typically a secondary link. */
+  footer?: ReactNode
+  /**
+   * Extra classes on the form's own wrapper. The component sets a readable
+   * default width (`w-full max-w-sm`); pass e.g. `max-w-md` to override it.
+   * Centering and page background stay the app's job.
+   */
+  className?: string
 }
 
 /** Inner strings of {@link AdminLoginFormProps}, overridable for i18n. */
@@ -151,6 +164,19 @@ export interface AdminSetupFormProps {
    * are French; pass the keys you need from your own catalogue.
    */
   labels?: Partial<AdminSetupLabels>
+  /**
+   * Optional leading icon inside the submit button (e.g. a lucide <LogIn/>).
+   * Passed as a node so the package needs no icon dependency.
+   */
+  icon?: ReactNode
+  /** Rendered under the card — typically a secondary link. */
+  footer?: ReactNode
+  /**
+   * Extra classes on the form's own wrapper. The component sets a readable
+   * default width (`w-full max-w-sm`); pass e.g. `max-w-md` to override it.
+   * Centering and page background stay the app's job.
+   */
+  className?: string
 }
 
 /** Inner strings of {@link AdminSetupFormProps}, overridable for i18n. */
