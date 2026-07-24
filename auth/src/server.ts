@@ -59,6 +59,16 @@ export function createPlatformAuth(
       enabled: true,
       requireEmailVerification: true,
     },
+    // Never auto-merge a social identity into an existing account by matching
+    // email. Better Auth links by default (email-verified providers are trusted),
+    // so signing in with Google/GitHub on an email already registered would fold
+    // that identity into the existing account. We keep each sign-in method its
+    // own account: a social login on a taken email is refused, not linked.
+    account: {
+      accountLinking: {
+        enabled: false,
+      },
+    },
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {
