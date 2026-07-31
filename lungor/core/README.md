@@ -42,14 +42,36 @@ have to agree on that boundary.
 **`mollie`** — a thin HTTP client over the Mollie API (customers, mandates,
 subscriptions, payments). `net/http` only.
 
+**`metering`** — an append-only usage ledger with an atomic quota cap.
+
+```go
+m := metering.New(metering.Config{AppID: appID, TenantID: tenantID,
+    Units: units, Ledger: ledger, Periods: periods})
+
+dec, err := m.ConsumeQuota(ctx, userID, alloc, qty, idempotencyKey)
+used, err := m.ConsumedThisPeriod(ctx, userID, "credit")
+```
+
+Nothing stores a running total: consumption is a SUM over the ledger, which is
+what makes a debit safe to retry under its idempotency key. `PeriodResolver` is
+the seam where anchored windows plug in — pair it with `billingperiod` so quota
+and invoicing agree on where a period ends.
+
+**`invoicing`** — invoice numbering, PDF rendering and Factur-X output, with
+French sequential-numbering rules built in.
+
+Both need tables. `migrations/` carries the schema they expect; it is plain SQL,
+apply it with whatever tool the consuming application already uses.
+
 ## What is not here
 
 The product decisions. Plan catalogues, credit pricing, what a plan grants —
 those belong in the application, because that is where they change.
 
-Metering (usage ledger, quota enforcement) and invoicing are the next lots to
-extract; they carry a database schema with them, which is why they did not ship
-in v0.1.0.
+Subscription persistence (`pgsubscriptions`), the payment reconciler and the
+anchored-period reader are the next lot. They are close to generic already, but
+they travel with a `Plan` type that carries product-specific fields, so
+extracting them means reworking that boundary first.
 
 ## Versioning
 
