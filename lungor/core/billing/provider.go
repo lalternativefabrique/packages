@@ -122,6 +122,11 @@ var (
 	ErrChangeNotAllowed = errors.New("billing: subscription cannot change tier")
 	// ErrNotADowngrade — the requested tier is not smaller than the one held.
 	ErrNotADowngrade = errors.New("billing: not a downgrade")
+	// ErrNotAnUpgrade — the requested tier is smaller than the one held, on a
+	// path that only moves up. The caller routes to the downgrade path, which is
+	// deferred and free; applying it here would cut an allowance already paid
+	// for.
+	ErrNotAnUpgrade = errors.New("billing: not an upgrade")
 	// ErrNotPurchasable — the tier may not be charged for. Reached by an unknown
 	// tier name too, since callers resolve those to free.
 	ErrNotPurchasable = errors.New("billing: tier is not purchasable")

@@ -90,6 +90,47 @@ func PlanTierChange(sub Subscription, current, to Tier, now time.Time) (TierChan
 	}
 }
 
+// PlanUpgrade is PlanTierChange restricted to moves UP. A smaller tier is
+// refused with ErrNotAnUpgrade.
+//
+// The restriction belongs here, not at each entry point. Applying a smaller
+// tier immediately is exactly what the deferred-downgrade design prevents: a
+// subscriber who has already spent past the smaller allowance lands over their
+// new ceiling and is refused on every request, for a period they paid for.
+// Left to callers, that comparison gets written once per handler — and the one
+// place it is missing is the one that charges.
+func PlanUpgrade(sub Subscription, current, to Tier, now time.Time) (TierChange, error) {
+	change, err := PlanTierChange(sub, current, to, now)
+	if err != nil {
+		return TierChange{}, err
+	}
+	if change.Kind == ChangeDown {
+		return TierChange{}, ErrNotAnUpgrade
+	}
+	return change, nil
+}
+
+// PlanDowngrade is PlanTierChange restricted to moves DOWN. A larger tier is
+// refused with ErrNotADowngrade.
+//
+// A larger tier is the immediate, CHARGED path, so silently redirecting to it
+// would take money on a call the customer made in order to spend less. It has
+// to be a deliberate second act.
+//
+// Asking for the tier already held is not refused by either variant: the
+// customer's stated intent matches reality, and that no-op is also how a
+// scheduled downgrade gets withdrawn.
+func PlanDowngrade(sub Subscription, current, to Tier, now time.Time) (TierChange, error) {
+	change, err := PlanTierChange(sub, current, to, now)
+	if err != nil {
+		return TierChange{}, err
+	}
+	if change.Kind == ChangeUp {
+		return TierChange{}, ErrNotADowngrade
+	}
+	return change, nil
+}
+
 // TierChange is the plan of record for a tier move: what the adapter must do,
 // in what order, and what to tell the customer.
 //
