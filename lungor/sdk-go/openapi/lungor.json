@@ -1,0 +1,2272 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "description": "lungor billing & entitlement platform — REST API (daemonless publish).",
+        "title": "lungor Core API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "paths": {
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Clear the session cookie",
+                "operationId": "logout",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/entitlements": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "entitlements"
+                ],
+                "summary": "Look up entitlement for an external user",
+                "operationId": "getEntitlement",
+                "parameters": [
+                    {
+                        "description": "External user ID",
+                        "name": "external_user_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Comma-separated units",
+                        "name": "units",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.entitlementResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/finance/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "checkout"
+                ],
+                "summary": "Start a checkout session",
+                "operationId": "checkout",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.checkoutRequest"
+                            }
+                        }
+                    },
+                    "description": "Checkout",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.checkoutResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/finance/webhooks/payplug/{cred_id}": {
+            "post": {
+                "tags": [
+                    "webhooks"
+                ],
+                "summary": "Receive a gateway webhook (PayPlug or Mollie)",
+                "operationId": "payplugWebhook",
+                "parameters": [
+                    {
+                        "description": "Credentials ID",
+                        "name": "cred_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get the current authenticated user and tenants",
+                "operationId": "me",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/identity.meResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/usage": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Record a usage consumption (generic unit)",
+                "operationId": "consumeUsage",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.consumeRequest"
+                            }
+                        }
+                    },
+                    "description": "Consumption",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.decisionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.decisionResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/usage/balance": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Get a user's balance for a usage unit",
+                "operationId": "getUsageBalance",
+                "parameters": [
+                    {
+                        "description": "External user id",
+                        "name": "external_user_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Usage unit code",
+                        "name": "unit",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.balanceResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/usage/topup": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Top up a user's prepaid balance for a usage unit",
+                "operationId": "topupUsage",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.consumeRequest"
+                            }
+                        }
+                    },
+                    "description": "Top-up",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.decisionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}": {
+            "patch": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Update tenant legal entity",
+                "operationId": "updateTenant",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.updateTenantReq"
+                            }
+                        }
+                    },
+                    "description": "Tenant patch",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps": {
+            "get": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "List apps for a tenant",
+                "operationId": "listApps",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.appView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Create an app",
+                "operationId": "createApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.createAppReq"
+                            }
+                        }
+                    },
+                    "description": "App",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appCreatedView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/credentials": {
+            "get": {
+                "tags": [
+                    "credentials"
+                ],
+                "summary": "List provider credentials",
+                "operationId": "listCredentials",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.credsView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "credentials"
+                ],
+                "summary": "Create provider credentials",
+                "operationId": "createCredentials",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.createCredsReq"
+                            }
+                        }
+                    },
+                    "description": "Credentials",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.credsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/plans": {
+            "post": {
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Create a billing plan",
+                "operationId": "createPlan",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.createPlanReq"
+                            }
+                        }
+                    },
+                    "description": "Plan",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.planView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/plans": {
+            "get": {
+                "tags": [
+                    "plans"
+                ],
+                "summary": "List plans for an app",
+                "operationId": "listPlans",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.planView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/rotate-key": {
+            "post": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Rotate an app API key",
+                "operationId": "rotateAppKey",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/test-mode": {
+            "patch": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Toggle an app's test mode",
+                "operationId": "setAppTestMode",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.setTestModeReq"
+                            }
+                        }
+                    },
+                    "description": "Test mode flag",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/usage-units": {
+            "get": {
+                "tags": [
+                    "metering"
+                ],
+                "summary": "List usage units for an app",
+                "operationId": "listUsageUnits",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/metering.unitView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Declare a usage unit for an app",
+                "operationId": "declareUsageUnit",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.declareUnitRequest"
+                            }
+                        }
+                    },
+                    "description": "Usage unit",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.unitView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/customers": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List a tenant's customers (with active subscription count + lifetime amount)",
+                "operationId": "listCustomers",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.customerListItemView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/dashboard": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Dashboard overview KPIs (revenue, tx, active subs) for the current month",
+                "operationId": "dashboardSummary",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps + revenue-by-app breakdown",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.dashboardView"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/invoices": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List a tenant's invoices (joined with customer)",
+                "operationId": "listInvoices",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.invoiceListItemView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/payouts": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List a tenant's payouts",
+                "operationId": "listPayouts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.payoutListItemView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/rebill-due": {
+            "post": {
+                "description": "Manual admin trigger (no scheduler). For each due subscription it charges the saved payment method via the PSP. Immediate success advances the period; pending (async) charges are left for the webhook; hard failures mark the subscription past_due for retry.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Charge all of a tenant's subscriptions whose billing period has ended",
+                "operationId": "rebillDue",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.rebillDueResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/subscriptions": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List a tenant's subscriptions (joined with customer + plan)",
+                "operationId": "listSubscriptions",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.subscriptionListItemView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/subscriptions/{sub_id}/cancel": {
+            "post": {
+                "description": "At period end (default): the subscription stays active until its current period ends, then won't renew (the rebill run finalizes it). Immediate ({\"at_period_end\": false}): access stops now and the saved-method mandate is revoked through the PSP so no future charge is possible.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Cancel a subscription (at period end by default, or immediately)",
+                "operationId": "cancelSubscription",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Subscription ID",
+                        "name": "sub_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.cancelRequest"
+                            }
+                        }
+                    },
+                    "description": "Cancel mode"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.cancelResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/subscriptions/{sub_id}/close-period": {
+            "post": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Close a subscription billing period",
+                "operationId": "closePeriod",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Subscription ID",
+                        "name": "sub_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.closePeriodRequest"
+                            }
+                        }
+                    },
+                    "description": "Close period",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.closePeriodResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/transactions": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List a tenant's transactions (joined with customer)",
+                "operationId": "listTransactions",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app id (dashboard app lens); omit for all apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.transactionListItemView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "/api/v1"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "AppKeyAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header"
+            }
+        },
+        "schemas": {
+            "echo.HTTPError": {
+                "type": "object",
+                "properties": {
+                    "message": {}
+                }
+            },
+            "finance.appCreatedView": {
+                "type": "object",
+                "properties": {
+                    "api_key": {
+                        "description": "cleartext, returned ONCE",
+                        "type": "string"
+                    },
+                    "api_key_prefix": {
+                        "type": "string"
+                    },
+                    "app": {
+                        "$ref": "#/components/schemas/finance.appView"
+                    }
+                }
+            },
+            "finance.appRevenueView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "net_revenue": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.appView": {
+                "type": "object",
+                "properties": {
+                    "billing_model": {
+                        "type": "string"
+                    },
+                    "brand_color": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "logo_url": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "test_mode": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.cancelRequest": {
+                "type": "object",
+                "properties": {
+                    "at_period_end": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.cancelResponse": {
+                "type": "object",
+                "properties": {
+                    "cancel_at_period_end": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.checkoutRequest": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "cancel_url": {
+                        "type": "string"
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "price_id": {
+                        "type": "string"
+                    },
+                    "success_url": {
+                        "type": "string"
+                    },
+                    "tenant_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.checkoutResponse": {
+                "type": "object",
+                "properties": {
+                    "redirect_url": {
+                        "type": "string"
+                    },
+                    "session_id": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.closePeriodRequest": {
+                "type": "object",
+                "properties": {
+                    "flat_amount": {
+                        "type": "integer"
+                    },
+                    "flat_description": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.closePeriodResponse": {
+                "type": "object",
+                "properties": {
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.invoiceLineView"
+                        }
+                    },
+                    "total": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.createAppReq": {
+                "type": "object",
+                "properties": {
+                    "brand_color": {
+                        "type": "string"
+                    },
+                    "logo_url": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "test_mode": {
+                        "description": "TestMode creates the app in test mode: checkouts route to the provider's\ntest-environment credential (PSP sandbox) and all resulting data is tagged\ntest so it never mixes with real data. Defaults to false (live).",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.createCredsReq": {
+                "type": "object",
+                "properties": {
+                    "environment": {
+                        "description": "legacy: test | live (single)",
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "secret_key": {
+                        "description": "legacy single key",
+                        "type": "string"
+                    },
+                    "secret_key_live": {
+                        "type": "string"
+                    },
+                    "secret_key_test": {
+                        "type": "string"
+                    },
+                    "webhook_secret": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.createPlanReq": {
+                "type": "object",
+                "properties": {
+                    "amount_cents": {
+                        "description": "flat fee",
+                        "type": "integer"
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "category": {
+                        "description": "subscription | one_off | usage",
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "credentials_id": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "description": "month | year | none",
+                        "type": "string"
+                    },
+                    "interval_count": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.credsResponse": {
+                "type": "object",
+                "properties": {
+                    "credentials": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.credsView"
+                        }
+                    }
+                }
+            },
+            "finance.credsView": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "environment": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "webhook_secret": {
+                        "description": "returned ONCE on create",
+                        "type": "string"
+                    },
+                    "webhook_url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.customerListItemView": {
+                "type": "object",
+                "properties": {
+                    "active_subscriptions": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "lifetime_amount": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.dashboardView": {
+                "type": "object",
+                "properties": {
+                    "active_subscriptions": {
+                        "type": "integer"
+                    },
+                    "net_revenue": {
+                        "description": "currency → cents",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
+                    },
+                    "revenue_by_app": {
+                        "description": "global view only",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.appRevenueView"
+                        }
+                    },
+                    "succeeded_tx": {
+                        "type": "integer"
+                    },
+                    "total_tx": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.entitlementResponse": {
+                "type": "object",
+                "properties": {
+                    "balances": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    },
+                    "entitled": {
+                        "type": "boolean"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.invoiceLineView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "unit": {
+                        "type": "string"
+                    },
+                    "unit_amount": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.invoiceListItemView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "customer_email": {
+                        "type": "string"
+                    },
+                    "customer_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "issued_at": {
+                        "type": "string"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.payoutListItemView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "bank_reference": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "received_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.planView": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "category": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "interval_count": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.rebillDueResponse": {
+                "type": "object",
+                "properties": {
+                    "canceled": {
+                        "type": "integer"
+                    },
+                    "charged": {
+                        "type": "integer"
+                    },
+                    "outcomes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.rebillOutcomeView"
+                        }
+                    },
+                    "past_due": {
+                        "type": "integer"
+                    },
+                    "pending": {
+                        "type": "integer"
+                    },
+                    "skipped": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.rebillOutcomeView": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    },
+                    "outcome": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.setTestModeReq": {
+                "type": "object",
+                "properties": {
+                    "test_mode": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.subscriptionListItemView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "current_period_end": {
+                        "type": "string"
+                    },
+                    "customer_email": {
+                        "type": "string"
+                    },
+                    "customer_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "plan_name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.transactionListItemView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "customer_email": {
+                        "type": "string"
+                    },
+                    "customer_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "occurred_at": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "provider_tx_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.updateTenantReq": {
+                "type": "object",
+                "properties": {
+                    "legal_entity": {
+                        "type": "string"
+                    }
+                }
+            },
+            "identity.meResponse": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "tenants": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/identity.tenantMembership"
+                        }
+                    },
+                    "user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "identity.tenantMembership": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    }
+                }
+            },
+            "metering.balanceResponse": {
+                "type": "object",
+                "properties": {
+                    "balance": {
+                        "type": "integer"
+                    },
+                    "unit": {
+                        "type": "string"
+                    }
+                }
+            },
+            "metering.consumeRequest": {
+                "type": "object",
+                "properties": {
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "idempotency_key": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    },
+                    "unit": {
+                        "type": "string"
+                    }
+                }
+            },
+            "metering.decisionResponse": {
+                "type": "object",
+                "properties": {
+                    "allowed": {
+                        "type": "boolean"
+                    },
+                    "balance": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "recorded": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "metering.declareUnitRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "unit_amount": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "metering.unitView": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "unit_amount": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    }
+}

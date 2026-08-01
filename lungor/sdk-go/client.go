@@ -17,7 +17,26 @@
 // A product asks Lungor *who has what*, and asks lungor/core *what that means*.
 // Putting either job in the other package is what produced the duplication this
 // replaces.
+//
+// # Where the types come from
+//
+// The wire types in types.gen.go are generated from openapi/lungor.json, which
+// is Lungor's own swagger — the one swag produces from its handler annotations.
+// Requests are built as those types and responses decoded into them, so a field
+// added or renamed in the API surfaces here as a compile error rather than as a
+// value silently never read.
+//
+// Updating after an API change is two steps, and the second is deliberate:
+//
+//  1. copy apps/core/docs/contract/openapi3.json from the lungor repo over
+//     openapi/lungor.json (lungor is private, so nothing fetches it for you);
+//  2. go generate ./... — then reconcile any compile error the new shape causes.
+//
+// Lungor's CI fails when its API drifts from the contract it publishes, which
+// is what makes step 1 a reminder rather than something to remember.
 package sdk
+
+//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1 -config oapi-codegen.yaml openapi/lungor.json
 
 import (
 	"context"
@@ -172,11 +191,36 @@ func (c *Client) Entitlement(ctx context.Context, externalUserID string, units .
 		q.Set("units", strings.Join(units, ","))
 	}
 
-	var out Entitlement
-	if err := c.do(ctx, http.MethodGet, "/api/v1/entitlements?"+q.Encode(), nil, &out); err != nil {
+	// Decode into the GENERATED wire type, then convert. That indirection is
+	// what ties this client to the API: types.gen.go comes from Lungor's own
+	// swagger (openapi/lungor.json), so a field added or renamed there shows up
+	// here as a compile error instead of as a value silently never read.
+	var wire FinanceEntitlementResponse
+	if err := c.do(ctx, http.MethodGet, "/api/v1/entitlements?"+q.Encode(), nil, &wire); err != nil {
 		return Entitlement{}, err
 	}
-	return out, nil
+	return entitlementFrom(wire), nil
+}
+
+// entitlementFrom converts the generated wire type into the one callers use.
+//
+// swag emits OpenAPI 2.0, which has no `required`, so every generated field is
+// a pointer. Those pointers must not reach the caller: `*bool` for Entitled
+// makes "not entitled" and "no answer" the same value at the point where one
+// must degrade and the other must not. A nil verdict is read as NOT entitled —
+// the safe direction, granting nothing on a malformed response.
+func entitlementFrom(w FinanceEntitlementResponse) Entitlement {
+	out := Entitlement{}
+	if w.Entitled != nil {
+		out.Entitled = *w.Entitled
+	}
+	if w.Status != nil {
+		out.Status = *w.Status
+	}
+	if w.Balances != nil {
+		out.Balances = *w.Balances
+	}
+	return out
 }
 
 // CheckoutInput starts a hosted checkout for one user.
@@ -223,22 +267,41 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 		return Checkout{}, fmt.Errorf("%w: price id and external user id are required", ErrBadRequest)
 	}
 
-	body := map[string]string{
-		"tenant_id":        c.tenantID,
-		"app_id":           c.appID,
-		"price_id":         in.PriceID,
-		"external_user_id": in.ExternalUserID,
-		"email":            in.Email,
-		"country":          in.Country,
-		"success_url":      in.SuccessURL,
-		"cancel_url":       in.CancelURL,
+	// Built as the GENERATED request type rather than a map, so a field Lungor
+	// starts requiring is a compile error here instead of a request that is
+	// quietly missing it.
+	body := FinanceCheckoutRequest{
+		TenantId:       &c.tenantID,
+		AppId:          &c.appID,
+		PriceId:        &in.PriceID,
+		ExternalUserId: &in.ExternalUserID,
+		Email:          &in.Email,
+		Country:        &in.Country,
+		SuccessUrl:     &in.SuccessURL,
+		CancelUrl:      &in.CancelURL,
 	}
 
-	var out Checkout
-	if err := c.do(ctx, http.MethodPost, "/api/v1/finance/checkout", body, &out); err != nil {
+	var wire FinanceCheckoutResponse
+	if err := c.do(ctx, http.MethodPost, "/api/v1/finance/checkout", body, &wire); err != nil {
 		return Checkout{}, err
 	}
-	return out, nil
+	return checkoutFrom(wire), nil
+}
+
+// checkoutFrom converts the generated wire type into the one callers use. Same
+// reason as entitlementFrom: the generated pointers stop at this boundary.
+func checkoutFrom(w FinanceCheckoutResponse) Checkout {
+	out := Checkout{}
+	if w.SessionId != nil {
+		out.SessionID = *w.SessionId
+	}
+	if w.SubscriptionId != nil {
+		out.SubscriptionID = *w.SubscriptionId
+	}
+	if w.RedirectUrl != nil {
+		out.RedirectURL = *w.RedirectUrl
+	}
+	return out
 }
 
 // do issues one request and decodes the response.

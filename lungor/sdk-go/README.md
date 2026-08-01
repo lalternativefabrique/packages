@@ -13,6 +13,36 @@ Synthiz shipped a hand-rolled `LungorClient`; Techtuel would have shipped a
 second one. Each re-derived the same auth header, the same status handling, and
 its own idea of what "entitled" means — from reading the server's source.
 
+## Where the types come from
+
+`types.gen.go` is generated from `openapi/lungor.json` — Lungor's own swagger,
+the one `swag` produces from its handler annotations. Requests are built as
+those types and responses decoded into them, so a field added or renamed in the
+API is a **compile error here**, not a value silently never read.
+
+The generated pointers stop at that boundary. swag emits OpenAPI 2.0, which has
+no `required`, so every generated field is a `*T`; `*bool` for `Entitled` would
+make "not entitled" and "no answer" the same value at the call site, where one
+must degrade and the other must not. `entitlementFrom` converts, reading a nil
+verdict as **not** entitled — the direction that grants nothing.
+
+### Updating after an API change
+
+```bash
+# 1. lungor is private, so nothing fetches this for you
+cp ../../../lungor/apps/core/docs/contract/openapi3.json openapi/lungor.json
+
+# 2. regenerate, then reconcile whatever the new shape breaks
+go generate ./...
+go test ./...
+```
+
+Lungor's CI fails when its API drifts from the contract it publishes
+(`go-contract-up-to-date`), which is what makes step 1 a reminder rather than
+something to remember. It is a manual step on purpose: automating it would mean
+a write token for this repo living in Lungor's pipeline, and this stack
+deliberately removed its private-repo credentials.
+
 ## The split with `lungor/core`
 
 Two packages, two jobs, and keeping them apart is the point:
