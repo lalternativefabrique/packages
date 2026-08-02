@@ -379,6 +379,190 @@
                 }
             }
         },
+        "/subscriptions/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Cancels the caller's user subscription. Defaults to taking effect at the end of the paid period; pass at_period_end=false to end it immediately.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Cancel an external user's subscription (app key)",
+                "operationId": "appCancelSubscription",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appCancelRequest"
+                            }
+                        }
+                    },
+                    "description": "Cancellation",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appCancelResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subscriptions/change-plan": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Moves the caller's user to another tier. An upgrade applies immediately and is prorated; a downgrade takes effect at the next renewal. Returns 402 with the figures to display when the customer's consent is required.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Change an external user's plan (app key)",
+                "operationId": "appChangePlan",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appChangePlanRequest"
+                            }
+                        }
+                    },
+                    "description": "Change",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appChangePlanResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appChangePlanResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subscriptions/withdraw-pending-plan": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Cancels a tier change that was scheduled for the next renewal and has not fired yet. Nothing was charged, so there is nothing to refund. Withdrawing when none is scheduled succeeds and reports withdrawn=false.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Withdraw a scheduled plan change (app key)",
+                "operationId": "appWithdrawPendingPlan",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appWithdrawPendingRequest"
+                            }
+                        }
+                    },
+                    "description": "Withdrawal",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appWithdrawPendingResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}": {
             "patch": {
                 "tags": [
@@ -1211,6 +1395,82 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/plans/{plan_id}/rank": {
+            "put": {
+                "description": "Rank is what separates an upgrade from a downgrade — higher means larger. It is explicit rather than derived from price, because a promotional tier priced below a smaller one would otherwise invert the two paths. Every plan starts at rank 0, so all plans tie and no tier change is possible until they are ranked.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Rank a plan against the app's other plans",
+                "operationId": "setPlanRank",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.setPlanRankRequest"
+                            }
+                        }
+                    },
+                    "description": "Rank",
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/rebill-due": {
             "post": {
                 "description": "Manual admin trigger (no scheduler). For each due subscription it charges the saved payment method via the PSP. Immediate success advances the period; pending (async) charges are left for the webhook; hard failures mark the subscription past_due for retry.",
@@ -1407,6 +1667,89 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/subscriptions/{sub_id}/change-plan": {
+            "post": {
+                "description": "Upgrades apply immediately and charge only the prorated difference for the days left in the period already paid (nothing is charged below a 2 € floor). Downgrades change nothing today — they are recorded as a pending plan that the next renewal applies, because lowering the tier now can leave a customer above the new ceiling for a period they already paid for. Plans must be ranked (PUT /plans/{plan_id}/rank) for a move to classify as anything other than \"none\".",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Move a subscription to another plan (upgrade or downgrade)",
+                "operationId": "changeSubscriptionPlan",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Subscription ID",
+                        "name": "sub_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.changePlanRequest"
+                            }
+                        }
+                    },
+                    "description": "Target plan",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.changePlanResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/subscriptions/{sub_id}/close-period": {
             "post": {
                 "tags": [
@@ -1551,6 +1894,74 @@
                     "message": {}
                 }
             },
+            "finance.appCancelRequest": {
+                "type": "object",
+                "properties": {
+                    "at_period_end": {
+                        "type": "boolean"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appCancelResponse": {
+                "type": "object",
+                "properties": {
+                    "effective_at": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appChangePlanRequest": {
+                "type": "object",
+                "properties": {
+                    "agreed": {
+                        "type": "boolean"
+                    },
+                    "agreed_amount_cents": {
+                        "type": "integer"
+                    },
+                    "direction": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appChangePlanResponse": {
+                "type": "object",
+                "properties": {
+                    "applied_now": {
+                        "type": "boolean"
+                    },
+                    "consent_amount_cents": {
+                        "type": "integer"
+                    },
+                    "consent_recurring_cents": {
+                        "type": "integer"
+                    },
+                    "consent_required": {
+                        "type": "boolean"
+                    },
+                    "effective_at": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "prorated_cents": {
+                        "type": "integer"
+                    }
+                }
+            },
             "finance.appCreatedView": {
                 "type": "object",
                 "properties": {
@@ -1612,6 +2023,25 @@
                     }
                 }
             },
+            "finance.appWithdrawPendingRequest": {
+                "type": "object",
+                "properties": {
+                    "external_user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appWithdrawPendingResponse": {
+                "type": "object",
+                "properties": {
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "withdrawn": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "finance.cancelRequest": {
                 "type": "object",
                 "properties": {
@@ -1627,6 +2057,59 @@
                         "type": "boolean"
                     },
                     "status": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.changePlanRequest": {
+                "type": "object",
+                "properties": {
+                    "agreed": {
+                        "description": "Agreed is the customer's affirmative act. An upgrade raises what they pay\nand is refused without it (402), with the figures to show in the response.",
+                        "type": "boolean"
+                    },
+                    "agreed_amount_cents": {
+                        "description": "AgreedAmountCents is the immediate charge the customer was shown. It caps\nthe debit: the charge is the lesser of it and what is owed. Omitted states\nno ceiling, not consent to free.",
+                        "type": "integer"
+                    },
+                    "direction": {
+                        "description": "\"up\" | \"down\" | \"\" (any)",
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.changePlanResponse": {
+                "type": "object",
+                "properties": {
+                    "applied_now": {
+                        "type": "boolean"
+                    },
+                    "consent_amount_cents": {
+                        "type": "integer"
+                    },
+                    "consent_recurring_cents": {
+                        "type": "integer"
+                    },
+                    "consent_required": {
+                        "description": "ConsentRequired and the two figures below are populated when the move was\nrefused for want of consent: they are exactly what must be shown to the\ncustomer before asking again.",
+                        "type": "boolean"
+                    },
+                    "effective_at": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "prorated_cents": {
+                        "type": "integer"
+                    },
+                    "proration_tx_id": {
                         "type": "string"
                     },
                     "subscription_id": {
@@ -2053,6 +2536,14 @@
                     },
                     "subscription_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.setPlanRankRequest": {
+                "type": "object",
+                "properties": {
+                    "rank": {
+                        "type": "integer"
                     }
                 }
             },

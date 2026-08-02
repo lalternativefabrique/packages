@@ -130,6 +130,9 @@ var (
 	// ErrUnavailable — transport failure or a 5xx. Transient; retrying later is
 	// reasonable, and degrading is safer than failing the user's request.
 	ErrUnavailable = errors.New("lungor: unavailable")
+	// ErrNotFound — no subscription for this user. Not a failure: a user who
+	// never subscribed is the common case.
+	ErrNotFound = errors.New("lungor: no subscription")
 )
 
 // StatusNoSubscription is what Lungor reports for a user it has never seen.
@@ -312,18 +315,26 @@ func checkoutFrom(w FinanceCheckoutResponse) Checkout {
 // mistake, and silently reading it as "this customer has not paid" would cut off
 // every paying user at once.
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) error {
+	_, err := c.doStatus(ctx, method, path, body, out)
+	return err
+}
+
+// doStatus is do, returning the HTTP status alongside. It exists for the one
+// path where a non-200 is a legitimate answer rather than a failure: a tier
+// change needing consent answers 402 WITH the figures to show the customer.
+func (c *Client) doStatus(ctx context.Context, method, path string, body any, out any) (int, error) {
 	var reader io.Reader
 	if body != nil {
 		buf, err := json.Marshal(body)
 		if err != nil {
-			return fmt.Errorf("%w: encoding request: %v", ErrBadRequest, err)
+			return 0, fmt.Errorf("%w: encoding request: %v", ErrBadRequest, err)
 		}
 		reader = strings.NewReader(string(buf))
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reader)
 	if err != nil {
-		return fmt.Errorf("%w: building request: %v", ErrBadRequest, err)
+		return 0, fmt.Errorf("%w: building request: %v", ErrBadRequest, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.appKey)
 	req.Header.Set("Accept", "application/json")
@@ -333,28 +344,30 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrUnavailable, err)
+		return 0, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}
 	defer resp.Body.Close()
 
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
-		return ErrUnauthorized
+		return resp.StatusCode, ErrUnauthorized
+	case resp.StatusCode == http.StatusNotFound:
+		return resp.StatusCode, fmt.Errorf("%w: %s", ErrNotFound, snippet(resp.Body))
 	case resp.StatusCode == http.StatusBadRequest:
-		return fmt.Errorf("%w: %s", ErrBadRequest, snippet(resp.Body))
+		return resp.StatusCode, fmt.Errorf("%w: %s", ErrBadRequest, snippet(resp.Body))
 	case resp.StatusCode >= 500:
-		return fmt.Errorf("%w: status %d", ErrUnavailable, resp.StatusCode)
-	case resp.StatusCode >= 300:
-		return fmt.Errorf("%w: unexpected status %d", ErrUnavailable, resp.StatusCode)
+		return resp.StatusCode, fmt.Errorf("%w: status %d", ErrUnavailable, resp.StatusCode)
+	case resp.StatusCode >= 300 && resp.StatusCode != http.StatusPaymentRequired:
+		return resp.StatusCode, fmt.Errorf("%w: unexpected status %d", ErrUnavailable, resp.StatusCode)
 	}
 
 	if out == nil {
-		return nil
+		return resp.StatusCode, nil
 	}
 	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return fmt.Errorf("%w: decoding response: %v", ErrUnavailable, err)
+		return resp.StatusCode, fmt.Errorf("%w: decoding response: %v", ErrUnavailable, err)
 	}
-	return nil
+	return resp.StatusCode, nil
 }
 
 // snippet reads a bounded prefix of an error body, so a misbehaving server

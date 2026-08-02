@@ -17,7 +17,7 @@ type recorded struct {
 	path   string
 	method string
 	auth   string
-	body   map[string]string
+	body   map[string]any
 }
 
 func server(t *testing.T, status int, payload any) (*httptest.Server, *recorded) {

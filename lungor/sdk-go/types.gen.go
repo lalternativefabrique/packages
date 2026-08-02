@@ -12,6 +12,49 @@ type EchoHTTPError struct {
 	Message *interface{} `json:"message,omitempty"`
 }
 
+// FinanceAppCancelRequest defines model for finance.appCancelRequest.
+type FinanceAppCancelRequest struct {
+	AtPeriodEnd    *bool   `json:"at_period_end,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+}
+
+// FinanceAppCancelResponse defines model for finance.appCancelResponse.
+type FinanceAppCancelResponse struct {
+	EffectiveAt *string `json:"effective_at,omitempty"`
+	Status      *string `json:"status,omitempty"`
+}
+
+// FinanceAppChangePlanRequest defines model for finance.appChangePlanRequest.
+type FinanceAppChangePlanRequest struct {
+	Agreed            *bool   `json:"agreed,omitempty"`
+	AgreedAmountCents *int    `json:"agreed_amount_cents,omitempty"`
+	Direction         *string `json:"direction,omitempty"`
+	ExternalUserId    *string `json:"external_user_id,omitempty"`
+	PlanCode          *string `json:"plan_code,omitempty"`
+}
+
+// FinanceAppChangePlanResponse defines model for finance.appChangePlanResponse.
+type FinanceAppChangePlanResponse struct {
+	AppliedNow            *bool   `json:"applied_now,omitempty"`
+	ConsentAmountCents    *int    `json:"consent_amount_cents,omitempty"`
+	ConsentRecurringCents *int    `json:"consent_recurring_cents,omitempty"`
+	ConsentRequired       *bool   `json:"consent_required,omitempty"`
+	EffectiveAt           *string `json:"effective_at,omitempty"`
+	Kind                  *string `json:"kind,omitempty"`
+	ProratedCents         *int    `json:"prorated_cents,omitempty"`
+}
+
+// FinanceAppWithdrawPendingRequest defines model for finance.appWithdrawPendingRequest.
+type FinanceAppWithdrawPendingRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+}
+
+// FinanceAppWithdrawPendingResponse defines model for finance.appWithdrawPendingResponse.
+type FinanceAppWithdrawPendingResponse struct {
+	PlanCode  *string `json:"plan_code,omitempty"`
+	Withdrawn *bool   `json:"withdrawn,omitempty"`
+}
+
 // FinanceCheckoutRequest defines model for finance.checkoutRequest.
 type FinanceCheckoutRequest struct {
 	AppId          *string `json:"app_id,omitempty"`
@@ -49,3 +92,12 @@ type GetEntitlementParams struct {
 
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
+
+// AppCancelSubscriptionJSONRequestBody defines body for AppCancelSubscription for application/json ContentType.
+type AppCancelSubscriptionJSONRequestBody = FinanceAppCancelRequest
+
+// AppChangePlanJSONRequestBody defines body for AppChangePlan for application/json ContentType.
+type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
+
+// AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
+type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest

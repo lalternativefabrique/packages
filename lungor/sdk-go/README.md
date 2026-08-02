@@ -113,6 +113,31 @@ if left, known := ent.Balance("credit"); known && left < 100 {
 A missing unit is **unknown**, not zero. Zero means spent; conflating them
 refuses work the customer is allowed to do.
 
+## Changing and cancelling
+
+```go
+out, err := client.ChangePlan(ctx, sdk.ChangePlanInput{
+    ExternalUserID: userID,
+    PlanCode:       "max",
+    Direction:      sdk.DirectionUp,   // refuse the move if it is not an upgrade
+})
+if errors.Is(err, sdk.ErrConsentRequired) {
+    // Nothing changed. Show out.ConsentAmount / out.ConsentRecurring, then
+    // resend with Agreed:true and AgreedAmountCents set to what was displayed.
+}
+
+client.Cancel(ctx, userID, true)          // at period end — keeps what was paid for
+client.WithdrawPendingPlan(ctx, userID)   // drop a scheduled downgrade
+```
+
+An upgrade applies immediately and is prorated; a downgrade takes effect at the
+next renewal (`out.EffectiveAt`). Cancelling at period end does **not** revoke
+access — `Entitlement` keeps reporting the user as entitled until that date,
+which is what they bought.
+
+`ErrNotFound` means the user has no subscription. That is an ordinary outcome,
+not a failure: show "nothing to change" rather than an error.
+
 ## Checkout
 
 ```go
