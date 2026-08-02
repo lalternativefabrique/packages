@@ -20,6 +20,14 @@ const DEFAULT_LABELS: AdminSetupLabels = {
   created: "Compte administrateur créé.",
   redirecting: "Redirection…",
   setupFailed: "La configuration a échoué",
+  code: "Code de vérification",
+  codeHint: "Le code à 6 chiffres reçu par email",
+  codeSent: "Un code a été envoyé à",
+  sendCode: "Recevoir le code",
+  sendingCode: "Envoi…",
+  resendCode: "Renvoyer le code",
+  verifyAndCreate: "Vérifier et créer le compte",
+  back: "Modifier les informations",
 }
 
 /**
@@ -38,6 +46,7 @@ const DEFAULT_LABELS: AdminSetupLabels = {
  */
 export function AdminSetupForm({
   onSubmit,
+  onRequestCode,
   onSuccess,
   title = "Configuration initiale",
   subtitle = "Créer le premier compte administrateur",
@@ -50,18 +59,46 @@ export function AdminSetupForm({
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [code, setCode] = useState("")
+  const [step, setStep] = useState<"details" | "code">("details")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+
+  const create = async () => {
+    await onSubmit(
+      onRequestCode ? { name, email, password, code } : { name, email, password },
+    )
+    setDone(true)
+    await onSuccess?.()
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     setSubmitting(true)
     try {
-      await onSubmit({ name, email, password })
-      setDone(true)
-      await onSuccess?.()
+      // Without a mailer the details step IS the whole form, and this stays the
+      // single-step component it has always been.
+      if (onRequestCode && step === "details") {
+        await onRequestCode(email)
+        setStep("code")
+        return
+      }
+      await create()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.setupFailed)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const resend = async () => {
+    if (!onRequestCode) return
+    setError(null)
+    setSubmitting(true)
+    try {
+      await onRequestCode(email)
     } catch (err) {
       setError(err instanceof Error ? err.message : t.setupFailed)
     } finally {
@@ -92,6 +129,56 @@ export function AdminSetupForm({
           </div>
         ) : null}
 
+        {step === "code" ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              {t.codeSent} <span className="font-medium">{email}</span>.
+            </p>
+            <div className="space-y-1.5">
+              <label htmlFor="setup-code" className={LABEL}>
+                {t.code}
+              </label>
+              <input
+                id="setup-code"
+                type="text"
+                required
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder={t.codeHint}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className={INPUT}
+              />
+            </div>
+
+            <button type="submit" disabled={submitting} className={BUTTON_PRIMARY}>
+              {icon}
+              {submitting ? t.submitting : t.verifyAndCreate}
+            </button>
+
+            <div className="flex justify-between text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null)
+                  setStep("details")
+                }}
+                className="text-muted-foreground underline-offset-4 hover:underline"
+              >
+                {t.back}
+              </button>
+              <button
+                type="button"
+                onClick={resend}
+                disabled={submitting}
+                className="text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50"
+              >
+                {submitting ? t.sendingCode : t.resendCode}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
         <div className="space-y-1.5">
           <label htmlFor="setup-name" className={LABEL}>
             {t.name}
@@ -142,8 +229,16 @@ export function AdminSetupForm({
 
         <button type="submit" disabled={submitting} className={BUTTON_PRIMARY}>
           {icon}
-          {submitting ? t.submitting : t.submit}
+          {submitting
+            ? onRequestCode
+              ? t.sendingCode
+              : t.submitting
+            : onRequestCode
+              ? t.sendCode
+              : t.submit}
         </button>
+          </>
+        )}
       </form>
 
       {footer ? (
