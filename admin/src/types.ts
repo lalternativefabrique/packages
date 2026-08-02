@@ -149,12 +149,29 @@ export interface AdminSetupFormProps {
   /**
    * Create the first admin. App-side (SQL insert before any admin exists).
    * Resolve on success; reject with a message otherwise.
+   *
+   * `code` is present only when {@link AdminSetupFormProps.onRequestCode} is
+   * supplied — it is the value the operator read from their inbox, and the app
+   * is what verifies it. This component never decides whether a code is valid.
    */
   onSubmit: (input: {
     name: string
     email: string
     password: string
+    code?: string
   }) => Promise<void>
+  /**
+   * Send a one-time code to the address being registered. Supplying it turns
+   * the form into two steps: details first, then the code.
+   *
+   * Optional on purpose — without it the form stays exactly as it was, so apps
+   * that have no mailer wired keep working across the upgrade.
+   *
+   * It proves the operator can read the mailbox they are claiming. It does NOT
+   * protect the endpoint itself: on a setup route reachable with no session, an
+   * attacker simply enters an address they own. Gate the route separately.
+   */
+  onRequestCode?: (email: string) => Promise<void>
   /** Called after a successful creation (app navigates to /login). */
   onSuccess?: () => void | Promise<void>
   title?: string
@@ -190,4 +207,13 @@ export interface AdminSetupLabels {
   created: string
   redirecting: string
   setupFailed: string
+  /** Second step, shown only when `onRequestCode` is supplied. */
+  code: string
+  codeHint: string
+  codeSent: string
+  sendCode: string
+  sendingCode: string
+  resendCode: string
+  verifyAndCreate: string
+  back: string
 }
