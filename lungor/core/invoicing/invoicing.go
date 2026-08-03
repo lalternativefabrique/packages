@@ -76,23 +76,23 @@ type Line struct {
 
 // Invoice is the full invoice document as returned by GetInvoice.
 type Invoice struct {
-	ID             string  `json:"id"`
-	Number         string  `json:"number"`
-	Status         Status  `json:"status"`
-	Subtotal       int64   `json:"subtotal"`
-	TaxAmount      int64   `json:"tax_amount"`
-	Total          int64   `json:"total"`
-	Currency       string  `json:"currency"`
-	TaxCountry     string  `json:"tax_country,omitempty"`
-	TaxRate        float64 `json:"tax_rate"`
-	PeriodStart    *string `json:"period_start,omitempty"`
-	PeriodEnd      *string `json:"period_end,omitempty"`
-	DueAt          *string `json:"due_at,omitempty"`
-	PaidAt         *string `json:"paid_at,omitempty"`
+	ID          string  `json:"id"`
+	Number      string  `json:"number"`
+	Status      Status  `json:"status"`
+	Subtotal    int64   `json:"subtotal"`
+	TaxAmount   int64   `json:"tax_amount"`
+	Total       int64   `json:"total"`
+	Currency    string  `json:"currency"`
+	TaxCountry  string  `json:"tax_country,omitempty"`
+	TaxRate     float64 `json:"tax_rate"`
+	PeriodStart *string `json:"period_start,omitempty"`
+	PeriodEnd   *string `json:"period_end,omitempty"`
+	DueAt       *string `json:"due_at,omitempty"`
+	PaidAt      *string `json:"paid_at,omitempty"`
 	// IssuedAt is the legal issue date — the date the document bears and the
 	// one the numbering sequence is chronological in. Distinct from CreatedAt,
 	// which is merely when the row was written.
-	IssuedAt *string `json:"issued_at,omitempty"`
+	IssuedAt       *string `json:"issued_at,omitempty"`
 	CustomerName   string  `json:"customer_name"`
 	CustomerEmail  string  `json:"customer_email"`
 	Lines          []Line  `json:"lines"`

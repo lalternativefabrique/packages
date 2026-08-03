@@ -104,6 +104,30 @@ type ChargeInput struct {
 	IdempotencyKey string
 }
 
+// SelfProrating marks a provider that collects an upgrade's proration ITSELF,
+// inside Upgrade, rather than leaving the caller to charge it first.
+//
+// The Provider port is shaped around a PSP the caller drives: charge the
+// difference, then move the tier, in that order, because the money must be
+// confirmed before the allowance is granted. A billing hub that owns the
+// subscription does both in one call — asking it to Charge separately would bill
+// the customer twice for one upgrade.
+//
+// It is an optional interface rather than a method on Provider so that adding
+// it breaks no existing implementation: a provider that stays silent is charged
+// by the caller, which is the behaviour every adapter already has.
+//
+// Callers MUST consult it before charging:
+//
+//	if sp, ok := provider.(billing.SelfProrating); !ok || !sp.ProratesOnUpgrade() {
+//	    // charge the difference first
+//	}
+type SelfProrating interface {
+	// ProratesOnUpgrade reports whether Upgrade collects the proration. When it
+	// does, the caller must NOT call Charge for the same move.
+	ProratesOnUpgrade() bool
+}
+
 // Errors every Provider implementation must speak, so callers can branch on the
 // customer's situation without knowing which provider answered.
 //

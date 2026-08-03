@@ -143,7 +143,7 @@ var cp1252Folds = map[rune]string{
 	'»': `"`,
 	'…': "...",
 	' ': " ", // non-breaking space
-	'€':      "EUR",
+	'€': "EUR",
 }
 
 // toCP1252 folds a string onto the 256-rune range the PDF font table covers.
