@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 
 	sdk "github.com/lalternative/packages/lungor/sdk-go"
 )
@@ -52,6 +53,14 @@ func TestLiveWebhookEndpointLifecycle(t *testing.T) {
 		t.Errorf("status = %q, want active", created.Status)
 	}
 
+	// Writes go to the event log and reads to a Postgres projection, so a read
+	// issued straight after a write legitimately sees nothing yet. Every read
+	// below polls: the assertion is "eventually", not "immediately".
+	eventually(t, "created endpoint becomes readable", func() bool {
+		_, err := c.GetWebhookEndpoint(ctx, created.ID)
+		return err == nil
+	})
+
 	got, err := c.GetWebhookEndpoint(ctx, created.ID)
 	if err != nil {
 		t.Fatalf("get: %v", err)
@@ -66,25 +75,22 @@ func TestLiveWebhookEndpointLifecycle(t *testing.T) {
 		t.Error("createdAt did not decode")
 	}
 
-	list, err := c.ListWebhookEndpoints(ctx, 0, 0)
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if !containsID(list, created.ID) {
-		t.Errorf("created endpoint absent from list of %d", len(list))
-	}
+	eventually(t, "created endpoint appears in the list", func() bool {
+		list, err := c.ListWebhookEndpoints(ctx, 0, 0)
+		return err == nil && containsID(list, created.ID)
+	})
 
 	disabled := true
 	if err := c.UpdateWebhookEndpoint(ctx, created.ID, sdk.UpdateWebhookEndpointInput{Disabled: &disabled}); err != nil {
 		t.Fatalf("update: %v", err)
 	}
-	after, err := c.GetWebhookEndpoint(ctx, created.ID)
-	if err != nil {
-		t.Fatalf("get after update: %v", err)
-	}
-	if after.Active() {
-		t.Errorf("status = %q after disabling, want disabled", after.Status)
-	}
+	// Writes go to the event log and reads to a Postgres projection, so a read
+	// issued immediately after a write legitimately sees the old state. Polling
+	// is the assertion: "eventually", not "never".
+	eventually(t, "endpoint reads back disabled", func() bool {
+		after, err := c.GetWebhookEndpoint(ctx, created.ID)
+		return err == nil && !after.Active()
+	})
 
 	rotated, err := c.RotateWebhookSecret(ctx, created.ID)
 	if err != nil {
@@ -100,9 +106,24 @@ func TestLiveWebhookEndpointLifecycle(t *testing.T) {
 	if err := c.DeleteWebhookEndpoint(ctx, created.ID); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
-	if _, err := c.GetWebhookEndpoint(ctx, created.ID); !errors.Is(err, sdk.ErrNotFound) {
-		t.Errorf("after delete, get returned %v, want ErrNotFound", err)
+	eventually(t, "deleted endpoint stops being readable", func() bool {
+		_, err := c.GetWebhookEndpoint(ctx, created.ID)
+		return errors.Is(err, sdk.ErrNotFound)
+	})
+}
+
+// eventually polls until the read model catches up with the write, or fails
+// after a second — long past the sub-200ms the projector actually takes, short
+// enough that a projection which is genuinely stuck still fails the run.
+func eventually(t *testing.T, what string, ok func() bool) {
+	t.Helper()
+	for range 50 {
+		if ok() {
+			return
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
+	t.Errorf("timed out waiting: %s", what)
 }
 
 // A user Lungor has never seen is an ordinary answer, not a failure — the
