@@ -32,6 +32,28 @@ type Source struct {
 	// register for. Returning "" drops the event: most internal events are not
 	// meant to leave the system, so silence is the safe default.
 	PublicType func(upstream string) string
+	// Envelope pulls the routing facts out of an upstream event body. Optional:
+	// nil reads the {metadata:{eventId,timestamp,tenantId}} shape.
+	//
+	// It exists because event envelopes are a product's own convention, and a
+	// publisher whose events are flat — or whose scope key is an application
+	// rather than a tenant — would otherwise resolve to an empty scope and have
+	// every one of its events dropped without a word.
+	Envelope func(raw []byte) (Envelope, error)
+}
+
+// Envelope is what the dispatcher needs to route one upstream event: who it
+// belongs to, what identifies it, and when it happened.
+type Envelope struct {
+	// Scope is the key endpoints are looked up by — whatever the product stores
+	// as an endpoint's TenantID. An empty Scope drops the event: it cannot be
+	// delivered to anyone.
+	Scope string
+	// EventID identifies the upstream event. It is what makes delivery ids
+	// deterministic, so a replay reuses one instead of fanning out a duplicate.
+	// Empty is allowed but gives up that idempotency.
+	EventID   string
+	Timestamp time.Time
 }
 
 // Dispatcher consumes a Source's upstream events, maps them to public webhook
@@ -91,31 +113,45 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 	}
 }
 
-// upstreamMeta is the minimal envelope shared by all upstream events.
-type upstreamMeta struct {
-	Metadata struct {
-		EventID   string    `json:"eventId"`
-		Timestamp time.Time `json:"timestamp"`
-		TenantID  string    `json:"tenantId"`
-	} `json:"metadata"`
+// MetadataEnvelope reads the {metadata:{eventId,timestamp,tenantId}} shape. It
+// is the default when a Source declares no Envelope of its own.
+func MetadataEnvelope(raw []byte) (Envelope, error) {
+	var env struct {
+		Metadata struct {
+			EventID   string    `json:"eventId"`
+			Timestamp time.Time `json:"timestamp"`
+			TenantID  string    `json:"tenantId"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(raw, &env); err != nil {
+		return Envelope{}, err
+	}
+	return Envelope{
+		Scope:     env.Metadata.TenantID,
+		EventID:   env.Metadata.EventID,
+		Timestamp: env.Metadata.Timestamp,
+	}, nil
 }
 
 func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
-	upstreamType := m.Header.Get("Event-Type")
-	publicType := d.source.PublicType(upstreamType)
+	publicType := d.source.PublicType(upstreamType(m))
 	if publicType == "" {
 		return nil // not interested
 	}
 
-	var env upstreamMeta
-	if err := json.Unmarshal(m.Data, &env); err != nil {
+	readEnvelope := d.source.Envelope
+	if readEnvelope == nil {
+		readEnvelope = MetadataEnvelope
+	}
+	env, err := readEnvelope(m.Data)
+	if err != nil {
 		return fmt.Errorf("decode envelope: %w", err)
 	}
-	if env.Metadata.TenantID == "" {
+	if env.Scope == "" {
 		return nil
 	}
 
-	endpoints, err := d.lookup.ActiveByTenant(ctx, env.Metadata.TenantID)
+	endpoints, err := d.lookup.ActiveByTenant(ctx, env.Scope)
 	if err != nil {
 		return fmt.Errorf("lookup endpoints: %w", err)
 	}
@@ -123,7 +159,7 @@ func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 		return nil
 	}
 
-	payload, err := buildPayload(publicType, env.Metadata.EventID, env.Metadata.Timestamp, m.Data)
+	payload, err := buildPayload(publicType, env.EventID, env.Timestamp, m.Data)
 	if err != nil {
 		return fmt.Errorf("build payload: %w", err)
 	}
@@ -133,7 +169,7 @@ func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 			continue
 		}
 		// Deterministic delivery id keeps publish idempotent across replays.
-		deliveryID := uuid.NewSHA1(uuid.NameSpaceURL, []byte(ep.ID+":"+env.Metadata.EventID)).String()
+		deliveryID := uuid.NewSHA1(uuid.NameSpaceURL, []byte(ep.ID+":"+env.EventID)).String()
 		job := providers.DeliveryJob{
 			DeliveryID:    deliveryID,
 			EndpointID:    ep.ID,
@@ -141,7 +177,7 @@ func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 			URL:           ep.URL,
 			Secret:        ep.Secret,
 			EventType:     publicType,
-			SourceEventID: env.Metadata.EventID,
+			SourceEventID: env.EventID,
 			Payload:       payload,
 		}
 		if err := d.outbox.Publish(ctx, job); err != nil {
@@ -149,6 +185,21 @@ func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 		}
 	}
 	return nil
+}
+
+// upstreamType names the event PublicType is asked about: the Event-Type header
+// when the publisher sets one, the NATS subject otherwise.
+//
+// The fallback is not a convenience. A publisher that emits without headers —
+// several do, since the subject already carries the type — would otherwise hand
+// PublicType an empty string, and every one of its events would be dropped in
+// silence. Falling back on the subject makes the mapping work against what is
+// always present.
+func upstreamType(m *nats.Msg) string {
+	if t := m.Header.Get("Event-Type"); t != "" {
+		return t
+	}
+	return m.Subject
 }
 
 func subscribed(types []string, t string) bool {
