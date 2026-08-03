@@ -1,0 +1,11 @@
+ok  	github.com/lalternative/packages/lungor/core/billing	0.003s
+ok  	github.com/lalternative/packages/lungor/core/billingperiod	0.002s
+ok  	github.com/lalternative/packages/lungor/core/invoicing	0.001s
+ok  	github.com/lalternative/packages/lungor/core/invoicing/facturx	0.020s
+ok  	github.com/lalternative/packages/lungor/core/invoicing/local	0.002s
+ok  	github.com/lalternative/packages/lungor/core/metering	0.010s
+?   	github.com/lalternative/packages/lungor/core/metering/application/consume	[no test files]
+?   	github.com/lalternative/packages/lungor/core/metering/application/declareunit	[no test files]
+?   	github.com/lalternative/packages/lungor/core/metering/domain	[no test files]
+?   	github.com/lalternative/packages/lungor/core/metering/infrastructure	[no test files]
+ok  	github.com/lalternative/packages/lungor/core/mollie	0.004s

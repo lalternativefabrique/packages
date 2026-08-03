@@ -1,0 +1,21 @@
+?   	github.com/lalternative/packages/go/eda/examples/banking	[no test files]
+?   	github.com/lalternative/packages/go/eda/examples/consumer	[no test files]
+?   	github.com/lalternative/packages/go/eda/examples/orders	[no test files]
+ok  	github.com/lalternative/packages/go/eda/pkg/consumer	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/consumer/edatest	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/cqrs	0.031s
+ok  	github.com/lalternative/packages/go/eda/pkg/db	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/ddd	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/di	0.003s
+ok  	github.com/lalternative/packages/go/eda/pkg/kvstore	0.002s
+?   	github.com/lalternative/packages/go/eda/pkg/logger	[no test files]
+?   	github.com/lalternative/packages/go/eda/pkg/natsbus	[no test files]
+ok  	github.com/lalternative/packages/go/eda/pkg/obs	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/outbox	0.033s
+ok  	github.com/lalternative/packages/go/eda/pkg/processmanager	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/projection	0.043s
+?   	github.com/lalternative/packages/go/eda/pkg/idempotency/pgx	[no test files]
+ok  	github.com/lalternative/packages/go/eda/pkg/obs/otelobs	0.002s
+ok  	github.com/lalternative/packages/go/eda/pkg/obs/prom	0.004s
+?   	github.com/lalternative/packages/go/eda/pkg/outbox/pgx	[no test files]
+?   	github.com/lalternative/packages/go/eda/pkg/pgprojector	[no test files]

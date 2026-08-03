@@ -23,6 +23,8 @@ github.com/labstack/gommon v0.5.0 h1:6VSQ2NOzsnEJ5W6+84E0RbcaDDmgB6NIAzWCczTEe6c
 github.com/labstack/gommon v0.5.0/go.mod h1:Rzlg7HHy1maLfzBYGg9NZcVuz1sA68HHhLjhcEllYE0=
 github.com/lalternative/packages/go/eda v0.5.0 h1:X8WVFIfLv3OOolcCQZE6WksXdiQ86HNNt56y/lbuOms=
 github.com/lalternative/packages/go/eda v0.5.0/go.mod h1:rEJZsWrl6SwIEPSAk+2wGzxL10N4Z+NNx6SHVKSUkE0=
+github.com/lalternative/packages/go/eda/pkg/idempotency/pgx v0.0.0-20260803054204-c1f83e33cb77 h1:Z66Qa7GeSavKtGD1aeCrIOGb6cdgn+NZLVi/hbSBALE=
+github.com/lalternative/packages/go/eda/pkg/idempotency/pgx v0.0.0-20260803054204-c1f83e33cb77/go.mod h1:D54QnvVBycHT35Oxmi8XU4Vo/p04aM63pynqoqFBfuc=
 github.com/lalternative/packages/go/eda/pkg/pgprojector v0.0.0-20260802123343-c1ef8fab7b34 h1:FsI/CUghSPIBGFuzzM0M7fGgGxv8yu/LESUPgg24KdA=
 github.com/lalternative/packages/go/eda/pkg/pgprojector v0.0.0-20260802123343-c1ef8fab7b34/go.mod h1:d2tVweL/HPakhc5s0fuq8o4goNPL92f2bzRpuQj71jg=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
