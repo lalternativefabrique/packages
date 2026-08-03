@@ -7,6 +7,7 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/labstack/echo/v4 v4.15.2
 	github.com/lalternative/packages/go/eda v0.5.0
+	github.com/lalternative/packages/go/eda/pkg/idempotency/pgx v0.0.0-20260803054204-c1f83e33cb77
 	github.com/lalternative/packages/go/eda/pkg/pgprojector v0.0.0-20260802123343-c1ef8fab7b34
 	github.com/nats-io/nats.go v1.52.0
 	github.com/stretchr/testify v1.11.1

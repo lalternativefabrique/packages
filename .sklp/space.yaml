@@ -1,0 +1,14 @@
+runner:
+  toolchain:
+    # Matches the go directive every module in this repo declares. A newer
+    # toolchain would still build them, but CI must fail on what consumers will
+    # actually hit, not on a version none of them pins.
+    go: "1.25.12"
+
+  packages:
+    - git
+    - ca-certificates
+    # psql applies go/webhooks/migrations before its integration tests: the
+    # schema ships with the library, and applying it in CI is what proves the
+    # library and its migrations agree.
+    - postgresql-client

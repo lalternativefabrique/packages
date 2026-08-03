@@ -1,0 +1,158 @@
+version: 1
+kind: pipeline
+name: ci
+
+inputs:
+  base_ref:
+    type: string
+    required: false
+    default: origin/main
+
+services:
+  # Only the modules with integration tests need these, and only they declare
+  # them — a unit-test step that pulls a database is a slow step that fails for
+  # reasons unrelated to what it tests.
+  postgres-test:
+    image: postgres:17-alpine
+    network: bridge
+    env:
+      POSTGRES_DB: packages_test
+      POSTGRES_USER: packages
+      POSTGRES_PASSWORD: packages
+    # Speed over durability — this database is thrown away after the run.
+    command:
+      [
+        postgres,
+        "-c",
+        "fsync=off",
+        "-c",
+        "synchronous_commit=off",
+        "-c",
+        "full_page_writes=off",
+      ]
+    # Log probe, not tcp: the port opens during initdb, which then restarts the
+    # server, so a tcp check races. This line is only logged once the server
+    # actually accepts connections.
+    ready:
+      log: "database system is ready to accept connections"
+      timeout: 60s
+
+  nats-test:
+    image: nats:2-alpine
+    network: bridge
+    # JetStream, not core NATS: the event store, the outbox work-queue and the
+    # KV bucket all need it.
+    command: ["-js"]
+    ready:
+      log: "Server is ready"
+      timeout: 30s
+
+scopes:
+  eda:
+    - "go/eda/**"
+  webhooks:
+    - "go/webhooks/**"
+  lungor-core:
+    - "lungor/core/**"
+  lungor-sdk:
+    - "lungor/sdk-go/**"
+  skalpai-sdk:
+    - "skalpai/sdk-go/**"
+  spore-sdk:
+    - "spore/sdk-go/**"
+
+steps:
+  # eda's pkg/* are SEPARATE modules, so `go test ./...` at the root does not
+  # reach them — outbox/pgx and pgprojector run in production at Lungor and
+  # would otherwise be built by nothing here.
+  - name: eda
+    scope: [eda]
+    tools: [go]
+    run: |
+      cd go/eda
+      for mod in . $(find pkg -name go.mod -printf '%h\n' | sort); do
+        (cd "$mod" && go build ./... && go vet ./... && go test -count=1 ./...)
+      done
+
+  # Every published module is built, vetted and unit-tested. These modules are
+  # consumed by three products, so a break here is a break there.
+  - name: webhooks
+    scope: [webhooks]
+    tools: [go]
+    run: |
+      cd go/webhooks
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  # The integration tests carry a build tag, so `go test ./...` above does not
+  # even COMPILE them. Without this step they are dead code: written, committed,
+  # and run by nothing.
+  - name: webhooks-integration
+    scope: [webhooks]
+    depends_on: [webhooks]
+    # psql is not listed here: it comes from runner.packages (postgresql-client)
+    # in .sklp/space.yaml, not from the toolchain.
+    tools: [go]
+    services: [postgres-test, nats-test]
+    env:
+      DATABASE_URL: "postgres://packages:packages@postgres-test:5432/packages_test?sslmode=disable"
+      NATS_URL: "nats://nats-test:4222"
+    run: |
+      # The tests read and write webhook_endpoints but do not create it: the
+      # schema ships with the library, and applying it here is what proves the
+      # two agree.
+      psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f go/webhooks/migrations/001_webhook_endpoints.up.sql
+      cd go/webhooks
+      go vet -tags integration ./...
+      # -v so a SKIP is visible in the log. These tests skip themselves when
+      # NATS or DATABASE_URL are missing, and a silent skip here would look
+      # exactly like a pass — which is how they went unrun until this pipeline
+      # existed. Never pipe this into a filter: the pipe swallows go test's exit
+      # code and turns a failing suite into a green step.
+      # pipefail so tee cannot swallow a failing exit code.
+      set -o pipefail
+      go test -count=1 -v -tags integration ./... 2>&1 | tee /tmp/integration.log
+      # Fail on a skip. The suite is green when it skips, so without this the
+      # step passes while testing nothing — which is the exact failure this
+      # pipeline was written to end.
+      if grep -q -- "--- SKIP" /tmp/integration.log; then
+        echo "integration tests SKIPPED — backends unreachable, nothing was verified" >&2
+        exit 1
+      fi
+
+  - name: lungor-core
+    scope: [lungor-core]
+    tools: [go]
+    run: |
+      cd lungor/core
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: lungor-sdk
+    scope: [lungor-sdk]
+    tools: [go]
+    run: |
+      cd lungor/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: skalpai-sdk
+    scope: [skalpai-sdk]
+    tools: [go]
+    run: |
+      cd skalpai/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: spore-sdk
+    scope: [spore-sdk]
+    tools: [go]
+    run: |
+      cd spore/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...

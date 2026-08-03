@@ -13,8 +13,20 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/require"
 
+	idempotencypgx "github.com/lalternative/packages/go/eda/pkg/idempotency/pgx"
 	"github.com/lalternative/packages/go/webhooks/domain/aggregate"
 )
+
+// ensureSchema creates the tables the read models write to.
+//
+// webhook_endpoints ships with this library, in migrations/. event_idempotency
+// belongs to eda's pgprojector, which this package consumes — its DDL is taken
+// from the source that owns it rather than copied, so the two cannot drift.
+func ensureSchema(t *testing.T, pool *pgxpool.Pool) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), idempotencypgx.Schema)
+	require.NoError(t, err)
+}
 
 // resetWebhookState clears the event stream, the KV bucket and the PG read-model
 // table so each test starts clean. Missing resources are ignored.
@@ -31,6 +43,7 @@ func resetWebhookState(t *testing.T, nc *nats.Conn, pool *pgxpool.Pool) {
 			}
 		}
 	}
+	ensureSchema(t, pool)
 	_, err = pool.Exec(context.Background(), `TRUNCATE webhook_endpoints, event_idempotency`)
 	require.NoError(t, err)
 }

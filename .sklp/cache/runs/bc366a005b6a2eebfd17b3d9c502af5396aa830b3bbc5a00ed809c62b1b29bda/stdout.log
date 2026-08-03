@@ -1,0 +1,19 @@
+CREATE TABLE
+CREATE INDEX
+ok  	github.com/lalternative/packages/go/webhooks	0.902s
+?   	github.com/lalternative/packages/go/webhooks/applications/create_endpoint	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/applications/delete_endpoint	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/applications/get_endpoint	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/applications/list_endpoints	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/applications/rotate_secret	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/applications/update_endpoint	[no test files]
+ok  	github.com/lalternative/packages/go/webhooks/domain/aggregate	0.002s
+?   	github.com/lalternative/packages/go/webhooks/domain/events	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/domain/providers	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/domain/repository	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/infrastructure	[no test files]
+ok  	github.com/lalternative/packages/go/webhooks/infrastructure/dispatcher	0.002s
+?   	github.com/lalternative/packages/go/webhooks/infrastructure/memstore	[no test files]
+ok  	github.com/lalternative/packages/go/webhooks/infrastructure/outbox	0.003s
+?   	github.com/lalternative/packages/go/webhooks/infrastructure/projections	[no test files]
+?   	github.com/lalternative/packages/go/webhooks/infrastructure/repository	[no test files]

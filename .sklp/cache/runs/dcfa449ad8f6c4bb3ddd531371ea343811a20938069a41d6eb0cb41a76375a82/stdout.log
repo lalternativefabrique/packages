@@ -1,0 +1,55 @@
+CREATE TABLE
+CREATE INDEX
+=== RUN   TestIntegration_Webhooks_CreateProjectsToBothReadModels
+--- PASS: TestIntegration_Webhooks_CreateProjectsToBothReadModels (0.07s)
+=== RUN   TestIntegration_Webhooks_UpdateDisablesInBothReadModels
+--- PASS: TestIntegration_Webhooks_UpdateDisablesInBothReadModels (0.53s)
+=== RUN   TestIntegration_Webhooks_OutboxWorkerDispatchesJob
+--- PASS: TestIntegration_Webhooks_OutboxWorkerDispatchesJob (0.30s)
+ok  	github.com/lalternative/packages/go/webhooks	0.911s
+=== RUN   TestCreateAcceptsCatalogedTypes
+--- PASS: TestCreateAcceptsCatalogedTypes (0.00s)
+=== RUN   TestCreateRejectsUncatalogedType
+--- PASS: TestCreateRejectsUncatalogedType (0.00s)
+=== RUN   TestCatalogIsPerProduct
+--- PASS: TestCatalogIsPerProduct (0.00s)
+=== RUN   TestEmptyCatalogRejectsEverything
+--- PASS: TestEmptyCatalogRejectsEverything (0.00s)
+ok  	github.com/lalternative/packages/go/webhooks/domain/aggregate	0.002s
+=== RUN   TestFallsBackToSubjectWhenHeaderAbsent
+--- PASS: TestFallsBackToSubjectWhenHeaderAbsent (0.00s)
+=== RUN   TestHeaderWinsOverSubject
+--- PASS: TestHeaderWinsOverSubject (0.00s)
+=== RUN   TestCustomEnvelopeRoutesFlatEvents
+--- PASS: TestCustomEnvelopeRoutesFlatEvents (0.00s)
+=== RUN   TestDefaultEnvelopeReadsMetadataShape
+--- PASS: TestDefaultEnvelopeReadsMetadataShape (0.00s)
+=== RUN   TestUnknownScopeIsDropped
+--- PASS: TestUnknownScopeIsDropped (0.00s)
+=== RUN   TestUnsubscribedTypeIsNotDelivered
+--- PASS: TestUnsubscribedTypeIsNotDelivered (0.00s)
+=== RUN   TestDeliveryIDIsDeterministic
+--- PASS: TestDeliveryIDIsDeterministic (0.00s)
+ok  	github.com/lalternative/packages/go/webhooks/infrastructure/dispatcher	0.003s
+=== RUN   TestDispatchNamesHeadersAfterBrand
+--- PASS: TestDispatchNamesHeadersAfterBrand (0.00s)
+=== RUN   TestSignatureIsBrandIndependent
+--- PASS: TestSignatureIsBrandIndependent (0.00s)
+=== RUN   TestDefaultBrandWhenUnset
+--- PASS: TestDefaultBrandWhenUnset (0.00s)
+=== RUN   TestHTTPDispatcherRejectsPrivateTargets
+=== RUN   TestHTTPDispatcherRejectsPrivateTargets/http://127.0.0.1:1/webhook
+=== RUN   TestHTTPDispatcherRejectsPrivateTargets/http://10.0.0.1/webhook
+=== RUN   TestHTTPDispatcherRejectsPrivateTargets/http://169.254.169.254/latest/meta-data/
+--- PASS: TestHTTPDispatcherRejectsPrivateTargets (0.00s)
+=== RUN   TestWorkerRecordsSuccess
+--- PASS: TestWorkerRecordsSuccess (0.00s)
+=== RUN   TestWorkerTerminatesOnPermanentFailure
+--- PASS: TestWorkerTerminatesOnPermanentFailure (0.00s)
+=== RUN   TestWorkerRetriesOnTransientFailure
+--- PASS: TestWorkerRetriesOnTransientFailure (0.00s)
+=== RUN   TestWorkerSkipsVanishedEndpoint
+--- PASS: TestWorkerSkipsVanishedEndpoint (0.00s)
+=== RUN   TestWorkerRejectsUndecodableJob
+--- PASS: TestWorkerRejectsUndecodableJob (0.00s)
+ok  	github.com/lalternative/packages/go/webhooks/infrastructure/outbox	0.004s
