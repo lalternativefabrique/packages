@@ -12,4 +12,4 @@ generate:
   client: true
   models: true
 output-options:
-  include-tags: [entitlements, checkout, subscriptions, webhooks]
+  include-tags: [entitlements, checkout, subscriptions, webhooks, catalog]

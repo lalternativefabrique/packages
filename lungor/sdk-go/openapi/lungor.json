@@ -7,6 +7,49 @@
         "version": "1.0"
     },
     "paths": {
+        "/apps/{app_id}/plans": {
+            "get": {
+                "description": "Returns the active plans of the named app, ordered by rank. No credential: a pricing page is read by visitors who have not signed up, and the prices on it are the ones the app already publishes.",
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "List an app's plans, unauthenticated",
+                "operationId": "listPublicPlans",
+                "parameters": [
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.plansResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/logout": {
             "post": {
                 "tags": [
@@ -368,6 +411,43 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/plans": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Returns the active plans of the app the API key belongs to, ordered by rank. Use the returned id to open a checkout, so the price charged is the catalogue's rather than one restated in the caller's configuration.",
+                "tags": [
+                    "catalog"
+                ],
+                "summary": "List the authenticated app's plans",
+                "operationId": "listAppPlans",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.plansResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -809,6 +889,78 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/credentials/{cred_id}": {
+            "put": {
+                "tags": [
+                    "credentials"
+                ],
+                "summary": "Replace a provider credential's secret key",
+                "operationId": "replaceCredentialSecret",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Credential ID",
+                        "name": "cred_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.replaceCredsReq"
+                            }
+                        }
+                    },
+                    "description": "New secret key",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.credsView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/plans": {
             "post": {
                 "tags": [
@@ -1143,6 +1295,485 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/webhook-endpoints": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "List an app's webhook endpoints",
+                "operationId": "listAppWebhookEndpoints",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/list_endpoints.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The signing secret is returned ONCE here and never again — store it before leaving the response.",
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "Register a webhook endpoint for an app",
+                "operationId": "createAppWebhookEndpoint",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/main.createWebhookEndpointReq"
+                            }
+                        }
+                    },
+                    "description": "Endpoint to create",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/create_endpoint.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/webhook-endpoints/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The signing secret is never disclosed here — only on creation and rotation.",
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "Read one webhook endpoint",
+                "operationId": "getAppWebhookEndpoint",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Endpoint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/repository.EndpointView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanent. To stop delivery reversibly, PATCH it with disabled instead — that keeps the registration and its secret.",
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "Remove a webhook endpoint",
+                "operationId": "deleteAppWebhookEndpoint",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Endpoint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Omitted fields are left as they are. Send disabled to pause delivery without losing the registration or its secret.",
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "Change a webhook endpoint",
+                "operationId": "updateAppWebhookEndpoint",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Endpoint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/main.updateWebhookEndpointReq"
+                            }
+                        }
+                    },
+                    "description": "Fields to change",
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/webhook-endpoints/{id}/rotate-secret": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returned ONCE here. The previous secret stops verifying immediately, so a delivery already in flight fails and is retried under the new one.",
+                "tags": [
+                    "console-webhooks"
+                ],
+                "summary": "Issue a new signing secret",
+                "operationId": "rotateAppWebhookSecret",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Endpoint ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/rotate_secret.Result"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2891,6 +3522,44 @@
                     }
                 }
             },
+            "finance.planCatalogView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "example": 2900
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "pro"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "id": {
+                        "type": "string",
+                        "example": "9d0f1a2b-3c4d-5e6f-7a8b-9c0d1e2f3a4b"
+                    },
+                    "interval": {
+                        "type": "string",
+                        "example": "month"
+                    },
+                    "interval_count": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Pro"
+                    },
+                    "rank": {
+                        "description": "Rank orders the plans against each other: higher means larger. It is what\ntells an upgrade from a downgrade, and it is a product statement rather\nthan a function of Amount — a promotional tier priced below a smaller one\nwould otherwise invert the two paths.",
+                        "type": "integer",
+                        "example": 100
+                    }
+                }
+            },
             "finance.planView": {
                 "type": "object",
                 "properties": {
@@ -2920,6 +3589,17 @@
                     },
                     "name": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.plansResponse": {
+                "type": "object",
+                "properties": {
+                    "plans": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.planCatalogView"
+                        }
                     }
                 }
             },
@@ -2959,6 +3639,14 @@
                         "type": "string"
                     },
                     "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.replaceCredsReq": {
+                "type": "object",
+                "properties": {
+                    "secret_key": {
                         "type": "string"
                     }
                 }
@@ -3102,6 +3790,43 @@
                         "items": {
                             "$ref": "#/components/schemas/repository.EndpointView"
                         }
+                    }
+                }
+            },
+            "main.createWebhookEndpointReq": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "eventTypes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "main.updateWebhookEndpointReq": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "disabled": {
+                        "type": "boolean"
+                    },
+                    "eventTypes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "url": {
+                        "type": "string"
                     }
                 }
             },

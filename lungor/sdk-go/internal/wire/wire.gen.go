@@ -114,6 +114,28 @@ type FinanceEntitlementResponse struct {
 	Status   *string           `json:"status,omitempty"`
 }
 
+// FinancePlanCatalogView defines model for finance.planCatalogView.
+type FinancePlanCatalogView struct {
+	Amount        *int    `json:"amount,omitempty"`
+	Code          *string `json:"code,omitempty"`
+	Currency      *string `json:"currency,omitempty"`
+	Id            *string `json:"id,omitempty"`
+	Interval      *string `json:"interval,omitempty"`
+	IntervalCount *int    `json:"interval_count,omitempty"`
+	Name          *string `json:"name,omitempty"`
+
+	// Rank Rank orders the plans against each other: higher means larger. It is what
+	// tells an upgrade from a downgrade, and it is a product statement rather
+	// than a function of Amount — a promotional tier priced below a smaller one
+	// would otherwise invert the two paths.
+	Rank *int `json:"rank,omitempty"`
+}
+
+// FinancePlansResponse defines model for finance.plansResponse.
+type FinancePlansResponse struct {
+	Plans *[]FinancePlanCatalogView `json:"plans,omitempty"`
+}
+
 // ListEndpointsResult defines model for list_endpoints.Result.
 type ListEndpointsResult struct {
 	Items *[]RepositoryEndpointView `json:"items,omitempty"`
@@ -256,6 +278,9 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListPublicPlans request
+	ListPublicPlans(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetEntitlement request
 	GetEntitlement(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -266,6 +291,9 @@ type ClientInterface interface {
 
 	// PayplugWebhook request
 	PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAppPlans request
+	ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AppCancelSubscriptionWithBody request with any body
 	AppCancelSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -303,6 +331,18 @@ type ClientInterface interface {
 
 	// RotateWebhookSecret request
 	RotateWebhookSecret(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListPublicPlans(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPublicPlansRequest(c.Server, appId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) GetEntitlement(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -343,6 +383,18 @@ func (c *Client) Checkout(ctx context.Context, body CheckoutJSONRequestBody, req
 
 func (c *Client) PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPayplugWebhookRequest(c.Server, credId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAppPlansRequest(c.Server)
 	if err != nil {
 		return nil, err
 	}
@@ -521,6 +573,40 @@ func (c *Client) RotateWebhookSecret(ctx context.Context, id string, reqEditors 
 	return c.Client.Do(req)
 }
 
+// NewListPublicPlansRequest generates requests for ListPublicPlans
+func NewListPublicPlansRequest(server string, appId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/apps/%s/plans", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetEntitlementRequest generates requests for GetEntitlement
 func NewGetEntitlementRequest(server string, params *GetEntitlementParams) (*http.Request, error) {
 	var err error
@@ -649,6 +735,33 @@ func NewPayplugWebhookRequest(server string, credId string) (*http.Request, erro
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAppPlansRequest generates requests for ListAppPlans
+func NewListAppPlansRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1073,6 +1186,9 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListPublicPlansWithResponse request
+	ListPublicPlansWithResponse(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*ListPublicPlansResponse, error)
+
 	// GetEntitlementWithResponse request
 	GetEntitlementWithResponse(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error)
 
@@ -1083,6 +1199,9 @@ type ClientWithResponsesInterface interface {
 
 	// PayplugWebhookWithResponse request
 	PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error)
+
+	// ListAppPlansWithResponse request
+	ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error)
 
 	// AppCancelSubscriptionWithBodyWithResponse request with any body
 	AppCancelSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppCancelSubscriptionResponse, error)
@@ -1120,6 +1239,29 @@ type ClientWithResponsesInterface interface {
 
 	// RotateWebhookSecretWithResponse request
 	RotateWebhookSecretWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*RotateWebhookSecretResponse, error)
+}
+
+type ListPublicPlansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinancePlansResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPublicPlansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPublicPlansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type GetEntitlementResponse struct {
@@ -1185,6 +1327,29 @@ func (r PayplugWebhookResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PayplugWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAppPlansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinancePlansResponse
+	JSON401      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAppPlansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAppPlansResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1407,6 +1572,15 @@ func (r RotateWebhookSecretResponse) StatusCode() int {
 	return 0
 }
 
+// ListPublicPlansWithResponse request returning *ListPublicPlansResponse
+func (c *ClientWithResponses) ListPublicPlansWithResponse(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*ListPublicPlansResponse, error) {
+	rsp, err := c.ListPublicPlans(ctx, appId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPublicPlansResponse(rsp)
+}
+
 // GetEntitlementWithResponse request returning *GetEntitlementResponse
 func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error) {
 	rsp, err := c.GetEntitlement(ctx, params, reqEditors...)
@@ -1440,6 +1614,15 @@ func (c *ClientWithResponses) PayplugWebhookWithResponse(ctx context.Context, cr
 		return nil, err
 	}
 	return ParsePayplugWebhookResponse(rsp)
+}
+
+// ListAppPlansWithResponse request returning *ListAppPlansResponse
+func (c *ClientWithResponses) ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error) {
+	rsp, err := c.ListAppPlans(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAppPlansResponse(rsp)
 }
 
 // AppCancelSubscriptionWithBodyWithResponse request with arbitrary body returning *AppCancelSubscriptionResponse
@@ -1563,6 +1746,39 @@ func (c *ClientWithResponses) RotateWebhookSecretWithResponse(ctx context.Contex
 	return ParseRotateWebhookSecretResponse(rsp)
 }
 
+// ParseListPublicPlansResponse parses an HTTP response from a ListPublicPlansWithResponse call
+func ParseListPublicPlansResponse(rsp *http.Response) (*ListPublicPlansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPublicPlansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinancePlansResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetEntitlementResponse parses an HTTP response from a GetEntitlementWithResponse call
 func ParseGetEntitlementResponse(rsp *http.Response) (*GetEntitlementResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1654,6 +1870,39 @@ func ParsePayplugWebhookResponse(rsp *http.Response) (*PayplugWebhookResponse, e
 	response := &PayplugWebhookResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListAppPlansResponse parses an HTTP response from a ListAppPlansWithResponse call
+func ParseListAppPlansResponse(rsp *http.Response) (*ListAppPlansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAppPlansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinancePlansResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	}
 
 	return response, nil
