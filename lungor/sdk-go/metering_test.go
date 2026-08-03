@@ -111,18 +111,49 @@ func TestTopup_CreditsTheBalance(t *testing.T) {
 }
 
 func TestBalance_ReadsTheRemainingAllowance(t *testing.T) {
-	srv, rec := server(t, http.StatusOK, map[string]any{"unit": "credit", "balance": 42})
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"unit": "credit", "balance": 95, "limit": 3000, "consumed": 2905, "periodic": true,
+	})
 	defer srv.Close()
 
 	got, err := New(srv.URL, "k").Balance(ctx(), "user-1", "credit")
 	if err != nil {
 		t.Fatalf("balance: %v", err)
 	}
-	if got != 42 {
-		t.Fatalf("balance = %d, want 42", got)
+	if got.Remaining != 95 {
+		t.Fatalf("remaining = %d, want 95", got.Remaining)
+	}
+	// The period travels with the number, so a caller renders "95 of 3000"
+	// without a second call or its own arithmetic.
+	if got.Limit != 3000 || got.Consumed != 2905 {
+		t.Fatalf("limit/consumed = %d/%d, want 3000/2905", got.Limit, got.Consumed)
+	}
+	if !got.Periodic {
+		t.Fatal("periodic = false for a period-capped balance")
 	}
 	if rec.method != http.MethodGet {
 		t.Fatalf("method = %s", rec.method)
+	}
+}
+
+// Under the prepaid regime there is no ceiling and no window. Periodic is what
+// tells the two apart: "0 left, back at renewal" and "0 in the wallet, top it
+// up" are the same number meaning opposite things.
+func TestBalance_PrepaidCarriesNoPeriod(t *testing.T) {
+	srv, _ := server(t, http.StatusOK, map[string]any{
+		"unit": "credit", "balance": 250, "limit": 0, "consumed": 0, "periodic": false,
+	})
+	defer srv.Close()
+
+	got, err := New(srv.URL, "k").Balance(ctx(), "user-1", "credit")
+	if err != nil {
+		t.Fatalf("balance: %v", err)
+	}
+	if got.Periodic {
+		t.Fatal("a prepaid wallet was reported as period-capped")
+	}
+	if got.Remaining != 250 || got.Limit != 0 {
+		t.Fatalf("got %+v", got)
 	}
 }
 

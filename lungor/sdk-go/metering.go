@@ -122,6 +122,30 @@ func (c *Client) Topup(ctx context.Context, in Usage) (Decision, error) {
 	return decisionFrom(out), nil
 }
 
+// Balance is what a user has left of a unit, and the period it was measured
+// over.
+//
+// It is computed on the same basis Consume decides on. A read that reported a
+// lifetime total while debits were capped per period would show a number no
+// refusal ever matches.
+type Balance struct {
+	Unit string
+	// Remaining is what is left. Never negative: an allowance lowered
+	// mid-period can leave Consumed above Limit, and reporting a debt the user
+	// does not owe helps nobody — the raw figures below keep the overrun
+	// visible.
+	Remaining int64
+	// Limit and Consumed describe the period Remaining was computed over, so a
+	// caller renders "95 of 3000 left" without a second call. Both are zero
+	// under the prepaid regime, where there is neither.
+	Limit    int64
+	Consumed int64
+	// Periodic says which regime answered. It matters for what you tell the
+	// user: "0 left, back at renewal" and "0 in the wallet, top it up" are the
+	// same number meaning opposite things.
+	Periodic bool
+}
+
 // Balance reports what a user has left of a unit.
 //
 // The number means whichever regime applies to them: what remains IN THE
@@ -131,12 +155,12 @@ func (c *Client) Topup(ctx context.Context, in Usage) (Decision, error) {
 // Do not gate a consumption on this. Reading then debiting leaves a window in
 // which another debit lands, and two callers can both pass a check neither
 // would pass together — use Consume, whose check and write are one transaction.
-func (c *Client) Balance(ctx context.Context, externalUserID, unit string) (int64, error) {
+func (c *Client) Balance(ctx context.Context, externalUserID, unit string) (Balance, error) {
 	if c.baseURL == "" || c.appKey == "" {
-		return 0, ErrNotConfigured
+		return Balance{}, ErrNotConfigured
 	}
 	if externalUserID == "" || unit == "" {
-		return 0, fmt.Errorf("%w: external user id and unit are required", ErrBadRequest)
+		return Balance{}, fmt.Errorf("%w: external user id and unit are required", ErrBadRequest)
 	}
 	var out wire.MeteringBalanceResponse
 	if err := c.send(ctx, &out, func() (*http.Response, error) {
@@ -145,12 +169,29 @@ func (c *Client) Balance(ctx context.Context, externalUserID, unit string) (int6
 			Unit:           unit,
 		})
 	}); err != nil {
-		return 0, err
+		return Balance{}, err
 	}
-	if out.Balance == nil {
-		return 0, nil
+	return balanceFrom(unit, out), nil
+}
+
+func balanceFrom(unit string, w wire.MeteringBalanceResponse) Balance {
+	b := Balance{Unit: unit}
+	if w.Unit != nil {
+		b.Unit = *w.Unit
 	}
-	return int64(*out.Balance), nil
+	if w.Balance != nil {
+		b.Remaining = int64(*w.Balance)
+	}
+	if w.Limit != nil {
+		b.Limit = int64(*w.Limit)
+	}
+	if w.Consumed != nil {
+		b.Consumed = int64(*w.Consumed)
+	}
+	if w.Periodic != nil {
+		b.Periodic = *w.Periodic
+	}
+	return b
 }
 
 // request validates a usage and builds the generated wire body.
