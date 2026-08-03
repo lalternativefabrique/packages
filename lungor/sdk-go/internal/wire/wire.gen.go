@@ -141,6 +141,29 @@ type ListEndpointsResult struct {
 	Items *[]RepositoryEndpointView `json:"items,omitempty"`
 }
 
+// MeteringBalanceResponse defines model for metering.balanceResponse.
+type MeteringBalanceResponse struct {
+	Balance *int    `json:"balance,omitempty"`
+	Unit    *string `json:"unit,omitempty"`
+}
+
+// MeteringConsumeRequest defines model for metering.consumeRequest.
+type MeteringConsumeRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	Quantity       *int    `json:"quantity,omitempty"`
+	SubscriptionId *string `json:"subscription_id,omitempty"`
+	Unit           *string `json:"unit,omitempty"`
+}
+
+// MeteringDecisionResponse defines model for metering.decisionResponse.
+type MeteringDecisionResponse struct {
+	Allowed  *bool   `json:"allowed,omitempty"`
+	Balance  *int    `json:"balance,omitempty"`
+	Reason   *string `json:"reason,omitempty"`
+	Recorded *bool   `json:"recorded,omitempty"`
+}
+
 // RepositoryEndpointView defines model for repository.EndpointView.
 type RepositoryEndpointView struct {
 	CreatedAt   *string   `json:"createdAt,omitempty"`
@@ -178,6 +201,15 @@ type GetEntitlementParams struct {
 	Units *string `form:"units,omitempty" json:"units,omitempty"`
 }
 
+// GetUsageBalanceParams defines parameters for GetUsageBalance.
+type GetUsageBalanceParams struct {
+	// ExternalUserId External user id
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+
+	// Unit Usage unit code
+	Unit string `form:"unit" json:"unit"`
+}
+
 // ListWebhookEndpointsParams defines parameters for ListWebhookEndpoints.
 type ListWebhookEndpointsParams struct {
 	// Limit Page size
@@ -189,6 +221,12 @@ type ListWebhookEndpointsParams struct {
 
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
+
+// ConsumeUsageJSONRequestBody defines body for ConsumeUsage for application/json ContentType.
+type ConsumeUsageJSONRequestBody = MeteringConsumeRequest
+
+// TopupUsageJSONRequestBody defines body for TopupUsage for application/json ContentType.
+type TopupUsageJSONRequestBody = MeteringConsumeRequest
 
 // AppCancelSubscriptionJSONRequestBody defines body for AppCancelSubscription for application/json ContentType.
 type AppCancelSubscriptionJSONRequestBody = FinanceAppCancelRequest
@@ -292,6 +330,19 @@ type ClientInterface interface {
 	// PayplugWebhook request
 	PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ConsumeUsageWithBody request with any body
+	ConsumeUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ConsumeUsage(ctx context.Context, body ConsumeUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUsageBalance request
+	GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TopupUsageWithBody request with any body
+	TopupUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	TopupUsage(ctx context.Context, body TopupUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAppPlans request
 	ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -383,6 +434,66 @@ func (c *Client) Checkout(ctx context.Context, body CheckoutJSONRequestBody, req
 
 func (c *Client) PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPayplugWebhookRequest(c.Server, credId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ConsumeUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConsumeUsageRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ConsumeUsage(ctx context.Context, body ConsumeUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConsumeUsageRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUsageBalanceRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TopupUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTopupUsageRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TopupUsage(ctx context.Context, body TopupUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTopupUsageRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -738,6 +849,143 @@ func NewPayplugWebhookRequest(server string, credId string) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewConsumeUsageRequest calls the generic ConsumeUsage builder with application/json body
+func NewConsumeUsageRequest(server string, body ConsumeUsageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConsumeUsageRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewConsumeUsageRequestWithBody generates requests for ConsumeUsage with any type of body
+func NewConsumeUsageRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/usage")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetUsageBalanceRequest generates requests for GetUsageBalance
+func NewGetUsageBalanceRequest(server string, params *GetUsageBalanceParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/usage/balance")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "unit", runtime.ParamLocationQuery, params.Unit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewTopupUsageRequest calls the generic TopupUsage builder with application/json body
+func NewTopupUsageRequest(server string, body TopupUsageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTopupUsageRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewTopupUsageRequestWithBody generates requests for TopupUsage with any type of body
+func NewTopupUsageRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/usage/topup")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -1200,6 +1448,19 @@ type ClientWithResponsesInterface interface {
 	// PayplugWebhookWithResponse request
 	PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error)
 
+	// ConsumeUsageWithBodyWithResponse request with any body
+	ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error)
+
+	ConsumeUsageWithResponse(ctx context.Context, body ConsumeUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error)
+
+	// GetUsageBalanceWithResponse request
+	GetUsageBalanceWithResponse(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*GetUsageBalanceResponse, error)
+
+	// TopupUsageWithBodyWithResponse request with any body
+	TopupUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TopupUsageResponse, error)
+
+	TopupUsageWithResponse(ctx context.Context, body TopupUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*TopupUsageResponse, error)
+
 	// ListAppPlansWithResponse request
 	ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error)
 
@@ -1327,6 +1588,76 @@ func (r PayplugWebhookResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r PayplugWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ConsumeUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringDecisionResponse
+	JSON400      *EchoHTTPError
+	JSON402      *MeteringDecisionResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r ConsumeUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConsumeUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetUsageBalanceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringBalanceResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUsageBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUsageBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type TopupUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringDecisionResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r TopupUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TopupUsageResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1616,6 +1947,49 @@ func (c *ClientWithResponses) PayplugWebhookWithResponse(ctx context.Context, cr
 	return ParsePayplugWebhookResponse(rsp)
 }
 
+// ConsumeUsageWithBodyWithResponse request with arbitrary body returning *ConsumeUsageResponse
+func (c *ClientWithResponses) ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error) {
+	rsp, err := c.ConsumeUsageWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConsumeUsageResponse(rsp)
+}
+
+func (c *ClientWithResponses) ConsumeUsageWithResponse(ctx context.Context, body ConsumeUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error) {
+	rsp, err := c.ConsumeUsage(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConsumeUsageResponse(rsp)
+}
+
+// GetUsageBalanceWithResponse request returning *GetUsageBalanceResponse
+func (c *ClientWithResponses) GetUsageBalanceWithResponse(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*GetUsageBalanceResponse, error) {
+	rsp, err := c.GetUsageBalance(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUsageBalanceResponse(rsp)
+}
+
+// TopupUsageWithBodyWithResponse request with arbitrary body returning *TopupUsageResponse
+func (c *ClientWithResponses) TopupUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TopupUsageResponse, error) {
+	rsp, err := c.TopupUsageWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTopupUsageResponse(rsp)
+}
+
+func (c *ClientWithResponses) TopupUsageWithResponse(ctx context.Context, body TopupUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*TopupUsageResponse, error) {
+	rsp, err := c.TopupUsage(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTopupUsageResponse(rsp)
+}
+
 // ListAppPlansWithResponse request returning *ListAppPlansResponse
 func (c *ClientWithResponses) ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error) {
 	rsp, err := c.ListAppPlans(ctx, reqEditors...)
@@ -1870,6 +2244,112 @@ func ParsePayplugWebhookResponse(rsp *http.Response) (*PayplugWebhookResponse, e
 	response := &PayplugWebhookResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseConsumeUsageResponse parses an HTTP response from a ConsumeUsageWithResponse call
+func ParseConsumeUsageResponse(rsp *http.Response) (*ConsumeUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConsumeUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringDecisionResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 402:
+		var dest MeteringDecisionResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON402 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetUsageBalanceResponse parses an HTTP response from a GetUsageBalanceWithResponse call
+func ParseGetUsageBalanceResponse(rsp *http.Response) (*GetUsageBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUsageBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringBalanceResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTopupUsageResponse parses an HTTP response from a TopupUsageWithResponse call
+func ParseTopupUsageResponse(rsp *http.Response) (*TopupUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TopupUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringDecisionResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
 	}
 
 	return response, nil

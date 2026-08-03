@@ -12,4 +12,20 @@ generate:
   client: true
   models: true
 output-options:
-  include-tags: [entitlements, checkout, subscriptions, webhooks, catalog]
+  # A DENY list, deliberately, and this is the important part.
+  #
+  # An allow list is silent when it is wrong: a route added upstream under a tag
+  # nobody listed simply never reaches the SDK — no error, no warning. Both the
+  # catalogue and the metering endpoints stayed invisible exactly that way, each
+  # until someone noticed by hand. Denying instead means a new app-facing route
+  # arrives on its own, and only a new CONSOLE route needs an edit here — which
+  # is noticed, because someone just wrote it.
+  #
+  # What is excluded is the console's own surface: everything under /tenants/ is
+  # authenticated by a human's JWT, not by an app key, so an app has nothing to
+  # call there.
+  exclude-tags: [apps, plans, credentials, billing, console-webhooks, auth]
+  # The two console routes whose tag it shares with app-facing ones: `metering`
+  # covers both /metering/usage (app key) and /tenants/…/usage-units (console),
+  # so the tag alone cannot separate them.
+  exclude-operation-ids: [declareUsageUnit, listUsageUnits]
