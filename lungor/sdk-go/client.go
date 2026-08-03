@@ -18,13 +18,18 @@
 // Putting either job in the other package is what produced the duplication this
 // replaces.
 //
-// # Where the types come from
+// # Where the transport comes from
 //
-// The wire types in types.gen.go are generated from openapi/lungor.json, which
-// is Lungor's own swagger — the one swag produces from its handler annotations.
-// Requests are built as those types and responses decoded into them, so a field
-// added or renamed in the API surfaces here as a compile error rather than as a
-// value silently never read.
+// internal/wire is generated from openapi/lungor.json, Lungor's own contract.
+// It owns every path, method and parameter, so none of them is typed by hand
+// here: a route renamed upstream becomes a compile error rather than a 404 in
+// production, and a field added or renamed surfaces the same way instead of as
+// a value silently never read.
+//
+// It is internal because it is not this package's API. Its methods return raw
+// *http.Response and generated pointer types; what is exported wraps them with
+// typed errors, the cache, and the pointer-to-value conversions that keep "not
+// entitled" distinguishable from "no answer".
 //
 // Updating after an API change is ./refresh-contract.sh, which fetches
 // /openapi.json from a running Lungor and regenerates — then reconcile any
@@ -36,8 +41,6 @@
 // passes its tests, and cannot call what it is missing.
 package sdk
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1 -config oapi-codegen.yaml openapi/lungor.json
-
 import (
 	"context"
 	"encoding/json"
@@ -45,9 +48,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
+
+	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
 
 // DefaultTimeout bounds a single call.
@@ -69,6 +73,10 @@ type Client struct {
 	tenantID string
 	appID    string
 	http     *http.Client
+	// wire is the generated transport: it owns every path and method, so none
+	// is written by hand here. Nil when baseURL is blank, which every method
+	// already guards with ErrNotConfigured.
+	wire *wire.Client
 }
 
 // Option configures a Client.
@@ -115,7 +123,38 @@ func New(baseURL, appKey string, opts ...Option) *Client {
 	for _, o := range opts {
 		o(c)
 	}
+	c.wire = newWire(c.baseURL, c.appKey, c.http)
 	return c
+}
+
+// apiRoot is the version segment the generated transport hangs its paths under.
+//
+// The last string in a request path still written by hand, and the only one a
+// renamed route upstream would not turn into a compile error — hence
+// TestEveryOperationIsVersioned, which asserts it against every operation.
+const apiRoot = "/api/v1/"
+
+// newWire builds the generated transport. Its error is dropped on purpose: it
+// can only come from a ClientOption, and none is passed here — surfacing it
+// would force New to return an error for a case that cannot arise, when a blank
+// baseURL is already handled by every method returning ErrNotConfigured.
+func newWire(baseURL, appKey string, doer wire.HttpRequestDoer) *wire.Client {
+	if baseURL == "" {
+		return nil
+	}
+	// Authentication is attached once, here, rather than per call: the app key
+	// identifies the app on every request, and a method that forgot it would
+	// read as a rejected key rather than as the omission it is.
+	auth := wire.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
+		req.Header.Set("Authorization", "Bearer "+appKey)
+		req.Header.Set("Accept", "application/json")
+		return nil
+	})
+	w, err := wire.NewClient(baseURL+apiRoot, wire.WithHTTPClient(doer), auth)
+	if err != nil {
+		return nil
+	}
+	return w
 }
 
 // Errors the caller is expected to branch on.
@@ -197,21 +236,23 @@ func (c *Client) Entitlement(ctx context.Context, externalUserID string, units .
 		return Entitlement{}, fmt.Errorf("%w: empty external user id", ErrBadRequest)
 	}
 
-	q := url.Values{}
-	q.Set("external_user_id", externalUserID)
+	params := wire.GetEntitlementParams{ExternalUserId: externalUserID}
 	if len(units) > 0 {
-		q.Set("units", strings.Join(units, ","))
+		joined := strings.Join(units, ",")
+		params.Units = &joined
 	}
 
 	// Decode into the GENERATED wire type, then convert. That indirection is
-	// what ties this client to the API: types.gen.go comes from Lungor's own
-	// swagger (openapi/lungor.json), so a field added or renamed there shows up
-	// here as a compile error instead of as a value silently never read.
-	var wire FinanceEntitlementResponse
-	if err := c.do(ctx, http.MethodGet, "/api/v1/entitlements?"+q.Encode(), nil, &wire); err != nil {
+	// what ties this client to the API: the types come from Lungor's own
+	// contract, so a field added or renamed there shows up here as a compile
+	// error instead of as a value silently never read.
+	var body wire.FinanceEntitlementResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.GetEntitlement(ctx, &params)
+	}); err != nil {
 		return Entitlement{}, err
 	}
-	return entitlementFrom(wire), nil
+	return entitlementFrom(body), nil
 }
 
 // entitlementFrom converts the generated wire type into the one callers use.
@@ -221,7 +262,7 @@ func (c *Client) Entitlement(ctx context.Context, externalUserID string, units .
 // makes "not entitled" and "no answer" the same value at the point where one
 // must degrade and the other must not. A nil verdict is read as NOT entitled —
 // the safe direction, granting nothing on a malformed response.
-func entitlementFrom(w FinanceEntitlementResponse) Entitlement {
+func entitlementFrom(w wire.FinanceEntitlementResponse) Entitlement {
 	out := Entitlement{}
 	if w.Entitled != nil {
 		out.Entitled = *w.Entitled
@@ -282,7 +323,7 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 	// Built as the GENERATED request type rather than a map, so a field Lungor
 	// starts requiring is a compile error here instead of a request that is
 	// quietly missing it.
-	body := FinanceCheckoutRequest{
+	req := wire.FinanceCheckoutRequest{
 		TenantId:       &c.tenantID,
 		AppId:          &c.appID,
 		PriceId:        &in.PriceID,
@@ -293,16 +334,18 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 		CancelUrl:      &in.CancelURL,
 	}
 
-	var wire FinanceCheckoutResponse
-	if err := c.do(ctx, http.MethodPost, "/api/v1/finance/checkout", body, &wire); err != nil {
+	var body wire.FinanceCheckoutResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.Checkout(ctx, req)
+	}); err != nil {
 		return Checkout{}, err
 	}
-	return checkoutFrom(wire), nil
+	return checkoutFrom(body), nil
 }
 
 // checkoutFrom converts the generated wire type into the one callers use. Same
 // reason as entitlementFrom: the generated pointers stop at this boundary.
-func checkoutFrom(w FinanceCheckoutResponse) Checkout {
+func checkoutFrom(w wire.FinanceCheckoutResponse) Checkout {
 	out := Checkout{}
 	if w.SessionId != nil {
 		out.SessionID = *w.SessionId
@@ -323,35 +366,24 @@ func checkoutFrom(w FinanceCheckoutResponse) Checkout {
 // ErrUnauthorized vs a "not entitled" answer: a rejected app key is an operator
 // mistake, and silently reading it as "this customer has not paid" would cut off
 // every paying user at once.
-func (c *Client) do(ctx context.Context, method, path string, body any, out any) error {
-	_, err := c.doStatus(ctx, method, path, body, out)
+func (c *Client) send(ctx context.Context, out any, call func() (*http.Response, error)) error {
+	_, err := c.sendStatus(ctx, out, call)
 	return err
 }
 
-// doStatus is do, returning the HTTP status alongside. It exists for the one
+// sendStatus is send, returning the HTTP status alongside. It exists for the one
 // path where a non-200 is a legitimate answer rather than a failure: a tier
 // change needing consent answers 402 WITH the figures to show the customer.
-func (c *Client) doStatus(ctx context.Context, method, path string, body any, out any) (int, error) {
-	var reader io.Reader
-	if body != nil {
-		buf, err := json.Marshal(body)
-		if err != nil {
-			return 0, fmt.Errorf("%w: encoding request: %v", ErrBadRequest, err)
-		}
-		reader = strings.NewReader(string(buf))
+//
+// call comes from the generated transport, which owns the path, the method and
+// the parameter encoding. What stays here is the part a generator cannot
+// express: mapping a status onto this package's errors.
+func (c *Client) sendStatus(ctx context.Context, out any, call func() (*http.Response, error)) (int, error) {
+	if c.wire == nil {
+		return 0, ErrNotConfigured
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reader)
-	if err != nil {
-		return 0, fmt.Errorf("%w: building request: %v", ErrBadRequest, err)
-	}
-	req.Header.Set("Authorization", "Bearer "+c.appKey)
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	resp, err := c.http.Do(req)
+	resp, err := call()
 	if err != nil {
 		return 0, fmt.Errorf("%w: %v", ErrUnavailable, err)
 	}

@@ -5,12 +5,14 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
 
 func TestChangePlan_SendsTheUserAndPlanCode(t *testing.T) {
 	kind, applied := "upgrade", true
 	prorated := 450
-	srv, rec := server(t, 200, FinanceAppChangePlanResponse{
+	srv, rec := server(t, 200, wire.FinanceAppChangePlanResponse{
 		Kind: &kind, AppliedNow: &applied, ProratedCents: &prorated,
 	})
 	c := New(srv.URL, "k")
@@ -39,7 +41,7 @@ func TestChangePlan_SendsTheUserAndPlanCode(t *testing.T) {
 // DirectionAny must not send the field at all: an empty string would be a value
 // Lungor rejects rather than the absence the caller meant.
 func TestChangePlan_OmitsAnUnsetDirection(t *testing.T) {
-	srv, rec := server(t, 200, FinanceAppChangePlanResponse{})
+	srv, rec := server(t, 200, wire.FinanceAppChangePlanResponse{})
 	c := New(srv.URL, "k")
 
 	_, _ = c.ChangePlan(ctx(), ChangePlanInput{ExternalUserID: "u1", PlanCode: "pro"})
@@ -54,7 +56,7 @@ func TestChangePlan_OmitsAnUnsetDirection(t *testing.T) {
 func TestChangePlan_ConsentRequiredCarriesTheFigures(t *testing.T) {
 	required := true
 	amount, recurring := 1200, 1700
-	srv, _ := server(t, http.StatusPaymentRequired, FinanceAppChangePlanResponse{
+	srv, _ := server(t, http.StatusPaymentRequired, wire.FinanceAppChangePlanResponse{
 		ConsentRequired: &required, ConsentAmountCents: &amount, ConsentRecurringCents: &recurring,
 	})
 	c := New(srv.URL, "k")
@@ -70,7 +72,7 @@ func TestChangePlan_ConsentRequiredCarriesTheFigures(t *testing.T) {
 }
 
 func TestChangePlan_SendsTheAgreedAmount(t *testing.T) {
-	srv, rec := server(t, 200, FinanceAppChangePlanResponse{})
+	srv, rec := server(t, 200, wire.FinanceAppChangePlanResponse{})
 	c := New(srv.URL, "k")
 
 	_, _ = c.ChangePlan(ctx(), ChangePlanInput{
@@ -88,7 +90,7 @@ func TestChangePlan_SendsTheAgreedAmount(t *testing.T) {
 
 func TestChangePlan_ParsesTheEffectiveDate(t *testing.T) {
 	when := "2026-09-01T00:00:00Z"
-	srv, _ := server(t, 200, FinanceAppChangePlanResponse{EffectiveAt: &when})
+	srv, _ := server(t, 200, wire.FinanceAppChangePlanResponse{EffectiveAt: &when})
 	c := New(srv.URL, "k")
 
 	out, err := c.ChangePlan(ctx(), ChangePlanInput{ExternalUserID: "u1", PlanCode: "solo"})
@@ -101,7 +103,7 @@ func TestChangePlan_ParsesTheEffectiveDate(t *testing.T) {
 }
 
 func TestChangePlan_RefusesIncompleteInput(t *testing.T) {
-	srv, rec := server(t, 200, FinanceAppChangePlanResponse{})
+	srv, rec := server(t, 200, wire.FinanceAppChangePlanResponse{})
 	c := New(srv.URL, "k")
 
 	if _, err := c.ChangePlan(ctx(), ChangePlanInput{PlanCode: "pro"}); !errors.Is(err, ErrBadRequest) {
@@ -117,7 +119,7 @@ func TestChangePlan_RefusesIncompleteInput(t *testing.T) {
 
 func TestCancel_DefaultsAreExplicit(t *testing.T) {
 	status, when := "canceled", "2026-09-01T00:00:00Z"
-	srv, rec := server(t, 200, FinanceAppCancelResponse{Status: &status, EffectiveAt: &when})
+	srv, rec := server(t, 200, wire.FinanceAppCancelResponse{Status: &status, EffectiveAt: &when})
 	c := New(srv.URL, "k")
 
 	out, err := c.Cancel(ctx(), "user-1", true)
@@ -139,7 +141,7 @@ func TestCancel_DefaultsAreExplicit(t *testing.T) {
 // false must reach the wire: relying on omitempty would silently turn an
 // immediate cancellation into an at-period-end one.
 func TestCancel_SendsAnExplicitFalse(t *testing.T) {
-	srv, rec := server(t, 200, FinanceAppCancelResponse{})
+	srv, rec := server(t, 200, wire.FinanceAppCancelResponse{})
 	c := New(srv.URL, "k")
 
 	_, _ = c.Cancel(ctx(), "user-1", false)
@@ -151,7 +153,7 @@ func TestCancel_SendsAnExplicitFalse(t *testing.T) {
 
 func TestWithdrawPendingPlan_ReportsWhatWasWithdrawn(t *testing.T) {
 	withdrawn, code := true, "solo"
-	srv, rec := server(t, 200, FinanceAppWithdrawPendingResponse{Withdrawn: &withdrawn, PlanCode: &code})
+	srv, rec := server(t, 200, wire.FinanceAppWithdrawPendingResponse{Withdrawn: &withdrawn, PlanCode: &code})
 	c := New(srv.URL, "k")
 
 	got, plan, err := c.WithdrawPendingPlan(ctx(), "user-1")
@@ -171,7 +173,7 @@ func TestWithdrawPendingPlan_ReportsWhatWasWithdrawn(t *testing.T) {
 // off for a promise that is already gone.
 func TestWithdrawPendingPlan_NothingScheduledIsNotAnError(t *testing.T) {
 	withdrawn := false
-	srv, _ := server(t, 200, FinanceAppWithdrawPendingResponse{Withdrawn: &withdrawn})
+	srv, _ := server(t, 200, wire.FinanceAppWithdrawPendingResponse{Withdrawn: &withdrawn})
 	c := New(srv.URL, "k")
 
 	got, _, err := c.WithdrawPendingPlan(ctx(), "user-1")
