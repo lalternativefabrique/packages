@@ -269,6 +269,7 @@
                         "AppKeyAuth": []
                     }
                 ],
+                "description": "Debits `quantity` of `unit` for a user, and answers whether it was allowed.\n\nWhich ceiling applies is resolved here, from the user's subscription — never sent by the caller, so the cap and the plan cannot disagree:\n\n**Subscription cap** — when the user's plan allocates this unit, the debit is capped on the allowance FOR THE CURRENT BILLING PERIOD, anchored on the subscription's own renewal date (not the 1st of the month). Consumption outside that window does not count, so a user who exhausted last period is served again as soon as it rolls over — no top-up, no manual intervention.\n\n**Prepaid wallet** — a user with no such allocation falls back to a lifetime balance, which must stay >= 0 and is topped up out of band via /metering/usage/topup.\n\nThe check and the write happen in ONE serialized transaction, so two concurrent debits cannot both observe the pre-debit total and both pass.\n\nA refusal is a normal outcome, not a failure: 402 carries the same decision body as 200, with allowed=false and the reason. Do not retry it — a retry cannot lift a cap. `idempotency_key` dedupes retries of the SAME logical debit; a replay writes nothing and re-reports the current state.",
                 "tags": [
                     "metering"
                 ],
@@ -326,6 +327,7 @@
                         "AppKeyAuth": []
                     }
                 ],
+                "description": "Reports what the user has left of `unit`, on the SAME basis POST /metering/usage decides on: what remains IN THE CURRENT BILLING PERIOD when their plan allocates the unit, or their lifetime prepaid balance otherwise. `periodic` says which one answered.\n\nA read that reported a lifetime total while debits were capped per period would show a number no refusal ever matches.\n\n`limit` and `consumed` describe the period the balance was computed over, so a caller can render \"95 of 3000 left\" without a second call. Both are 0 under the prepaid regime.",
                 "tags": [
                     "metering"
                 ],
@@ -382,6 +384,7 @@
                         "AppKeyAuth": []
                     }
                 ],
+                "description": "Credits `quantity` of `unit` to a user's PREPAID wallet — the lifetime balance consumed when their plan allocates no allowance for that unit.\n\nIt does not raise a subscription's per-period allowance: that comes from the plan, and topping up would let a cap be lifted without anyone changing what was sold.\n\n`quantity` is what is ADDED, not the balance to reach, so two identical calls credit twice unless they carry the same idempotency_key.",
                 "tags": [
                     "metering"
                 ],
@@ -3834,10 +3837,27 @@
                 "type": "object",
                 "properties": {
                     "balance": {
-                        "type": "integer"
+                        "description": "Balance is what remains in the CURRENT BILLING PERIOD when the user's\nplan allocates this unit, or their lifetime prepaid balance otherwise.\nNever negative: an allowance lowered mid-period is clamped at zero rather\nthan reported as a debt the user does not owe.",
+                        "type": "integer",
+                        "example": 95
+                    },
+                    "consumed": {
+                        "type": "integer",
+                        "example": 2905
+                    },
+                    "limit": {
+                        "description": "Limit and Consumed describe the period Balance was computed over, so a\ncaller can render \"95 of 3000 left\" without a second call or its own\narithmetic. Both are 0 under the prepaid regime, where there is neither.",
+                        "type": "integer",
+                        "example": 3000
+                    },
+                    "periodic": {
+                        "description": "Periodic says which regime answered, so \"0 left, back at renewal\" can be\ntold from \"0 in the wallet, top it up\" — two identical numbers meaning\nopposite things to the user.",
+                        "type": "boolean",
+                        "example": true
                     },
                     "unit": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "email"
                     }
                 }
             },
@@ -3845,19 +3865,26 @@
                 "type": "object",
                 "properties": {
                     "external_user_id": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "user-42"
                     },
                     "idempotency_key": {
-                        "type": "string"
+                        "description": "IdempotencyKey dedupes retries of the SAME logical debit. Derive it from\nthe act being metered — a job id, a message id — never from a clock or a\nrandom value, both of which defeat the purpose on the retry that matters.",
+                        "type": "string",
+                        "example": "msg-8f21"
                     },
                     "quantity": {
-                        "type": "integer"
+                        "description": "Quantity is how much to debit. Integer: a fraction of a unit lost to\nrounding is a unit nobody is billed for.",
+                        "type": "integer",
+                        "example": 1
                     },
                     "subscription_id": {
+                        "description": "SubscriptionID scopes the debit when the app tracks several. Optional.",
                         "type": "string"
                     },
                     "unit": {
-                        "type": "string"
+                        "type": "string",
+                        "example": "email"
                     }
                 }
             },
@@ -3865,16 +3892,24 @@
                 "type": "object",
                 "properties": {
                     "allowed": {
-                        "type": "boolean"
+                        "description": "Allowed is the verdict. Read THIS rather than branching on the status\ncode alone.",
+                        "type": "boolean",
+                        "example": true
                     },
                     "balance": {
-                        "type": "integer"
+                        "description": "Balance is what is LEFT after this call — in the current billing period\nunder a subscription cap, or of the prepaid wallet otherwise.",
+                        "type": "integer",
+                        "example": 95
                     },
                     "reason": {
-                        "type": "string"
+                        "description": "Reason names why a refusal happened, for display. Empty when allowed.",
+                        "type": "string",
+                        "example": "quota reached for the current period"
                     },
                     "recorded": {
-                        "type": "boolean"
+                        "description": "Recorded reports whether the ledger was written: false on a refusal, and\nfalse on a duplicate the idempotency key caught.",
+                        "type": "boolean",
+                        "example": true
                     }
                 }
             },

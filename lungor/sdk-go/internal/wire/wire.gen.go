@@ -143,25 +143,59 @@ type ListEndpointsResult struct {
 
 // MeteringBalanceResponse defines model for metering.balanceResponse.
 type MeteringBalanceResponse struct {
-	Balance *int    `json:"balance,omitempty"`
-	Unit    *string `json:"unit,omitempty"`
+	// Balance Balance is what remains in the CURRENT BILLING PERIOD when the user's
+	// plan allocates this unit, or their lifetime prepaid balance otherwise.
+	// Never negative: an allowance lowered mid-period is clamped at zero rather
+	// than reported as a debt the user does not owe.
+	Balance  *int `json:"balance,omitempty"`
+	Consumed *int `json:"consumed,omitempty"`
+
+	// Limit Limit and Consumed describe the period Balance was computed over, so a
+	// caller can render "95 of 3000 left" without a second call or its own
+	// arithmetic. Both are 0 under the prepaid regime, where there is neither.
+	Limit *int `json:"limit,omitempty"`
+
+	// Periodic Periodic says which regime answered, so "0 left, back at renewal" can be
+	// told from "0 in the wallet, top it up" — two identical numbers meaning
+	// opposite things to the user.
+	Periodic *bool   `json:"periodic,omitempty"`
+	Unit     *string `json:"unit,omitempty"`
 }
 
 // MeteringConsumeRequest defines model for metering.consumeRequest.
 type MeteringConsumeRequest struct {
 	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// IdempotencyKey IdempotencyKey dedupes retries of the SAME logical debit. Derive it from
+	// the act being metered — a job id, a message id — never from a clock or a
+	// random value, both of which defeat the purpose on the retry that matters.
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
-	Quantity       *int    `json:"quantity,omitempty"`
+
+	// Quantity Quantity is how much to debit. Integer: a fraction of a unit lost to
+	// rounding is a unit nobody is billed for.
+	Quantity *int `json:"quantity,omitempty"`
+
+	// SubscriptionId SubscriptionID scopes the debit when the app tracks several. Optional.
 	SubscriptionId *string `json:"subscription_id,omitempty"`
 	Unit           *string `json:"unit,omitempty"`
 }
 
 // MeteringDecisionResponse defines model for metering.decisionResponse.
 type MeteringDecisionResponse struct {
-	Allowed  *bool   `json:"allowed,omitempty"`
-	Balance  *int    `json:"balance,omitempty"`
-	Reason   *string `json:"reason,omitempty"`
-	Recorded *bool   `json:"recorded,omitempty"`
+	// Allowed Allowed is the verdict. Read THIS rather than branching on the status
+	// code alone.
+	Allowed *bool `json:"allowed,omitempty"`
+
+	// Balance Balance is what is LEFT after this call — in the current billing period
+	// under a subscription cap, or of the prepaid wallet otherwise.
+	Balance *int `json:"balance,omitempty"`
+
+	// Reason Reason names why a refusal happened, for display. Empty when allowed.
+	Reason *string `json:"reason,omitempty"`
+
+	// Recorded Recorded reports whether the ledger was written: false on a refusal, and
+	// false on a duplicate the idempotency key caught.
+	Recorded *bool `json:"recorded,omitempty"`
 }
 
 // RepositoryEndpointView defines model for repository.EndpointView.
