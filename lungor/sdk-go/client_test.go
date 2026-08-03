@@ -205,3 +205,22 @@ func TestClient_HonoursContextCancellation(t *testing.T) {
 		t.Fatalf("err = %v, want ErrUnavailable", err)
 	}
 }
+
+// A 409 is a customer state — "already subscribed" — not an outage. Folded into
+// ErrUnavailable it read as "Lungor is down", so a caller answered 503 to a
+// customer who merely clicked subscribe twice, and could retry a request that
+// must not be retried.
+func TestConflictIsItsOwnErrorNotAnOutage(t *testing.T) {
+	srv, _ := server(t, http.StatusConflict, map[string]string{"error": "already subscribed"})
+	defer srv.Close()
+
+	c := New(srv.URL, "key", WithCheckoutIdentity("t-1", "a-1"))
+	_, err := c.Checkout(ctx(), CheckoutInput{PriceID: "p-1", ExternalUserID: "u-1"})
+
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("got %v, want ErrConflict", err)
+	}
+	if errors.Is(err, ErrUnavailable) {
+		t.Fatal("a conflict must not read as an outage: the caller would retry and answer 503")
+	}
+}

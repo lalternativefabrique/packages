@@ -133,6 +133,15 @@ var (
 	// ErrNotFound — no subscription for this user. Not a failure: a user who
 	// never subscribed is the common case.
 	ErrNotFound = errors.New("lungor: no subscription")
+	// ErrConflict — the request contradicts the state Lungor already holds
+	// (409), the usual case being a checkout for a user who is already
+	// subscribed.
+	//
+	// It has its own sentinel because it is a CUSTOMER STATE, not an outage.
+	// Folded into ErrUnavailable it read as "Lungor is down", so a caller
+	// answered 503 to a customer whose only mistake was clicking subscribe
+	// twice — and, worse, could retry a request that must not be retried.
+	ErrConflict = errors.New("lungor: conflicts with current state")
 )
 
 // StatusNoSubscription is what Lungor reports for a user it has never seen.
@@ -355,6 +364,8 @@ func (c *Client) doStatus(ctx context.Context, method, path string, body any, ou
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrNotFound, snippet(resp.Body))
 	case resp.StatusCode == http.StatusBadRequest:
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrBadRequest, snippet(resp.Body))
+	case resp.StatusCode == http.StatusConflict:
+		return resp.StatusCode, fmt.Errorf("%w: %s", ErrConflict, snippet(resp.Body))
 	case resp.StatusCode >= 500:
 		return resp.StatusCode, fmt.Errorf("%w: status %d", ErrUnavailable, resp.StatusCode)
 	case resp.StatusCode >= 300 && resp.StatusCode != http.StatusPaymentRequired:
