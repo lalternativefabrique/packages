@@ -135,9 +135,9 @@ func TestEntitlement_RefusesToCallWhenUnconfigured(t *testing.T) {
 	}
 }
 
-func TestCheckout_SendsTheIdentityLungorVerifies(t *testing.T) {
+func TestCheckout_SendsNoIdentityTheKeyAlreadyProves(t *testing.T) {
 	srv, rec := server(t, 200, Checkout{RedirectURL: "https://pay.example/s/1", SessionID: "s1"})
-	c := New(srv.URL, "k", WithApp("app-1"))
+	c := New(srv.URL, "k")
 
 	got, err := c.Checkout(ctx(), CheckoutInput{
 		PriceID: "price_pro", ExternalUserID: "user-1",
@@ -153,34 +153,18 @@ func TestCheckout_SendsTheIdentityLungorVerifies(t *testing.T) {
 	if rec.method != http.MethodPost || rec.path != "/api/v1/finance/checkout" {
 		t.Fatalf("%s %s", rec.method, rec.path)
 	}
-	if rec.body["app_id"] != "app-1" {
-		t.Fatalf("body = %+v, want the app id", rec.body)
-	}
-	// The tenant is never sent: it is a property of the app, which the key
-	// already proves. Stating it would only give a caller a value to copy
+	// Neither the app nor the tenant is sent: both are properties the API key
+	// already proves. Stating either would only give a caller a value to copy
 	// wrong, and a wrong one fails while a customer is trying to pay.
-	if _, sent := rec.body["tenant_id"]; sent {
-		t.Fatal("the SDK must not send a tenant id")
+	for _, field := range []string{"app_id", "tenant_id"} {
+		if _, sent := rec.body[field]; sent {
+			t.Fatalf("the SDK must not send %s", field)
+		}
 	}
 	// The amount is never sent: Lungor prices the tier, so the page shown and
 	// the amount charged cannot disagree.
 	if _, sent := rec.body["amount"]; sent {
 		t.Fatal("the SDK must not send an amount")
-	}
-}
-
-// Failing locally beats sending a request that can only be refused.
-func TestCheckout_RefusesWithoutTheIdentity(t *testing.T) {
-	srv, rec := server(t, 200, Checkout{})
-	c := New(srv.URL, "k") // no WithCheckoutIdentity
-
-	_, err := c.Checkout(ctx(), CheckoutInput{PriceID: "p", ExternalUserID: "u"})
-
-	if !errors.Is(err, ErrNotConfigured) {
-		t.Fatalf("err = %v, want ErrNotConfigured", err)
-	}
-	if rec.method != "" {
-		t.Fatal("no request should have been sent")
 	}
 }
 
@@ -233,19 +217,18 @@ func TestConflictIsItsOwnErrorNotAnOutage(t *testing.T) {
 
 // The deprecated option still compiles and still configures the app, so a
 // caller upgrading the SDK is not broken by the rename.
-func TestWithCheckoutIdentity_StillWorksAndDropsTheTenant(t *testing.T) {
+func TestDeprecatedIdentityOptions_AreNoOps(t *testing.T) {
 	srv, rec := server(t, 200, Checkout{RedirectURL: "https://pay.example/s/1"})
-	c := New(srv.URL, "k", WithCheckoutIdentity("tenant-ignored", "app-1"))
+	c := New(srv.URL, "k", WithCheckoutIdentity("tenant-ignored", "app-ignored"))
 
 	if _, err := c.Checkout(ctx(), CheckoutInput{
 		PriceID: "price_pro", ExternalUserID: "user-1",
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if rec.body["app_id"] != "app-1" {
-		t.Fatalf("app id = %v, want app-1", rec.body["app_id"])
-	}
-	if _, sent := rec.body["tenant_id"]; sent {
-		t.Fatal("the deprecated option still sent a tenant id")
+	for _, field := range []string{"app_id", "tenant_id"} {
+		if _, sent := rec.body[field]; sent {
+			t.Fatalf("the deprecated option still sent %s", field)
+		}
 	}
 }
