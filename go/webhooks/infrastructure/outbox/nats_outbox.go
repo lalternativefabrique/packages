@@ -60,8 +60,11 @@ func EnsureStream(js nats.JetStreamContext) error {
 	return nil
 }
 
-func (p *NATSOutboxPublisher) Publish(ctx context.Context, job providers.DeliveryJob) error {
-	payload := jobPayload{
+// EncodeJob renders a delivery job as the wire body DecodeJob reads back.
+// Exported as the counterpart of DecodeJob, so the two stay symmetrical and a
+// job can be built without a NATS server.
+func EncodeJob(job providers.DeliveryJob) ([]byte, error) {
+	return json.Marshal(jobPayload{
 		DeliveryID:    job.DeliveryID,
 		EndpointID:    job.EndpointID,
 		TenantID:      job.TenantID,
@@ -70,8 +73,11 @@ func (p *NATSOutboxPublisher) Publish(ctx context.Context, job providers.Deliver
 		EventType:     job.EventType,
 		SourceEventID: job.SourceEventID,
 		PayloadBase64: base64.StdEncoding.EncodeToString(job.Payload),
-	}
-	data, err := json.Marshal(payload)
+	})
+}
+
+func (p *NATSOutboxPublisher) Publish(ctx context.Context, job providers.DeliveryJob) error {
+	data, err := EncodeJob(job)
 	if err != nil {
 		return fmt.Errorf("marshal job: %w", err)
 	}

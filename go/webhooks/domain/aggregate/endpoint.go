@@ -226,19 +226,12 @@ func (e *Endpoint) applyState(ev events.EventWithMetadata) {
 	}
 }
 
-func eventType(ev events.EventWithMetadata) string {
-	switch ev.(type) {
-	case *events.EndpointCreatedEvent:
-		return events.EndpointCreatedType
-	case *events.EndpointUpdatedEvent:
-		return events.EndpointUpdatedType
-	case *events.EndpointDeletedEvent:
-		return events.EndpointDeletedType
-	case *events.EndpointSecretRotatedEvent:
-		return events.EndpointSecretRotatedType
-	}
-	panic(fmt.Sprintf("unknown event type %T", ev))
-}
+// eventType names the event for its metadata. It reads EventKind off the event
+// itself rather than re-deriving it from the concrete type: the two would
+// otherwise have to be kept in step by hand, and they were not — the three
+// delivery events carry a kind but were missing from the type switch, so
+// recording any delivery attempt panicked here.
+func eventType(ev events.EventWithMetadata) string { return ev.EventKind() }
 
 func validateURL(raw string) error {
 	if raw == "" {
