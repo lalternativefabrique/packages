@@ -70,7 +70,6 @@ const DefaultTimeout = 5 * time.Second
 type Client struct {
 	baseURL string
 	appKey  string
-	appID   string
 	http    *http.Client
 	// wire is the generated transport: it owns every path and method, so none
 	// is written by hand here. Nil when baseURL is blank, which every method
@@ -92,27 +91,24 @@ func WithTimeout(d time.Duration) Option {
 	return func(c *Client) { c.http = &http.Client{Timeout: d} }
 }
 
-// WithApp supplies the app id that POST /finance/checkout carries in its body.
+// WithApp is a no-op.
 //
-// Separate from the key on purpose: Lungor verifies the key AND that the app id
-// matches it, so a caller that only reads entitlement needs neither. Requiring
-// it in New would make the common case carry configuration it never uses.
+// Deprecated: nothing needs it. The app is proven by the API key, and Lungor
+// derives it from there — a checkout no longer carries one. Kept so existing
+// callers keep compiling; the argument is ignored.
 //
-// The TENANT is not asked for. It is a property of the app, which the key
-// already proves, so stating it here would only give a caller a value to copy
-// wrong — and a wrong one fails at the moment a customer is trying to pay.
-func WithApp(appID string) Option {
-	return func(c *Client) {
-		c.appID = appID
-	}
+// The public plan listing still names an app, but takes it as an argument:
+// ListPublicPlans is read by a visitor's browser with no key at all, so there
+// is no credential to derive it from.
+func WithApp(_ string) Option {
+	return func(*Client) {}
 }
 
-// WithCheckoutIdentity is WithApp with a tenant id that is no longer sent.
+// WithCheckoutIdentity is a no-op.
 //
-// Deprecated: use WithApp. Kept so existing callers keep compiling; the tenant
-// argument is ignored, since Lungor derives it from the authenticated app.
-func WithCheckoutIdentity(_, appID string) Option {
-	return WithApp(appID)
+// Deprecated: nothing needs it. Both arguments are ignored — see WithApp.
+func WithCheckoutIdentity(_, _ string) Option {
+	return func(*Client) {}
 }
 
 // New builds a client for a Lungor deployment.
@@ -323,9 +319,6 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 	if c.baseURL == "" || c.appKey == "" {
 		return Checkout{}, ErrNotConfigured
 	}
-	if c.appID == "" {
-		return Checkout{}, fmt.Errorf("%w: checkout needs WithApp", ErrNotConfigured)
-	}
 	if in.PriceID == "" || in.ExternalUserID == "" {
 		return Checkout{}, fmt.Errorf("%w: price id and external user id are required", ErrBadRequest)
 	}
@@ -334,7 +327,6 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 	// starts requiring is a compile error here instead of a request that is
 	// quietly missing it.
 	req := wire.FinanceCheckoutRequest{
-		AppId:          &c.appID,
 		PriceId:        &in.PriceID,
 		ExternalUserId: &in.ExternalUserID,
 		Email:          &in.Email,
