@@ -1,13 +1,17 @@
 package sdk
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
+)
 
 // The generated types carry pointers everywhere, because swag emits OpenAPI 2.0
 // and 2.0 has no `required`. Those pointers must stop at this boundary: a
 // *bool for Entitled would make "not entitled" and "no answer" the same value
 // at the call site, where one must degrade and the other must not.
 func TestEntitlementFrom_NilVerdictIsNotEntitled(t *testing.T) {
-	got := entitlementFrom(FinanceEntitlementResponse{})
+	got := entitlementFrom(wire.FinanceEntitlementResponse{})
 
 	if got.Entitled {
 		t.Fatal("a response with no verdict must grant nothing")
@@ -21,7 +25,7 @@ func TestEntitlementFrom_CopiesEveryField(t *testing.T) {
 	entitled, status := true, "active"
 	balances := map[string]int64{"credit": 2840}
 
-	got := entitlementFrom(FinanceEntitlementResponse{
+	got := entitlementFrom(wire.FinanceEntitlementResponse{
 		Entitled: &entitled, Status: &status, Balances: &balances,
 	})
 
@@ -36,7 +40,7 @@ func TestEntitlementFrom_CopiesEveryField(t *testing.T) {
 func TestCheckoutFrom_CopiesEveryField(t *testing.T) {
 	session, sub, redirect := "s1", "sub1", "https://pay.example/s/1"
 
-	got := checkoutFrom(FinanceCheckoutResponse{
+	got := checkoutFrom(wire.FinanceCheckoutResponse{
 		SessionId: &session, SubscriptionId: &sub, RedirectUrl: &redirect,
 	})
 
@@ -46,7 +50,7 @@ func TestCheckoutFrom_CopiesEveryField(t *testing.T) {
 }
 
 func TestCheckoutFrom_EmptyWireIsTheZeroCheckout(t *testing.T) {
-	if got := checkoutFrom(FinanceCheckoutResponse{}); got != (Checkout{}) {
+	if got := checkoutFrom(wire.FinanceCheckoutResponse{}); got != (Checkout{}) {
 		t.Fatalf("checkout = %+v, want zero", got)
 	}
 }

@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
+
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
 
 // The event types Lungor delivers. An app registers for these by name and
@@ -108,27 +110,29 @@ func (c *Client) CreateWebhookEndpoint(ctx context.Context, in CreateWebhookEndp
 		return CreatedWebhookEndpoint{}, fmt.Errorf("%w: no event types", ErrBadRequest)
 	}
 
-	body := CreateEndpointCreateEndpointRequest{
+	req := wire.CreateEndpointCreateEndpointRequest{
 		Url:         &in.URL,
 		EventTypes:  &in.EventTypes,
 		Description: &in.Description,
 	}
-	var wire CreateEndpointResult
-	if err := c.do(ctx, http.MethodPost, "/api/v1/webhooks/endpoints", body, &wire); err != nil {
+	var body wire.CreateEndpointResult
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.CreateWebhookEndpoint(ctx, req)
+	}); err != nil {
 		return CreatedWebhookEndpoint{}, err
 	}
 
 	out := CreatedWebhookEndpoint{
 		WebhookEndpoint: WebhookEndpoint{
-			ID:          deref(wire.Id),
-			URL:         deref(wire.Url),
-			Description: deref(wire.Description),
-			Status:      deref(wire.Status),
+			ID:          deref(body.Id),
+			URL:         deref(body.Url),
+			Description: deref(body.Description),
+			Status:      deref(body.Status),
 		},
-		Secret: deref(wire.Secret),
+		Secret: deref(body.Secret),
 	}
-	if wire.EventTypes != nil {
-		out.EventTypes = *wire.EventTypes
+	if body.EventTypes != nil {
+		out.EventTypes = *body.EventTypes
 	}
 	return out, nil
 }
@@ -141,27 +145,25 @@ func (c *Client) ListWebhookEndpoints(ctx context.Context, limit, offset int) ([
 		return nil, ErrNotConfigured
 	}
 
-	q := url.Values{}
+	var params wire.ListWebhookEndpointsParams
 	if limit > 0 {
-		q.Set("limit", strconv.Itoa(limit))
+		params.Limit = &limit
 	}
 	if offset > 0 {
-		q.Set("offset", strconv.Itoa(offset))
-	}
-	path := "/api/v1/webhooks/endpoints"
-	if len(q) > 0 {
-		path += "?" + q.Encode()
+		params.Offset = &offset
 	}
 
-	var wire ListEndpointsResult
-	if err := c.do(ctx, http.MethodGet, path, nil, &wire); err != nil {
+	var body wire.ListEndpointsResult
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.ListWebhookEndpoints(ctx, &params)
+	}); err != nil {
 		return nil, err
 	}
-	if wire.Items == nil {
+	if body.Items == nil {
 		return nil, nil
 	}
-	out := make([]WebhookEndpoint, 0, len(*wire.Items))
-	for _, v := range *wire.Items {
+	out := make([]WebhookEndpoint, 0, len(*body.Items))
+	for _, v := range *body.Items {
 		out = append(out, endpointFrom(v))
 	}
 	return out, nil
@@ -177,11 +179,13 @@ func (c *Client) GetWebhookEndpoint(ctx context.Context, id string) (WebhookEndp
 		return WebhookEndpoint{}, fmt.Errorf("%w: empty endpoint id", ErrBadRequest)
 	}
 
-	var wire RepositoryEndpointView
-	if err := c.do(ctx, http.MethodGet, "/api/v1/webhooks/endpoints/"+url.PathEscape(id), nil, &wire); err != nil {
+	var body wire.RepositoryEndpointView
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.GetWebhookEndpoint(ctx, id)
+	}); err != nil {
 		return WebhookEndpoint{}, err
 	}
-	return endpointFrom(wire), nil
+	return endpointFrom(body), nil
 }
 
 // UpdateWebhookEndpointInput carries only the fields to change. A nil field is
@@ -205,13 +209,15 @@ func (c *Client) UpdateWebhookEndpoint(ctx context.Context, id string, in Update
 		return fmt.Errorf("%w: empty endpoint id", ErrBadRequest)
 	}
 
-	body := UpdateEndpointUpdateEndpointRequest{
+	req := wire.UpdateEndpointUpdateEndpointRequest{
 		Url:         in.URL,
 		EventTypes:  in.EventTypes,
 		Description: in.Description,
 		Disabled:    in.Disabled,
 	}
-	return c.do(ctx, http.MethodPatch, "/api/v1/webhooks/endpoints/"+url.PathEscape(id), body, nil)
+	return c.send(ctx, nil, func() (*http.Response, error) {
+		return c.wire.UpdateWebhookEndpoint(ctx, id, req)
+	})
 }
 
 // DeleteWebhookEndpoint removes a destination permanently. To stop delivery
@@ -223,7 +229,9 @@ func (c *Client) DeleteWebhookEndpoint(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("%w: empty endpoint id", ErrBadRequest)
 	}
-	return c.do(ctx, http.MethodDelete, "/api/v1/webhooks/endpoints/"+url.PathEscape(id), nil, nil)
+	return c.send(ctx, nil, func() (*http.Response, error) {
+		return c.wire.DeleteWebhookEndpoint(ctx, id)
+	})
 }
 
 // RotateWebhookSecret issues a new signing secret and returns it once.
@@ -239,14 +247,16 @@ func (c *Client) RotateWebhookSecret(ctx context.Context, id string) (string, er
 		return "", fmt.Errorf("%w: empty endpoint id", ErrBadRequest)
 	}
 
-	var wire RotateSecretResult
-	if err := c.do(ctx, http.MethodPost, "/api/v1/webhooks/endpoints/"+url.PathEscape(id)+"/rotate-secret", nil, &wire); err != nil {
+	var body wire.RotateSecretResult
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.RotateWebhookSecret(ctx, id)
+	}); err != nil {
 		return "", err
 	}
-	return deref(wire.Secret), nil
+	return deref(body.Secret), nil
 }
 
-func endpointFrom(w RepositoryEndpointView) WebhookEndpoint {
+func endpointFrom(w wire.RepositoryEndpointView) WebhookEndpoint {
 	out := WebhookEndpoint{
 		ID:          deref(w.Id),
 		URL:         deref(w.Url),

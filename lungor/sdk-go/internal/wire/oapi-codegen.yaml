@@ -1,0 +1,15 @@
+# The transport: every path, method and parameter, generated from Lungor's own
+# contract so none of them is typed by hand. A route renamed upstream becomes a
+# compile error here rather than a 404 in production.
+#
+# Internal because it is not the SDK's API. The generated methods return raw
+# *http.Response and generated pointer types; the hand-written client wraps them
+# to add typed errors, the cache, and the pointer-to-value conversions that make
+# "not entitled" distinguishable from "no answer" (see ../../client.go).
+package: wire
+output: wire.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  include-tags: [entitlements, checkout, subscriptions, webhooks]

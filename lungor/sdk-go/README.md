@@ -13,18 +13,26 @@ Synthiz shipped a hand-rolled `LungorClient`; Techtuel would have shipped a
 second one. Each re-derived the same auth header, the same status handling, and
 its own idea of what "entitled" means — from reading the server's source.
 
-## Where the types come from
+## Where the transport comes from
 
-`types.gen.go` is generated from `openapi/lungor.json` — Lungor's own swagger,
-the one `swag` produces from its handler annotations. Requests are built as
-those types and responses decoded into them, so a field added or renamed in the
-API is a **compile error here**, not a value silently never read.
+`internal/wire` is generated from `openapi/lungor.json` — Lungor's own contract,
+fetched from the API. It owns **every path, method and parameter**, so none is
+typed by hand: a route renamed upstream is a compile error here, not a 404 in
+production. Fields work the same way — one added or renamed surfaces at build
+time instead of as a value silently never read.
+
+It is `internal` because it is not this package's API. Its methods return raw
+`*http.Response` and generated pointer types; everything exported wraps them.
 
 The generated pointers stop at that boundary. swag emits OpenAPI 2.0, which has
 no `required`, so every generated field is a `*T`; `*bool` for `Entitled` would
 make "not entitled" and "no answer" the same value at the call site, where one
 must degrade and the other must not. `entitlementFrom` converts, reading a nil
 verdict as **not** entitled — the direction that grants nothing.
+
+One string is still hand-written: the `/api/v1/` prefix. Nothing in the
+contract pins it, so `TestEveryOperationIsVersioned` asserts it against all
+eleven operations.
 
 ### Updating after an API change
 

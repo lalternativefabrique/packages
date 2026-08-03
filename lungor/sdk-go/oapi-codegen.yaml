@@ -1,9 +1,0 @@
-# Wire types only. The client itself stays hand-written: a generated one cannot
-# express the cache, the typed errors, or Balance()'s unknown-vs-zero
-# distinction — see client.go.
-package: sdk
-output: types.gen.go
-generate:
-  models: true
-output-options:
-  include-tags: [entitlements, checkout, subscriptions, webhooks]

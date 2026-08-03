@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
 
 // ChangeDirection constrains a tier move.
@@ -73,33 +75,35 @@ func (c *Client) ChangePlan(ctx context.Context, in ChangePlanInput) (ChangePlan
 		return ChangePlanResult{}, fmt.Errorf("%w: external user id and plan code are required", ErrBadRequest)
 	}
 
-	body := FinanceAppChangePlanRequest{
+	req := wire.FinanceAppChangePlanRequest{
 		ExternalUserId: &in.ExternalUserID,
 		PlanCode:       &in.PlanCode,
 	}
 	if in.Direction != DirectionAny {
 		d := string(in.Direction)
-		body.Direction = &d
+		req.Direction = &d
 	}
 	if in.Agreed {
 		agreed := true
 		amount := int(in.AgreedAmountCents)
-		body.Agreed, body.AgreedAmountCents = &agreed, &amount
+		req.Agreed, req.AgreedAmountCents = &agreed, &amount
 	}
 
-	var wire FinanceAppChangePlanResponse
-	status, err := c.doStatus(ctx, http.MethodPost, "/api/v1/subscriptions/change-plan", body, &wire)
+	var body wire.FinanceAppChangePlanResponse
+	status, err := c.sendStatus(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppChangePlan(ctx, req)
+	})
 	if err != nil {
 		return ChangePlanResult{}, err
 	}
-	out := changePlanFrom(wire)
+	out := changePlanFrom(body)
 	if status == http.StatusPaymentRequired {
 		return out, ErrConsentRequired
 	}
 	return out, nil
 }
 
-func changePlanFrom(w FinanceAppChangePlanResponse) ChangePlanResult {
+func changePlanFrom(w wire.FinanceAppChangePlanResponse) ChangePlanResult {
 	out := ChangePlanResult{}
 	if w.Kind != nil {
 		out.Kind = *w.Kind
@@ -148,18 +152,20 @@ func (c *Client) Cancel(ctx context.Context, externalUserID string, atPeriodEnd 
 		return CancelResult{}, fmt.Errorf("%w: empty external user id", ErrBadRequest)
 	}
 
-	body := FinanceAppCancelRequest{ExternalUserId: &externalUserID, AtPeriodEnd: &atPeriodEnd}
-	var wire FinanceAppCancelResponse
-	if _, err := c.doStatus(ctx, http.MethodPost, "/api/v1/subscriptions/cancel", body, &wire); err != nil {
+	req := wire.FinanceAppCancelRequest{ExternalUserId: &externalUserID, AtPeriodEnd: &atPeriodEnd}
+	var body wire.FinanceAppCancelResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppCancelSubscription(ctx, req)
+	}); err != nil {
 		return CancelResult{}, err
 	}
 
 	out := CancelResult{}
-	if wire.Status != nil {
-		out.Status = *wire.Status
+	if body.Status != nil {
+		out.Status = *body.Status
 	}
-	if wire.EffectiveAt != nil {
-		if t, err := time.Parse(time.RFC3339, *wire.EffectiveAt); err == nil {
+	if body.EffectiveAt != nil {
+		if t, err := time.Parse(time.RFC3339, *body.EffectiveAt); err == nil {
 			out.EffectiveAt = t
 		}
 	}
@@ -179,16 +185,18 @@ func (c *Client) WithdrawPendingPlan(ctx context.Context, externalUserID string)
 		return false, "", fmt.Errorf("%w: empty external user id", ErrBadRequest)
 	}
 
-	body := FinanceAppWithdrawPendingRequest{ExternalUserId: &externalUserID}
-	var wire FinanceAppWithdrawPendingResponse
-	if _, err := c.doStatus(ctx, http.MethodPost, "/api/v1/subscriptions/withdraw-pending-plan", body, &wire); err != nil {
+	req := wire.FinanceAppWithdrawPendingRequest{ExternalUserId: &externalUserID}
+	var body wire.FinanceAppWithdrawPendingResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppWithdrawPendingPlan(ctx, req)
+	}); err != nil {
 		return false, "", err
 	}
-	if wire.Withdrawn != nil {
-		withdrawn = *wire.Withdrawn
+	if body.Withdrawn != nil {
+		withdrawn = *body.Withdrawn
 	}
-	if wire.PlanCode != nil {
-		planCode = *wire.PlanCode
+	if body.PlanCode != nil {
+		planCode = *body.PlanCode
 	}
 	return withdrawn, planCode, nil
 }
