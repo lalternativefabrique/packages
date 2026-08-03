@@ -26,14 +26,14 @@
 // added or renamed in the API surfaces here as a compile error rather than as a
 // value silently never read.
 //
-// Updating after an API change is two steps, and the second is deliberate:
+// Updating after an API change is ./refresh-contract.sh, which fetches
+// /openapi.json from a running Lungor and regenerates — then reconcile any
+// compile error the new shape causes.
 //
-//  1. copy apps/core/docs/contract/openapi3.json from the lungor repo over
-//     openapi/lungor.json (lungor is private, so nothing fetches it for you);
-//  2. go generate ./... — then reconcile any compile error the new shape causes.
-//
-// Lungor's CI fails when its API drifts from the contract it publishes, which
-// is what makes step 1 a reminder rather than something to remember.
+// It was a manual copy out of a private checkout until that endpoint existed,
+// which is how the file came to sit three routes behind for months: nothing
+// forces a copy to be refreshed, and a stale one yields a client that compiles,
+// passes its tests, and cannot call what it is missing.
 package sdk
 
 //go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1 -config oapi-codegen.yaml openapi/lungor.json

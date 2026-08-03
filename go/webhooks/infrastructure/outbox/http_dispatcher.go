@@ -117,12 +117,24 @@ func (d *HTTPDispatcher) Dispatch(ctx context.Context, job providers.DeliveryJob
 	return res
 }
 
-func sign(secret, timestamp string, body []byte) string {
+// Sign computes the delivery signature: HMAC-SHA256 over "<timestamp>.<body>",
+// hex-encoded, sent as "v1=<hex>" in the <Brand>-Signature header.
+//
+// Exported because a receiver has to reproduce it exactly, and the only
+// alternative to publishing it is every consumer SDK re-deriving it from this
+// file — where a subtly wrong copy rejects every delivery it is given, or
+// accepts a forged one. Consumers verify against this function rather than
+// against their reading of it.
+func Sign(secret, timestamp string, body []byte) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(timestamp))
 	mac.Write([]byte("."))
 	mac.Write(body)
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func sign(secret, timestamp string, body []byte) string {
+	return Sign(secret, timestamp, body)
 }
 
 func isBlockedIP(ip net.IP) bool {

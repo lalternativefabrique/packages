@@ -28,20 +28,22 @@ verdict as **not** entitled — the direction that grants nothing.
 
 ### Updating after an API change
 
-```bash
-# 1. lungor is private, so nothing fetches this for you
-cp ../../../lungor/apps/core/docs/contract/openapi3.json openapi/lungor.json
+Lungor serves its own contract at `/openapi.json`, so refreshing it needs no
+checkout and no credentials — the contract describes the public API and is not
+a secret:
 
-# 2. regenerate, then reconcile whatever the new shape breaks
-go generate ./...
-go test ./...
+```bash
+./refresh-contract.sh                          # or: ./refresh-contract.sh http://localhost:4100
+go test ./...                                  # reconcile whatever the new shape breaks
 ```
 
-Lungor's CI fails when its API drifts from the contract it publishes
-(`go-contract-up-to-date`), which is what makes step 1 a reminder rather than
-something to remember. It is a manual step on purpose: automating it would mean
-a write token for this repo living in Lungor's pipeline, and this stack
-deliberately removed its private-repo credentials.
+This was a `cp` from a private checkout until the endpoint existed, and that is
+exactly how the file came to sit three routes behind for months: nothing forces
+a copy to be refreshed, and a stale one yields a client that compiles, passes
+its tests, and simply cannot call what it is missing.
+
+Fetching does not make it automatic — it makes it *possible* without a token.
+Lungor's pipeline still holds no write credential for this repo.
 
 ## The split with `lungor/core`
 
