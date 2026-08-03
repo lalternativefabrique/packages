@@ -160,6 +160,77 @@ amount charged cannot disagree.
 key **and** that the app id matches it. A caller that only reads entitlement
 needs neither id.
 
+## Webhooks
+
+Polling entitlement tells you what is true now; a webhook tells you the moment
+it changed. Lungor delivers five types, and they are constants here so a typo
+is a compile error rather than an endpoint that silently never fires:
+
+`EventSubscriptionActivated`, `EventSubscriptionRenewed`,
+`EventSubscriptionCanceled`, `EventSubscriptionPastDue`,
+`EventEntitlementChanged`.
+
+### Registering a destination
+
+```go
+ep, err := client.CreateWebhookEndpoint(ctx, sdk.CreateWebhookEndpointInput{
+    URL:        "https://app.example/hooks/lungor",
+    EventTypes: []string{sdk.EventSubscriptionActivated, sdk.EventSubscriptionPastDue},
+})
+// ep.Secret is shown ONCE. Store it now — reading the endpoint back never
+// discloses it again, and recovering means RotateWebhookSecret.
+```
+
+`ListWebhookEndpoints`, `GetWebhookEndpoint`, `UpdateWebhookEndpoint`,
+`DeleteWebhookEndpoint` and `RotateWebhookSecret` complete the set. To stop
+delivery reversibly, update with `Disabled: &yes` rather than deleting: the
+registration and its secret survive.
+
+The URL must be publicly reachable. Lungor refuses private and link-local
+addresses at dispatch time, so a `localhost` endpoint registers happily and then
+never delivers.
+
+### Receiving one
+
+Verify before reading the body for anything. An endpoint URL is public, so
+whatever arrives is attacker-controlled until the signature says otherwise —
+acting on an unverified body is how a forged request grants a paid tier.
+
+```go
+func handler(w http.ResponseWriter, r *http.Request) {
+    body, _ := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
+
+    d, err := sdk.VerifyWebhook(secret, r.Header, body)
+    if err != nil {
+        http.Error(w, "bad signature", http.StatusBadRequest)
+        return
+    }
+
+    if seen(d.SourceEventID) {   // at-least-once: the same fact can arrive twice
+        w.WriteHeader(http.StatusOK)
+        return
+    }
+
+    switch d.Type {
+    case sdk.EventSubscriptionActivated:
+        // json.Unmarshal(d.Payload, &event)
+    }
+
+    w.WriteHeader(http.StatusOK)
+}
+```
+
+Deduplicate on `SourceEventID`, never on `ID`: the delivery id changes between
+retries, the source event id identifies the underlying fact and does not.
+
+Answer 2xx once the delivery is durably recorded. Anything else is a failure
+Lungor retries with backoff, so answering 500 on a duplicate turns a harmless
+repeat into a delivery that never completes.
+
+Signatures older than `DefaultTolerance` (5 min) are rejected, which is what
+stops a captured delivery from being replayed forever. `VerifyWebhookAt` takes
+the clock and the window explicitly, for tests and for unusual skew.
+
 ## Notes
 
 - `externalUserID` is your own user id, opaque to Lungor. Nothing needs

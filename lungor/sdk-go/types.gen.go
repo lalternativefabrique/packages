@@ -5,7 +5,27 @@ package sdk
 
 const (
 	AppKeyAuthScopes = "AppKeyAuth.Scopes"
+	BearerAuthScopes = "BearerAuth.Scopes"
 )
+
+// CreateEndpointCreateEndpointRequest defines model for create_endpoint.CreateEndpointRequest.
+type CreateEndpointCreateEndpointRequest struct {
+	Description *string   `json:"description,omitempty"`
+	EventTypes  *[]string `json:"eventTypes,omitempty"`
+	Url         *string   `json:"url,omitempty"`
+}
+
+// CreateEndpointResult defines model for create_endpoint.Result.
+type CreateEndpointResult struct {
+	Description *string   `json:"description,omitempty"`
+	EventTypes  *[]string `json:"eventTypes,omitempty"`
+	Id          *string   `json:"id,omitempty"`
+
+	// Secret returned ONCE on creation; never again
+	Secret *string `json:"secret,omitempty"`
+	Status *string `json:"status,omitempty"`
+	Url    *string `json:"url,omitempty"`
+}
 
 // EchoHTTPError defines model for echo.HTTPError.
 type EchoHTTPError struct {
@@ -81,6 +101,39 @@ type FinanceEntitlementResponse struct {
 	Status   *string           `json:"status,omitempty"`
 }
 
+// ListEndpointsResult defines model for list_endpoints.Result.
+type ListEndpointsResult struct {
+	Items *[]RepositoryEndpointView `json:"items,omitempty"`
+}
+
+// RepositoryEndpointView defines model for repository.EndpointView.
+type RepositoryEndpointView struct {
+	CreatedAt   *string   `json:"createdAt,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	EventTypes  *[]string `json:"eventTypes,omitempty"`
+	Id          *string   `json:"id,omitempty"`
+	Status      *string   `json:"status,omitempty"`
+	TenantId    *string   `json:"tenantId,omitempty"`
+	UpdatedAt   *string   `json:"updatedAt,omitempty"`
+	Url         *string   `json:"url,omitempty"`
+}
+
+// RotateSecretResult defines model for rotate_secret.Result.
+type RotateSecretResult struct {
+	Id *string `json:"id,omitempty"`
+
+	// Secret returned ONCE on rotation
+	Secret *string `json:"secret,omitempty"`
+}
+
+// UpdateEndpointUpdateEndpointRequest defines model for update_endpoint.UpdateEndpointRequest.
+type UpdateEndpointUpdateEndpointRequest struct {
+	Description *string   `json:"description,omitempty"`
+	Disabled    *bool     `json:"disabled,omitempty"`
+	EventTypes  *[]string `json:"eventTypes,omitempty"`
+	Url         *string   `json:"url,omitempty"`
+}
+
 // GetEntitlementParams defines parameters for GetEntitlement.
 type GetEntitlementParams struct {
 	// ExternalUserId External user ID
@@ -88,6 +141,15 @@ type GetEntitlementParams struct {
 
 	// Units Comma-separated units
 	Units *string `form:"units,omitempty" json:"units,omitempty"`
+}
+
+// ListWebhookEndpointsParams defines parameters for ListWebhookEndpoints.
+type ListWebhookEndpointsParams struct {
+	// Limit Page size
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Offset
+	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
@@ -101,3 +163,9 @@ type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
 
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
+
+// CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
+type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
+
+// UpdateWebhookEndpointJSONRequestBody defines body for UpdateWebhookEndpoint for application/json ContentType.
+type UpdateWebhookEndpointJSONRequestBody = UpdateEndpointUpdateEndpointRequest
