@@ -9,6 +9,24 @@ import (
 )
 
 // Usage is one metered consumption to record.
+//
+// It carries no window and no limit, and that is not an omission: WHICH CEILING
+// applies is resolved by Lungor from the user's subscription. Stating it here
+// would give the cap a second source of truth, and the two would eventually
+// disagree — in the direction that serves someone more than they bought.
+//
+// The two regimes, because they behave differently and the difference matters:
+//
+//   - SUBSCRIPTION CAP — when the user's plan allocates this unit, the debit is
+//     capped on the allowance for the CURRENT BILLING PERIOD, anchored on the
+//     subscription's own renewal date rather than the 1st of the month.
+//     Consumption outside that window does not count, so a user who exhausted
+//     last period is served again as soon as it rolls over — no top-up, no
+//     manual intervention.
+//   - PREPAID WALLET — a user with no such allocation falls back to a lifetime
+//     balance, topped up out of band with Topup.
+//
+// Read Decision.Balance for what is left under whichever regime applies.
 type Usage struct {
 	// ExternalUserID is who consumed, in the caller's own id space.
 	ExternalUserID string
@@ -51,6 +69,13 @@ type Decision struct {
 // error return is reserved for what actually went wrong: a rejected key, a
 // malformed request, Lungor being unreachable.
 //
+// The check and the write happen in ONE serialized transaction server-side, so
+// two concurrent debits cannot both observe the pre-debit total and both pass.
+// That guarantee is why this is a single call and not a Balance-then-Consume
+// pair: reading first leaves a window in which another debit lands.
+//
+// See Usage for which ceiling the debit is checked against.
+//
 //	d, err := c.Consume(ctx, usage)
 //	if err != nil { /* outage or caller bug */ }
 //	if !d.Allowed { /* show the cap; do NOT retry */ }
@@ -71,7 +96,12 @@ func (c *Client) Consume(ctx context.Context, in Usage) (Decision, error) {
 	return decisionFrom(out), nil
 }
 
-// Topup credits a user's prepaid balance for a unit.
+// Topup credits a user's PREPAID balance for a unit — the lifetime wallet
+// consumed when the user's plan allocates no allowance for it.
+//
+// It does not raise a subscription's per-period allowance: that comes from the
+// plan, and topping up would let a cap be lifted without anyone changing what
+// was sold.
 //
 // Quantity is what is ADDED, not the balance to reach: a top-up is an event, so
 // two identical calls credit twice unless they carry the same idempotency key.
@@ -93,6 +123,14 @@ func (c *Client) Topup(ctx context.Context, in Usage) (Decision, error) {
 }
 
 // Balance reports what a user has left of a unit.
+//
+// The number means whichever regime applies to them: what remains IN THE
+// CURRENT BILLING PERIOD when their plan allocates the unit, or their lifetime
+// prepaid balance otherwise. See Usage.
+//
+// Do not gate a consumption on this. Reading then debiting leaves a window in
+// which another debit lands, and two callers can both pass a check neither
+// would pass together — use Consume, whose check and write are one transaction.
 func (c *Client) Balance(ctx context.Context, externalUserID, unit string) (int64, error) {
 	if c.baseURL == "" || c.appKey == "" {
 		return 0, ErrNotConfigured
