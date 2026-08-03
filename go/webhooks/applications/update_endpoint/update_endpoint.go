@@ -7,17 +7,23 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/lalternative/packages/go/webhooks/domain/aggregate"
 	"github.com/lalternative/packages/go/webhooks/domain/events"
 	"github.com/lalternative/packages/go/webhooks/domain/repository"
 )
 
+// Command carries only the fields being changed. A nil one is left as it is,
+// which is what makes this a PATCH: with plain values, an omitted url arrives
+// as "" and is indistinguishable from a caller clearing it, so disabling an
+// endpoint would silently wipe its definition — or, as it did, be refused for a
+// url the caller never meant to touch.
 type Command struct {
 	TenantID    string
 	ID          string
-	URL         string
-	EventTypes  []string
-	Description string
-	Disabled    bool
+	URL         *string
+	EventTypes  *[]string
+	Description *string
+	Disabled    *bool
 }
 
 type Handler struct {
@@ -51,7 +57,24 @@ func (h *Handler) Handle(ctx context.Context, cmd Command) error {
 		return repository.ErrNotFound // hide existence from other tenants
 	}
 
-	if err := e.Update(cmd.URL, cmd.EventTypes, cmd.Description, cmd.Disabled, h.catalog); err != nil {
+	// The aggregate records a complete state, so what the caller left out is
+	// filled from what the endpoint already holds rather than from a zero value.
+	url, eventTypes, description := e.URL, e.EventTypes, e.Description
+	disabled := e.Status == aggregate.StatusDisabled
+	if cmd.URL != nil {
+		url = *cmd.URL
+	}
+	if cmd.EventTypes != nil {
+		eventTypes = *cmd.EventTypes
+	}
+	if cmd.Description != nil {
+		description = *cmd.Description
+	}
+	if cmd.Disabled != nil {
+		disabled = *cmd.Disabled
+	}
+
+	if err := e.Update(url, eventTypes, description, disabled, h.catalog); err != nil {
 		return err
 	}
 	if err := h.r.Save(ctx, e); err != nil {
@@ -66,11 +89,14 @@ type Controller struct{ h *Handler }
 
 func NewController(h *Handler) *Controller { return &Controller{h: h} }
 
+// Pointers so an absent field stays absent. Bound into plain values, a body of
+// {"disabled":true} would arrive as an empty url and empty event types — the
+// endpoint's whole definition, wiped by a request that only meant to pause it.
 type UpdateEndpointRequest struct {
-	URL         string   `json:"url"`
-	EventTypes  []string `json:"eventTypes"`
-	Description string   `json:"description,omitempty"`
-	Disabled    bool     `json:"disabled"`
+	URL         *string   `json:"url"`
+	EventTypes  *[]string `json:"eventTypes"`
+	Description *string   `json:"description,omitempty"`
+	Disabled    *bool     `json:"disabled"`
 }
 
 // Handle godoc
