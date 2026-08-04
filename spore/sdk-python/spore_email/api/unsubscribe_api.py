@@ -44,7 +44,7 @@ class UnsubscribeApi:
     def confirm_unsubscribe(
         self,
         token: Annotated[Optional[StrictStr], Field(description="Token (when posted via query string)")] = None,
-        request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
+        confirm_unsubscribe_confirm_unsubscribe_request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -64,8 +64,8 @@ class UnsubscribeApi:
 
         :param token: Token (when posted via query string)
         :type token: str
-        :param request: JSON body
-        :type request: ConfirmUnsubscribeConfirmUnsubscribeRequest
+        :param confirm_unsubscribe_confirm_unsubscribe_request: JSON body
+        :type confirm_unsubscribe_confirm_unsubscribe_request: ConfirmUnsubscribeConfirmUnsubscribeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -90,7 +90,7 @@ class UnsubscribeApi:
 
         _param = self._confirm_unsubscribe_serialize(
             token=token,
-            request=request,
+            confirm_unsubscribe_confirm_unsubscribe_request=confirm_unsubscribe_confirm_unsubscribe_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -116,7 +116,7 @@ class UnsubscribeApi:
     def confirm_unsubscribe_with_http_info(
         self,
         token: Annotated[Optional[StrictStr], Field(description="Token (when posted via query string)")] = None,
-        request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
+        confirm_unsubscribe_confirm_unsubscribe_request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -136,8 +136,8 @@ class UnsubscribeApi:
 
         :param token: Token (when posted via query string)
         :type token: str
-        :param request: JSON body
-        :type request: ConfirmUnsubscribeConfirmUnsubscribeRequest
+        :param confirm_unsubscribe_confirm_unsubscribe_request: JSON body
+        :type confirm_unsubscribe_confirm_unsubscribe_request: ConfirmUnsubscribeConfirmUnsubscribeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -162,7 +162,7 @@ class UnsubscribeApi:
 
         _param = self._confirm_unsubscribe_serialize(
             token=token,
-            request=request,
+            confirm_unsubscribe_confirm_unsubscribe_request=confirm_unsubscribe_confirm_unsubscribe_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -188,7 +188,7 @@ class UnsubscribeApi:
     def confirm_unsubscribe_without_preload_content(
         self,
         token: Annotated[Optional[StrictStr], Field(description="Token (when posted via query string)")] = None,
-        request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
+        confirm_unsubscribe_confirm_unsubscribe_request: Annotated[Optional[ConfirmUnsubscribeConfirmUnsubscribeRequest], Field(description="JSON body")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -208,8 +208,8 @@ class UnsubscribeApi:
 
         :param token: Token (when posted via query string)
         :type token: str
-        :param request: JSON body
-        :type request: ConfirmUnsubscribeConfirmUnsubscribeRequest
+        :param confirm_unsubscribe_confirm_unsubscribe_request: JSON body
+        :type confirm_unsubscribe_confirm_unsubscribe_request: ConfirmUnsubscribeConfirmUnsubscribeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -234,7 +234,7 @@ class UnsubscribeApi:
 
         _param = self._confirm_unsubscribe_serialize(
             token=token,
-            request=request,
+            confirm_unsubscribe_confirm_unsubscribe_request=confirm_unsubscribe_confirm_unsubscribe_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -255,7 +255,7 @@ class UnsubscribeApi:
     def _confirm_unsubscribe_serialize(
         self,
         token,
-        request,
+        confirm_unsubscribe_confirm_unsubscribe_request,
         _request_auth,
         _content_type,
         _headers,
@@ -285,8 +285,8 @@ class UnsubscribeApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if confirm_unsubscribe_confirm_unsubscribe_request is not None:
+            _body_params = confirm_unsubscribe_confirm_unsubscribe_request
 
 
         # set the HTTP header `Accept`

@@ -716,8 +716,8 @@ class MessagingApi
             $identity_id,
             'identityId', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -725,8 +725,8 @@ class MessagingApi
             $status,
             'status', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -734,8 +734,8 @@ class MessagingApi
             $q,
             'q', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -743,8 +743,8 @@ class MessagingApi
             $from,
             'from', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -752,8 +752,8 @@ class MessagingApi
             $to,
             'to', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -761,8 +761,8 @@ class MessagingApi
             $limit,
             'limit', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -770,8 +770,8 @@ class MessagingApi
             $offset,
             'offset', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 
@@ -841,7 +841,7 @@ class MessagingApi
      *
      * Enqueue a transactional email
      *
-     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $request Email to send (required)
+     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $send_email_send_email_request Email to send (required)
      * @param  string|null $idempotency_key Unique retry key kept for 24 hours (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendEmail'] to see the possible values for this operation
      *
@@ -849,9 +849,9 @@ class MessagingApi
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function sendEmail($request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
+    public function sendEmail($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
-        list($response) = $this->sendEmailWithHttpInfo($request, $idempotency_key, $contentType);
+        list($response) = $this->sendEmailWithHttpInfo($send_email_send_email_request, $idempotency_key, $contentType);
         return $response;
     }
 
@@ -860,7 +860,7 @@ class MessagingApi
      *
      * Enqueue a transactional email
      *
-     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $request Email to send (required)
+     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $send_email_send_email_request Email to send (required)
      * @param  string|null $idempotency_key Unique retry key kept for 24 hours (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendEmail'] to see the possible values for this operation
      *
@@ -868,9 +868,9 @@ class MessagingApi
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function sendEmailWithHttpInfo($request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
+    public function sendEmailWithHttpInfo($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
-        $request = $this->sendEmailRequest($request, $idempotency_key, $contentType);
+        $request = $this->sendEmailRequest($send_email_send_email_request, $idempotency_key, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1002,16 +1002,16 @@ class MessagingApi
      *
      * Enqueue a transactional email
      *
-     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $request Email to send (required)
+     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $send_email_send_email_request Email to send (required)
      * @param  string|null $idempotency_key Unique retry key kept for 24 hours (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function sendEmailAsync($request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
+    public function sendEmailAsync($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
-        return $this->sendEmailAsyncWithHttpInfo($request, $idempotency_key, $contentType)
+        return $this->sendEmailAsyncWithHttpInfo($send_email_send_email_request, $idempotency_key, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1024,17 +1024,17 @@ class MessagingApi
      *
      * Enqueue a transactional email
      *
-     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $request Email to send (required)
+     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $send_email_send_email_request Email to send (required)
      * @param  string|null $idempotency_key Unique retry key kept for 24 hours (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function sendEmailAsyncWithHttpInfo($request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
+    public function sendEmailAsyncWithHttpInfo($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
         $returnType = '\Lalternative\Spore\Model\SendEmailSendEmailResult';
-        $request = $this->sendEmailRequest($request, $idempotency_key, $contentType);
+        $request = $this->sendEmailRequest($send_email_send_email_request, $idempotency_key, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -1075,20 +1075,20 @@ class MessagingApi
     /**
      * Create request for operation 'sendEmail'
      *
-     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $request Email to send (required)
+     * @param  \Lalternative\Spore\Model\SendEmailSendEmailRequest $send_email_send_email_request Email to send (required)
      * @param  string|null $idempotency_key Unique retry key kept for 24 hours (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function sendEmailRequest($request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
+    public function sendEmailRequest($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'send_email_send_email_request' is set
+        if ($send_email_send_email_request === null || (is_array($send_email_send_email_request) && count($send_email_send_email_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling sendEmail'
+                'Missing the required parameter $send_email_send_email_request when calling sendEmail'
             );
         }
 
@@ -1116,12 +1116,12 @@ class MessagingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($send_email_send_email_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($send_email_send_email_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $send_email_send_email_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1179,16 +1179,16 @@ class MessagingApi
      *
      * Send a diagnostic test email from the UI
      *
-     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $request Test parameters (required)
+     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $send_test_email_send_test_email_request Test parameters (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendTestEmail'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\SendTestEmailSendTestEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function sendTestEmail($request, string $contentType = self::contentTypes['sendTestEmail'][0])
+    public function sendTestEmail($send_test_email_send_test_email_request, string $contentType = self::contentTypes['sendTestEmail'][0])
     {
-        list($response) = $this->sendTestEmailWithHttpInfo($request, $contentType);
+        list($response) = $this->sendTestEmailWithHttpInfo($send_test_email_send_test_email_request, $contentType);
         return $response;
     }
 
@@ -1197,16 +1197,16 @@ class MessagingApi
      *
      * Send a diagnostic test email from the UI
      *
-     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $request Test parameters (required)
+     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $send_test_email_send_test_email_request Test parameters (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendTestEmail'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\SendTestEmailSendTestEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function sendTestEmailWithHttpInfo($request, string $contentType = self::contentTypes['sendTestEmail'][0])
+    public function sendTestEmailWithHttpInfo($send_test_email_send_test_email_request, string $contentType = self::contentTypes['sendTestEmail'][0])
     {
-        $request = $this->sendTestEmailRequest($request, $contentType);
+        $request = $this->sendTestEmailRequest($send_test_email_send_test_email_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1310,15 +1310,15 @@ class MessagingApi
      *
      * Send a diagnostic test email from the UI
      *
-     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $request Test parameters (required)
+     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $send_test_email_send_test_email_request Test parameters (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendTestEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function sendTestEmailAsync($request, string $contentType = self::contentTypes['sendTestEmail'][0])
+    public function sendTestEmailAsync($send_test_email_send_test_email_request, string $contentType = self::contentTypes['sendTestEmail'][0])
     {
-        return $this->sendTestEmailAsyncWithHttpInfo($request, $contentType)
+        return $this->sendTestEmailAsyncWithHttpInfo($send_test_email_send_test_email_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1331,16 +1331,16 @@ class MessagingApi
      *
      * Send a diagnostic test email from the UI
      *
-     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $request Test parameters (required)
+     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $send_test_email_send_test_email_request Test parameters (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendTestEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function sendTestEmailAsyncWithHttpInfo($request, string $contentType = self::contentTypes['sendTestEmail'][0])
+    public function sendTestEmailAsyncWithHttpInfo($send_test_email_send_test_email_request, string $contentType = self::contentTypes['sendTestEmail'][0])
     {
         $returnType = '\Lalternative\Spore\Model\SendTestEmailSendTestEmailResult';
-        $request = $this->sendTestEmailRequest($request, $contentType);
+        $request = $this->sendTestEmailRequest($send_test_email_send_test_email_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -1381,19 +1381,19 @@ class MessagingApi
     /**
      * Create request for operation 'sendTestEmail'
      *
-     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $request Test parameters (required)
+     * @param  \Lalternative\Spore\Model\SendTestEmailSendTestEmailRequest $send_test_email_send_test_email_request Test parameters (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['sendTestEmail'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function sendTestEmailRequest($request, string $contentType = self::contentTypes['sendTestEmail'][0])
+    public function sendTestEmailRequest($send_test_email_send_test_email_request, string $contentType = self::contentTypes['sendTestEmail'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'send_test_email_send_test_email_request' is set
+        if ($send_test_email_send_test_email_request === null || (is_array($send_test_email_send_test_email_request) && count($send_test_email_send_test_email_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling sendTestEmail'
+                'Missing the required parameter $send_test_email_send_test_email_request when calling sendTestEmail'
             );
         }
 
@@ -1416,12 +1416,12 @@ class MessagingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($send_test_email_send_test_email_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($send_test_email_send_test_email_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $send_test_email_send_test_email_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

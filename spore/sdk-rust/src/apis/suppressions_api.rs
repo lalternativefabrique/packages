@@ -18,7 +18,7 @@ use super::{Error, configuration, ContentType};
 #[derive(Clone, Debug)]
 pub struct AddSuppressionParams {
     /// Suppression to add
-    pub request: models::AddSuppressionAddSuppressionRequest
+    pub add_suppression_add_suppression_request: models::AddSuppressionAddSuppressionRequest
 }
 
 /// struct for passing parameters to the method [`list_suppressions`]
@@ -83,7 +83,7 @@ pub async fn add_suppression(configuration: &configuration::Configuration, param
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.add_suppression_add_suppression_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

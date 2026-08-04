@@ -146,16 +146,16 @@ class WebhooksApi
      *
      * Create a webhook endpoint
      *
-     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $request Endpoint to create (required)
+     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $create_endpoint_create_endpoint_request Endpoint to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\CreateEndpointResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function createWebhookEndpoint($request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
+    public function createWebhookEndpoint($create_endpoint_create_endpoint_request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
     {
-        list($response) = $this->createWebhookEndpointWithHttpInfo($request, $contentType);
+        list($response) = $this->createWebhookEndpointWithHttpInfo($create_endpoint_create_endpoint_request, $contentType);
         return $response;
     }
 
@@ -164,16 +164,16 @@ class WebhooksApi
      *
      * Create a webhook endpoint
      *
-     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $request Endpoint to create (required)
+     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $create_endpoint_create_endpoint_request Endpoint to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\CreateEndpointResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function createWebhookEndpointWithHttpInfo($request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
+    public function createWebhookEndpointWithHttpInfo($create_endpoint_create_endpoint_request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
     {
-        $request = $this->createWebhookEndpointRequest($request, $contentType);
+        $request = $this->createWebhookEndpointRequest($create_endpoint_create_endpoint_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -277,15 +277,15 @@ class WebhooksApi
      *
      * Create a webhook endpoint
      *
-     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $request Endpoint to create (required)
+     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $create_endpoint_create_endpoint_request Endpoint to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createWebhookEndpointAsync($request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
+    public function createWebhookEndpointAsync($create_endpoint_create_endpoint_request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
     {
-        return $this->createWebhookEndpointAsyncWithHttpInfo($request, $contentType)
+        return $this->createWebhookEndpointAsyncWithHttpInfo($create_endpoint_create_endpoint_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -298,16 +298,16 @@ class WebhooksApi
      *
      * Create a webhook endpoint
      *
-     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $request Endpoint to create (required)
+     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $create_endpoint_create_endpoint_request Endpoint to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createWebhookEndpointAsyncWithHttpInfo($request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
+    public function createWebhookEndpointAsyncWithHttpInfo($create_endpoint_create_endpoint_request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
     {
         $returnType = '\Lalternative\Spore\Model\CreateEndpointResult';
-        $request = $this->createWebhookEndpointRequest($request, $contentType);
+        $request = $this->createWebhookEndpointRequest($create_endpoint_create_endpoint_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -348,19 +348,19 @@ class WebhooksApi
     /**
      * Create request for operation 'createWebhookEndpoint'
      *
-     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $request Endpoint to create (required)
+     * @param  \Lalternative\Spore\Model\CreateEndpointCreateEndpointRequest $create_endpoint_create_endpoint_request Endpoint to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function createWebhookEndpointRequest($request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
+    public function createWebhookEndpointRequest($create_endpoint_create_endpoint_request, string $contentType = self::contentTypes['createWebhookEndpoint'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'create_endpoint_create_endpoint_request' is set
+        if ($create_endpoint_create_endpoint_request === null || (is_array($create_endpoint_create_endpoint_request) && count($create_endpoint_create_endpoint_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling createWebhookEndpoint'
+                'Missing the required parameter $create_endpoint_create_endpoint_request when calling createWebhookEndpoint'
             );
         }
 
@@ -383,12 +383,12 @@ class WebhooksApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($create_endpoint_create_endpoint_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_endpoint_create_endpoint_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $create_endpoint_create_endpoint_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1239,8 +1239,8 @@ class WebhooksApi
             $limit,
             'limit', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -1248,8 +1248,8 @@ class WebhooksApi
             $offset,
             'offset', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 
@@ -1635,16 +1635,16 @@ class WebhooksApi
      * Update a webhook endpoint
      *
      * @param  string $id Endpoint ID (required)
-     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $request Updated fields (required)
+     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $update_endpoint_update_endpoint_request Updated fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return void
      */
-    public function updateWebhookEndpoint($id, $request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
+    public function updateWebhookEndpoint($id, $update_endpoint_update_endpoint_request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
     {
-        $this->updateWebhookEndpointWithHttpInfo($id, $request, $contentType);
+        $this->updateWebhookEndpointWithHttpInfo($id, $update_endpoint_update_endpoint_request, $contentType);
     }
 
     /**
@@ -1653,16 +1653,16 @@ class WebhooksApi
      * Update a webhook endpoint
      *
      * @param  string $id Endpoint ID (required)
-     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $request Updated fields (required)
+     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $update_endpoint_update_endpoint_request Updated fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of null, HTTP status code, HTTP response headers (array of strings)
      */
-    public function updateWebhookEndpointWithHttpInfo($id, $request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
+    public function updateWebhookEndpointWithHttpInfo($id, $update_endpoint_update_endpoint_request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
     {
-        $request = $this->updateWebhookEndpointRequest($id, $request, $contentType);
+        $request = $this->updateWebhookEndpointRequest($id, $update_endpoint_update_endpoint_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1727,15 +1727,15 @@ class WebhooksApi
      * Update a webhook endpoint
      *
      * @param  string $id Endpoint ID (required)
-     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $request Updated fields (required)
+     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $update_endpoint_update_endpoint_request Updated fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function updateWebhookEndpointAsync($id, $request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
+    public function updateWebhookEndpointAsync($id, $update_endpoint_update_endpoint_request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
     {
-        return $this->updateWebhookEndpointAsyncWithHttpInfo($id, $request, $contentType)
+        return $this->updateWebhookEndpointAsyncWithHttpInfo($id, $update_endpoint_update_endpoint_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1749,16 +1749,16 @@ class WebhooksApi
      * Update a webhook endpoint
      *
      * @param  string $id Endpoint ID (required)
-     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $request Updated fields (required)
+     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $update_endpoint_update_endpoint_request Updated fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function updateWebhookEndpointAsyncWithHttpInfo($id, $request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
+    public function updateWebhookEndpointAsyncWithHttpInfo($id, $update_endpoint_update_endpoint_request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
     {
         $returnType = '';
-        $request = $this->updateWebhookEndpointRequest($id, $request, $contentType);
+        $request = $this->updateWebhookEndpointRequest($id, $update_endpoint_update_endpoint_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -1787,13 +1787,13 @@ class WebhooksApi
      * Create request for operation 'updateWebhookEndpoint'
      *
      * @param  string $id Endpoint ID (required)
-     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $request Updated fields (required)
+     * @param  \Lalternative\Spore\Model\UpdateEndpointUpdateEndpointRequest $update_endpoint_update_endpoint_request Updated fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['updateWebhookEndpoint'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function updateWebhookEndpointRequest($id, $request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
+    public function updateWebhookEndpointRequest($id, $update_endpoint_update_endpoint_request, string $contentType = self::contentTypes['updateWebhookEndpoint'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -1803,10 +1803,10 @@ class WebhooksApi
             );
         }
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'update_endpoint_update_endpoint_request' is set
+        if ($update_endpoint_update_endpoint_request === null || (is_array($update_endpoint_update_endpoint_request) && count($update_endpoint_update_endpoint_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling updateWebhookEndpoint'
+                'Missing the required parameter $update_endpoint_update_endpoint_request when calling updateWebhookEndpoint'
             );
         }
 
@@ -1837,12 +1837,12 @@ class WebhooksApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($update_endpoint_update_endpoint_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($update_endpoint_update_endpoint_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $update_endpoint_update_endpoint_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

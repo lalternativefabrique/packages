@@ -290,7 +290,7 @@ class TemplatesApi:
     def preview_template(
         self,
         id: Annotated[StrictStr, Field(description="Template ID")],
-        request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
+        preview_template_preview_template_request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -309,8 +309,8 @@ class TemplatesApi:
 
         :param id: Template ID (required)
         :type id: str
-        :param request: Locale and variables (required)
-        :type request: PreviewTemplatePreviewTemplateRequest
+        :param preview_template_preview_template_request: Locale and variables (required)
+        :type preview_template_preview_template_request: PreviewTemplatePreviewTemplateRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -335,7 +335,7 @@ class TemplatesApi:
 
         _param = self._preview_template_serialize(
             id=id,
-            request=request,
+            preview_template_preview_template_request=preview_template_preview_template_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -362,7 +362,7 @@ class TemplatesApi:
     def preview_template_with_http_info(
         self,
         id: Annotated[StrictStr, Field(description="Template ID")],
-        request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
+        preview_template_preview_template_request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -381,8 +381,8 @@ class TemplatesApi:
 
         :param id: Template ID (required)
         :type id: str
-        :param request: Locale and variables (required)
-        :type request: PreviewTemplatePreviewTemplateRequest
+        :param preview_template_preview_template_request: Locale and variables (required)
+        :type preview_template_preview_template_request: PreviewTemplatePreviewTemplateRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -407,7 +407,7 @@ class TemplatesApi:
 
         _param = self._preview_template_serialize(
             id=id,
-            request=request,
+            preview_template_preview_template_request=preview_template_preview_template_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -434,7 +434,7 @@ class TemplatesApi:
     def preview_template_without_preload_content(
         self,
         id: Annotated[StrictStr, Field(description="Template ID")],
-        request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
+        preview_template_preview_template_request: Annotated[PreviewTemplatePreviewTemplateRequest, Field(description="Locale and variables")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -453,8 +453,8 @@ class TemplatesApi:
 
         :param id: Template ID (required)
         :type id: str
-        :param request: Locale and variables (required)
-        :type request: PreviewTemplatePreviewTemplateRequest
+        :param preview_template_preview_template_request: Locale and variables (required)
+        :type preview_template_preview_template_request: PreviewTemplatePreviewTemplateRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -479,7 +479,7 @@ class TemplatesApi:
 
         _param = self._preview_template_serialize(
             id=id,
-            request=request,
+            preview_template_preview_template_request=preview_template_preview_template_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -501,7 +501,7 @@ class TemplatesApi:
     def _preview_template_serialize(
         self,
         id,
-        request,
+        preview_template_preview_template_request,
         _request_auth,
         _content_type,
         _headers,
@@ -529,8 +529,8 @@ class TemplatesApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if preview_template_preview_template_request is not None:
+            _body_params = preview_template_preview_template_request
 
 
         # set the HTTP header `Accept`

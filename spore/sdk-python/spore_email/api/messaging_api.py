@@ -682,7 +682,7 @@ class MessagingApi:
     @validate_call
     def send_email(
         self,
-        request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
+        send_email_send_email_request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
         idempotency_key: Annotated[Optional[StrictStr], Field(description="Unique retry key kept for 24 hours")] = None,
         _request_timeout: Union[
             None,
@@ -700,8 +700,8 @@ class MessagingApi:
         """Enqueue a transactional email
 
 
-        :param request: Email to send (required)
-        :type request: SendEmailSendEmailRequest
+        :param send_email_send_email_request: Email to send (required)
+        :type send_email_send_email_request: SendEmailSendEmailRequest
         :param idempotency_key: Unique retry key kept for 24 hours
         :type idempotency_key: str
         :param _request_timeout: timeout setting for this request. If one
@@ -727,7 +727,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_email_serialize(
-            request=request,
+            send_email_send_email_request=send_email_send_email_request,
             idempotency_key=idempotency_key,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -756,7 +756,7 @@ class MessagingApi:
     @validate_call
     def send_email_with_http_info(
         self,
-        request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
+        send_email_send_email_request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
         idempotency_key: Annotated[Optional[StrictStr], Field(description="Unique retry key kept for 24 hours")] = None,
         _request_timeout: Union[
             None,
@@ -774,8 +774,8 @@ class MessagingApi:
         """Enqueue a transactional email
 
 
-        :param request: Email to send (required)
-        :type request: SendEmailSendEmailRequest
+        :param send_email_send_email_request: Email to send (required)
+        :type send_email_send_email_request: SendEmailSendEmailRequest
         :param idempotency_key: Unique retry key kept for 24 hours
         :type idempotency_key: str
         :param _request_timeout: timeout setting for this request. If one
@@ -801,7 +801,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_email_serialize(
-            request=request,
+            send_email_send_email_request=send_email_send_email_request,
             idempotency_key=idempotency_key,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -830,7 +830,7 @@ class MessagingApi:
     @validate_call
     def send_email_without_preload_content(
         self,
-        request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
+        send_email_send_email_request: Annotated[SendEmailSendEmailRequest, Field(description="Email to send")],
         idempotency_key: Annotated[Optional[StrictStr], Field(description="Unique retry key kept for 24 hours")] = None,
         _request_timeout: Union[
             None,
@@ -848,8 +848,8 @@ class MessagingApi:
         """Enqueue a transactional email
 
 
-        :param request: Email to send (required)
-        :type request: SendEmailSendEmailRequest
+        :param send_email_send_email_request: Email to send (required)
+        :type send_email_send_email_request: SendEmailSendEmailRequest
         :param idempotency_key: Unique retry key kept for 24 hours
         :type idempotency_key: str
         :param _request_timeout: timeout setting for this request. If one
@@ -875,7 +875,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_email_serialize(
-            request=request,
+            send_email_send_email_request=send_email_send_email_request,
             idempotency_key=idempotency_key,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -899,7 +899,7 @@ class MessagingApi:
 
     def _send_email_serialize(
         self,
-        request,
+        send_email_send_email_request,
         idempotency_key,
         _request_auth,
         _content_type,
@@ -928,8 +928,8 @@ class MessagingApi:
             _header_params['Idempotency-Key'] = idempotency_key
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if send_email_send_email_request is not None:
+            _body_params = send_email_send_email_request
 
 
         # set the HTTP header `Accept`
@@ -980,7 +980,7 @@ class MessagingApi:
     @validate_call
     def send_test_email(
         self,
-        request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
+        send_test_email_send_test_email_request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -998,8 +998,8 @@ class MessagingApi:
 
         Sends a server-built email through the full DKIM-sign + outbox + MTA pipeline. Bypasses the monthly quota and tags the message as kind=test.
 
-        :param request: Test parameters (required)
-        :type request: SendTestEmailSendTestEmailRequest
+        :param send_test_email_send_test_email_request: Test parameters (required)
+        :type send_test_email_send_test_email_request: SendTestEmailSendTestEmailRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1023,7 +1023,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_test_email_serialize(
-            request=request,
+            send_test_email_send_test_email_request=send_test_email_send_test_email_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1049,7 +1049,7 @@ class MessagingApi:
     @validate_call
     def send_test_email_with_http_info(
         self,
-        request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
+        send_test_email_send_test_email_request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1067,8 +1067,8 @@ class MessagingApi:
 
         Sends a server-built email through the full DKIM-sign + outbox + MTA pipeline. Bypasses the monthly quota and tags the message as kind=test.
 
-        :param request: Test parameters (required)
-        :type request: SendTestEmailSendTestEmailRequest
+        :param send_test_email_send_test_email_request: Test parameters (required)
+        :type send_test_email_send_test_email_request: SendTestEmailSendTestEmailRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1092,7 +1092,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_test_email_serialize(
-            request=request,
+            send_test_email_send_test_email_request=send_test_email_send_test_email_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1118,7 +1118,7 @@ class MessagingApi:
     @validate_call
     def send_test_email_without_preload_content(
         self,
-        request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
+        send_test_email_send_test_email_request: Annotated[SendTestEmailSendTestEmailRequest, Field(description="Test parameters")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1136,8 +1136,8 @@ class MessagingApi:
 
         Sends a server-built email through the full DKIM-sign + outbox + MTA pipeline. Bypasses the monthly quota and tags the message as kind=test.
 
-        :param request: Test parameters (required)
-        :type request: SendTestEmailSendTestEmailRequest
+        :param send_test_email_send_test_email_request: Test parameters (required)
+        :type send_test_email_send_test_email_request: SendTestEmailSendTestEmailRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1161,7 +1161,7 @@ class MessagingApi:
         """ # noqa: E501
 
         _param = self._send_test_email_serialize(
-            request=request,
+            send_test_email_send_test_email_request=send_test_email_send_test_email_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1182,7 +1182,7 @@ class MessagingApi:
 
     def _send_test_email_serialize(
         self,
-        request,
+        send_test_email_send_test_email_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1208,8 +1208,8 @@ class MessagingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if send_test_email_send_test_email_request is not None:
+            _body_params = send_test_email_send_test_email_request
 
 
         # set the HTTP header `Accept`

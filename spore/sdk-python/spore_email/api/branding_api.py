@@ -46,7 +46,7 @@ class BrandingApi:
     def extract_brand(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
+        extract_brand_extract_brand_request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -65,8 +65,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Source URL or raw HTML (required)
-        :type request: ExtractBrandExtractBrandRequest
+        :param extract_brand_extract_brand_request: Source URL or raw HTML (required)
+        :type extract_brand_extract_brand_request: ExtractBrandExtractBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -91,7 +91,7 @@ class BrandingApi:
 
         _param = self._extract_brand_serialize(
             id=id,
-            request=request,
+            extract_brand_extract_brand_request=extract_brand_extract_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -118,7 +118,7 @@ class BrandingApi:
     def extract_brand_with_http_info(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
+        extract_brand_extract_brand_request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -137,8 +137,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Source URL or raw HTML (required)
-        :type request: ExtractBrandExtractBrandRequest
+        :param extract_brand_extract_brand_request: Source URL or raw HTML (required)
+        :type extract_brand_extract_brand_request: ExtractBrandExtractBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -163,7 +163,7 @@ class BrandingApi:
 
         _param = self._extract_brand_serialize(
             id=id,
-            request=request,
+            extract_brand_extract_brand_request=extract_brand_extract_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -190,7 +190,7 @@ class BrandingApi:
     def extract_brand_without_preload_content(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
+        extract_brand_extract_brand_request: Annotated[ExtractBrandExtractBrandRequest, Field(description="Source URL or raw HTML")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -209,8 +209,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Source URL or raw HTML (required)
-        :type request: ExtractBrandExtractBrandRequest
+        :param extract_brand_extract_brand_request: Source URL or raw HTML (required)
+        :type extract_brand_extract_brand_request: ExtractBrandExtractBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -235,7 +235,7 @@ class BrandingApi:
 
         _param = self._extract_brand_serialize(
             id=id,
-            request=request,
+            extract_brand_extract_brand_request=extract_brand_extract_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -257,7 +257,7 @@ class BrandingApi:
     def _extract_brand_serialize(
         self,
         id,
-        request,
+        extract_brand_extract_brand_request,
         _request_auth,
         _content_type,
         _headers,
@@ -285,8 +285,8 @@ class BrandingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if extract_brand_extract_brand_request is not None:
+            _body_params = extract_brand_extract_brand_request
 
 
         # set the HTTP header `Accept`
@@ -605,7 +605,7 @@ class BrandingApi:
     def set_brand(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
+        set_brand_set_brand_request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -624,8 +624,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Branding fields (required)
-        :type request: SetBrandSetBrandRequest
+        :param set_brand_set_brand_request: Branding fields (required)
+        :type set_brand_set_brand_request: SetBrandSetBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -650,7 +650,7 @@ class BrandingApi:
 
         _param = self._set_brand_serialize(
             id=id,
-            request=request,
+            set_brand_set_brand_request=set_brand_set_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -677,7 +677,7 @@ class BrandingApi:
     def set_brand_with_http_info(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
+        set_brand_set_brand_request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -696,8 +696,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Branding fields (required)
-        :type request: SetBrandSetBrandRequest
+        :param set_brand_set_brand_request: Branding fields (required)
+        :type set_brand_set_brand_request: SetBrandSetBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -722,7 +722,7 @@ class BrandingApi:
 
         _param = self._set_brand_serialize(
             id=id,
-            request=request,
+            set_brand_set_brand_request=set_brand_set_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -749,7 +749,7 @@ class BrandingApi:
     def set_brand_without_preload_content(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
+        set_brand_set_brand_request: Annotated[SetBrandSetBrandRequest, Field(description="Branding fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -768,8 +768,8 @@ class BrandingApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param request: Branding fields (required)
-        :type request: SetBrandSetBrandRequest
+        :param set_brand_set_brand_request: Branding fields (required)
+        :type set_brand_set_brand_request: SetBrandSetBrandRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -794,7 +794,7 @@ class BrandingApi:
 
         _param = self._set_brand_serialize(
             id=id,
-            request=request,
+            set_brand_set_brand_request=set_brand_set_brand_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -816,7 +816,7 @@ class BrandingApi:
     def _set_brand_serialize(
         self,
         id,
-        request,
+        set_brand_set_brand_request,
         _request_auth,
         _content_type,
         _headers,
@@ -844,8 +844,8 @@ class BrandingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if set_brand_set_brand_request is not None:
+            _body_params = set_brand_set_brand_request
 
 
         # set the HTTP header `Accept`

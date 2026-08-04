@@ -8,6 +8,11 @@ runner:
   packages:
     - git
     - ca-certificates
+    - build-essential
+    - cmake
+    - php-cli
+    - python3
+    - ruby
     # psql applies go/webhooks/migrations before its integration tests: the
     # schema ships with the library, and applying it in CI is what proves the
     # library and its migrations agree.

@@ -20,25 +20,25 @@ module SporeEmail
       @api_client = api_client
     end
     # Create a webhook endpoint
-    # @param request [CreateEndpointCreateEndpointRequest] Endpoint to create
+    # @param create_endpoint_create_endpoint_request [CreateEndpointCreateEndpointRequest] Endpoint to create
     # @param [Hash] opts the optional parameters
     # @return [CreateEndpointResult]
-    def create_webhook_endpoint(request, opts = {})
-      data, _status_code, _headers = create_webhook_endpoint_with_http_info(request, opts)
+    def create_webhook_endpoint(create_endpoint_create_endpoint_request, opts = {})
+      data, _status_code, _headers = create_webhook_endpoint_with_http_info(create_endpoint_create_endpoint_request, opts)
       data
     end
 
     # Create a webhook endpoint
-    # @param request [CreateEndpointCreateEndpointRequest] Endpoint to create
+    # @param create_endpoint_create_endpoint_request [CreateEndpointCreateEndpointRequest] Endpoint to create
     # @param [Hash] opts the optional parameters
     # @return [Array<(CreateEndpointResult, Integer, Hash)>] CreateEndpointResult data, response status code and response headers
-    def create_webhook_endpoint_with_http_info(request, opts = {})
+    def create_webhook_endpoint_with_http_info(create_endpoint_create_endpoint_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: WebhooksApi.create_webhook_endpoint ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling WebhooksApi.create_webhook_endpoint"
+      # verify the required parameter 'create_endpoint_create_endpoint_request' is set
+      if @api_client.config.client_side_validation && create_endpoint_create_endpoint_request.nil?
+        fail ArgumentError, "Missing the required parameter 'create_endpoint_create_endpoint_request' when calling WebhooksApi.create_webhook_endpoint"
       end
       # resource path
       local_var_path = '/webhooks/endpoints'
@@ -60,7 +60,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(create_endpoint_create_endpoint_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'CreateEndpointResult'
@@ -331,20 +331,20 @@ module SporeEmail
 
     # Update a webhook endpoint
     # @param id [String] Endpoint ID
-    # @param request [UpdateEndpointUpdateEndpointRequest] Updated fields
+    # @param update_endpoint_update_endpoint_request [UpdateEndpointUpdateEndpointRequest] Updated fields
     # @param [Hash] opts the optional parameters
     # @return [nil]
-    def update_webhook_endpoint(id, request, opts = {})
-      update_webhook_endpoint_with_http_info(id, request, opts)
+    def update_webhook_endpoint(id, update_endpoint_update_endpoint_request, opts = {})
+      update_webhook_endpoint_with_http_info(id, update_endpoint_update_endpoint_request, opts)
       nil
     end
 
     # Update a webhook endpoint
     # @param id [String] Endpoint ID
-    # @param request [UpdateEndpointUpdateEndpointRequest] Updated fields
+    # @param update_endpoint_update_endpoint_request [UpdateEndpointUpdateEndpointRequest] Updated fields
     # @param [Hash] opts the optional parameters
     # @return [Array<(nil, Integer, Hash)>] nil, response status code and response headers
-    def update_webhook_endpoint_with_http_info(id, request, opts = {})
+    def update_webhook_endpoint_with_http_info(id, update_endpoint_update_endpoint_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: WebhooksApi.update_webhook_endpoint ...'
       end
@@ -352,9 +352,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && id.nil?
         fail ArgumentError, "Missing the required parameter 'id' when calling WebhooksApi.update_webhook_endpoint"
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling WebhooksApi.update_webhook_endpoint"
+      # verify the required parameter 'update_endpoint_update_endpoint_request' is set
+      if @api_client.config.client_side_validation && update_endpoint_update_endpoint_request.nil?
+        fail ArgumentError, "Missing the required parameter 'update_endpoint_update_endpoint_request' when calling WebhooksApi.update_webhook_endpoint"
       end
       # resource path
       local_var_path = '/webhooks/endpoints/{id}'.sub('{id}', CGI.escape(id.to_s))
@@ -376,7 +376,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(update_endpoint_update_endpoint_request)
 
       # return_type
       return_type = opts[:debug_return_type]

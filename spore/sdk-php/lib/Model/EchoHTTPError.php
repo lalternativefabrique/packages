@@ -58,7 +58,7 @@ class EchoHTTPError implements ModelInterface, ArrayAccess, \JsonSerializable
      * @var string[]
      */
     protected static $openAPITypes = [
-        'message' => 'object'
+        'message' => 'mixed'
     ];
 
     /**
@@ -78,7 +78,7 @@ class EchoHTTPError implements ModelInterface, ArrayAccess, \JsonSerializable
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'message' => false
+        'message' => true
     ];
 
     /**
@@ -293,7 +293,7 @@ class EchoHTTPError implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Gets message
      *
-     * @return object|null
+     * @return mixed|null
      */
     public function getMessage()
     {
@@ -303,14 +303,21 @@ class EchoHTTPError implements ModelInterface, ArrayAccess, \JsonSerializable
     /**
      * Sets message
      *
-     * @param object|null $message message
+     * @param mixed|null $message message
      *
      * @return self
      */
     public function setMessage($message)
     {
         if (is_null($message)) {
-            throw new \InvalidArgumentException('non-nullable message cannot be null');
+            array_push($this->openAPINullablesSetToNull, 'message');
+        } else {
+            $nullablesSetToNull = $this->getOpenAPINullablesSetToNull();
+            $index = array_search('message', $nullablesSetToNull);
+            if ($index !== FALSE) {
+                unset($nullablesSetToNull[$index]);
+                $this->setOpenAPINullablesSetToNull($nullablesSetToNull);
+            }
         }
         $this->container['message'] = $message;
 

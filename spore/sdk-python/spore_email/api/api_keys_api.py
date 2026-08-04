@@ -43,7 +43,7 @@ class ApiKeysApi:
     @validate_call
     def create_api_key(
         self,
-        request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
+        apikeys_create_api_key_request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -60,8 +60,8 @@ class ApiKeysApi:
         """Create an API key
 
 
-        :param request: API key to create (required)
-        :type request: ApikeysCreateAPIKeyRequest
+        :param apikeys_create_api_key_request: API key to create (required)
+        :type apikeys_create_api_key_request: ApikeysCreateAPIKeyRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -85,7 +85,7 @@ class ApiKeysApi:
         """ # noqa: E501
 
         _param = self._create_api_key_serialize(
-            request=request,
+            apikeys_create_api_key_request=apikeys_create_api_key_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -111,7 +111,7 @@ class ApiKeysApi:
     @validate_call
     def create_api_key_with_http_info(
         self,
-        request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
+        apikeys_create_api_key_request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -128,8 +128,8 @@ class ApiKeysApi:
         """Create an API key
 
 
-        :param request: API key to create (required)
-        :type request: ApikeysCreateAPIKeyRequest
+        :param apikeys_create_api_key_request: API key to create (required)
+        :type apikeys_create_api_key_request: ApikeysCreateAPIKeyRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -153,7 +153,7 @@ class ApiKeysApi:
         """ # noqa: E501
 
         _param = self._create_api_key_serialize(
-            request=request,
+            apikeys_create_api_key_request=apikeys_create_api_key_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -179,7 +179,7 @@ class ApiKeysApi:
     @validate_call
     def create_api_key_without_preload_content(
         self,
-        request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
+        apikeys_create_api_key_request: Annotated[ApikeysCreateAPIKeyRequest, Field(description="API key to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -196,8 +196,8 @@ class ApiKeysApi:
         """Create an API key
 
 
-        :param request: API key to create (required)
-        :type request: ApikeysCreateAPIKeyRequest
+        :param apikeys_create_api_key_request: API key to create (required)
+        :type apikeys_create_api_key_request: ApikeysCreateAPIKeyRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -221,7 +221,7 @@ class ApiKeysApi:
         """ # noqa: E501
 
         _param = self._create_api_key_serialize(
-            request=request,
+            apikeys_create_api_key_request=apikeys_create_api_key_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -242,7 +242,7 @@ class ApiKeysApi:
 
     def _create_api_key_serialize(
         self,
-        request,
+        apikeys_create_api_key_request,
         _request_auth,
         _content_type,
         _headers,
@@ -268,8 +268,8 @@ class ApiKeysApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if apikeys_create_api_key_request is not None:
+            _body_params = apikeys_create_api_key_request
 
 
         # set the HTTP header `Accept`

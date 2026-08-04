@@ -78,11 +78,11 @@ configuration.api_key['BearerAuth'] = os.environ["API_KEY"]
 with spore_email.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = spore_email.ApiKeysApi(api_client)
-    request = spore_email.ApikeysCreateAPIKeyRequest() # ApikeysCreateAPIKeyRequest | API key to create
+    apikeys_create_api_key_request = spore_email.ApikeysCreateAPIKeyRequest() # ApikeysCreateAPIKeyRequest | API key to create
 
     try:
         # Create an API key
-        api_response = api_instance.create_api_key(request)
+        api_response = api_instance.create_api_key(apikeys_create_api_key_request)
         print("The response of ApiKeysApi->create_api_key:\n")
         pprint(api_response)
     except ApiException as e:

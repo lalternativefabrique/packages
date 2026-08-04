@@ -136,16 +136,16 @@ class UnsubscribeApi
      * One-click unsubscribe (RFC 8058)
      *
      * @param  string|null $token Token (when posted via query string) (optional)
-     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $request JSON body (optional)
+     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $confirm_unsubscribe_confirm_unsubscribe_request JSON body (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['confirmUnsubscribe'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\ConfirmUnsubscribeResponse|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function confirmUnsubscribe($token = null, $request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
+    public function confirmUnsubscribe($token = null, $confirm_unsubscribe_confirm_unsubscribe_request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
     {
-        list($response) = $this->confirmUnsubscribeWithHttpInfo($token, $request, $contentType);
+        list($response) = $this->confirmUnsubscribeWithHttpInfo($token, $confirm_unsubscribe_confirm_unsubscribe_request, $contentType);
         return $response;
     }
 
@@ -155,16 +155,16 @@ class UnsubscribeApi
      * One-click unsubscribe (RFC 8058)
      *
      * @param  string|null $token Token (when posted via query string) (optional)
-     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $request JSON body (optional)
+     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $confirm_unsubscribe_confirm_unsubscribe_request JSON body (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['confirmUnsubscribe'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\ConfirmUnsubscribeResponse|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function confirmUnsubscribeWithHttpInfo($token = null, $request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
+    public function confirmUnsubscribeWithHttpInfo($token = null, $confirm_unsubscribe_confirm_unsubscribe_request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
     {
-        $request = $this->confirmUnsubscribeRequest($token, $request, $contentType);
+        $request = $this->confirmUnsubscribeRequest($token, $confirm_unsubscribe_confirm_unsubscribe_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -255,15 +255,15 @@ class UnsubscribeApi
      * One-click unsubscribe (RFC 8058)
      *
      * @param  string|null $token Token (when posted via query string) (optional)
-     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $request JSON body (optional)
+     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $confirm_unsubscribe_confirm_unsubscribe_request JSON body (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['confirmUnsubscribe'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function confirmUnsubscribeAsync($token = null, $request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
+    public function confirmUnsubscribeAsync($token = null, $confirm_unsubscribe_confirm_unsubscribe_request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
     {
-        return $this->confirmUnsubscribeAsyncWithHttpInfo($token, $request, $contentType)
+        return $this->confirmUnsubscribeAsyncWithHttpInfo($token, $confirm_unsubscribe_confirm_unsubscribe_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -277,16 +277,16 @@ class UnsubscribeApi
      * One-click unsubscribe (RFC 8058)
      *
      * @param  string|null $token Token (when posted via query string) (optional)
-     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $request JSON body (optional)
+     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $confirm_unsubscribe_confirm_unsubscribe_request JSON body (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['confirmUnsubscribe'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function confirmUnsubscribeAsyncWithHttpInfo($token = null, $request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
+    public function confirmUnsubscribeAsyncWithHttpInfo($token = null, $confirm_unsubscribe_confirm_unsubscribe_request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
     {
         $returnType = '\Lalternative\Spore\Model\ConfirmUnsubscribeResponse';
-        $request = $this->confirmUnsubscribeRequest($token, $request, $contentType);
+        $request = $this->confirmUnsubscribeRequest($token, $confirm_unsubscribe_confirm_unsubscribe_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -328,13 +328,13 @@ class UnsubscribeApi
      * Create request for operation 'confirmUnsubscribe'
      *
      * @param  string|null $token Token (when posted via query string) (optional)
-     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $request JSON body (optional)
+     * @param  \Lalternative\Spore\Model\ConfirmUnsubscribeConfirmUnsubscribeRequest|null $confirm_unsubscribe_confirm_unsubscribe_request JSON body (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['confirmUnsubscribe'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function confirmUnsubscribeRequest($token = null, $request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
+    public function confirmUnsubscribeRequest($token = null, $confirm_unsubscribe_confirm_unsubscribe_request = null, string $contentType = self::contentTypes['confirmUnsubscribe'][0])
     {
 
 
@@ -352,8 +352,8 @@ class UnsubscribeApi
             $token,
             'token', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 
@@ -367,12 +367,12 @@ class UnsubscribeApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($confirm_unsubscribe_confirm_unsubscribe_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($confirm_unsubscribe_confirm_unsubscribe_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $confirm_unsubscribe_confirm_unsubscribe_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -656,8 +656,8 @@ class UnsubscribeApi
             $token,
             'token', // param base name
             'string', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             true // required
         ) ?? []);
 

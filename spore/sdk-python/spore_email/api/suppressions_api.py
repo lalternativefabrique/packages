@@ -44,7 +44,7 @@ class SuppressionsApi:
     @validate_call
     def add_suppression(
         self,
-        request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
+        add_suppression_add_suppression_request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -61,8 +61,8 @@ class SuppressionsApi:
         """Add an email to the suppression list
 
 
-        :param request: Suppression to add (required)
-        :type request: AddSuppressionAddSuppressionRequest
+        :param add_suppression_add_suppression_request: Suppression to add (required)
+        :type add_suppression_add_suppression_request: AddSuppressionAddSuppressionRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -86,7 +86,7 @@ class SuppressionsApi:
         """ # noqa: E501
 
         _param = self._add_suppression_serialize(
-            request=request,
+            add_suppression_add_suppression_request=add_suppression_add_suppression_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -112,7 +112,7 @@ class SuppressionsApi:
     @validate_call
     def add_suppression_with_http_info(
         self,
-        request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
+        add_suppression_add_suppression_request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -129,8 +129,8 @@ class SuppressionsApi:
         """Add an email to the suppression list
 
 
-        :param request: Suppression to add (required)
-        :type request: AddSuppressionAddSuppressionRequest
+        :param add_suppression_add_suppression_request: Suppression to add (required)
+        :type add_suppression_add_suppression_request: AddSuppressionAddSuppressionRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -154,7 +154,7 @@ class SuppressionsApi:
         """ # noqa: E501
 
         _param = self._add_suppression_serialize(
-            request=request,
+            add_suppression_add_suppression_request=add_suppression_add_suppression_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -180,7 +180,7 @@ class SuppressionsApi:
     @validate_call
     def add_suppression_without_preload_content(
         self,
-        request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
+        add_suppression_add_suppression_request: Annotated[AddSuppressionAddSuppressionRequest, Field(description="Suppression to add")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -197,8 +197,8 @@ class SuppressionsApi:
         """Add an email to the suppression list
 
 
-        :param request: Suppression to add (required)
-        :type request: AddSuppressionAddSuppressionRequest
+        :param add_suppression_add_suppression_request: Suppression to add (required)
+        :type add_suppression_add_suppression_request: AddSuppressionAddSuppressionRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -222,7 +222,7 @@ class SuppressionsApi:
         """ # noqa: E501
 
         _param = self._add_suppression_serialize(
-            request=request,
+            add_suppression_add_suppression_request=add_suppression_add_suppression_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -243,7 +243,7 @@ class SuppressionsApi:
 
     def _add_suppression_serialize(
         self,
-        request,
+        add_suppression_add_suppression_request,
         _request_auth,
         _content_type,
         _headers,
@@ -269,8 +269,8 @@ class SuppressionsApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if add_suppression_add_suppression_request is not None:
+            _body_params = add_suppression_add_suppression_request
 
 
         # set the HTTP header `Accept`

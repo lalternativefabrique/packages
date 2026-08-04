@@ -20,7 +20,7 @@ pub struct ConfirmUnsubscribeParams {
     /// Token (when posted via query string)
     pub token: Option<String>,
     /// JSON body
-    pub request: Option<models::ConfirmUnsubscribeConfirmUnsubscribeRequest>
+    pub confirm_unsubscribe_confirm_unsubscribe_request: Option<models::ConfirmUnsubscribeConfirmUnsubscribeRequest>
 }
 
 /// struct for passing parameters to the method [`view_unsubscribe`]
@@ -61,7 +61,7 @@ pub async fn confirm_unsubscribe(configuration: &configuration::Configuration, p
     if let Some(ref user_agent) = configuration.user_agent {
         req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
     }
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.confirm_unsubscribe_confirm_unsubscribe_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

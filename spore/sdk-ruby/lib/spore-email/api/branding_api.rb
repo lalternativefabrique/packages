@@ -21,20 +21,20 @@ module SporeEmail
     end
     # Extract a branding suggestion from a URL or HTML
     # @param id [String] Identity ID
-    # @param request [ExtractBrandExtractBrandRequest] Source URL or raw HTML
+    # @param extract_brand_extract_brand_request [ExtractBrandExtractBrandRequest] Source URL or raw HTML
     # @param [Hash] opts the optional parameters
     # @return [ExtractBrandResponse]
-    def extract_brand(id, request, opts = {})
-      data, _status_code, _headers = extract_brand_with_http_info(id, request, opts)
+    def extract_brand(id, extract_brand_extract_brand_request, opts = {})
+      data, _status_code, _headers = extract_brand_with_http_info(id, extract_brand_extract_brand_request, opts)
       data
     end
 
     # Extract a branding suggestion from a URL or HTML
     # @param id [String] Identity ID
-    # @param request [ExtractBrandExtractBrandRequest] Source URL or raw HTML
+    # @param extract_brand_extract_brand_request [ExtractBrandExtractBrandRequest] Source URL or raw HTML
     # @param [Hash] opts the optional parameters
     # @return [Array<(ExtractBrandResponse, Integer, Hash)>] ExtractBrandResponse data, response status code and response headers
-    def extract_brand_with_http_info(id, request, opts = {})
+    def extract_brand_with_http_info(id, extract_brand_extract_brand_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BrandingApi.extract_brand ...'
       end
@@ -42,9 +42,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && id.nil?
         fail ArgumentError, "Missing the required parameter 'id' when calling BrandingApi.extract_brand"
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BrandingApi.extract_brand"
+      # verify the required parameter 'extract_brand_extract_brand_request' is set
+      if @api_client.config.client_side_validation && extract_brand_extract_brand_request.nil?
+        fail ArgumentError, "Missing the required parameter 'extract_brand_extract_brand_request' when calling BrandingApi.extract_brand"
       end
       # resource path
       local_var_path = '/identities/{id}/brand/extract'.sub('{id}', CGI.escape(id.to_s))
@@ -66,7 +66,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(extract_brand_extract_brand_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'ExtractBrandResponse'
@@ -154,20 +154,20 @@ module SporeEmail
 
     # Set the branding for a sending identity
     # @param id [String] Identity ID
-    # @param request [SetBrandSetBrandRequest] Branding fields
+    # @param set_brand_set_brand_request [SetBrandSetBrandRequest] Branding fields
     # @param [Hash] opts the optional parameters
     # @return [SetBrandResponse]
-    def set_brand(id, request, opts = {})
-      data, _status_code, _headers = set_brand_with_http_info(id, request, opts)
+    def set_brand(id, set_brand_set_brand_request, opts = {})
+      data, _status_code, _headers = set_brand_with_http_info(id, set_brand_set_brand_request, opts)
       data
     end
 
     # Set the branding for a sending identity
     # @param id [String] Identity ID
-    # @param request [SetBrandSetBrandRequest] Branding fields
+    # @param set_brand_set_brand_request [SetBrandSetBrandRequest] Branding fields
     # @param [Hash] opts the optional parameters
     # @return [Array<(SetBrandResponse, Integer, Hash)>] SetBrandResponse data, response status code and response headers
-    def set_brand_with_http_info(id, request, opts = {})
+    def set_brand_with_http_info(id, set_brand_set_brand_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BrandingApi.set_brand ...'
       end
@@ -175,9 +175,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && id.nil?
         fail ArgumentError, "Missing the required parameter 'id' when calling BrandingApi.set_brand"
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BrandingApi.set_brand"
+      # verify the required parameter 'set_brand_set_brand_request' is set
+      if @api_client.config.client_side_validation && set_brand_set_brand_request.nil?
+        fail ArgumentError, "Missing the required parameter 'set_brand_set_brand_request' when calling BrandingApi.set_brand"
       end
       # resource path
       local_var_path = '/identities/{id}/brand'.sub('{id}', CGI.escape(id.to_s))
@@ -199,7 +199,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(set_brand_set_brand_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'SetBrandResponse'

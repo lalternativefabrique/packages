@@ -20,7 +20,7 @@ pub struct PreviewTemplateParams {
     /// Template ID
     pub id: String,
     /// Locale and variables
-    pub request: models::PreviewTemplatePreviewTemplateRequest
+    pub preview_template_preview_template_request: models::PreviewTemplatePreviewTemplateRequest
 }
 
 
@@ -100,7 +100,7 @@ pub async fn preview_template(configuration: &configuration::Configuration, para
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.preview_template_preview_template_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

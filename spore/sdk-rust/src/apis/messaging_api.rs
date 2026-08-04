@@ -44,7 +44,7 @@ pub struct ListEmailsParams {
 #[derive(Clone, Debug)]
 pub struct SendEmailParams {
     /// Email to send
-    pub request: models::SendEmailSendEmailRequest,
+    pub send_email_send_email_request: models::SendEmailSendEmailRequest,
     /// Unique retry key kept for 24 hours
     pub idempotency_key: Option<String>
 }
@@ -53,7 +53,7 @@ pub struct SendEmailParams {
 #[derive(Clone, Debug)]
 pub struct SendTestEmailParams {
     /// Test parameters
-    pub request: models::SendTestEmailSendTestEmailRequest
+    pub send_test_email_send_test_email_request: models::SendTestEmailSendTestEmailRequest
 }
 
 
@@ -221,7 +221,7 @@ pub async fn send_email(configuration: &configuration::Configuration, params: Se
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.send_email_send_email_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -265,7 +265,7 @@ pub async fn send_test_email(configuration: &configuration::Configuration, param
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.send_test_email_send_test_email_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

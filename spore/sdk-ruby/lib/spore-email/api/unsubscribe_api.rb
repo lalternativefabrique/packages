@@ -23,7 +23,7 @@ module SporeEmail
     # Public endpoint hit by mail-client user-agents. Accepts either `application/x-www-form-urlencoded` with `List-Unsubscribe=One-Click&token=...` or `application/json` with `{\"token\": \"...\"}`. Always returns 200 on a valid token, even when the recipient is already suppressed (idempotent).
     # @param [Hash] opts the optional parameters
     # @option opts [String] :token Token (when posted via query string)
-    # @option opts [ConfirmUnsubscribeConfirmUnsubscribeRequest] :request JSON body
+    # @option opts [ConfirmUnsubscribeConfirmUnsubscribeRequest] :confirm_unsubscribe_confirm_unsubscribe_request JSON body
     # @return [ConfirmUnsubscribeResponse]
     def confirm_unsubscribe(opts = {})
       data, _status_code, _headers = confirm_unsubscribe_with_http_info(opts)
@@ -34,7 +34,7 @@ module SporeEmail
     # Public endpoint hit by mail-client user-agents. Accepts either &#x60;application/x-www-form-urlencoded&#x60; with &#x60;List-Unsubscribe&#x3D;One-Click&amp;token&#x3D;...&#x60; or &#x60;application/json&#x60; with &#x60;{\&quot;token\&quot;: \&quot;...\&quot;}&#x60;. Always returns 200 on a valid token, even when the recipient is already suppressed (idempotent).
     # @param [Hash] opts the optional parameters
     # @option opts [String] :token Token (when posted via query string)
-    # @option opts [ConfirmUnsubscribeConfirmUnsubscribeRequest] :request JSON body
+    # @option opts [ConfirmUnsubscribeConfirmUnsubscribeRequest] :confirm_unsubscribe_confirm_unsubscribe_request JSON body
     # @return [Array<(ConfirmUnsubscribeResponse, Integer, Hash)>] ConfirmUnsubscribeResponse data, response status code and response headers
     def confirm_unsubscribe_with_http_info(opts = {})
       if @api_client.config.debugging
@@ -61,7 +61,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(opts[:'request'])
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(opts[:'confirm_unsubscribe_confirm_unsubscribe_request'])
 
       # return_type
       return_type = opts[:debug_return_type] || 'ConfirmUnsubscribeResponse'

@@ -138,16 +138,16 @@ class BrandingApi
      * Extract a branding suggestion from a URL or HTML
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $request Source URL or raw HTML (required)
+     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $extract_brand_extract_brand_request Source URL or raw HTML (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['extractBrand'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\ExtractBrandResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function extractBrand($id, $request, string $contentType = self::contentTypes['extractBrand'][0])
+    public function extractBrand($id, $extract_brand_extract_brand_request, string $contentType = self::contentTypes['extractBrand'][0])
     {
-        list($response) = $this->extractBrandWithHttpInfo($id, $request, $contentType);
+        list($response) = $this->extractBrandWithHttpInfo($id, $extract_brand_extract_brand_request, $contentType);
         return $response;
     }
 
@@ -157,16 +157,16 @@ class BrandingApi
      * Extract a branding suggestion from a URL or HTML
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $request Source URL or raw HTML (required)
+     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $extract_brand_extract_brand_request Source URL or raw HTML (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['extractBrand'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\ExtractBrandResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function extractBrandWithHttpInfo($id, $request, string $contentType = self::contentTypes['extractBrand'][0])
+    public function extractBrandWithHttpInfo($id, $extract_brand_extract_brand_request, string $contentType = self::contentTypes['extractBrand'][0])
     {
-        $request = $this->extractBrandRequest($id, $request, $contentType);
+        $request = $this->extractBrandRequest($id, $extract_brand_extract_brand_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -271,15 +271,15 @@ class BrandingApi
      * Extract a branding suggestion from a URL or HTML
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $request Source URL or raw HTML (required)
+     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $extract_brand_extract_brand_request Source URL or raw HTML (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['extractBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function extractBrandAsync($id, $request, string $contentType = self::contentTypes['extractBrand'][0])
+    public function extractBrandAsync($id, $extract_brand_extract_brand_request, string $contentType = self::contentTypes['extractBrand'][0])
     {
-        return $this->extractBrandAsyncWithHttpInfo($id, $request, $contentType)
+        return $this->extractBrandAsyncWithHttpInfo($id, $extract_brand_extract_brand_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -293,16 +293,16 @@ class BrandingApi
      * Extract a branding suggestion from a URL or HTML
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $request Source URL or raw HTML (required)
+     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $extract_brand_extract_brand_request Source URL or raw HTML (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['extractBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function extractBrandAsyncWithHttpInfo($id, $request, string $contentType = self::contentTypes['extractBrand'][0])
+    public function extractBrandAsyncWithHttpInfo($id, $extract_brand_extract_brand_request, string $contentType = self::contentTypes['extractBrand'][0])
     {
         $returnType = '\Lalternative\Spore\Model\ExtractBrandResponse';
-        $request = $this->extractBrandRequest($id, $request, $contentType);
+        $request = $this->extractBrandRequest($id, $extract_brand_extract_brand_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -344,13 +344,13 @@ class BrandingApi
      * Create request for operation 'extractBrand'
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $request Source URL or raw HTML (required)
+     * @param  \Lalternative\Spore\Model\ExtractBrandExtractBrandRequest $extract_brand_extract_brand_request Source URL or raw HTML (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['extractBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function extractBrandRequest($id, $request, string $contentType = self::contentTypes['extractBrand'][0])
+    public function extractBrandRequest($id, $extract_brand_extract_brand_request, string $contentType = self::contentTypes['extractBrand'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -360,10 +360,10 @@ class BrandingApi
             );
         }
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'extract_brand_extract_brand_request' is set
+        if ($extract_brand_extract_brand_request === null || (is_array($extract_brand_extract_brand_request) && count($extract_brand_extract_brand_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling extractBrand'
+                'Missing the required parameter $extract_brand_extract_brand_request when calling extractBrand'
             );
         }
 
@@ -394,12 +394,12 @@ class BrandingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($extract_brand_extract_brand_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($extract_brand_extract_brand_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $extract_brand_extract_brand_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -773,16 +773,16 @@ class BrandingApi
      * Set the branding for a sending identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $request Branding fields (required)
+     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $set_brand_set_brand_request Branding fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setBrand'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\SetBrandResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function setBrand($id, $request, string $contentType = self::contentTypes['setBrand'][0])
+    public function setBrand($id, $set_brand_set_brand_request, string $contentType = self::contentTypes['setBrand'][0])
     {
-        list($response) = $this->setBrandWithHttpInfo($id, $request, $contentType);
+        list($response) = $this->setBrandWithHttpInfo($id, $set_brand_set_brand_request, $contentType);
         return $response;
     }
 
@@ -792,16 +792,16 @@ class BrandingApi
      * Set the branding for a sending identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $request Branding fields (required)
+     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $set_brand_set_brand_request Branding fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setBrand'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\SetBrandResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function setBrandWithHttpInfo($id, $request, string $contentType = self::contentTypes['setBrand'][0])
+    public function setBrandWithHttpInfo($id, $set_brand_set_brand_request, string $contentType = self::contentTypes['setBrand'][0])
     {
-        $request = $this->setBrandRequest($id, $request, $contentType);
+        $request = $this->setBrandRequest($id, $set_brand_set_brand_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -906,15 +906,15 @@ class BrandingApi
      * Set the branding for a sending identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $request Branding fields (required)
+     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $set_brand_set_brand_request Branding fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function setBrandAsync($id, $request, string $contentType = self::contentTypes['setBrand'][0])
+    public function setBrandAsync($id, $set_brand_set_brand_request, string $contentType = self::contentTypes['setBrand'][0])
     {
-        return $this->setBrandAsyncWithHttpInfo($id, $request, $contentType)
+        return $this->setBrandAsyncWithHttpInfo($id, $set_brand_set_brand_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -928,16 +928,16 @@ class BrandingApi
      * Set the branding for a sending identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $request Branding fields (required)
+     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $set_brand_set_brand_request Branding fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function setBrandAsyncWithHttpInfo($id, $request, string $contentType = self::contentTypes['setBrand'][0])
+    public function setBrandAsyncWithHttpInfo($id, $set_brand_set_brand_request, string $contentType = self::contentTypes['setBrand'][0])
     {
         $returnType = '\Lalternative\Spore\Model\SetBrandResponse';
-        $request = $this->setBrandRequest($id, $request, $contentType);
+        $request = $this->setBrandRequest($id, $set_brand_set_brand_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -979,13 +979,13 @@ class BrandingApi
      * Create request for operation 'setBrand'
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $request Branding fields (required)
+     * @param  \Lalternative\Spore\Model\SetBrandSetBrandRequest $set_brand_set_brand_request Branding fields (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setBrand'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function setBrandRequest($id, $request, string $contentType = self::contentTypes['setBrand'][0])
+    public function setBrandRequest($id, $set_brand_set_brand_request, string $contentType = self::contentTypes['setBrand'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -995,10 +995,10 @@ class BrandingApi
             );
         }
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'set_brand_set_brand_request' is set
+        if ($set_brand_set_brand_request === null || (is_array($set_brand_set_brand_request) && count($set_brand_set_brand_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling setBrand'
+                'Missing the required parameter $set_brand_set_brand_request when calling setBrand'
             );
         }
 
@@ -1029,12 +1029,12 @@ class BrandingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($set_brand_set_brand_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($set_brand_set_brand_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $set_brand_set_brand_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

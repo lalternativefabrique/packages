@@ -18,7 +18,7 @@ use super::{Error, configuration, ContentType};
 #[derive(Clone, Debug)]
 pub struct CreateWebhookEndpointParams {
     /// Endpoint to create
-    pub request: models::CreateEndpointCreateEndpointRequest
+    pub create_endpoint_create_endpoint_request: models::CreateEndpointCreateEndpointRequest
 }
 
 /// struct for passing parameters to the method [`delete_webhook_endpoint`]
@@ -57,7 +57,7 @@ pub struct UpdateWebhookEndpointParams {
     /// Endpoint ID
     pub id: String,
     /// Updated fields
-    pub request: models::UpdateEndpointUpdateEndpointRequest
+    pub update_endpoint_update_endpoint_request: models::UpdateEndpointUpdateEndpointRequest
 }
 
 
@@ -136,7 +136,7 @@ pub async fn create_webhook_endpoint(configuration: &configuration::Configuratio
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.create_endpoint_create_endpoint_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -342,7 +342,7 @@ pub async fn update_webhook_endpoint(configuration: &configuration::Configuratio
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.update_endpoint_update_endpoint_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

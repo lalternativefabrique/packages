@@ -20,7 +20,7 @@ pub struct UnfreezeTenantReputationParams {
     /// Tenant id
     pub tenant_id: String,
     /// Reason for lifting the freeze
-    pub request: models::UnfreezeUnfreezeRequest
+    pub unfreeze_unfreeze_request: models::UnfreezeUnfreezeRequest
 }
 
 
@@ -103,7 +103,7 @@ pub async fn unfreeze_tenant_reputation(configuration: &configuration::Configura
         };
         req_builder = req_builder.header("X-Internal-Token", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.unfreeze_unfreeze_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

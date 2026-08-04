@@ -18,7 +18,7 @@ use super::{Error, configuration, ContentType};
 #[derive(Clone, Debug)]
 pub struct CreateApiKeyParams {
     /// API key to create
-    pub request: models::ApikeysCreateApiKeyRequest
+    pub apikeys_create_api_key_request: models::ApikeysCreateApiKeyRequest
 }
 
 /// struct for passing parameters to the method [`revoke_api_key`]
@@ -74,7 +74,7 @@ pub async fn create_api_key(configuration: &configuration::Configuration, params
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.apikeys_create_api_key_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

@@ -137,16 +137,16 @@ class SuppressionsApi
      *
      * Add an email to the suppression list
      *
-     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $request Suppression to add (required)
+     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $add_suppression_add_suppression_request Suppression to add (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addSuppression'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\AddSuppressionResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function addSuppression($request, string $contentType = self::contentTypes['addSuppression'][0])
+    public function addSuppression($add_suppression_add_suppression_request, string $contentType = self::contentTypes['addSuppression'][0])
     {
-        list($response) = $this->addSuppressionWithHttpInfo($request, $contentType);
+        list($response) = $this->addSuppressionWithHttpInfo($add_suppression_add_suppression_request, $contentType);
         return $response;
     }
 
@@ -155,16 +155,16 @@ class SuppressionsApi
      *
      * Add an email to the suppression list
      *
-     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $request Suppression to add (required)
+     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $add_suppression_add_suppression_request Suppression to add (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addSuppression'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\AddSuppressionResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function addSuppressionWithHttpInfo($request, string $contentType = self::contentTypes['addSuppression'][0])
+    public function addSuppressionWithHttpInfo($add_suppression_add_suppression_request, string $contentType = self::contentTypes['addSuppression'][0])
     {
-        $request = $this->addSuppressionRequest($request, $contentType);
+        $request = $this->addSuppressionRequest($add_suppression_add_suppression_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -268,15 +268,15 @@ class SuppressionsApi
      *
      * Add an email to the suppression list
      *
-     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $request Suppression to add (required)
+     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $add_suppression_add_suppression_request Suppression to add (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addSuppression'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function addSuppressionAsync($request, string $contentType = self::contentTypes['addSuppression'][0])
+    public function addSuppressionAsync($add_suppression_add_suppression_request, string $contentType = self::contentTypes['addSuppression'][0])
     {
-        return $this->addSuppressionAsyncWithHttpInfo($request, $contentType)
+        return $this->addSuppressionAsyncWithHttpInfo($add_suppression_add_suppression_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -289,16 +289,16 @@ class SuppressionsApi
      *
      * Add an email to the suppression list
      *
-     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $request Suppression to add (required)
+     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $add_suppression_add_suppression_request Suppression to add (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addSuppression'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function addSuppressionAsyncWithHttpInfo($request, string $contentType = self::contentTypes['addSuppression'][0])
+    public function addSuppressionAsyncWithHttpInfo($add_suppression_add_suppression_request, string $contentType = self::contentTypes['addSuppression'][0])
     {
         $returnType = '\Lalternative\Spore\Model\AddSuppressionResponse';
-        $request = $this->addSuppressionRequest($request, $contentType);
+        $request = $this->addSuppressionRequest($add_suppression_add_suppression_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -339,19 +339,19 @@ class SuppressionsApi
     /**
      * Create request for operation 'addSuppression'
      *
-     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $request Suppression to add (required)
+     * @param  \Lalternative\Spore\Model\AddSuppressionAddSuppressionRequest $add_suppression_add_suppression_request Suppression to add (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addSuppression'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function addSuppressionRequest($request, string $contentType = self::contentTypes['addSuppression'][0])
+    public function addSuppressionRequest($add_suppression_add_suppression_request, string $contentType = self::contentTypes['addSuppression'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'add_suppression_add_suppression_request' is set
+        if ($add_suppression_add_suppression_request === null || (is_array($add_suppression_add_suppression_request) && count($add_suppression_add_suppression_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling addSuppression'
+                'Missing the required parameter $add_suppression_add_suppression_request when calling addSuppression'
             );
         }
 
@@ -374,12 +374,12 @@ class SuppressionsApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($add_suppression_add_suppression_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($add_suppression_add_suppression_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $add_suppression_add_suppression_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -668,8 +668,8 @@ class SuppressionsApi
             $limit,
             'limit', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -677,8 +677,8 @@ class SuppressionsApi
             $offset,
             'offset', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 

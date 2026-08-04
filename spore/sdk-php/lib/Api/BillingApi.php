@@ -674,16 +674,16 @@ class BillingApi
      *
      * Schedule a downgrade to a smaller plan
      *
-     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $downgrade_subscription_downgrade_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\DowngradeSubscriptionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function downgradeBillingSubscription($request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
+    public function downgradeBillingSubscription($downgrade_subscription_downgrade_request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
     {
-        list($response) = $this->downgradeBillingSubscriptionWithHttpInfo($request, $contentType);
+        list($response) = $this->downgradeBillingSubscriptionWithHttpInfo($downgrade_subscription_downgrade_request, $contentType);
         return $response;
     }
 
@@ -692,16 +692,16 @@ class BillingApi
      *
      * Schedule a downgrade to a smaller plan
      *
-     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $downgrade_subscription_downgrade_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\DowngradeSubscriptionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function downgradeBillingSubscriptionWithHttpInfo($request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
+    public function downgradeBillingSubscriptionWithHttpInfo($downgrade_subscription_downgrade_request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
     {
-        $request = $this->downgradeBillingSubscriptionRequest($request, $contentType);
+        $request = $this->downgradeBillingSubscriptionRequest($downgrade_subscription_downgrade_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -847,15 +847,15 @@ class BillingApi
      *
      * Schedule a downgrade to a smaller plan
      *
-     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $downgrade_subscription_downgrade_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function downgradeBillingSubscriptionAsync($request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
+    public function downgradeBillingSubscriptionAsync($downgrade_subscription_downgrade_request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
     {
-        return $this->downgradeBillingSubscriptionAsyncWithHttpInfo($request, $contentType)
+        return $this->downgradeBillingSubscriptionAsyncWithHttpInfo($downgrade_subscription_downgrade_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -868,16 +868,16 @@ class BillingApi
      *
      * Schedule a downgrade to a smaller plan
      *
-     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $downgrade_subscription_downgrade_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function downgradeBillingSubscriptionAsyncWithHttpInfo($request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
+    public function downgradeBillingSubscriptionAsyncWithHttpInfo($downgrade_subscription_downgrade_request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
     {
         $returnType = '\Lalternative\Spore\Model\DowngradeSubscriptionResult';
-        $request = $this->downgradeBillingSubscriptionRequest($request, $contentType);
+        $request = $this->downgradeBillingSubscriptionRequest($downgrade_subscription_downgrade_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -918,19 +918,19 @@ class BillingApi
     /**
      * Create request for operation 'downgradeBillingSubscription'
      *
-     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\DowngradeSubscriptionDowngradeRequest $downgrade_subscription_downgrade_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['downgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function downgradeBillingSubscriptionRequest($request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
+    public function downgradeBillingSubscriptionRequest($downgrade_subscription_downgrade_request, string $contentType = self::contentTypes['downgradeBillingSubscription'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'downgrade_subscription_downgrade_request' is set
+        if ($downgrade_subscription_downgrade_request === null || (is_array($downgrade_subscription_downgrade_request) && count($downgrade_subscription_downgrade_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling downgradeBillingSubscription'
+                'Missing the required parameter $downgrade_subscription_downgrade_request when calling downgradeBillingSubscription'
             );
         }
 
@@ -953,12 +953,12 @@ class BillingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($downgrade_subscription_downgrade_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($downgrade_subscription_downgrade_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $downgrade_subscription_downgrade_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1559,16 +1559,16 @@ class BillingApi
      *
      * Quote what an upgrade would cost
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $upgrade_subscription_quote_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['quoteBillingUpgrade'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\UpgradeSubscriptionQuote|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function quoteBillingUpgrade($request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
+    public function quoteBillingUpgrade($upgrade_subscription_quote_request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
     {
-        list($response) = $this->quoteBillingUpgradeWithHttpInfo($request, $contentType);
+        list($response) = $this->quoteBillingUpgradeWithHttpInfo($upgrade_subscription_quote_request, $contentType);
         return $response;
     }
 
@@ -1577,16 +1577,16 @@ class BillingApi
      *
      * Quote what an upgrade would cost
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $upgrade_subscription_quote_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['quoteBillingUpgrade'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\UpgradeSubscriptionQuote|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function quoteBillingUpgradeWithHttpInfo($request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
+    public function quoteBillingUpgradeWithHttpInfo($upgrade_subscription_quote_request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
     {
-        $request = $this->quoteBillingUpgradeRequest($request, $contentType);
+        $request = $this->quoteBillingUpgradeRequest($upgrade_subscription_quote_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1732,15 +1732,15 @@ class BillingApi
      *
      * Quote what an upgrade would cost
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $upgrade_subscription_quote_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['quoteBillingUpgrade'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function quoteBillingUpgradeAsync($request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
+    public function quoteBillingUpgradeAsync($upgrade_subscription_quote_request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
     {
-        return $this->quoteBillingUpgradeAsyncWithHttpInfo($request, $contentType)
+        return $this->quoteBillingUpgradeAsyncWithHttpInfo($upgrade_subscription_quote_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1753,16 +1753,16 @@ class BillingApi
      *
      * Quote what an upgrade would cost
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $upgrade_subscription_quote_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['quoteBillingUpgrade'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function quoteBillingUpgradeAsyncWithHttpInfo($request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
+    public function quoteBillingUpgradeAsyncWithHttpInfo($upgrade_subscription_quote_request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
     {
         $returnType = '\Lalternative\Spore\Model\UpgradeSubscriptionQuote';
-        $request = $this->quoteBillingUpgradeRequest($request, $contentType);
+        $request = $this->quoteBillingUpgradeRequest($upgrade_subscription_quote_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -1803,19 +1803,19 @@ class BillingApi
     /**
      * Create request for operation 'quoteBillingUpgrade'
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $request Target plan (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionQuoteRequest $upgrade_subscription_quote_request Target plan (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['quoteBillingUpgrade'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function quoteBillingUpgradeRequest($request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
+    public function quoteBillingUpgradeRequest($upgrade_subscription_quote_request, string $contentType = self::contentTypes['quoteBillingUpgrade'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'upgrade_subscription_quote_request' is set
+        if ($upgrade_subscription_quote_request === null || (is_array($upgrade_subscription_quote_request) && count($upgrade_subscription_quote_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling quoteBillingUpgrade'
+                'Missing the required parameter $upgrade_subscription_quote_request when calling quoteBillingUpgrade'
             );
         }
 
@@ -1838,12 +1838,12 @@ class BillingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($upgrade_subscription_quote_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_quote_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $upgrade_subscription_quote_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1901,16 +1901,16 @@ class BillingApi
      *
      * Open a checkout for a paid plan
      *
-     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $request Plan to subscribe to (required)
+     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $start_checkout_start_checkout_request Plan to subscribe to (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['startBillingCheckout'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\StartCheckoutResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function startBillingCheckout($request, string $contentType = self::contentTypes['startBillingCheckout'][0])
+    public function startBillingCheckout($start_checkout_start_checkout_request, string $contentType = self::contentTypes['startBillingCheckout'][0])
     {
-        list($response) = $this->startBillingCheckoutWithHttpInfo($request, $contentType);
+        list($response) = $this->startBillingCheckoutWithHttpInfo($start_checkout_start_checkout_request, $contentType);
         return $response;
     }
 
@@ -1919,16 +1919,16 @@ class BillingApi
      *
      * Open a checkout for a paid plan
      *
-     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $request Plan to subscribe to (required)
+     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $start_checkout_start_checkout_request Plan to subscribe to (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['startBillingCheckout'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\StartCheckoutResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function startBillingCheckoutWithHttpInfo($request, string $contentType = self::contentTypes['startBillingCheckout'][0])
+    public function startBillingCheckoutWithHttpInfo($start_checkout_start_checkout_request, string $contentType = self::contentTypes['startBillingCheckout'][0])
     {
-        $request = $this->startBillingCheckoutRequest($request, $contentType);
+        $request = $this->startBillingCheckoutRequest($start_checkout_start_checkout_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -2074,15 +2074,15 @@ class BillingApi
      *
      * Open a checkout for a paid plan
      *
-     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $request Plan to subscribe to (required)
+     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $start_checkout_start_checkout_request Plan to subscribe to (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['startBillingCheckout'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function startBillingCheckoutAsync($request, string $contentType = self::contentTypes['startBillingCheckout'][0])
+    public function startBillingCheckoutAsync($start_checkout_start_checkout_request, string $contentType = self::contentTypes['startBillingCheckout'][0])
     {
-        return $this->startBillingCheckoutAsyncWithHttpInfo($request, $contentType)
+        return $this->startBillingCheckoutAsyncWithHttpInfo($start_checkout_start_checkout_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -2095,16 +2095,16 @@ class BillingApi
      *
      * Open a checkout for a paid plan
      *
-     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $request Plan to subscribe to (required)
+     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $start_checkout_start_checkout_request Plan to subscribe to (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['startBillingCheckout'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function startBillingCheckoutAsyncWithHttpInfo($request, string $contentType = self::contentTypes['startBillingCheckout'][0])
+    public function startBillingCheckoutAsyncWithHttpInfo($start_checkout_start_checkout_request, string $contentType = self::contentTypes['startBillingCheckout'][0])
     {
         $returnType = '\Lalternative\Spore\Model\StartCheckoutResult';
-        $request = $this->startBillingCheckoutRequest($request, $contentType);
+        $request = $this->startBillingCheckoutRequest($start_checkout_start_checkout_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -2145,19 +2145,19 @@ class BillingApi
     /**
      * Create request for operation 'startBillingCheckout'
      *
-     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $request Plan to subscribe to (required)
+     * @param  \Lalternative\Spore\Model\StartCheckoutStartCheckoutRequest $start_checkout_start_checkout_request Plan to subscribe to (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['startBillingCheckout'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function startBillingCheckoutRequest($request, string $contentType = self::contentTypes['startBillingCheckout'][0])
+    public function startBillingCheckoutRequest($start_checkout_start_checkout_request, string $contentType = self::contentTypes['startBillingCheckout'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'start_checkout_start_checkout_request' is set
+        if ($start_checkout_start_checkout_request === null || (is_array($start_checkout_start_checkout_request) && count($start_checkout_start_checkout_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling startBillingCheckout'
+                'Missing the required parameter $start_checkout_start_checkout_request when calling startBillingCheckout'
             );
         }
 
@@ -2180,12 +2180,12 @@ class BillingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($start_checkout_start_checkout_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($start_checkout_start_checkout_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $start_checkout_start_checkout_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -2243,16 +2243,16 @@ class BillingApi
      *
      * Upgrade to a larger plan
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $request Target plan and accepted amount (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $upgrade_subscription_upgrade_request Target plan and accepted amount (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['upgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\UpgradeSubscriptionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function upgradeBillingSubscription($request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
+    public function upgradeBillingSubscription($upgrade_subscription_upgrade_request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
     {
-        list($response) = $this->upgradeBillingSubscriptionWithHttpInfo($request, $contentType);
+        list($response) = $this->upgradeBillingSubscriptionWithHttpInfo($upgrade_subscription_upgrade_request, $contentType);
         return $response;
     }
 
@@ -2261,16 +2261,16 @@ class BillingApi
      *
      * Upgrade to a larger plan
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $request Target plan and accepted amount (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $upgrade_subscription_upgrade_request Target plan and accepted amount (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['upgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\UpgradeSubscriptionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function upgradeBillingSubscriptionWithHttpInfo($request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
+    public function upgradeBillingSubscriptionWithHttpInfo($upgrade_subscription_upgrade_request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
     {
-        $request = $this->upgradeBillingSubscriptionRequest($request, $contentType);
+        $request = $this->upgradeBillingSubscriptionRequest($upgrade_subscription_upgrade_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -2444,15 +2444,15 @@ class BillingApi
      *
      * Upgrade to a larger plan
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $request Target plan and accepted amount (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $upgrade_subscription_upgrade_request Target plan and accepted amount (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['upgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function upgradeBillingSubscriptionAsync($request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
+    public function upgradeBillingSubscriptionAsync($upgrade_subscription_upgrade_request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
     {
-        return $this->upgradeBillingSubscriptionAsyncWithHttpInfo($request, $contentType)
+        return $this->upgradeBillingSubscriptionAsyncWithHttpInfo($upgrade_subscription_upgrade_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -2465,16 +2465,16 @@ class BillingApi
      *
      * Upgrade to a larger plan
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $request Target plan and accepted amount (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $upgrade_subscription_upgrade_request Target plan and accepted amount (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['upgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function upgradeBillingSubscriptionAsyncWithHttpInfo($request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
+    public function upgradeBillingSubscriptionAsyncWithHttpInfo($upgrade_subscription_upgrade_request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
     {
         $returnType = '\Lalternative\Spore\Model\UpgradeSubscriptionResult';
-        $request = $this->upgradeBillingSubscriptionRequest($request, $contentType);
+        $request = $this->upgradeBillingSubscriptionRequest($upgrade_subscription_upgrade_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -2515,19 +2515,19 @@ class BillingApi
     /**
      * Create request for operation 'upgradeBillingSubscription'
      *
-     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $request Target plan and accepted amount (required)
+     * @param  \Lalternative\Spore\Model\UpgradeSubscriptionUpgradeRequest $upgrade_subscription_upgrade_request Target plan and accepted amount (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['upgradeBillingSubscription'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function upgradeBillingSubscriptionRequest($request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
+    public function upgradeBillingSubscriptionRequest($upgrade_subscription_upgrade_request, string $contentType = self::contentTypes['upgradeBillingSubscription'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'upgrade_subscription_upgrade_request' is set
+        if ($upgrade_subscription_upgrade_request === null || (is_array($upgrade_subscription_upgrade_request) && count($upgrade_subscription_upgrade_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling upgradeBillingSubscription'
+                'Missing the required parameter $upgrade_subscription_upgrade_request when calling upgradeBillingSubscription'
             );
         }
 
@@ -2550,12 +2550,12 @@ class BillingApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($upgrade_subscription_upgrade_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_upgrade_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $upgrade_subscription_upgrade_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

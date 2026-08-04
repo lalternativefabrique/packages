@@ -61,10 +61,10 @@ $apiInstance = new Lalternative\Spore\Api\ApiKeysApi(
     new GuzzleHttp\Client(),
     $config
 );
-$request = new \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest(); // \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest | API key to create
+$apikeys_create_api_key_request = new \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest(); // \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest | API key to create
 
 try {
-    $result = $apiInstance->createApiKey($request);
+    $result = $apiInstance->createApiKey($apikeys_create_api_key_request);
     print_r($result);
 } catch (Exception $e) {
     echo 'Exception when calling ApiKeysApi->createApiKey: ', $e->getMessage(), PHP_EOL;

@@ -560,7 +560,7 @@ class BillingApi:
     @validate_call
     def downgrade_billing_subscription(
         self,
-        request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
+        downgrade_subscription_downgrade_request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -578,8 +578,8 @@ class BillingApi:
 
         Schedules a move to a smaller tier, effective at the next renewal. Nothing changes today and nothing is refunded: the tenant keeps the tier they paid for until the current period ends. Moving to the free tier is a cancellation, not a downgrade.
 
-        :param request: Target plan (required)
-        :type request: DowngradeSubscriptionDowngradeRequest
+        :param downgrade_subscription_downgrade_request: Target plan (required)
+        :type downgrade_subscription_downgrade_request: DowngradeSubscriptionDowngradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -603,7 +603,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._downgrade_billing_subscription_serialize(
-            request=request,
+            downgrade_subscription_downgrade_request=downgrade_subscription_downgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -632,7 +632,7 @@ class BillingApi:
     @validate_call
     def downgrade_billing_subscription_with_http_info(
         self,
-        request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
+        downgrade_subscription_downgrade_request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -650,8 +650,8 @@ class BillingApi:
 
         Schedules a move to a smaller tier, effective at the next renewal. Nothing changes today and nothing is refunded: the tenant keeps the tier they paid for until the current period ends. Moving to the free tier is a cancellation, not a downgrade.
 
-        :param request: Target plan (required)
-        :type request: DowngradeSubscriptionDowngradeRequest
+        :param downgrade_subscription_downgrade_request: Target plan (required)
+        :type downgrade_subscription_downgrade_request: DowngradeSubscriptionDowngradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -675,7 +675,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._downgrade_billing_subscription_serialize(
-            request=request,
+            downgrade_subscription_downgrade_request=downgrade_subscription_downgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -704,7 +704,7 @@ class BillingApi:
     @validate_call
     def downgrade_billing_subscription_without_preload_content(
         self,
-        request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
+        downgrade_subscription_downgrade_request: Annotated[DowngradeSubscriptionDowngradeRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -722,8 +722,8 @@ class BillingApi:
 
         Schedules a move to a smaller tier, effective at the next renewal. Nothing changes today and nothing is refunded: the tenant keeps the tier they paid for until the current period ends. Moving to the free tier is a cancellation, not a downgrade.
 
-        :param request: Target plan (required)
-        :type request: DowngradeSubscriptionDowngradeRequest
+        :param downgrade_subscription_downgrade_request: Target plan (required)
+        :type downgrade_subscription_downgrade_request: DowngradeSubscriptionDowngradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -747,7 +747,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._downgrade_billing_subscription_serialize(
-            request=request,
+            downgrade_subscription_downgrade_request=downgrade_subscription_downgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -771,7 +771,7 @@ class BillingApi:
 
     def _downgrade_billing_subscription_serialize(
         self,
-        request,
+        downgrade_subscription_downgrade_request,
         _request_auth,
         _content_type,
         _headers,
@@ -797,8 +797,8 @@ class BillingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if downgrade_subscription_downgrade_request is not None:
+            _body_params = downgrade_subscription_downgrade_request
 
 
         # set the HTTP header `Accept`
@@ -1349,7 +1349,7 @@ class BillingApi:
     @validate_call
     def quote_billing_upgrade(
         self,
-        request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
+        upgrade_subscription_quote_request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1367,8 +1367,8 @@ class BillingApi:
 
         Returns the prorated amount owed today for moving to a larger tier — the difference between the tiers for the time remaining in the period already paid, never the catalogue price. Charges nothing. An amount of 0 means the upgrade is granted without a charge.
 
-        :param request: Target plan (required)
-        :type request: UpgradeSubscriptionQuoteRequest
+        :param upgrade_subscription_quote_request: Target plan (required)
+        :type upgrade_subscription_quote_request: UpgradeSubscriptionQuoteRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1392,7 +1392,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._quote_billing_upgrade_serialize(
-            request=request,
+            upgrade_subscription_quote_request=upgrade_subscription_quote_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1421,7 +1421,7 @@ class BillingApi:
     @validate_call
     def quote_billing_upgrade_with_http_info(
         self,
-        request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
+        upgrade_subscription_quote_request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1439,8 +1439,8 @@ class BillingApi:
 
         Returns the prorated amount owed today for moving to a larger tier — the difference between the tiers for the time remaining in the period already paid, never the catalogue price. Charges nothing. An amount of 0 means the upgrade is granted without a charge.
 
-        :param request: Target plan (required)
-        :type request: UpgradeSubscriptionQuoteRequest
+        :param upgrade_subscription_quote_request: Target plan (required)
+        :type upgrade_subscription_quote_request: UpgradeSubscriptionQuoteRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1464,7 +1464,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._quote_billing_upgrade_serialize(
-            request=request,
+            upgrade_subscription_quote_request=upgrade_subscription_quote_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1493,7 +1493,7 @@ class BillingApi:
     @validate_call
     def quote_billing_upgrade_without_preload_content(
         self,
-        request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
+        upgrade_subscription_quote_request: Annotated[UpgradeSubscriptionQuoteRequest, Field(description="Target plan")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1511,8 +1511,8 @@ class BillingApi:
 
         Returns the prorated amount owed today for moving to a larger tier — the difference between the tiers for the time remaining in the period already paid, never the catalogue price. Charges nothing. An amount of 0 means the upgrade is granted without a charge.
 
-        :param request: Target plan (required)
-        :type request: UpgradeSubscriptionQuoteRequest
+        :param upgrade_subscription_quote_request: Target plan (required)
+        :type upgrade_subscription_quote_request: UpgradeSubscriptionQuoteRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1536,7 +1536,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._quote_billing_upgrade_serialize(
-            request=request,
+            upgrade_subscription_quote_request=upgrade_subscription_quote_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1560,7 +1560,7 @@ class BillingApi:
 
     def _quote_billing_upgrade_serialize(
         self,
-        request,
+        upgrade_subscription_quote_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1586,8 +1586,8 @@ class BillingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if upgrade_subscription_quote_request is not None:
+            _body_params = upgrade_subscription_quote_request
 
 
         # set the HTTP header `Accept`
@@ -1638,7 +1638,7 @@ class BillingApi:
     @validate_call
     def start_billing_checkout(
         self,
-        request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
+        start_checkout_start_checkout_request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1656,8 +1656,8 @@ class BillingApi:
 
         Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
 
-        :param request: Plan to subscribe to (required)
-        :type request: StartCheckoutStartCheckoutRequest
+        :param start_checkout_start_checkout_request: Plan to subscribe to (required)
+        :type start_checkout_start_checkout_request: StartCheckoutStartCheckoutRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1681,7 +1681,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._start_billing_checkout_serialize(
-            request=request,
+            start_checkout_start_checkout_request=start_checkout_start_checkout_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1710,7 +1710,7 @@ class BillingApi:
     @validate_call
     def start_billing_checkout_with_http_info(
         self,
-        request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
+        start_checkout_start_checkout_request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1728,8 +1728,8 @@ class BillingApi:
 
         Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
 
-        :param request: Plan to subscribe to (required)
-        :type request: StartCheckoutStartCheckoutRequest
+        :param start_checkout_start_checkout_request: Plan to subscribe to (required)
+        :type start_checkout_start_checkout_request: StartCheckoutStartCheckoutRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1753,7 +1753,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._start_billing_checkout_serialize(
-            request=request,
+            start_checkout_start_checkout_request=start_checkout_start_checkout_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1782,7 +1782,7 @@ class BillingApi:
     @validate_call
     def start_billing_checkout_without_preload_content(
         self,
-        request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
+        start_checkout_start_checkout_request: Annotated[StartCheckoutStartCheckoutRequest, Field(description="Plan to subscribe to")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1800,8 +1800,8 @@ class BillingApi:
 
         Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
 
-        :param request: Plan to subscribe to (required)
-        :type request: StartCheckoutStartCheckoutRequest
+        :param start_checkout_start_checkout_request: Plan to subscribe to (required)
+        :type start_checkout_start_checkout_request: StartCheckoutStartCheckoutRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1825,7 +1825,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._start_billing_checkout_serialize(
-            request=request,
+            start_checkout_start_checkout_request=start_checkout_start_checkout_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1849,7 +1849,7 @@ class BillingApi:
 
     def _start_billing_checkout_serialize(
         self,
-        request,
+        start_checkout_start_checkout_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1875,8 +1875,8 @@ class BillingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if start_checkout_start_checkout_request is not None:
+            _body_params = start_checkout_start_checkout_request
 
 
         # set the HTTP header `Accept`
@@ -1927,7 +1927,7 @@ class BillingApi:
     @validate_call
     def upgrade_billing_subscription(
         self,
-        request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
+        upgrade_subscription_upgrade_request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1945,8 +1945,8 @@ class BillingApi:
 
         Moves the tenant to a larger tier, effective immediately. The prorated difference is charged on the existing mandate BEFORE the tier is applied: a declined charge leaves the tier untouched. Requires explicit consent to the amount returned by the quote endpoint.
 
-        :param request: Target plan and accepted amount (required)
-        :type request: UpgradeSubscriptionUpgradeRequest
+        :param upgrade_subscription_upgrade_request: Target plan and accepted amount (required)
+        :type upgrade_subscription_upgrade_request: UpgradeSubscriptionUpgradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1970,7 +1970,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._upgrade_billing_subscription_serialize(
-            request=request,
+            upgrade_subscription_upgrade_request=upgrade_subscription_upgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2001,7 +2001,7 @@ class BillingApi:
     @validate_call
     def upgrade_billing_subscription_with_http_info(
         self,
-        request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
+        upgrade_subscription_upgrade_request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2019,8 +2019,8 @@ class BillingApi:
 
         Moves the tenant to a larger tier, effective immediately. The prorated difference is charged on the existing mandate BEFORE the tier is applied: a declined charge leaves the tier untouched. Requires explicit consent to the amount returned by the quote endpoint.
 
-        :param request: Target plan and accepted amount (required)
-        :type request: UpgradeSubscriptionUpgradeRequest
+        :param upgrade_subscription_upgrade_request: Target plan and accepted amount (required)
+        :type upgrade_subscription_upgrade_request: UpgradeSubscriptionUpgradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2044,7 +2044,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._upgrade_billing_subscription_serialize(
-            request=request,
+            upgrade_subscription_upgrade_request=upgrade_subscription_upgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2075,7 +2075,7 @@ class BillingApi:
     @validate_call
     def upgrade_billing_subscription_without_preload_content(
         self,
-        request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
+        upgrade_subscription_upgrade_request: Annotated[UpgradeSubscriptionUpgradeRequest, Field(description="Target plan and accepted amount")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -2093,8 +2093,8 @@ class BillingApi:
 
         Moves the tenant to a larger tier, effective immediately. The prorated difference is charged on the existing mandate BEFORE the tier is applied: a declined charge leaves the tier untouched. Requires explicit consent to the amount returned by the quote endpoint.
 
-        :param request: Target plan and accepted amount (required)
-        :type request: UpgradeSubscriptionUpgradeRequest
+        :param upgrade_subscription_upgrade_request: Target plan and accepted amount (required)
+        :type upgrade_subscription_upgrade_request: UpgradeSubscriptionUpgradeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -2118,7 +2118,7 @@ class BillingApi:
         """ # noqa: E501
 
         _param = self._upgrade_billing_subscription_serialize(
-            request=request,
+            upgrade_subscription_upgrade_request=upgrade_subscription_upgrade_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -2144,7 +2144,7 @@ class BillingApi:
 
     def _upgrade_billing_subscription_serialize(
         self,
-        request,
+        upgrade_subscription_upgrade_request,
         _request_auth,
         _content_type,
         _headers,
@@ -2170,8 +2170,8 @@ class BillingApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if upgrade_subscription_upgrade_request is not None:
+            _body_params = upgrade_subscription_upgrade_request
 
 
         # set the HTTP header `Accept`

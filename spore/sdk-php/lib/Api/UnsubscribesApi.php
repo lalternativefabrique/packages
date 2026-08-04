@@ -362,8 +362,8 @@ class UnsubscribesApi
             $limit,
             'limit', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -371,8 +371,8 @@ class UnsubscribesApi
             $offset,
             'offset', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 

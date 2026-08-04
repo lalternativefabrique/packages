@@ -79,21 +79,21 @@ module SporeEmail
     # Lift a sending freeze on a tenant
     # Internal endpoint. Requires the X-Internal-Token header. Unfreezing is manual by design — a frozen tenant never thaws on its own.
     # @param tenant_id [String] Tenant id
-    # @param request [UnfreezeUnfreezeRequest] Reason for lifting the freeze
+    # @param unfreeze_unfreeze_request [UnfreezeUnfreezeRequest] Reason for lifting the freeze
     # @param [Hash] opts the optional parameters
     # @return [UnfreezeResponse]
-    def unfreeze_tenant_reputation(tenant_id, request, opts = {})
-      data, _status_code, _headers = unfreeze_tenant_reputation_with_http_info(tenant_id, request, opts)
+    def unfreeze_tenant_reputation(tenant_id, unfreeze_unfreeze_request, opts = {})
+      data, _status_code, _headers = unfreeze_tenant_reputation_with_http_info(tenant_id, unfreeze_unfreeze_request, opts)
       data
     end
 
     # Lift a sending freeze on a tenant
     # Internal endpoint. Requires the X-Internal-Token header. Unfreezing is manual by design — a frozen tenant never thaws on its own.
     # @param tenant_id [String] Tenant id
-    # @param request [UnfreezeUnfreezeRequest] Reason for lifting the freeze
+    # @param unfreeze_unfreeze_request [UnfreezeUnfreezeRequest] Reason for lifting the freeze
     # @param [Hash] opts the optional parameters
     # @return [Array<(UnfreezeResponse, Integer, Hash)>] UnfreezeResponse data, response status code and response headers
-    def unfreeze_tenant_reputation_with_http_info(tenant_id, request, opts = {})
+    def unfreeze_tenant_reputation_with_http_info(tenant_id, unfreeze_unfreeze_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: ReputationApi.unfreeze_tenant_reputation ...'
       end
@@ -101,9 +101,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && tenant_id.nil?
         fail ArgumentError, "Missing the required parameter 'tenant_id' when calling ReputationApi.unfreeze_tenant_reputation"
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling ReputationApi.unfreeze_tenant_reputation"
+      # verify the required parameter 'unfreeze_unfreeze_request' is set
+      if @api_client.config.client_side_validation && unfreeze_unfreeze_request.nil?
+        fail ArgumentError, "Missing the required parameter 'unfreeze_unfreeze_request' when calling ReputationApi.unfreeze_tenant_reputation"
       end
       # resource path
       local_var_path = '/internal/reputation/{tenantId}/unfreeze'.sub('{tenantId}', CGI.escape(tenant_id.to_s))
@@ -125,7 +125,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(unfreeze_unfreeze_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'UnfreezeResponse'

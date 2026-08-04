@@ -20,25 +20,25 @@ module SporeEmail
       @api_client = api_client
     end
     # Create an API key
-    # @param request [ApikeysCreateAPIKeyRequest] API key to create
+    # @param apikeys_create_api_key_request [ApikeysCreateAPIKeyRequest] API key to create
     # @param [Hash] opts the optional parameters
     # @return [ApikeysCreatedKey]
-    def create_api_key(request, opts = {})
-      data, _status_code, _headers = create_api_key_with_http_info(request, opts)
+    def create_api_key(apikeys_create_api_key_request, opts = {})
+      data, _status_code, _headers = create_api_key_with_http_info(apikeys_create_api_key_request, opts)
       data
     end
 
     # Create an API key
-    # @param request [ApikeysCreateAPIKeyRequest] API key to create
+    # @param apikeys_create_api_key_request [ApikeysCreateAPIKeyRequest] API key to create
     # @param [Hash] opts the optional parameters
     # @return [Array<(ApikeysCreatedKey, Integer, Hash)>] ApikeysCreatedKey data, response status code and response headers
-    def create_api_key_with_http_info(request, opts = {})
+    def create_api_key_with_http_info(apikeys_create_api_key_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: ApiKeysApi.create_api_key ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling ApiKeysApi.create_api_key"
+      # verify the required parameter 'apikeys_create_api_key_request' is set
+      if @api_client.config.client_side_validation && apikeys_create_api_key_request.nil?
+        fail ArgumentError, "Missing the required parameter 'apikeys_create_api_key_request' when calling ApiKeysApi.create_api_key"
       end
       # resource path
       local_var_path = '/api-keys'
@@ -60,7 +60,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(apikeys_create_api_key_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'ApikeysCreatedKey'

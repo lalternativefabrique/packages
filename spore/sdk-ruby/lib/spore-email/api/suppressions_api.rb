@@ -20,25 +20,25 @@ module SporeEmail
       @api_client = api_client
     end
     # Add an email to the suppression list
-    # @param request [AddSuppressionAddSuppressionRequest] Suppression to add
+    # @param add_suppression_add_suppression_request [AddSuppressionAddSuppressionRequest] Suppression to add
     # @param [Hash] opts the optional parameters
     # @return [AddSuppressionResponse]
-    def add_suppression(request, opts = {})
-      data, _status_code, _headers = add_suppression_with_http_info(request, opts)
+    def add_suppression(add_suppression_add_suppression_request, opts = {})
+      data, _status_code, _headers = add_suppression_with_http_info(add_suppression_add_suppression_request, opts)
       data
     end
 
     # Add an email to the suppression list
-    # @param request [AddSuppressionAddSuppressionRequest] Suppression to add
+    # @param add_suppression_add_suppression_request [AddSuppressionAddSuppressionRequest] Suppression to add
     # @param [Hash] opts the optional parameters
     # @return [Array<(AddSuppressionResponse, Integer, Hash)>] AddSuppressionResponse data, response status code and response headers
-    def add_suppression_with_http_info(request, opts = {})
+    def add_suppression_with_http_info(add_suppression_add_suppression_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: SuppressionsApi.add_suppression ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling SuppressionsApi.add_suppression"
+      # verify the required parameter 'add_suppression_add_suppression_request' is set
+      if @api_client.config.client_side_validation && add_suppression_add_suppression_request.nil?
+        fail ArgumentError, "Missing the required parameter 'add_suppression_add_suppression_request' when calling SuppressionsApi.add_suppression"
       end
       # resource path
       local_var_path = '/suppressions'
@@ -60,7 +60,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(add_suppression_add_suppression_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'AddSuppressionResponse'

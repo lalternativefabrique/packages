@@ -135,26 +135,26 @@ module SporeEmail
 
     # Schedule a downgrade to a smaller plan
     # Schedules a move to a smaller tier, effective at the next renewal. Nothing changes today and nothing is refunded: the tenant keeps the tier they paid for until the current period ends. Moving to the free tier is a cancellation, not a downgrade.
-    # @param request [DowngradeSubscriptionDowngradeRequest] Target plan
+    # @param downgrade_subscription_downgrade_request [DowngradeSubscriptionDowngradeRequest] Target plan
     # @param [Hash] opts the optional parameters
     # @return [DowngradeSubscriptionResult]
-    def downgrade_billing_subscription(request, opts = {})
-      data, _status_code, _headers = downgrade_billing_subscription_with_http_info(request, opts)
+    def downgrade_billing_subscription(downgrade_subscription_downgrade_request, opts = {})
+      data, _status_code, _headers = downgrade_billing_subscription_with_http_info(downgrade_subscription_downgrade_request, opts)
       data
     end
 
     # Schedule a downgrade to a smaller plan
     # Schedules a move to a smaller tier, effective at the next renewal. Nothing changes today and nothing is refunded: the tenant keeps the tier they paid for until the current period ends. Moving to the free tier is a cancellation, not a downgrade.
-    # @param request [DowngradeSubscriptionDowngradeRequest] Target plan
+    # @param downgrade_subscription_downgrade_request [DowngradeSubscriptionDowngradeRequest] Target plan
     # @param [Hash] opts the optional parameters
     # @return [Array<(DowngradeSubscriptionResult, Integer, Hash)>] DowngradeSubscriptionResult data, response status code and response headers
-    def downgrade_billing_subscription_with_http_info(request, opts = {})
+    def downgrade_billing_subscription_with_http_info(downgrade_subscription_downgrade_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BillingApi.downgrade_billing_subscription ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BillingApi.downgrade_billing_subscription"
+      # verify the required parameter 'downgrade_subscription_downgrade_request' is set
+      if @api_client.config.client_side_validation && downgrade_subscription_downgrade_request.nil?
+        fail ArgumentError, "Missing the required parameter 'downgrade_subscription_downgrade_request' when calling BillingApi.downgrade_billing_subscription"
       end
       # resource path
       local_var_path = '/billing/downgrade'
@@ -176,7 +176,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(downgrade_subscription_downgrade_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'DowngradeSubscriptionResult'
@@ -317,26 +317,26 @@ module SporeEmail
 
     # Quote what an upgrade would cost
     # Returns the prorated amount owed today for moving to a larger tier — the difference between the tiers for the time remaining in the period already paid, never the catalogue price. Charges nothing. An amount of 0 means the upgrade is granted without a charge.
-    # @param request [UpgradeSubscriptionQuoteRequest] Target plan
+    # @param upgrade_subscription_quote_request [UpgradeSubscriptionQuoteRequest] Target plan
     # @param [Hash] opts the optional parameters
     # @return [UpgradeSubscriptionQuote]
-    def quote_billing_upgrade(request, opts = {})
-      data, _status_code, _headers = quote_billing_upgrade_with_http_info(request, opts)
+    def quote_billing_upgrade(upgrade_subscription_quote_request, opts = {})
+      data, _status_code, _headers = quote_billing_upgrade_with_http_info(upgrade_subscription_quote_request, opts)
       data
     end
 
     # Quote what an upgrade would cost
     # Returns the prorated amount owed today for moving to a larger tier — the difference between the tiers for the time remaining in the period already paid, never the catalogue price. Charges nothing. An amount of 0 means the upgrade is granted without a charge.
-    # @param request [UpgradeSubscriptionQuoteRequest] Target plan
+    # @param upgrade_subscription_quote_request [UpgradeSubscriptionQuoteRequest] Target plan
     # @param [Hash] opts the optional parameters
     # @return [Array<(UpgradeSubscriptionQuote, Integer, Hash)>] UpgradeSubscriptionQuote data, response status code and response headers
-    def quote_billing_upgrade_with_http_info(request, opts = {})
+    def quote_billing_upgrade_with_http_info(upgrade_subscription_quote_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BillingApi.quote_billing_upgrade ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BillingApi.quote_billing_upgrade"
+      # verify the required parameter 'upgrade_subscription_quote_request' is set
+      if @api_client.config.client_side_validation && upgrade_subscription_quote_request.nil?
+        fail ArgumentError, "Missing the required parameter 'upgrade_subscription_quote_request' when calling BillingApi.quote_billing_upgrade"
       end
       # resource path
       local_var_path = '/billing/upgrade/quote'
@@ -358,7 +358,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(upgrade_subscription_quote_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'UpgradeSubscriptionQuote'
@@ -385,26 +385,26 @@ module SporeEmail
 
     # Open a checkout for a paid plan
     # Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
-    # @param request [StartCheckoutStartCheckoutRequest] Plan to subscribe to
+    # @param start_checkout_start_checkout_request [StartCheckoutStartCheckoutRequest] Plan to subscribe to
     # @param [Hash] opts the optional parameters
     # @return [StartCheckoutResult]
-    def start_billing_checkout(request, opts = {})
-      data, _status_code, _headers = start_billing_checkout_with_http_info(request, opts)
+    def start_billing_checkout(start_checkout_start_checkout_request, opts = {})
+      data, _status_code, _headers = start_billing_checkout_with_http_info(start_checkout_start_checkout_request, opts)
       data
     end
 
     # Open a checkout for a paid plan
     # Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
-    # @param request [StartCheckoutStartCheckoutRequest] Plan to subscribe to
+    # @param start_checkout_start_checkout_request [StartCheckoutStartCheckoutRequest] Plan to subscribe to
     # @param [Hash] opts the optional parameters
     # @return [Array<(StartCheckoutResult, Integer, Hash)>] StartCheckoutResult data, response status code and response headers
-    def start_billing_checkout_with_http_info(request, opts = {})
+    def start_billing_checkout_with_http_info(start_checkout_start_checkout_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BillingApi.start_billing_checkout ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BillingApi.start_billing_checkout"
+      # verify the required parameter 'start_checkout_start_checkout_request' is set
+      if @api_client.config.client_side_validation && start_checkout_start_checkout_request.nil?
+        fail ArgumentError, "Missing the required parameter 'start_checkout_start_checkout_request' when calling BillingApi.start_billing_checkout"
       end
       # resource path
       local_var_path = '/billing/checkout'
@@ -426,7 +426,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(start_checkout_start_checkout_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'StartCheckoutResult'
@@ -453,26 +453,26 @@ module SporeEmail
 
     # Upgrade to a larger plan
     # Moves the tenant to a larger tier, effective immediately. The prorated difference is charged on the existing mandate BEFORE the tier is applied: a declined charge leaves the tier untouched. Requires explicit consent to the amount returned by the quote endpoint.
-    # @param request [UpgradeSubscriptionUpgradeRequest] Target plan and accepted amount
+    # @param upgrade_subscription_upgrade_request [UpgradeSubscriptionUpgradeRequest] Target plan and accepted amount
     # @param [Hash] opts the optional parameters
     # @return [UpgradeSubscriptionResult]
-    def upgrade_billing_subscription(request, opts = {})
-      data, _status_code, _headers = upgrade_billing_subscription_with_http_info(request, opts)
+    def upgrade_billing_subscription(upgrade_subscription_upgrade_request, opts = {})
+      data, _status_code, _headers = upgrade_billing_subscription_with_http_info(upgrade_subscription_upgrade_request, opts)
       data
     end
 
     # Upgrade to a larger plan
     # Moves the tenant to a larger tier, effective immediately. The prorated difference is charged on the existing mandate BEFORE the tier is applied: a declined charge leaves the tier untouched. Requires explicit consent to the amount returned by the quote endpoint.
-    # @param request [UpgradeSubscriptionUpgradeRequest] Target plan and accepted amount
+    # @param upgrade_subscription_upgrade_request [UpgradeSubscriptionUpgradeRequest] Target plan and accepted amount
     # @param [Hash] opts the optional parameters
     # @return [Array<(UpgradeSubscriptionResult, Integer, Hash)>] UpgradeSubscriptionResult data, response status code and response headers
-    def upgrade_billing_subscription_with_http_info(request, opts = {})
+    def upgrade_billing_subscription_with_http_info(upgrade_subscription_upgrade_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: BillingApi.upgrade_billing_subscription ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling BillingApi.upgrade_billing_subscription"
+      # verify the required parameter 'upgrade_subscription_upgrade_request' is set
+      if @api_client.config.client_side_validation && upgrade_subscription_upgrade_request.nil?
+        fail ArgumentError, "Missing the required parameter 'upgrade_subscription_upgrade_request' when calling BillingApi.upgrade_billing_subscription"
       end
       # resource path
       local_var_path = '/billing/upgrade'
@@ -494,7 +494,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(upgrade_subscription_upgrade_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'UpgradeSubscriptionResult'

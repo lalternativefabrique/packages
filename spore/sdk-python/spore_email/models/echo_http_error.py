@@ -28,7 +28,7 @@ class EchoHTTPError(BaseModel):
     """
     EchoHTTPError
     """ # noqa: E501
-    message: Optional[Dict[str, Any]] = None
+    message: Optional[Any] = None
     __properties: ClassVar[List[str]] = ["message"]
 
     model_config = ConfigDict(
@@ -70,6 +70,11 @@ class EchoHTTPError(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # set to None if message (nullable) is None
+        # and model_fields_set contains the field
+        if self.message is None and "message" in self.model_fields_set:
+            _dict['message'] = None
+
         return _dict
 
     @classmethod

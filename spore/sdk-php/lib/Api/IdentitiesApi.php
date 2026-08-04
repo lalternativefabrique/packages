@@ -153,16 +153,16 @@ class IdentitiesApi
      * Add an allowed From address (local-part) on a verified identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $body Address payload (required)
+     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $add_address_add_address_request Address payload (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addIdentityAddress'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\AddAddressAddAddressResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function addIdentityAddress($id, $body, string $contentType = self::contentTypes['addIdentityAddress'][0])
+    public function addIdentityAddress($id, $add_address_add_address_request, string $contentType = self::contentTypes['addIdentityAddress'][0])
     {
-        list($response) = $this->addIdentityAddressWithHttpInfo($id, $body, $contentType);
+        list($response) = $this->addIdentityAddressWithHttpInfo($id, $add_address_add_address_request, $contentType);
         return $response;
     }
 
@@ -172,16 +172,16 @@ class IdentitiesApi
      * Add an allowed From address (local-part) on a verified identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $body Address payload (required)
+     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $add_address_add_address_request Address payload (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addIdentityAddress'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\AddAddressAddAddressResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function addIdentityAddressWithHttpInfo($id, $body, string $contentType = self::contentTypes['addIdentityAddress'][0])
+    public function addIdentityAddressWithHttpInfo($id, $add_address_add_address_request, string $contentType = self::contentTypes['addIdentityAddress'][0])
     {
-        $request = $this->addIdentityAddressRequest($id, $body, $contentType);
+        $request = $this->addIdentityAddressRequest($id, $add_address_add_address_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -286,15 +286,15 @@ class IdentitiesApi
      * Add an allowed From address (local-part) on a verified identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $body Address payload (required)
+     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $add_address_add_address_request Address payload (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function addIdentityAddressAsync($id, $body, string $contentType = self::contentTypes['addIdentityAddress'][0])
+    public function addIdentityAddressAsync($id, $add_address_add_address_request, string $contentType = self::contentTypes['addIdentityAddress'][0])
     {
-        return $this->addIdentityAddressAsyncWithHttpInfo($id, $body, $contentType)
+        return $this->addIdentityAddressAsyncWithHttpInfo($id, $add_address_add_address_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -308,16 +308,16 @@ class IdentitiesApi
      * Add an allowed From address (local-part) on a verified identity
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $body Address payload (required)
+     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $add_address_add_address_request Address payload (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function addIdentityAddressAsyncWithHttpInfo($id, $body, string $contentType = self::contentTypes['addIdentityAddress'][0])
+    public function addIdentityAddressAsyncWithHttpInfo($id, $add_address_add_address_request, string $contentType = self::contentTypes['addIdentityAddress'][0])
     {
         $returnType = '\Lalternative\Spore\Model\AddAddressAddAddressResult';
-        $request = $this->addIdentityAddressRequest($id, $body, $contentType);
+        $request = $this->addIdentityAddressRequest($id, $add_address_add_address_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -359,13 +359,13 @@ class IdentitiesApi
      * Create request for operation 'addIdentityAddress'
      *
      * @param  string $id Identity ID (required)
-     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $body Address payload (required)
+     * @param  \Lalternative\Spore\Model\AddAddressAddAddressRequest $add_address_add_address_request Address payload (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['addIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function addIdentityAddressRequest($id, $body, string $contentType = self::contentTypes['addIdentityAddress'][0])
+    public function addIdentityAddressRequest($id, $add_address_add_address_request, string $contentType = self::contentTypes['addIdentityAddress'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -375,10 +375,10 @@ class IdentitiesApi
             );
         }
 
-        // verify the required parameter 'body' is set
-        if ($body === null || (is_array($body) && count($body) === 0)) {
+        // verify the required parameter 'add_address_add_address_request' is set
+        if ($add_address_add_address_request === null || (is_array($add_address_add_address_request) && count($add_address_add_address_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $body when calling addIdentityAddress'
+                'Missing the required parameter $add_address_add_address_request when calling addIdentityAddress'
             );
         }
 
@@ -409,12 +409,12 @@ class IdentitiesApi
         );
 
         // for model (json/xml)
-        if (isset($body)) {
+        if (isset($add_address_add_address_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($body));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($add_address_add_address_request));
             } else {
-                $httpBody = $body;
+                $httpBody = $add_address_add_address_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -472,16 +472,16 @@ class IdentitiesApi
      *
      * Register a sending identity
      *
-     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $request Identity to create (required)
+     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $create_identity_create_identity_request Identity to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createIdentity'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\CreateIdentityCreateIdentityResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function createIdentity($request, string $contentType = self::contentTypes['createIdentity'][0])
+    public function createIdentity($create_identity_create_identity_request, string $contentType = self::contentTypes['createIdentity'][0])
     {
-        list($response) = $this->createIdentityWithHttpInfo($request, $contentType);
+        list($response) = $this->createIdentityWithHttpInfo($create_identity_create_identity_request, $contentType);
         return $response;
     }
 
@@ -490,16 +490,16 @@ class IdentitiesApi
      *
      * Register a sending identity
      *
-     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $request Identity to create (required)
+     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $create_identity_create_identity_request Identity to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createIdentity'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\CreateIdentityCreateIdentityResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function createIdentityWithHttpInfo($request, string $contentType = self::contentTypes['createIdentity'][0])
+    public function createIdentityWithHttpInfo($create_identity_create_identity_request, string $contentType = self::contentTypes['createIdentity'][0])
     {
-        $request = $this->createIdentityRequest($request, $contentType);
+        $request = $this->createIdentityRequest($create_identity_create_identity_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -617,15 +617,15 @@ class IdentitiesApi
      *
      * Register a sending identity
      *
-     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $request Identity to create (required)
+     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $create_identity_create_identity_request Identity to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createIdentity'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createIdentityAsync($request, string $contentType = self::contentTypes['createIdentity'][0])
+    public function createIdentityAsync($create_identity_create_identity_request, string $contentType = self::contentTypes['createIdentity'][0])
     {
-        return $this->createIdentityAsyncWithHttpInfo($request, $contentType)
+        return $this->createIdentityAsyncWithHttpInfo($create_identity_create_identity_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -638,16 +638,16 @@ class IdentitiesApi
      *
      * Register a sending identity
      *
-     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $request Identity to create (required)
+     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $create_identity_create_identity_request Identity to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createIdentity'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createIdentityAsyncWithHttpInfo($request, string $contentType = self::contentTypes['createIdentity'][0])
+    public function createIdentityAsyncWithHttpInfo($create_identity_create_identity_request, string $contentType = self::contentTypes['createIdentity'][0])
     {
         $returnType = '\Lalternative\Spore\Model\CreateIdentityCreateIdentityResult';
-        $request = $this->createIdentityRequest($request, $contentType);
+        $request = $this->createIdentityRequest($create_identity_create_identity_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -688,19 +688,19 @@ class IdentitiesApi
     /**
      * Create request for operation 'createIdentity'
      *
-     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $request Identity to create (required)
+     * @param  \Lalternative\Spore\Model\CreateIdentityCreateIdentityRequest $create_identity_create_identity_request Identity to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createIdentity'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function createIdentityRequest($request, string $contentType = self::contentTypes['createIdentity'][0])
+    public function createIdentityRequest($create_identity_create_identity_request, string $contentType = self::contentTypes['createIdentity'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'create_identity_create_identity_request' is set
+        if ($create_identity_create_identity_request === null || (is_array($create_identity_create_identity_request) && count($create_identity_create_identity_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling createIdentity'
+                'Missing the required parameter $create_identity_create_identity_request when calling createIdentity'
             );
         }
 
@@ -723,12 +723,12 @@ class IdentitiesApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($create_identity_create_identity_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($create_identity_create_identity_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $create_identity_create_identity_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1035,16 +1035,16 @@ class IdentitiesApi
      *
      * @param  string $id Identity ID (required)
      * @param  string $local_part Address local-part (required)
-     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $body Optional reason (optional)
+     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $disable_address_disable_address_request Optional reason (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['disableIdentityAddress'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\DisableAddressDisableAddressResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function disableIdentityAddress($id, $local_part, $body = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
+    public function disableIdentityAddress($id, $local_part, $disable_address_disable_address_request = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
     {
-        list($response) = $this->disableIdentityAddressWithHttpInfo($id, $local_part, $body, $contentType);
+        list($response) = $this->disableIdentityAddressWithHttpInfo($id, $local_part, $disable_address_disable_address_request, $contentType);
         return $response;
     }
 
@@ -1055,16 +1055,16 @@ class IdentitiesApi
      *
      * @param  string $id Identity ID (required)
      * @param  string $local_part Address local-part (required)
-     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $body Optional reason (optional)
+     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $disable_address_disable_address_request Optional reason (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['disableIdentityAddress'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\DisableAddressDisableAddressResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function disableIdentityAddressWithHttpInfo($id, $local_part, $body = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
+    public function disableIdentityAddressWithHttpInfo($id, $local_part, $disable_address_disable_address_request = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
     {
-        $request = $this->disableIdentityAddressRequest($id, $local_part, $body, $contentType);
+        $request = $this->disableIdentityAddressRequest($id, $local_part, $disable_address_disable_address_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -1170,15 +1170,15 @@ class IdentitiesApi
      *
      * @param  string $id Identity ID (required)
      * @param  string $local_part Address local-part (required)
-     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $body Optional reason (optional)
+     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $disable_address_disable_address_request Optional reason (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['disableIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function disableIdentityAddressAsync($id, $local_part, $body = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
+    public function disableIdentityAddressAsync($id, $local_part, $disable_address_disable_address_request = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
     {
-        return $this->disableIdentityAddressAsyncWithHttpInfo($id, $local_part, $body, $contentType)
+        return $this->disableIdentityAddressAsyncWithHttpInfo($id, $local_part, $disable_address_disable_address_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -1193,16 +1193,16 @@ class IdentitiesApi
      *
      * @param  string $id Identity ID (required)
      * @param  string $local_part Address local-part (required)
-     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $body Optional reason (optional)
+     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $disable_address_disable_address_request Optional reason (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['disableIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function disableIdentityAddressAsyncWithHttpInfo($id, $local_part, $body = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
+    public function disableIdentityAddressAsyncWithHttpInfo($id, $local_part, $disable_address_disable_address_request = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
     {
         $returnType = '\Lalternative\Spore\Model\DisableAddressDisableAddressResult';
-        $request = $this->disableIdentityAddressRequest($id, $local_part, $body, $contentType);
+        $request = $this->disableIdentityAddressRequest($id, $local_part, $disable_address_disable_address_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -1245,13 +1245,13 @@ class IdentitiesApi
      *
      * @param  string $id Identity ID (required)
      * @param  string $local_part Address local-part (required)
-     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $body Optional reason (optional)
+     * @param  \Lalternative\Spore\Model\DisableAddressDisableAddressRequest|null $disable_address_disable_address_request Optional reason (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['disableIdentityAddress'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function disableIdentityAddressRequest($id, $local_part, $body = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
+    public function disableIdentityAddressRequest($id, $local_part, $disable_address_disable_address_request = null, string $contentType = self::contentTypes['disableIdentityAddress'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -1304,12 +1304,12 @@ class IdentitiesApi
         );
 
         // for model (json/xml)
-        if (isset($body)) {
+        if (isset($disable_address_disable_address_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($body));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($disable_address_disable_address_request));
             } else {
-                $httpBody = $body;
+                $httpBody = $disable_address_disable_address_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {
@@ -1913,8 +1913,8 @@ class IdentitiesApi
             $limit,
             'limit', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
         // query params
@@ -1922,8 +1922,8 @@ class IdentitiesApi
             $offset,
             'offset', // param base name
             'integer', // openApiType
-            '', // style
-            false, // explode
+            'form', // style
+            true, // explode
             false // required
         ) ?? []);
 

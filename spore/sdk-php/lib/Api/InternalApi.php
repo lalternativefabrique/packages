@@ -689,16 +689,16 @@ class InternalApi
      *
      * Assign a plan to a tenant (service-to-service)
      *
-     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $request Tenant + plan to assign (required)
+     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $set_tenant_plan_set_tenant_plan_request Tenant + plan to assign (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setTenantPlan'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\DomainTenantPlan|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function setTenantPlan($request, string $contentType = self::contentTypes['setTenantPlan'][0])
+    public function setTenantPlan($set_tenant_plan_set_tenant_plan_request, string $contentType = self::contentTypes['setTenantPlan'][0])
     {
-        list($response) = $this->setTenantPlanWithHttpInfo($request, $contentType);
+        list($response) = $this->setTenantPlanWithHttpInfo($set_tenant_plan_set_tenant_plan_request, $contentType);
         return $response;
     }
 
@@ -707,16 +707,16 @@ class InternalApi
      *
      * Assign a plan to a tenant (service-to-service)
      *
-     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $request Tenant + plan to assign (required)
+     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $set_tenant_plan_set_tenant_plan_request Tenant + plan to assign (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setTenantPlan'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\DomainTenantPlan|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function setTenantPlanWithHttpInfo($request, string $contentType = self::contentTypes['setTenantPlan'][0])
+    public function setTenantPlanWithHttpInfo($set_tenant_plan_set_tenant_plan_request, string $contentType = self::contentTypes['setTenantPlan'][0])
     {
-        $request = $this->setTenantPlanRequest($request, $contentType);
+        $request = $this->setTenantPlanRequest($set_tenant_plan_set_tenant_plan_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -834,15 +834,15 @@ class InternalApi
      *
      * Assign a plan to a tenant (service-to-service)
      *
-     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $request Tenant + plan to assign (required)
+     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $set_tenant_plan_set_tenant_plan_request Tenant + plan to assign (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setTenantPlan'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function setTenantPlanAsync($request, string $contentType = self::contentTypes['setTenantPlan'][0])
+    public function setTenantPlanAsync($set_tenant_plan_set_tenant_plan_request, string $contentType = self::contentTypes['setTenantPlan'][0])
     {
-        return $this->setTenantPlanAsyncWithHttpInfo($request, $contentType)
+        return $this->setTenantPlanAsyncWithHttpInfo($set_tenant_plan_set_tenant_plan_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -855,16 +855,16 @@ class InternalApi
      *
      * Assign a plan to a tenant (service-to-service)
      *
-     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $request Tenant + plan to assign (required)
+     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $set_tenant_plan_set_tenant_plan_request Tenant + plan to assign (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setTenantPlan'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function setTenantPlanAsyncWithHttpInfo($request, string $contentType = self::contentTypes['setTenantPlan'][0])
+    public function setTenantPlanAsyncWithHttpInfo($set_tenant_plan_set_tenant_plan_request, string $contentType = self::contentTypes['setTenantPlan'][0])
     {
         $returnType = '\Lalternative\Spore\Model\DomainTenantPlan';
-        $request = $this->setTenantPlanRequest($request, $contentType);
+        $request = $this->setTenantPlanRequest($set_tenant_plan_set_tenant_plan_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -905,19 +905,19 @@ class InternalApi
     /**
      * Create request for operation 'setTenantPlan'
      *
-     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $request Tenant + plan to assign (required)
+     * @param  \Lalternative\Spore\Model\SetTenantPlanSetTenantPlanRequest $set_tenant_plan_set_tenant_plan_request Tenant + plan to assign (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['setTenantPlan'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function setTenantPlanRequest($request, string $contentType = self::contentTypes['setTenantPlan'][0])
+    public function setTenantPlanRequest($set_tenant_plan_set_tenant_plan_request, string $contentType = self::contentTypes['setTenantPlan'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'set_tenant_plan_set_tenant_plan_request' is set
+        if ($set_tenant_plan_set_tenant_plan_request === null || (is_array($set_tenant_plan_set_tenant_plan_request) && count($set_tenant_plan_set_tenant_plan_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling setTenantPlan'
+                'Missing the required parameter $set_tenant_plan_set_tenant_plan_request when calling setTenantPlan'
             );
         }
 
@@ -940,12 +940,12 @@ class InternalApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($set_tenant_plan_set_tenant_plan_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($set_tenant_plan_set_tenant_plan_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $set_tenant_plan_set_tenant_plan_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

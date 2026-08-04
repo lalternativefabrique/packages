@@ -157,27 +157,27 @@ module SporeEmail
     end
 
     # Enqueue a transactional email
-    # @param request [SendEmailSendEmailRequest] Email to send
+    # @param send_email_send_email_request [SendEmailSendEmailRequest] Email to send
     # @param [Hash] opts the optional parameters
     # @option opts [String] :idempotency_key Unique retry key kept for 24 hours
     # @return [SendEmailSendEmailResult]
-    def send_email(request, opts = {})
-      data, _status_code, _headers = send_email_with_http_info(request, opts)
+    def send_email(send_email_send_email_request, opts = {})
+      data, _status_code, _headers = send_email_with_http_info(send_email_send_email_request, opts)
       data
     end
 
     # Enqueue a transactional email
-    # @param request [SendEmailSendEmailRequest] Email to send
+    # @param send_email_send_email_request [SendEmailSendEmailRequest] Email to send
     # @param [Hash] opts the optional parameters
     # @option opts [String] :idempotency_key Unique retry key kept for 24 hours
     # @return [Array<(SendEmailSendEmailResult, Integer, Hash)>] SendEmailSendEmailResult data, response status code and response headers
-    def send_email_with_http_info(request, opts = {})
+    def send_email_with_http_info(send_email_send_email_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: MessagingApi.send_email ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling MessagingApi.send_email"
+      # verify the required parameter 'send_email_send_email_request' is set
+      if @api_client.config.client_side_validation && send_email_send_email_request.nil?
+        fail ArgumentError, "Missing the required parameter 'send_email_send_email_request' when calling MessagingApi.send_email"
       end
       # resource path
       local_var_path = '/emails'
@@ -200,7 +200,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(send_email_send_email_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'SendEmailSendEmailResult'
@@ -227,26 +227,26 @@ module SporeEmail
 
     # Send a diagnostic test email from the UI
     # Sends a server-built email through the full DKIM-sign + outbox + MTA pipeline. Bypasses the monthly quota and tags the message as kind=test.
-    # @param request [SendTestEmailSendTestEmailRequest] Test parameters
+    # @param send_test_email_send_test_email_request [SendTestEmailSendTestEmailRequest] Test parameters
     # @param [Hash] opts the optional parameters
     # @return [SendTestEmailSendTestEmailResult]
-    def send_test_email(request, opts = {})
-      data, _status_code, _headers = send_test_email_with_http_info(request, opts)
+    def send_test_email(send_test_email_send_test_email_request, opts = {})
+      data, _status_code, _headers = send_test_email_with_http_info(send_test_email_send_test_email_request, opts)
       data
     end
 
     # Send a diagnostic test email from the UI
     # Sends a server-built email through the full DKIM-sign + outbox + MTA pipeline. Bypasses the monthly quota and tags the message as kind&#x3D;test.
-    # @param request [SendTestEmailSendTestEmailRequest] Test parameters
+    # @param send_test_email_send_test_email_request [SendTestEmailSendTestEmailRequest] Test parameters
     # @param [Hash] opts the optional parameters
     # @return [Array<(SendTestEmailSendTestEmailResult, Integer, Hash)>] SendTestEmailSendTestEmailResult data, response status code and response headers
-    def send_test_email_with_http_info(request, opts = {})
+    def send_test_email_with_http_info(send_test_email_send_test_email_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: MessagingApi.send_test_email ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling MessagingApi.send_test_email"
+      # verify the required parameter 'send_test_email_send_test_email_request' is set
+      if @api_client.config.client_side_validation && send_test_email_send_test_email_request.nil?
+        fail ArgumentError, "Missing the required parameter 'send_test_email_send_test_email_request' when calling MessagingApi.send_test_email"
       end
       # resource path
       local_var_path = '/emails/test'
@@ -268,7 +268,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(send_test_email_send_test_email_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'SendTestEmailSendTestEmailResult'

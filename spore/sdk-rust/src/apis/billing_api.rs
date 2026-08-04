@@ -18,28 +18,28 @@ use super::{Error, configuration, ContentType};
 #[derive(Clone, Debug)]
 pub struct DowngradeBillingSubscriptionParams {
     /// Target plan
-    pub request: models::DowngradeSubscriptionDowngradeRequest
+    pub downgrade_subscription_downgrade_request: models::DowngradeSubscriptionDowngradeRequest
 }
 
 /// struct for passing parameters to the method [`quote_billing_upgrade`]
 #[derive(Clone, Debug)]
 pub struct QuoteBillingUpgradeParams {
     /// Target plan
-    pub request: models::UpgradeSubscriptionQuoteRequest
+    pub upgrade_subscription_quote_request: models::UpgradeSubscriptionQuoteRequest
 }
 
 /// struct for passing parameters to the method [`start_billing_checkout`]
 #[derive(Clone, Debug)]
 pub struct StartBillingCheckoutParams {
     /// Plan to subscribe to
-    pub request: models::StartCheckoutStartCheckoutRequest
+    pub start_checkout_start_checkout_request: models::StartCheckoutStartCheckoutRequest
 }
 
 /// struct for passing parameters to the method [`upgrade_billing_subscription`]
 #[derive(Clone, Debug)]
 pub struct UpgradeBillingSubscriptionParams {
     /// Target plan and accepted amount
-    pub request: models::UpgradeSubscriptionUpgradeRequest
+    pub upgrade_subscription_upgrade_request: models::UpgradeSubscriptionUpgradeRequest
 }
 
 
@@ -223,7 +223,7 @@ pub async fn downgrade_billing_subscription(configuration: &configuration::Confi
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.downgrade_subscription_downgrade_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -345,7 +345,7 @@ pub async fn quote_billing_upgrade(configuration: &configuration::Configuration,
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.upgrade_subscription_quote_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -389,7 +389,7 @@ pub async fn start_billing_checkout(configuration: &configuration::Configuration
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.start_checkout_start_checkout_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -433,7 +433,7 @@ pub async fn upgrade_billing_subscription(configuration: &configuration::Configu
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.upgrade_subscription_upgrade_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

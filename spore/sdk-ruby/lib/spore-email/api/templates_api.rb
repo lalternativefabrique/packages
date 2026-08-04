@@ -76,20 +76,20 @@ module SporeEmail
 
     # Render a preview of a template
     # @param id [String] Template ID
-    # @param request [PreviewTemplatePreviewTemplateRequest] Locale and variables
+    # @param preview_template_preview_template_request [PreviewTemplatePreviewTemplateRequest] Locale and variables
     # @param [Hash] opts the optional parameters
     # @return [PreviewTemplateResponse]
-    def preview_template(id, request, opts = {})
-      data, _status_code, _headers = preview_template_with_http_info(id, request, opts)
+    def preview_template(id, preview_template_preview_template_request, opts = {})
+      data, _status_code, _headers = preview_template_with_http_info(id, preview_template_preview_template_request, opts)
       data
     end
 
     # Render a preview of a template
     # @param id [String] Template ID
-    # @param request [PreviewTemplatePreviewTemplateRequest] Locale and variables
+    # @param preview_template_preview_template_request [PreviewTemplatePreviewTemplateRequest] Locale and variables
     # @param [Hash] opts the optional parameters
     # @return [Array<(PreviewTemplateResponse, Integer, Hash)>] PreviewTemplateResponse data, response status code and response headers
-    def preview_template_with_http_info(id, request, opts = {})
+    def preview_template_with_http_info(id, preview_template_preview_template_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: TemplatesApi.preview_template ...'
       end
@@ -97,9 +97,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && id.nil?
         fail ArgumentError, "Missing the required parameter 'id' when calling TemplatesApi.preview_template"
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling TemplatesApi.preview_template"
+      # verify the required parameter 'preview_template_preview_template_request' is set
+      if @api_client.config.client_side_validation && preview_template_preview_template_request.nil?
+        fail ArgumentError, "Missing the required parameter 'preview_template_preview_template_request' when calling TemplatesApi.preview_template"
       end
       # resource path
       local_var_path = '/templates/{id}/preview'.sub('{id}', CGI.escape(id.to_s))
@@ -121,7 +121,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(preview_template_preview_template_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'PreviewTemplateResponse'

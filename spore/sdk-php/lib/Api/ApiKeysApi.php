@@ -137,16 +137,16 @@ class ApiKeysApi
      *
      * Create an API key
      *
-     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $request API key to create (required)
+     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $apikeys_create_api_key_request API key to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createApiKey'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function createApiKey($request, string $contentType = self::contentTypes['createApiKey'][0])
+    public function createApiKey($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
-        list($response) = $this->createApiKeyWithHttpInfo($request, $contentType);
+        list($response) = $this->createApiKeyWithHttpInfo($apikeys_create_api_key_request, $contentType);
         return $response;
     }
 
@@ -155,16 +155,16 @@ class ApiKeysApi
      *
      * Create an API key
      *
-     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $request API key to create (required)
+     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $apikeys_create_api_key_request API key to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createApiKey'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function createApiKeyWithHttpInfo($request, string $contentType = self::contentTypes['createApiKey'][0])
+    public function createApiKeyWithHttpInfo($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
-        $request = $this->createApiKeyRequest($request, $contentType);
+        $request = $this->createApiKeyRequest($apikeys_create_api_key_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -268,15 +268,15 @@ class ApiKeysApi
      *
      * Create an API key
      *
-     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $request API key to create (required)
+     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $apikeys_create_api_key_request API key to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createApiKey'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createApiKeyAsync($request, string $contentType = self::contentTypes['createApiKey'][0])
+    public function createApiKeyAsync($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
-        return $this->createApiKeyAsyncWithHttpInfo($request, $contentType)
+        return $this->createApiKeyAsyncWithHttpInfo($apikeys_create_api_key_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -289,16 +289,16 @@ class ApiKeysApi
      *
      * Create an API key
      *
-     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $request API key to create (required)
+     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $apikeys_create_api_key_request API key to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createApiKey'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function createApiKeyAsyncWithHttpInfo($request, string $contentType = self::contentTypes['createApiKey'][0])
+    public function createApiKeyAsyncWithHttpInfo($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
         $returnType = '\Lalternative\Spore\Model\ApikeysCreatedKey';
-        $request = $this->createApiKeyRequest($request, $contentType);
+        $request = $this->createApiKeyRequest($apikeys_create_api_key_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -339,19 +339,19 @@ class ApiKeysApi
     /**
      * Create request for operation 'createApiKey'
      *
-     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $request API key to create (required)
+     * @param  \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest $apikeys_create_api_key_request API key to create (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['createApiKey'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function createApiKeyRequest($request, string $contentType = self::contentTypes['createApiKey'][0])
+    public function createApiKeyRequest($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'apikeys_create_api_key_request' is set
+        if ($apikeys_create_api_key_request === null || (is_array($apikeys_create_api_key_request) && count($apikeys_create_api_key_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling createApiKey'
+                'Missing the required parameter $apikeys_create_api_key_request when calling createApiKey'
             );
         }
 
@@ -374,12 +374,12 @@ class ApiKeysApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($apikeys_create_api_key_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($apikeys_create_api_key_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $apikeys_create_api_key_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

@@ -151,26 +151,26 @@ module SporeEmail
 
     # Assign a plan to a tenant (service-to-service)
     # Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
-    # @param request [SetTenantPlanSetTenantPlanRequest] Tenant + plan to assign
+    # @param set_tenant_plan_set_tenant_plan_request [SetTenantPlanSetTenantPlanRequest] Tenant + plan to assign
     # @param [Hash] opts the optional parameters
     # @return [DomainTenantPlan]
-    def set_tenant_plan(request, opts = {})
-      data, _status_code, _headers = set_tenant_plan_with_http_info(request, opts)
+    def set_tenant_plan(set_tenant_plan_set_tenant_plan_request, opts = {})
+      data, _status_code, _headers = set_tenant_plan_with_http_info(set_tenant_plan_set_tenant_plan_request, opts)
       data
     end
 
     # Assign a plan to a tenant (service-to-service)
     # Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
-    # @param request [SetTenantPlanSetTenantPlanRequest] Tenant + plan to assign
+    # @param set_tenant_plan_set_tenant_plan_request [SetTenantPlanSetTenantPlanRequest] Tenant + plan to assign
     # @param [Hash] opts the optional parameters
     # @return [Array<(DomainTenantPlan, Integer, Hash)>] DomainTenantPlan data, response status code and response headers
-    def set_tenant_plan_with_http_info(request, opts = {})
+    def set_tenant_plan_with_http_info(set_tenant_plan_set_tenant_plan_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: InternalApi.set_tenant_plan ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling InternalApi.set_tenant_plan"
+      # verify the required parameter 'set_tenant_plan_set_tenant_plan_request' is set
+      if @api_client.config.client_side_validation && set_tenant_plan_set_tenant_plan_request.nil?
+        fail ArgumentError, "Missing the required parameter 'set_tenant_plan_set_tenant_plan_request' when calling InternalApi.set_tenant_plan"
       end
       # resource path
       local_var_path = '/internal/tenant/plan'
@@ -192,7 +192,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(set_tenant_plan_set_tenant_plan_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'DomainTenantPlan'

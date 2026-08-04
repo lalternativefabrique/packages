@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "pnpm --filter @lalternative/spore-sdk generate && node generate.mjs"
+    "refresh": "../refresh-contract.sh",
+    "generate": "pnpm --filter @lalternative/spore-sdk generate && node generate.mjs",
+    "test": "node --test contract.test.mjs"
   },
   "devDependencies": {
     "@openapitools/openapi-generator-cli": "2.40.1"

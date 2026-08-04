@@ -20,14 +20,14 @@ pub struct AddIdentityAddressParams {
     /// Identity ID
     pub id: String,
     /// Address payload
-    pub body: models::AddAddressAddAddressRequest
+    pub add_address_add_address_request: models::AddAddressAddAddressRequest
 }
 
 /// struct for passing parameters to the method [`create_identity`]
 #[derive(Clone, Debug)]
 pub struct CreateIdentityParams {
     /// Identity to create
-    pub request: models::CreateIdentityCreateIdentityRequest
+    pub create_identity_create_identity_request: models::CreateIdentityCreateIdentityRequest
 }
 
 /// struct for passing parameters to the method [`delete_identity`]
@@ -45,7 +45,7 @@ pub struct DisableIdentityAddressParams {
     /// Address local-part
     pub local_part: String,
     /// Optional reason
-    pub body: Option<models::DisableAddressDisableAddressRequest>
+    pub disable_address_disable_address_request: Option<models::DisableAddressDisableAddressRequest>
 }
 
 /// struct for passing parameters to the method [`get_identity`]
@@ -172,7 +172,7 @@ pub async fn add_identity_address(configuration: &configuration::Configuration, 
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.body);
+    req_builder = req_builder.json(&params.add_address_add_address_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -215,7 +215,7 @@ pub async fn create_identity(configuration: &configuration::Configuration, param
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.create_identity_create_identity_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -289,7 +289,7 @@ pub async fn disable_identity_address(configuration: &configuration::Configurati
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.body);
+    req_builder = req_builder.json(&params.disable_address_disable_address_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

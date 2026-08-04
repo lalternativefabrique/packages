@@ -402,16 +402,16 @@ class TemplatesApi
      * Render a preview of a template
      *
      * @param  string $id Template ID (required)
-     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $request Locale and variables (required)
+     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $preview_template_preview_template_request Locale and variables (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['previewTemplate'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\PreviewTemplateResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function previewTemplate($id, $request, string $contentType = self::contentTypes['previewTemplate'][0])
+    public function previewTemplate($id, $preview_template_preview_template_request, string $contentType = self::contentTypes['previewTemplate'][0])
     {
-        list($response) = $this->previewTemplateWithHttpInfo($id, $request, $contentType);
+        list($response) = $this->previewTemplateWithHttpInfo($id, $preview_template_preview_template_request, $contentType);
         return $response;
     }
 
@@ -421,16 +421,16 @@ class TemplatesApi
      * Render a preview of a template
      *
      * @param  string $id Template ID (required)
-     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $request Locale and variables (required)
+     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $preview_template_preview_template_request Locale and variables (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['previewTemplate'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\PreviewTemplateResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function previewTemplateWithHttpInfo($id, $request, string $contentType = self::contentTypes['previewTemplate'][0])
+    public function previewTemplateWithHttpInfo($id, $preview_template_preview_template_request, string $contentType = self::contentTypes['previewTemplate'][0])
     {
-        $request = $this->previewTemplateRequest($id, $request, $contentType);
+        $request = $this->previewTemplateRequest($id, $preview_template_preview_template_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -535,15 +535,15 @@ class TemplatesApi
      * Render a preview of a template
      *
      * @param  string $id Template ID (required)
-     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $request Locale and variables (required)
+     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $preview_template_preview_template_request Locale and variables (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['previewTemplate'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function previewTemplateAsync($id, $request, string $contentType = self::contentTypes['previewTemplate'][0])
+    public function previewTemplateAsync($id, $preview_template_preview_template_request, string $contentType = self::contentTypes['previewTemplate'][0])
     {
-        return $this->previewTemplateAsyncWithHttpInfo($id, $request, $contentType)
+        return $this->previewTemplateAsyncWithHttpInfo($id, $preview_template_preview_template_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -557,16 +557,16 @@ class TemplatesApi
      * Render a preview of a template
      *
      * @param  string $id Template ID (required)
-     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $request Locale and variables (required)
+     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $preview_template_preview_template_request Locale and variables (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['previewTemplate'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function previewTemplateAsyncWithHttpInfo($id, $request, string $contentType = self::contentTypes['previewTemplate'][0])
+    public function previewTemplateAsyncWithHttpInfo($id, $preview_template_preview_template_request, string $contentType = self::contentTypes['previewTemplate'][0])
     {
         $returnType = '\Lalternative\Spore\Model\PreviewTemplateResponse';
-        $request = $this->previewTemplateRequest($id, $request, $contentType);
+        $request = $this->previewTemplateRequest($id, $preview_template_preview_template_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -608,13 +608,13 @@ class TemplatesApi
      * Create request for operation 'previewTemplate'
      *
      * @param  string $id Template ID (required)
-     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $request Locale and variables (required)
+     * @param  \Lalternative\Spore\Model\PreviewTemplatePreviewTemplateRequest $preview_template_preview_template_request Locale and variables (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['previewTemplate'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function previewTemplateRequest($id, $request, string $contentType = self::contentTypes['previewTemplate'][0])
+    public function previewTemplateRequest($id, $preview_template_preview_template_request, string $contentType = self::contentTypes['previewTemplate'][0])
     {
 
         // verify the required parameter 'id' is set
@@ -624,10 +624,10 @@ class TemplatesApi
             );
         }
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'preview_template_preview_template_request' is set
+        if ($preview_template_preview_template_request === null || (is_array($preview_template_preview_template_request) && count($preview_template_preview_template_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling previewTemplate'
+                'Missing the required parameter $preview_template_preview_template_request when calling previewTemplate'
             );
         }
 
@@ -658,12 +658,12 @@ class TemplatesApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($preview_template_preview_template_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($preview_template_preview_template_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $preview_template_preview_template_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

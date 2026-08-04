@@ -20,7 +20,7 @@ pub struct ExtractBrandParams {
     /// Identity ID
     pub id: String,
     /// Source URL or raw HTML
-    pub request: models::ExtractBrandExtractBrandRequest
+    pub extract_brand_extract_brand_request: models::ExtractBrandExtractBrandRequest
 }
 
 /// struct for passing parameters to the method [`get_brand`]
@@ -36,7 +36,7 @@ pub struct SetBrandParams {
     /// Identity ID
     pub id: String,
     /// Branding fields
-    pub request: models::SetBrandSetBrandRequest
+    pub set_brand_set_brand_request: models::SetBrandSetBrandRequest
 }
 
 
@@ -85,7 +85,7 @@ pub async fn extract_brand(configuration: &configuration::Configuration, params:
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.extract_brand_extract_brand_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;
@@ -170,7 +170,7 @@ pub async fn set_brand(configuration: &configuration::Configuration, params: Set
         };
         req_builder = req_builder.header("Authorization", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.set_brand_set_brand_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

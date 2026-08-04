@@ -69,11 +69,11 @@ SporeEmail.configure do |config|
 end
 
 api_instance = SporeEmail::ApiKeysApi.new
-request = SporeEmail::ApikeysCreateAPIKeyRequest.new # ApikeysCreateAPIKeyRequest | API key to create
+apikeys_create_api_key_request = SporeEmail::ApikeysCreateAPIKeyRequest.new # ApikeysCreateAPIKeyRequest | API key to create
 
 begin
   #Create an API key
-  result = api_instance.create_api_key(request)
+  result = api_instance.create_api_key(apikeys_create_api_key_request)
   p result
 rescue SporeEmail::ApiError => e
   puts "Exception when calling ApiKeysApi->create_api_key: #{e}"

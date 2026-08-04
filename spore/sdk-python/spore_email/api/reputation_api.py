@@ -293,7 +293,7 @@ class ReputationApi:
     def unfreeze_tenant_reputation(
         self,
         tenant_id: Annotated[StrictStr, Field(description="Tenant id")],
-        request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
+        unfreeze_unfreeze_request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -313,8 +313,8 @@ class ReputationApi:
 
         :param tenant_id: Tenant id (required)
         :type tenant_id: str
-        :param request: Reason for lifting the freeze (required)
-        :type request: UnfreezeUnfreezeRequest
+        :param unfreeze_unfreeze_request: Reason for lifting the freeze (required)
+        :type unfreeze_unfreeze_request: UnfreezeUnfreezeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -339,7 +339,7 @@ class ReputationApi:
 
         _param = self._unfreeze_tenant_reputation_serialize(
             tenant_id=tenant_id,
-            request=request,
+            unfreeze_unfreeze_request=unfreeze_unfreeze_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -367,7 +367,7 @@ class ReputationApi:
     def unfreeze_tenant_reputation_with_http_info(
         self,
         tenant_id: Annotated[StrictStr, Field(description="Tenant id")],
-        request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
+        unfreeze_unfreeze_request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -387,8 +387,8 @@ class ReputationApi:
 
         :param tenant_id: Tenant id (required)
         :type tenant_id: str
-        :param request: Reason for lifting the freeze (required)
-        :type request: UnfreezeUnfreezeRequest
+        :param unfreeze_unfreeze_request: Reason for lifting the freeze (required)
+        :type unfreeze_unfreeze_request: UnfreezeUnfreezeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -413,7 +413,7 @@ class ReputationApi:
 
         _param = self._unfreeze_tenant_reputation_serialize(
             tenant_id=tenant_id,
-            request=request,
+            unfreeze_unfreeze_request=unfreeze_unfreeze_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -441,7 +441,7 @@ class ReputationApi:
     def unfreeze_tenant_reputation_without_preload_content(
         self,
         tenant_id: Annotated[StrictStr, Field(description="Tenant id")],
-        request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
+        unfreeze_unfreeze_request: Annotated[UnfreezeUnfreezeRequest, Field(description="Reason for lifting the freeze")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -461,8 +461,8 @@ class ReputationApi:
 
         :param tenant_id: Tenant id (required)
         :type tenant_id: str
-        :param request: Reason for lifting the freeze (required)
-        :type request: UnfreezeUnfreezeRequest
+        :param unfreeze_unfreeze_request: Reason for lifting the freeze (required)
+        :type unfreeze_unfreeze_request: UnfreezeUnfreezeRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -487,7 +487,7 @@ class ReputationApi:
 
         _param = self._unfreeze_tenant_reputation_serialize(
             tenant_id=tenant_id,
-            request=request,
+            unfreeze_unfreeze_request=unfreeze_unfreeze_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -510,7 +510,7 @@ class ReputationApi:
     def _unfreeze_tenant_reputation_serialize(
         self,
         tenant_id,
-        request,
+        unfreeze_unfreeze_request,
         _request_auth,
         _content_type,
         _headers,
@@ -538,8 +538,8 @@ class ReputationApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if unfreeze_unfreeze_request is not None:
+            _body_params = unfreeze_unfreeze_request
 
 
         # set the HTTP header `Accept`

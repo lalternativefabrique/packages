@@ -51,7 +51,7 @@ class IdentitiesApi:
     def add_identity_address(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        body: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
+        add_address_add_address_request: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -70,8 +70,8 @@ class IdentitiesApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param body: Address payload (required)
-        :type body: AddAddressAddAddressRequest
+        :param add_address_add_address_request: Address payload (required)
+        :type add_address_add_address_request: AddAddressAddAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -96,7 +96,7 @@ class IdentitiesApi:
 
         _param = self._add_identity_address_serialize(
             id=id,
-            body=body,
+            add_address_add_address_request=add_address_add_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -123,7 +123,7 @@ class IdentitiesApi:
     def add_identity_address_with_http_info(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        body: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
+        add_address_add_address_request: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -142,8 +142,8 @@ class IdentitiesApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param body: Address payload (required)
-        :type body: AddAddressAddAddressRequest
+        :param add_address_add_address_request: Address payload (required)
+        :type add_address_add_address_request: AddAddressAddAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -168,7 +168,7 @@ class IdentitiesApi:
 
         _param = self._add_identity_address_serialize(
             id=id,
-            body=body,
+            add_address_add_address_request=add_address_add_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -195,7 +195,7 @@ class IdentitiesApi:
     def add_identity_address_without_preload_content(
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
-        body: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
+        add_address_add_address_request: Annotated[AddAddressAddAddressRequest, Field(description="Address payload")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -214,8 +214,8 @@ class IdentitiesApi:
 
         :param id: Identity ID (required)
         :type id: str
-        :param body: Address payload (required)
-        :type body: AddAddressAddAddressRequest
+        :param add_address_add_address_request: Address payload (required)
+        :type add_address_add_address_request: AddAddressAddAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -240,7 +240,7 @@ class IdentitiesApi:
 
         _param = self._add_identity_address_serialize(
             id=id,
-            body=body,
+            add_address_add_address_request=add_address_add_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -262,7 +262,7 @@ class IdentitiesApi:
     def _add_identity_address_serialize(
         self,
         id,
-        body,
+        add_address_add_address_request,
         _request_auth,
         _content_type,
         _headers,
@@ -290,8 +290,8 @@ class IdentitiesApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if add_address_add_address_request is not None:
+            _body_params = add_address_add_address_request
 
 
         # set the HTTP header `Accept`
@@ -342,7 +342,7 @@ class IdentitiesApi:
     @validate_call
     def create_identity(
         self,
-        request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
+        create_identity_create_identity_request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -359,8 +359,8 @@ class IdentitiesApi:
         """Register a sending identity
 
 
-        :param request: Identity to create (required)
-        :type request: CreateIdentityCreateIdentityRequest
+        :param create_identity_create_identity_request: Identity to create (required)
+        :type create_identity_create_identity_request: CreateIdentityCreateIdentityRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -384,7 +384,7 @@ class IdentitiesApi:
         """ # noqa: E501
 
         _param = self._create_identity_serialize(
-            request=request,
+            create_identity_create_identity_request=create_identity_create_identity_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -411,7 +411,7 @@ class IdentitiesApi:
     @validate_call
     def create_identity_with_http_info(
         self,
-        request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
+        create_identity_create_identity_request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -428,8 +428,8 @@ class IdentitiesApi:
         """Register a sending identity
 
 
-        :param request: Identity to create (required)
-        :type request: CreateIdentityCreateIdentityRequest
+        :param create_identity_create_identity_request: Identity to create (required)
+        :type create_identity_create_identity_request: CreateIdentityCreateIdentityRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -453,7 +453,7 @@ class IdentitiesApi:
         """ # noqa: E501
 
         _param = self._create_identity_serialize(
-            request=request,
+            create_identity_create_identity_request=create_identity_create_identity_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -480,7 +480,7 @@ class IdentitiesApi:
     @validate_call
     def create_identity_without_preload_content(
         self,
-        request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
+        create_identity_create_identity_request: Annotated[CreateIdentityCreateIdentityRequest, Field(description="Identity to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -497,8 +497,8 @@ class IdentitiesApi:
         """Register a sending identity
 
 
-        :param request: Identity to create (required)
-        :type request: CreateIdentityCreateIdentityRequest
+        :param create_identity_create_identity_request: Identity to create (required)
+        :type create_identity_create_identity_request: CreateIdentityCreateIdentityRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -522,7 +522,7 @@ class IdentitiesApi:
         """ # noqa: E501
 
         _param = self._create_identity_serialize(
-            request=request,
+            create_identity_create_identity_request=create_identity_create_identity_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -544,7 +544,7 @@ class IdentitiesApi:
 
     def _create_identity_serialize(
         self,
-        request,
+        create_identity_create_identity_request,
         _request_auth,
         _content_type,
         _headers,
@@ -570,8 +570,8 @@ class IdentitiesApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if create_identity_create_identity_request is not None:
+            _body_params = create_identity_create_identity_request
 
 
         # set the HTTP header `Accept`
@@ -891,7 +891,7 @@ class IdentitiesApi:
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
         local_part: Annotated[StrictStr, Field(description="Address local-part")],
-        body: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
+        disable_address_disable_address_request: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -912,8 +912,8 @@ class IdentitiesApi:
         :type id: str
         :param local_part: Address local-part (required)
         :type local_part: str
-        :param body: Optional reason
-        :type body: DisableAddressDisableAddressRequest
+        :param disable_address_disable_address_request: Optional reason
+        :type disable_address_disable_address_request: DisableAddressDisableAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -939,7 +939,7 @@ class IdentitiesApi:
         _param = self._disable_identity_address_serialize(
             id=id,
             local_part=local_part,
-            body=body,
+            disable_address_disable_address_request=disable_address_disable_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -967,7 +967,7 @@ class IdentitiesApi:
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
         local_part: Annotated[StrictStr, Field(description="Address local-part")],
-        body: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
+        disable_address_disable_address_request: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -988,8 +988,8 @@ class IdentitiesApi:
         :type id: str
         :param local_part: Address local-part (required)
         :type local_part: str
-        :param body: Optional reason
-        :type body: DisableAddressDisableAddressRequest
+        :param disable_address_disable_address_request: Optional reason
+        :type disable_address_disable_address_request: DisableAddressDisableAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1015,7 +1015,7 @@ class IdentitiesApi:
         _param = self._disable_identity_address_serialize(
             id=id,
             local_part=local_part,
-            body=body,
+            disable_address_disable_address_request=disable_address_disable_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1043,7 +1043,7 @@ class IdentitiesApi:
         self,
         id: Annotated[StrictStr, Field(description="Identity ID")],
         local_part: Annotated[StrictStr, Field(description="Address local-part")],
-        body: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
+        disable_address_disable_address_request: Annotated[Optional[DisableAddressDisableAddressRequest], Field(description="Optional reason")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1064,8 +1064,8 @@ class IdentitiesApi:
         :type id: str
         :param local_part: Address local-part (required)
         :type local_part: str
-        :param body: Optional reason
-        :type body: DisableAddressDisableAddressRequest
+        :param disable_address_disable_address_request: Optional reason
+        :type disable_address_disable_address_request: DisableAddressDisableAddressRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1091,7 +1091,7 @@ class IdentitiesApi:
         _param = self._disable_identity_address_serialize(
             id=id,
             local_part=local_part,
-            body=body,
+            disable_address_disable_address_request=disable_address_disable_address_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1114,7 +1114,7 @@ class IdentitiesApi:
         self,
         id,
         local_part,
-        body,
+        disable_address_disable_address_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1144,8 +1144,8 @@ class IdentitiesApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if disable_address_disable_address_request is not None:
+            _body_params = disable_address_disable_address_request
 
 
         # set the HTTP header `Accept`

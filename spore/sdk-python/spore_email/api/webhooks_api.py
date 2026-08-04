@@ -47,7 +47,7 @@ class WebhooksApi:
     @validate_call
     def create_webhook_endpoint(
         self,
-        request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
+        create_endpoint_create_endpoint_request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -64,8 +64,8 @@ class WebhooksApi:
         """Create a webhook endpoint
 
 
-        :param request: Endpoint to create (required)
-        :type request: CreateEndpointCreateEndpointRequest
+        :param create_endpoint_create_endpoint_request: Endpoint to create (required)
+        :type create_endpoint_create_endpoint_request: CreateEndpointCreateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -89,7 +89,7 @@ class WebhooksApi:
         """ # noqa: E501
 
         _param = self._create_webhook_endpoint_serialize(
-            request=request,
+            create_endpoint_create_endpoint_request=create_endpoint_create_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -115,7 +115,7 @@ class WebhooksApi:
     @validate_call
     def create_webhook_endpoint_with_http_info(
         self,
-        request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
+        create_endpoint_create_endpoint_request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -132,8 +132,8 @@ class WebhooksApi:
         """Create a webhook endpoint
 
 
-        :param request: Endpoint to create (required)
-        :type request: CreateEndpointCreateEndpointRequest
+        :param create_endpoint_create_endpoint_request: Endpoint to create (required)
+        :type create_endpoint_create_endpoint_request: CreateEndpointCreateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -157,7 +157,7 @@ class WebhooksApi:
         """ # noqa: E501
 
         _param = self._create_webhook_endpoint_serialize(
-            request=request,
+            create_endpoint_create_endpoint_request=create_endpoint_create_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -183,7 +183,7 @@ class WebhooksApi:
     @validate_call
     def create_webhook_endpoint_without_preload_content(
         self,
-        request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
+        create_endpoint_create_endpoint_request: Annotated[CreateEndpointCreateEndpointRequest, Field(description="Endpoint to create")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -200,8 +200,8 @@ class WebhooksApi:
         """Create a webhook endpoint
 
 
-        :param request: Endpoint to create (required)
-        :type request: CreateEndpointCreateEndpointRequest
+        :param create_endpoint_create_endpoint_request: Endpoint to create (required)
+        :type create_endpoint_create_endpoint_request: CreateEndpointCreateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -225,7 +225,7 @@ class WebhooksApi:
         """ # noqa: E501
 
         _param = self._create_webhook_endpoint_serialize(
-            request=request,
+            create_endpoint_create_endpoint_request=create_endpoint_create_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -246,7 +246,7 @@ class WebhooksApi:
 
     def _create_webhook_endpoint_serialize(
         self,
-        request,
+        create_endpoint_create_endpoint_request,
         _request_auth,
         _content_type,
         _headers,
@@ -272,8 +272,8 @@ class WebhooksApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if create_endpoint_create_endpoint_request is not None:
+            _body_params = create_endpoint_create_endpoint_request
 
 
         # set the HTTP header `Accept`
@@ -1409,7 +1409,7 @@ class WebhooksApi:
     def update_webhook_endpoint(
         self,
         id: Annotated[StrictStr, Field(description="Endpoint ID")],
-        request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
+        update_endpoint_update_endpoint_request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1428,8 +1428,8 @@ class WebhooksApi:
 
         :param id: Endpoint ID (required)
         :type id: str
-        :param request: Updated fields (required)
-        :type request: UpdateEndpointUpdateEndpointRequest
+        :param update_endpoint_update_endpoint_request: Updated fields (required)
+        :type update_endpoint_update_endpoint_request: UpdateEndpointUpdateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1454,7 +1454,7 @@ class WebhooksApi:
 
         _param = self._update_webhook_endpoint_serialize(
             id=id,
-            request=request,
+            update_endpoint_update_endpoint_request=update_endpoint_update_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1482,7 +1482,7 @@ class WebhooksApi:
     def update_webhook_endpoint_with_http_info(
         self,
         id: Annotated[StrictStr, Field(description="Endpoint ID")],
-        request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
+        update_endpoint_update_endpoint_request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1501,8 +1501,8 @@ class WebhooksApi:
 
         :param id: Endpoint ID (required)
         :type id: str
-        :param request: Updated fields (required)
-        :type request: UpdateEndpointUpdateEndpointRequest
+        :param update_endpoint_update_endpoint_request: Updated fields (required)
+        :type update_endpoint_update_endpoint_request: UpdateEndpointUpdateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1527,7 +1527,7 @@ class WebhooksApi:
 
         _param = self._update_webhook_endpoint_serialize(
             id=id,
-            request=request,
+            update_endpoint_update_endpoint_request=update_endpoint_update_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1555,7 +1555,7 @@ class WebhooksApi:
     def update_webhook_endpoint_without_preload_content(
         self,
         id: Annotated[StrictStr, Field(description="Endpoint ID")],
-        request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
+        update_endpoint_update_endpoint_request: Annotated[UpdateEndpointUpdateEndpointRequest, Field(description="Updated fields")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1574,8 +1574,8 @@ class WebhooksApi:
 
         :param id: Endpoint ID (required)
         :type id: str
-        :param request: Updated fields (required)
-        :type request: UpdateEndpointUpdateEndpointRequest
+        :param update_endpoint_update_endpoint_request: Updated fields (required)
+        :type update_endpoint_update_endpoint_request: UpdateEndpointUpdateEndpointRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1600,7 +1600,7 @@ class WebhooksApi:
 
         _param = self._update_webhook_endpoint_serialize(
             id=id,
-            request=request,
+            update_endpoint_update_endpoint_request=update_endpoint_update_endpoint_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1623,7 +1623,7 @@ class WebhooksApi:
     def _update_webhook_endpoint_serialize(
         self,
         id,
-        request,
+        update_endpoint_update_endpoint_request,
         _request_auth,
         _content_type,
         _headers,
@@ -1651,8 +1651,8 @@ class WebhooksApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if update_endpoint_update_endpoint_request is not None:
+            _body_params = update_endpoint_update_endpoint_request
 
 
         # set the HTTP header `Accept`

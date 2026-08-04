@@ -27,7 +27,7 @@ pub struct IngestBounceParams {
 #[derive(Clone, Debug)]
 pub struct SetTenantPlanParams {
     /// Tenant + plan to assign
-    pub request: models::SetTenantPlanSetTenantPlanRequest
+    pub set_tenant_plan_set_tenant_plan_request: models::SetTenantPlanSetTenantPlanRequest
 }
 
 
@@ -147,7 +147,7 @@ pub async fn set_tenant_plan(configuration: &configuration::Configuration, param
         };
         req_builder = req_builder.header("X-Internal-Token", value);
     };
-    req_builder = req_builder.json(&params.request);
+    req_builder = req_builder.json(&params.set_tenant_plan_set_tenant_plan_request);
 
     let req = req_builder.build()?;
     let resp = configuration.client.execute(req).await?;

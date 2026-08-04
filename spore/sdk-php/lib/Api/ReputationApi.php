@@ -402,16 +402,16 @@ class ReputationApi
      * Lift a sending freeze on a tenant
      *
      * @param  string $tenant_id Tenant id (required)
-     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $request Reason for lifting the freeze (required)
+     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $unfreeze_unfreeze_request Reason for lifting the freeze (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['unfreezeTenantReputation'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\UnfreezeResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function unfreezeTenantReputation($tenant_id, $request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
+    public function unfreezeTenantReputation($tenant_id, $unfreeze_unfreeze_request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
     {
-        list($response) = $this->unfreezeTenantReputationWithHttpInfo($tenant_id, $request, $contentType);
+        list($response) = $this->unfreezeTenantReputationWithHttpInfo($tenant_id, $unfreeze_unfreeze_request, $contentType);
         return $response;
     }
 
@@ -421,16 +421,16 @@ class ReputationApi
      * Lift a sending freeze on a tenant
      *
      * @param  string $tenant_id Tenant id (required)
-     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $request Reason for lifting the freeze (required)
+     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $unfreeze_unfreeze_request Reason for lifting the freeze (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['unfreezeTenantReputation'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\UnfreezeResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function unfreezeTenantReputationWithHttpInfo($tenant_id, $request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
+    public function unfreezeTenantReputationWithHttpInfo($tenant_id, $unfreeze_unfreeze_request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
     {
-        $request = $this->unfreezeTenantReputationRequest($tenant_id, $request, $contentType);
+        $request = $this->unfreezeTenantReputationRequest($tenant_id, $unfreeze_unfreeze_request, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -549,15 +549,15 @@ class ReputationApi
      * Lift a sending freeze on a tenant
      *
      * @param  string $tenant_id Tenant id (required)
-     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $request Reason for lifting the freeze (required)
+     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $unfreeze_unfreeze_request Reason for lifting the freeze (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['unfreezeTenantReputation'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function unfreezeTenantReputationAsync($tenant_id, $request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
+    public function unfreezeTenantReputationAsync($tenant_id, $unfreeze_unfreeze_request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
     {
-        return $this->unfreezeTenantReputationAsyncWithHttpInfo($tenant_id, $request, $contentType)
+        return $this->unfreezeTenantReputationAsyncWithHttpInfo($tenant_id, $unfreeze_unfreeze_request, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -571,16 +571,16 @@ class ReputationApi
      * Lift a sending freeze on a tenant
      *
      * @param  string $tenant_id Tenant id (required)
-     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $request Reason for lifting the freeze (required)
+     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $unfreeze_unfreeze_request Reason for lifting the freeze (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['unfreezeTenantReputation'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function unfreezeTenantReputationAsyncWithHttpInfo($tenant_id, $request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
+    public function unfreezeTenantReputationAsyncWithHttpInfo($tenant_id, $unfreeze_unfreeze_request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
     {
         $returnType = '\Lalternative\Spore\Model\UnfreezeResponse';
-        $request = $this->unfreezeTenantReputationRequest($tenant_id, $request, $contentType);
+        $request = $this->unfreezeTenantReputationRequest($tenant_id, $unfreeze_unfreeze_request, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -622,13 +622,13 @@ class ReputationApi
      * Create request for operation 'unfreezeTenantReputation'
      *
      * @param  string $tenant_id Tenant id (required)
-     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $request Reason for lifting the freeze (required)
+     * @param  \Lalternative\Spore\Model\UnfreezeUnfreezeRequest $unfreeze_unfreeze_request Reason for lifting the freeze (required)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['unfreezeTenantReputation'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function unfreezeTenantReputationRequest($tenant_id, $request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
+    public function unfreezeTenantReputationRequest($tenant_id, $unfreeze_unfreeze_request, string $contentType = self::contentTypes['unfreezeTenantReputation'][0])
     {
 
         // verify the required parameter 'tenant_id' is set
@@ -638,10 +638,10 @@ class ReputationApi
             );
         }
 
-        // verify the required parameter 'request' is set
-        if ($request === null || (is_array($request) && count($request) === 0)) {
+        // verify the required parameter 'unfreeze_unfreeze_request' is set
+        if ($unfreeze_unfreeze_request === null || (is_array($unfreeze_unfreeze_request) && count($unfreeze_unfreeze_request) === 0)) {
             throw new \InvalidArgumentException(
-                'Missing the required parameter $request when calling unfreezeTenantReputation'
+                'Missing the required parameter $unfreeze_unfreeze_request when calling unfreezeTenantReputation'
             );
         }
 
@@ -672,12 +672,12 @@ class ReputationApi
         );
 
         // for model (json/xml)
-        if (isset($request)) {
+        if (isset($unfreeze_unfreeze_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($request));
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($unfreeze_unfreeze_request));
             } else {
-                $httpBody = $request;
+                $httpBody = $unfreeze_unfreeze_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

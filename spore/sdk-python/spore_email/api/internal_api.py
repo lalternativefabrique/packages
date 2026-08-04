@@ -592,7 +592,7 @@ class InternalApi:
     @validate_call
     def set_tenant_plan(
         self,
-        request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
+        set_tenant_plan_set_tenant_plan_request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -610,8 +610,8 @@ class InternalApi:
 
         Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
 
-        :param request: Tenant + plan to assign (required)
-        :type request: SetTenantPlanSetTenantPlanRequest
+        :param set_tenant_plan_set_tenant_plan_request: Tenant + plan to assign (required)
+        :type set_tenant_plan_set_tenant_plan_request: SetTenantPlanSetTenantPlanRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -635,7 +635,7 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._set_tenant_plan_serialize(
-            request=request,
+            set_tenant_plan_set_tenant_plan_request=set_tenant_plan_set_tenant_plan_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -662,7 +662,7 @@ class InternalApi:
     @validate_call
     def set_tenant_plan_with_http_info(
         self,
-        request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
+        set_tenant_plan_set_tenant_plan_request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -680,8 +680,8 @@ class InternalApi:
 
         Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
 
-        :param request: Tenant + plan to assign (required)
-        :type request: SetTenantPlanSetTenantPlanRequest
+        :param set_tenant_plan_set_tenant_plan_request: Tenant + plan to assign (required)
+        :type set_tenant_plan_set_tenant_plan_request: SetTenantPlanSetTenantPlanRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -705,7 +705,7 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._set_tenant_plan_serialize(
-            request=request,
+            set_tenant_plan_set_tenant_plan_request=set_tenant_plan_set_tenant_plan_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -732,7 +732,7 @@ class InternalApi:
     @validate_call
     def set_tenant_plan_without_preload_content(
         self,
-        request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
+        set_tenant_plan_set_tenant_plan_request: Annotated[SetTenantPlanSetTenantPlanRequest, Field(description="Tenant + plan to assign")],
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -750,8 +750,8 @@ class InternalApi:
 
         Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
 
-        :param request: Tenant + plan to assign (required)
-        :type request: SetTenantPlanSetTenantPlanRequest
+        :param set_tenant_plan_set_tenant_plan_request: Tenant + plan to assign (required)
+        :type set_tenant_plan_set_tenant_plan_request: SetTenantPlanSetTenantPlanRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -775,7 +775,7 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._set_tenant_plan_serialize(
-            request=request,
+            set_tenant_plan_set_tenant_plan_request=set_tenant_plan_set_tenant_plan_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -797,7 +797,7 @@ class InternalApi:
 
     def _set_tenant_plan_serialize(
         self,
-        request,
+        set_tenant_plan_set_tenant_plan_request,
         _request_auth,
         _content_type,
         _headers,
@@ -823,8 +823,8 @@ class InternalApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if request is not None:
-            _body_params = request
+        if set_tenant_plan_set_tenant_plan_request is not None:
+            _body_params = set_tenant_plan_set_tenant_plan_request
 
 
         # set the HTTP header `Accept`

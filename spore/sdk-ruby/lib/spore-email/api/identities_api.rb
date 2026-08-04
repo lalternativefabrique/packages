@@ -21,20 +21,20 @@ module SporeEmail
     end
     # Add an allowed From address (local-part) on a verified identity
     # @param id [String] Identity ID
-    # @param body [AddAddressAddAddressRequest] Address payload
+    # @param add_address_add_address_request [AddAddressAddAddressRequest] Address payload
     # @param [Hash] opts the optional parameters
     # @return [AddAddressAddAddressResult]
-    def add_identity_address(id, body, opts = {})
-      data, _status_code, _headers = add_identity_address_with_http_info(id, body, opts)
+    def add_identity_address(id, add_address_add_address_request, opts = {})
+      data, _status_code, _headers = add_identity_address_with_http_info(id, add_address_add_address_request, opts)
       data
     end
 
     # Add an allowed From address (local-part) on a verified identity
     # @param id [String] Identity ID
-    # @param body [AddAddressAddAddressRequest] Address payload
+    # @param add_address_add_address_request [AddAddressAddAddressRequest] Address payload
     # @param [Hash] opts the optional parameters
     # @return [Array<(AddAddressAddAddressResult, Integer, Hash)>] AddAddressAddAddressResult data, response status code and response headers
-    def add_identity_address_with_http_info(id, body, opts = {})
+    def add_identity_address_with_http_info(id, add_address_add_address_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: IdentitiesApi.add_identity_address ...'
       end
@@ -42,9 +42,9 @@ module SporeEmail
       if @api_client.config.client_side_validation && id.nil?
         fail ArgumentError, "Missing the required parameter 'id' when calling IdentitiesApi.add_identity_address"
       end
-      # verify the required parameter 'body' is set
-      if @api_client.config.client_side_validation && body.nil?
-        fail ArgumentError, "Missing the required parameter 'body' when calling IdentitiesApi.add_identity_address"
+      # verify the required parameter 'add_address_add_address_request' is set
+      if @api_client.config.client_side_validation && add_address_add_address_request.nil?
+        fail ArgumentError, "Missing the required parameter 'add_address_add_address_request' when calling IdentitiesApi.add_identity_address"
       end
       # resource path
       local_var_path = '/identities/{id}/addresses'.sub('{id}', CGI.escape(id.to_s))
@@ -66,7 +66,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(body)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(add_address_add_address_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'AddAddressAddAddressResult'
@@ -92,25 +92,25 @@ module SporeEmail
     end
 
     # Register a sending identity
-    # @param request [CreateIdentityCreateIdentityRequest] Identity to create
+    # @param create_identity_create_identity_request [CreateIdentityCreateIdentityRequest] Identity to create
     # @param [Hash] opts the optional parameters
     # @return [CreateIdentityCreateIdentityResult]
-    def create_identity(request, opts = {})
-      data, _status_code, _headers = create_identity_with_http_info(request, opts)
+    def create_identity(create_identity_create_identity_request, opts = {})
+      data, _status_code, _headers = create_identity_with_http_info(create_identity_create_identity_request, opts)
       data
     end
 
     # Register a sending identity
-    # @param request [CreateIdentityCreateIdentityRequest] Identity to create
+    # @param create_identity_create_identity_request [CreateIdentityCreateIdentityRequest] Identity to create
     # @param [Hash] opts the optional parameters
     # @return [Array<(CreateIdentityCreateIdentityResult, Integer, Hash)>] CreateIdentityCreateIdentityResult data, response status code and response headers
-    def create_identity_with_http_info(request, opts = {})
+    def create_identity_with_http_info(create_identity_create_identity_request, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: IdentitiesApi.create_identity ...'
       end
-      # verify the required parameter 'request' is set
-      if @api_client.config.client_side_validation && request.nil?
-        fail ArgumentError, "Missing the required parameter 'request' when calling IdentitiesApi.create_identity"
+      # verify the required parameter 'create_identity_create_identity_request' is set
+      if @api_client.config.client_side_validation && create_identity_create_identity_request.nil?
+        fail ArgumentError, "Missing the required parameter 'create_identity_create_identity_request' when calling IdentitiesApi.create_identity"
       end
       # resource path
       local_var_path = '/identities'
@@ -132,7 +132,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(request)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(create_identity_create_identity_request)
 
       # return_type
       return_type = opts[:debug_return_type] || 'CreateIdentityCreateIdentityResult'
@@ -222,7 +222,7 @@ module SporeEmail
     # @param id [String] Identity ID
     # @param local_part [String] Address local-part
     # @param [Hash] opts the optional parameters
-    # @option opts [DisableAddressDisableAddressRequest] :body Optional reason
+    # @option opts [DisableAddressDisableAddressRequest] :disable_address_disable_address_request Optional reason
     # @return [DisableAddressDisableAddressResult]
     def disable_identity_address(id, local_part, opts = {})
       data, _status_code, _headers = disable_identity_address_with_http_info(id, local_part, opts)
@@ -233,7 +233,7 @@ module SporeEmail
     # @param id [String] Identity ID
     # @param local_part [String] Address local-part
     # @param [Hash] opts the optional parameters
-    # @option opts [DisableAddressDisableAddressRequest] :body Optional reason
+    # @option opts [DisableAddressDisableAddressRequest] :disable_address_disable_address_request Optional reason
     # @return [Array<(DisableAddressDisableAddressResult, Integer, Hash)>] DisableAddressDisableAddressResult data, response status code and response headers
     def disable_identity_address_with_http_info(id, local_part, opts = {})
       if @api_client.config.debugging
@@ -267,7 +267,7 @@ module SporeEmail
       form_params = opts[:form_params] || {}
 
       # http body (model)
-      post_body = opts[:debug_body] || @api_client.object_to_http_body(opts[:'body'])
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(opts[:'disable_address_disable_address_request'])
 
       # return_type
       return_type = opts[:debug_return_type] || 'DisableAddressDisableAddressResult'

@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EchoHttpError {
-    #[serde(rename = "message", skip_serializing_if = "Option::is_none")]
-    pub message: Option<serde_json::Value>,
+    #[serde(rename = "message", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub message: Option<Option<serde_json::Value>>,
 }
 
 impl EchoHttpError {
