@@ -106,6 +106,57 @@ export interface UsersTableProps {
   onSuccess?: (message: string) => void
 }
 
+/**
+ * A pending or redeemed invitation. Keyed by email because it is minted before
+ * the person has an account — that is the whole point of an invitation.
+ */
+export interface AdminInvitation {
+  email: string
+  /**
+   * What the invitation confers, as an opaque string: a billing tier in one app
+   * ("collab", "max"), a plan in the next ("pro"). The package never interprets
+   * it — the host supplies the allowed values through `grantOptions` and the
+   * labels to render them with.
+   */
+  grant?: string | null
+  /** Why it was granted, when the app distinguishes motives. Free text. */
+  reason?: string | null
+  invitedAt?: string | Date | null
+  expiresAt?: string | Date | null
+  /** Set once someone signed up with it. Such rows fold into the account row. */
+  usedAt?: string | Date | null
+}
+
+/**
+ * Invitations as a port of its own, deliberately not folded into
+ * {@link AdminUserApi}: apps that only want a users table implement nothing,
+ * and the existing implementors of `AdminUserApi` keep compiling.
+ *
+ * Same contract over backends that share no code — a Go service in one app, a
+ * SQL route in another.
+ */
+export interface AdminInvitationApi {
+  listInvitations(): Promise<{ invitations: AdminInvitation[] }>
+  inviteUser(input: { email: string; grant?: string }): Promise<unknown>
+  /**
+   * Optional: not every app can revoke. When absent the action is not rendered
+   * at all, rather than the host wiring a method that throws.
+   */
+  revokeInvitation?(email: string): Promise<unknown>
+}
+
+export interface AccountsTableProps {
+  api: AdminUserApi
+  /** Omit to get exactly the {@link UsersTableProps} behaviour, invitations aside. */
+  invitations?: AdminInvitationApi
+  /** The grants this app may confer, in the order they should be offered. */
+  grantOptions?: { value: string; label: string }[]
+  /** See {@link UsersTableProps.onDeleteUser}. */
+  onDeleteUser?: (userId: string) => Promise<unknown>
+  onError?: (message: string) => void
+  onSuccess?: (message: string) => void
+}
+
 export interface AdminLoginFormProps {
   authClient: AdminAuthClient
   /** Fetch the fresh profile after sign-in to check the admin role. */

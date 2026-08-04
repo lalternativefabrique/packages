@@ -45,6 +45,11 @@ function StatusPill({
 /**
  * The shared admin users table: list + delete + ban/unban + promote/demote.
  *
+ * @deprecated Prefer {@link AccountsTable}, which shows the same accounts plus
+ * the invitations that have not become accounts yet. Called without its
+ * `invitations` prop it behaves exactly like this component. Kept working so a
+ * minor upgrade never breaks a host that has not migrated.
+ *
  * Everything goes through the {@link AdminUserApi} adapter the app passes, so
  * the component depends on neither better-auth nor a router. Delete prefers
  * `onDeleteUser` (the app's server route, which also cleans up domain data);
