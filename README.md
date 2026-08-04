@@ -27,3 +27,30 @@ workspace), each versioned with a path-prefixed tag (e.g. `go/eda/v0.1.1`).
 
 Submodules `go/eda/pkg/obs/{otelobs,prom}` carry their own `go.mod` (optional
 observability adapters) and are tagged independently if needed.
+
+## spore/
+
+SDKs for the [Spore](https://sporee.fr) transactional email API. The generated
+clients share the checked-in OpenAPI 3 contract at `spore/openapi.json`.
+
+| Package | Runtime / registry |
+| --- | --- |
+| `sdk-node` | Node.js and Bun — `@lalternative/spore-sdk` |
+| `sdk-python` | Python — `spore-email` |
+| `sdk-php` | PHP and Laravel — `lalternative/spore` |
+| `sdk-ruby` | Ruby and Rails — `spore-email` |
+| `sdk-rust` | Rust — `spore-email` |
+| `sdk-go` | Go — `github.com/lalternative/packages/spore/sdk-go` |
+
+Spore publishes the contract without authentication at `/openapi.json`.
+Refresh it from production, or from a local Spore instance, and regenerate all
+generated clients with:
+
+```bash
+./spore/refresh-contract.sh
+./spore/refresh-contract.sh http://localhost:4110
+```
+
+To regenerate without fetching the network, use
+`pnpm --filter @lalternative/spore-codegen generate`. The Go client is
+maintained by hand and tested against the same HTTP contract separately.

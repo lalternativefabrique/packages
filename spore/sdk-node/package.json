@@ -1,0 +1,42 @@
+{
+  "name": "@lalternative/spore-sdk",
+  "version": "0.4.0",
+  "description": "Typed TypeScript client for the Spore API, generated from OpenAPI 3.1.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lalternativefabrique/packages.git",
+    "directory": "spore/sdk-node"
+  },
+  "scripts": {
+    "generate": "orval --config orval.config.ts",
+    "build": "tsup",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "axios": "^1.7.7"
+  },
+  "devDependencies": {
+    "orval": "^7.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.6.3"
+  }
+}

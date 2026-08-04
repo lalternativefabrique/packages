@@ -1,7 +1,19 @@
 node_modules/
+.pnpm-store/
 dist/
 *.tsbuildinfo
 .DS_Store
+
+# Generated Spore SDK development artefacts
+/spore/sdk-php/composer.lock
+/spore/sdk-php/.phpunit.cache/
+/spore/sdk-ruby/Gemfile.lock
+/spore/sdk-ruby/.rspec_status
+/spore/sdk-python/.mypy_cache/
+/spore/sdk-python/.nox/
+/spore/sdk-python/.pyright/
+/spore/sdk-python/.ruff_cache/
+/spore/sdk-rust/target/
 
 # sklp writes its run plans here; they are machine-local build state.
 .sklp/cache/
