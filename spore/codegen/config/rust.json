@@ -2,6 +2,7 @@
   "packageName": "spore-email",
   "packageVersion": "0.1.0",
   "library": "reqwest",
+  "reqwestDefaultFeatures": "rustls",
   "supportAsync": true,
   "useSingleRequestParameter": true,
   "hideGenerationTimestamp": true
