@@ -2,6 +2,11 @@ version: 1
 kind: pipeline
 name: ci
 
+tools:
+  node: "24.16.0"
+  pnpm: "11.3.0"
+  rust: "1.90.0"
+
 inputs:
   base_ref:
     type: string
@@ -59,7 +64,9 @@ scopes:
   skalpai-sdk:
     - "skalpai/sdk-go/**"
   spore-sdk:
-    - "spore/sdk-go/**"
+    - "spore/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
 
 steps:
   # eda's pkg/* are SEPARATE modules, so `go test ./...` at the root does not
@@ -150,9 +157,14 @@ steps:
 
   - name: spore-sdk
     scope: [spore-sdk]
-    tools: [go]
+    tools: [go, node, pnpm, rust]
     run: |
       cd spore/sdk-go
       go build ./...
       go vet ./...
       go test -count=1 ./...
+      cd ../..
+      pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/spore-sdk build
+      pnpm --filter @lalternative/spore-sdk typecheck
+      cargo check --manifest-path spore/sdk-rust/Cargo.toml

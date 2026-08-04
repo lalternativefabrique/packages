@@ -1,0 +1,11 @@
+{
+  "invokerPackage": "Lalternative\\Spore",
+  "packageName": "Spore",
+  "composerPackageName": "lalternative/spore",
+  "artifactVersion": "0.1.0",
+  "artifactUrl": "https://sporee.fr/docs/sdks/php",
+  "licenseName": "proprietary",
+  "developerOrganization": "Spore",
+  "developerOrganizationUrl": "https://sporee.fr",
+  "hideGenerationTimestamp": true
+}

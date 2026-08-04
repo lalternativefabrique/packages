@@ -1,7 +1,10 @@
 packages:
   - "skalpai/*"
+  - "spore/*"
   - "auth"
   - "admin"
 allowBuilds:
+  '@openapitools/openapi-generator-cli': true
+  '@scarf/scarf': false
   esbuild: true
   protobufjs: false

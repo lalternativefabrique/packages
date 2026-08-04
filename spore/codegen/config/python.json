@@ -1,0 +1,8 @@
+{
+  "packageName": "spore_email",
+  "projectName": "spore-email",
+  "packageVersion": "0.1.0",
+  "packageUrl": "https://github.com/lalternativefabrique/packages/tree/main/spore/sdk-python",
+  "library": "urllib3",
+  "hideGenerationTimestamp": true
+}

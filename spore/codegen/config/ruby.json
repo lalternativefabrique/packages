@@ -1,0 +1,13 @@
+{
+  "gemName": "spore-email",
+  "moduleName": "SporeEmail",
+  "gemVersion": "0.1.0",
+  "gemAuthor": "Spore",
+  "gemAuthorEmail": "contact@sporee.fr",
+  "gemHomepage": "https://sporee.fr/docs/sdks/ruby",
+  "gemLicense": "Nonstandard",
+  "gemSummary": "Typed Ruby client for the Spore transactional email API",
+  "gemDescription": "Send DKIM-signed transactional email through Spore from Ruby and Rails.",
+  "library": "faraday",
+  "hideGenerationTimestamp": true
+}

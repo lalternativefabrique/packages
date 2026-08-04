@@ -2,9 +2,9 @@
 
 Minimal Go client for the [Spore](https://sporee.fr) transactional email API.
 
-The TypeScript SDK lives in the Spore monorepo under `apps/sdk`. This module is a
-hand-written Go counterpart kept intentionally small (stdlib only, no codegen) so
-that any Go service can drop it in without inheriting heavy dependencies.
+The TypeScript, Python, PHP, Ruby and Rust SDKs live next to this module under
+`spore/sdk-*`. This Go client remains intentionally small and hand-written
+(stdlib only), so any Go service can use it without inheriting heavy dependencies.
 
 ## Install
 

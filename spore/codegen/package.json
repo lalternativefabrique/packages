@@ -1,0 +1,12 @@
+{
+  "name": "@lalternative/spore-codegen",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "pnpm --filter @lalternative/spore-sdk generate && node generate.mjs"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "2.40.1"
+  }
+}
