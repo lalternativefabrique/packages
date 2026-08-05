@@ -9,6 +9,82 @@ import (
 	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
 
+func TestGrant_SendsTheUserPlanAndEmail(t *testing.T) {
+	subID, code, end := "sub-1", "collab", "2026-09-05T10:00:00Z"
+	srv, rec := server(t, http.StatusCreated, wire.FinanceAppGrantResponse{
+		SubscriptionId: &subID, PlanCode: &code, PeriodEnd: &end,
+	})
+	c := New(srv.URL, "k")
+
+	out, err := c.Grant(ctx(), GrantInput{
+		ExternalUserID: "org_42", PlanCode: "collab", Email: "bob@example.fr",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec.path != "/api/v1/subscriptions/grant" {
+		t.Fatalf("path = %q", rec.path)
+	}
+	if rec.body["external_user_id"] != "org_42" ||
+		rec.body["plan_code"] != "collab" ||
+		rec.body["email"] != "bob@example.fr" {
+		t.Fatalf("body = %+v", rec.body)
+	}
+	if out.SubscriptionID != "sub-1" || out.PlanCode != "collab" {
+		t.Fatalf("result = %+v", out)
+	}
+	// The renewal date is what tells the caller when the allowance comes back.
+	if out.PeriodEnd.IsZero() {
+		t.Fatal("period end was not parsed")
+	}
+}
+
+// An omitted country must not travel as an empty string: Lungor would store
+// "" as a country rather than the absence the caller meant.
+func TestGrant_OmitsAnUnsetCountry(t *testing.T) {
+	srv, rec := server(t, http.StatusCreated, wire.FinanceAppGrantResponse{})
+	c := New(srv.URL, "k")
+
+	if _, err := c.Grant(ctx(), GrantInput{
+		ExternalUserID: "org_42", PlanCode: "collab", Email: "bob@example.fr",
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, present := rec.body["country"]; present {
+		t.Fatalf("country was sent: %+v", rec.body)
+	}
+}
+
+// Already subscribed is a customer state, not an outage: the caller must be
+// able to tell it from Lungor being down and route it to ChangePlan instead.
+func TestGrant_ReportsAConflictDistinctly(t *testing.T) {
+	srv, _ := server(t, http.StatusConflict, map[string]string{
+		"message": "user already has an active subscription",
+	})
+	c := New(srv.URL, "k")
+
+	_, err := c.Grant(ctx(), GrantInput{
+		ExternalUserID: "org_42", PlanCode: "collab", Email: "bob@example.fr",
+	})
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("err = %v, want ErrConflict", err)
+	}
+}
+
+// Refused locally rather than sent: a request Lungor is certain to reject is
+// one round trip nobody needs, and the error names which field is missing.
+func TestGrant_RefusesIncompleteInputWithoutCalling(t *testing.T) {
+	srv, rec := server(t, http.StatusCreated, wire.FinanceAppGrantResponse{})
+	c := New(srv.URL, "k")
+
+	if _, err := c.Grant(ctx(), GrantInput{ExternalUserID: "org_42"}); !errors.Is(err, ErrBadRequest) {
+		t.Fatalf("err = %v, want ErrBadRequest", err)
+	}
+	if rec.path != "" {
+		t.Fatalf("an incomplete grant was sent anyway: %q", rec.path)
+	}
+}
+
 func TestChangePlan_SendsTheUserAndPlanCode(t *testing.T) {
 	kind, applied := "upgrade", true
 	prorated := 450
