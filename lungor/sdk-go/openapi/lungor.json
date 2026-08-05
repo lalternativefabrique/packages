@@ -588,6 +588,74 @@
                 }
             }
         },
+        "/subscriptions/grant": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Creates an active subscription on a plan that costs nothing, with no checkout. This is the only way onto a free tier: a checkout needs a PSP credential to open a payment session, which a plan charging nothing does not have. Refuses priced plans — those go through the checkout — and refuses a user who is already subscribed, which is change-plan's job.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Put an external user on a free plan (app key)",
+                "operationId": "appGrantSubscription",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appGrantRequest"
+                            }
+                        }
+                    },
+                    "description": "Grant",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appGrantResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/withdraw-pending-plan": {
             "post": {
                 "security": [
@@ -3352,6 +3420,37 @@
                         "items": {
                             "$ref": "#/components/schemas/finance.planView"
                         }
+                    }
+                }
+            },
+            "finance.appGrantRequest": {
+                "type": "object",
+                "properties": {
+                    "country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appGrantResponse": {
+                "type": "object",
+                "properties": {
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
                     }
                 }
             },

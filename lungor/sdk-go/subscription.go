@@ -103,6 +103,76 @@ func (c *Client) ChangePlan(ctx context.Context, in ChangePlanInput) (ChangePlan
 	return out, nil
 }
 
+// GrantInput puts one of the app's users on a plan that costs nothing.
+type GrantInput struct {
+	ExternalUserID string
+	// PlanCode names a plan priced at zero in the app's catalogue. A priced one
+	// is refused with ErrBadRequest — that is what a checkout is for.
+	PlanCode string
+	Email    string
+	Country  string
+}
+
+// GrantResult reports the subscription that was created.
+type GrantResult struct {
+	SubscriptionID string
+	PlanCode       string
+	// PeriodEnd is when the granted allowance renews.
+	PeriodEnd time.Time
+}
+
+// Grant subscribes the app's user to a free plan, with no checkout.
+//
+// It is the only way onto a free tier. A checkout needs a PSP credential to
+// open the payment session it creates alongside the subscription, which a plan
+// charging nothing does not have; ChangePlan moves an existing subscription and
+// will not invent one. So a free, collaborator or admin tier could be declared
+// in the catalogue and never assigned to anyone.
+//
+// The subscription is active on return — there is no payment to wait for.
+//
+// Returns ErrConflict when the user already holds one: moving between plans is
+// ChangePlan's job, and granting a second would leave two live allowances for
+// the same customer.
+func (c *Client) Grant(ctx context.Context, in GrantInput) (GrantResult, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return GrantResult{}, ErrNotConfigured
+	}
+	if in.ExternalUserID == "" || in.PlanCode == "" || in.Email == "" {
+		return GrantResult{}, fmt.Errorf("%w: external user id, plan code and email are required", ErrBadRequest)
+	}
+
+	req := wire.FinanceAppGrantRequest{
+		ExternalUserId: &in.ExternalUserID,
+		PlanCode:       &in.PlanCode,
+		Email:          &in.Email,
+	}
+	if in.Country != "" {
+		req.Country = &in.Country
+	}
+
+	var body wire.FinanceAppGrantResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppGrantSubscription(ctx, req)
+	}); err != nil {
+		return GrantResult{}, err
+	}
+
+	out := GrantResult{}
+	if body.SubscriptionId != nil {
+		out.SubscriptionID = *body.SubscriptionId
+	}
+	if body.PlanCode != nil {
+		out.PlanCode = *body.PlanCode
+	}
+	if body.PeriodEnd != nil {
+		if t, err := time.Parse(time.RFC3339, *body.PeriodEnd); err == nil {
+			out.PeriodEnd = t
+		}
+	}
+	return out, nil
+}
+
 func changePlanFrom(w wire.FinanceAppChangePlanResponse) ChangePlanResult {
 	out := ChangePlanResult{}
 	if w.Kind != nil {

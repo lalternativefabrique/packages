@@ -77,6 +77,21 @@ type FinanceAppChangePlanResponse struct {
 	ProratedCents         *int    `json:"prorated_cents,omitempty"`
 }
 
+// FinanceAppGrantRequest defines model for finance.appGrantRequest.
+type FinanceAppGrantRequest struct {
+	Country        *string `json:"country,omitempty"`
+	Email          *string `json:"email,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	PlanCode       *string `json:"plan_code,omitempty"`
+}
+
+// FinanceAppGrantResponse defines model for finance.appGrantResponse.
+type FinanceAppGrantResponse struct {
+	PeriodEnd      *string `json:"period_end,omitempty"`
+	PlanCode       *string `json:"plan_code,omitempty"`
+	SubscriptionId *string `json:"subscription_id,omitempty"`
+}
+
 // FinanceAppWithdrawPendingRequest defines model for finance.appWithdrawPendingRequest.
 type FinanceAppWithdrawPendingRequest struct {
 	ExternalUserId *string `json:"external_user_id,omitempty"`
@@ -307,6 +322,9 @@ type AppCancelSubscriptionJSONRequestBody = FinanceAppCancelRequest
 // AppChangePlanJSONRequestBody defines body for AppChangePlan for application/json ContentType.
 type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
 
+// AppGrantSubscriptionJSONRequestBody defines body for AppGrantSubscription for application/json ContentType.
+type AppGrantSubscriptionJSONRequestBody = FinanceAppGrantRequest
+
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
 
@@ -431,6 +449,11 @@ type ClientInterface interface {
 	AppChangePlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	AppChangePlan(ctx context.Context, body AppChangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AppGrantSubscriptionWithBody request with any body
+	AppGrantSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AppGrantSubscription(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AppWithdrawPendingPlanWithBody request with any body
 	AppWithdrawPendingPlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -635,6 +658,30 @@ func (c *Client) AppChangePlanWithBody(ctx context.Context, contentType string, 
 
 func (c *Client) AppChangePlan(ctx context.Context, body AppChangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppChangePlanRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppGrantSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppGrantSubscriptionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppGrantSubscription(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppGrantSubscriptionRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1202,6 +1249,46 @@ func NewAppChangePlanRequestWithBody(server string, contentType string, body io.
 	return req, nil
 }
 
+// NewAppGrantSubscriptionRequest calls the generic AppGrantSubscription builder with application/json body
+func NewAppGrantSubscriptionRequest(server string, body AppGrantSubscriptionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAppGrantSubscriptionRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAppGrantSubscriptionRequestWithBody generates requests for AppGrantSubscription with any type of body
+func NewAppGrantSubscriptionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/subscriptions/grant")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewAppWithdrawPendingPlanRequest calls the generic AppWithdrawPendingPlan builder with application/json body
 func NewAppWithdrawPendingPlanRequest(server string, body AppWithdrawPendingPlanJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -1640,6 +1727,11 @@ type ClientWithResponsesInterface interface {
 
 	AppChangePlanWithResponse(ctx context.Context, body AppChangePlanJSONRequestBody, reqEditors ...RequestEditorFn) (*AppChangePlanResponse, error)
 
+	// AppGrantSubscriptionWithBodyWithResponse request with any body
+	AppGrantSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error)
+
+	AppGrantSubscriptionWithResponse(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error)
+
 	// AppWithdrawPendingPlanWithBodyWithResponse request with any body
 	AppWithdrawPendingPlanWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
@@ -1901,6 +1993,31 @@ func (r AppChangePlanResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AppChangePlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AppGrantSubscriptionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *FinanceAppGrantResponse
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppGrantSubscriptionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppGrantSubscriptionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2225,6 +2342,23 @@ func (c *ClientWithResponses) AppChangePlanWithResponse(ctx context.Context, bod
 		return nil, err
 	}
 	return ParseAppChangePlanResponse(rsp)
+}
+
+// AppGrantSubscriptionWithBodyWithResponse request with arbitrary body returning *AppGrantSubscriptionResponse
+func (c *ClientWithResponses) AppGrantSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error) {
+	rsp, err := c.AppGrantSubscriptionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppGrantSubscriptionResponse(rsp)
+}
+
+func (c *ClientWithResponses) AppGrantSubscriptionWithResponse(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error) {
+	rsp, err := c.AppGrantSubscription(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppGrantSubscriptionResponse(rsp)
 }
 
 // AppWithdrawPendingPlanWithBodyWithResponse request with arbitrary body returning *AppWithdrawPendingPlanResponse
@@ -2680,6 +2814,53 @@ func ParseAppChangePlanResponse(rsp *http.Response) (*AppChangePlanResponse, err
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAppGrantSubscriptionResponse parses an HTTP response from a AppGrantSubscriptionWithResponse call
+func ParseAppGrantSubscriptionResponse(rsp *http.Response) (*AppGrantSubscriptionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppGrantSubscriptionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest FinanceAppGrantResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	}
 
