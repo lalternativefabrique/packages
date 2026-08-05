@@ -1085,9 +1085,116 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/plans/bulk-delete": {
+            "post": {
+                "description": "Deletes each plan independently and reports both outcomes. This is deliberately not all-or-nothing: cleaning a catalogue means removing the debris that CAN go, and one plan that turns out to have a subscriber must not keep the others alive. Each deletion is its own transaction.\n\n`deleted` lists the ids that are gone; `blocked` carries the same 409 body per plan that survived.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Delete several plans at once",
+                "operationId": "bulkDeletePlans",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.bulkDeletePlansReq"
+                            }
+                        }
+                    },
+                    "description": "Plan ids",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.bulkDeletePlansResp"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/plans/{plan_id}": {
+            "delete": {
+                "description": "Destroys a plan for good. This is for catalogue debris — a plan created by mistake, or to test a checkout once — not for retiring a tier that sold.\n\nRefused with 409, and the counts that justify it, when the plan took money (a settled transaction), was named on an issued invoice, or has a customer holding it right now (active, trialing, past_due, paused). Archive it with PATCH `{\"active\": false}` instead.\n\nA subscription row alone does NOT block: a checkout that failed halfway leaves an `incomplete` subscription behind, and that is exactly what a tested plan accumulates. Those never-paid subscriptions are deleted along with the plan, as are its quotas; abandoned checkout sessions simply lose their reference.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Delete a plan nobody ever subscribed to",
+                "operationId": "deletePlan",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.planInUseView"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "patch": {
-                "description": "Changes a plan's display name, its price and whether it is on sale.\n\nThe CODE is not updatable: it is the business key subscriptions and provisioning match on, so renaming it would orphan every subscriber rather than rename their plan.\n\nThere is no delete. `active: false` is how a plan leaves the catalogue — it disappears from what can be bought while every existing subscriber stays exactly where they are.",
+                "description": "Changes a plan's display name, its price and whether it is on sale.\n\nThe CODE is not updatable: it is the business key subscriptions and provisioning match on, so renaming it would orphan every subscriber rather than rename their plan.\n\n`active: false` archives a plan that has subscribers — it disappears from what can be bought while every existing subscriber stays exactly where they are. DELETE destroys a plan nobody ever subscribed to.\n\nFields are optional: an omitted one keeps its current value.",
                 "tags": [
                     "plans"
                 ],
@@ -1618,9 +1725,134 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/{app_id}/usage-units/bulk-delete": {
+            "post": {
+                "description": "Deletes each unit independently and reports both outcomes. Deliberately not all-or-nothing: one unit that turns out to have consumption must not keep the rest of the debris alive.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Delete several usage units at once",
+                "operationId": "bulkDeleteUsageUnits",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.bulkDeleteUnitsRequest"
+                            }
+                        }
+                    },
+                    "description": "Usage unit codes",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.bulkDeleteUnitsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/{app_id}/usage-units/{code}": {
+            "delete": {
+                "description": "Destroys a unit declaration for good — for a unit declared by mistake or to try the API once.\n\nRefused with 409 if any consumption was ever recorded in it, or if a plan still grants a quota of it: no foreign key protects these references, so deleting would leave a ledger pointing at a unit nobody declares. Retire it with PATCH `{\"active\": false}` instead, or remove the plan quota first if that is what holds it.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Delete a usage unit nothing refers to",
+                "operationId": "deleteUsageUnit",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Usage unit code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.unitInUseView"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "patch": {
-                "description": "Changes a unit's display name, its overage tariff and whether it is active.\n\nThe CODE is not updatable: it is what every ledger entry and every plan allocation refers to, so renaming it would detach a unit from its own consumption history.\n\nThere is no delete. `active: false` retires it, leaving the history it names intact.",
+                "description": "Changes a unit's display name, its overage tariff and whether it is active.\n\nThe CODE is not updatable: it is what every ledger entry and every plan allocation refers to, so renaming it would detach a unit from its own consumption history.\n\n`active: false` retires a unit that already has history, leaving what it names intact. DELETE removes a unit nothing refers to.\n\nFields are optional: an omitted one keeps its current value.",
                 "tags": [
                     "metering"
                 ],
@@ -2539,6 +2771,645 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/social/platforms": {
+            "get": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "List platforms and their connection state",
+                "operationId": "listSocialPlatforms",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/social.platformView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "The credential is verified against the platform before being stored, so a wrong token fails here rather than when a scheduled post goes out.",
+                "tags": [
+                    "social"
+                ],
+                "summary": "Connect a social platform account",
+                "operationId": "connectSocialPlatform",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.connectPlatformRequest"
+                            }
+                        }
+                    },
+                    "description": "Platform credential",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.credentialView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/platforms/{platform}": {
+            "delete": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Disconnect a social platform account",
+                "operationId": "disconnectSocialPlatform",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Platform name",
+                        "name": "platform",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/posts": {
+            "get": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "List social posts",
+                "operationId": "listSocialPosts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Filter by app",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postListView"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Create or update a social post draft",
+                "operationId": "composeSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/social.composePostRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/posts/{post_id}": {
+            "get": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Get one social post",
+                "operationId": "getSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Update an existing draft",
+                "operationId": "updateSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/social.composePostRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/posts/{post_id}/approve": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Approve a post awaiting review",
+                "operationId": "approveSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/posts/{post_id}/cancel": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Cancel a post that has not gone out",
+                "operationId": "cancelSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/posts/{post_id}/schedule": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Schedule a post for a date",
+                "operationId": "scheduleSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Post ID",
+                        "name": "post_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.schedulePostRequest"
+                            }
+                        }
+                    },
+                    "description": "Publication date",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.postView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/rewrite": {
+            "post": {
+                "description": "The result never publishes itself. With post_id set, the post moves to awaiting_review and a human must approve it.",
+                "tags": [
+                    "social"
+                ],
+                "summary": "Rewrite raw material into platform copy with an LLM",
+                "operationId": "rewriteSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.rewriteRequest"
+                            }
+                        }
+                    },
+                    "description": "Source material and target platform",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.rewriteView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/subscriptions": {
             "get": {
                 "tags": [
@@ -3275,6 +4146,19 @@
         }
     ],
     "components": {
+        "requestBodies": {
+            "social.composePostRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/social.composePostRequest"
+                        }
+                    }
+                },
+                "description": "Draft content",
+                "required": true
+            }
+        },
         "securitySchemes": {
             "AppKeyAuth": {
                 "type": "apiKey",
@@ -3516,6 +4400,34 @@
                     },
                     "withdrawn": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "finance.bulkDeletePlansReq": {
+                "type": "object",
+                "properties": {
+                    "plan_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "finance.bulkDeletePlansResp": {
+                "type": "object",
+                "properties": {
+                    "blocked": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.planInUseView"
+                        }
+                    },
+                    "deleted": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     }
                 }
             },
@@ -3865,6 +4777,10 @@
                             "format": "int64"
                         }
                     },
+                    "current_period_end": {
+                        "description": "CurrentPeriodEnd is when the period already paid for runs out — the date\nentitlement turns on, and the one a caller shows as \"active until\".\n\nSent so a consumer stops keeping its own copy: this date reaches an app\nthrough the subscription webhook and nowhere else, so an app that does not\npersist it cannot answer the question at all, and one that does is holding\na projection that a missed delivery leaves stale.",
+                        "type": "string"
+                    },
                     "entitled": {
                         "type": "boolean"
                     },
@@ -4023,6 +4939,51 @@
                         "description": "Rank orders the plans against each other: higher means larger. It is what\ntells an upgrade from a downgrade, and it is a product statement rather\nthan a function of Amount — a promotional tier priced below a smaller one\nwould otherwise invert the two paths.",
                         "type": "integer",
                         "example": 100
+                    }
+                }
+            },
+            "finance.planInUseView": {
+                "type": "object",
+                "properties": {
+                    "archivable": {
+                        "description": "Archivable is always true: a plan that cannot be deleted can always be\ntaken off sale, which is the action the client should offer next.",
+                        "type": "boolean"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    },
+                    "references": {
+                        "$ref": "#/components/schemas/finance.planReferencesView"
+                    }
+                }
+            },
+            "finance.planReferencesView": {
+                "type": "object",
+                "properties": {
+                    "allocations": {
+                        "type": "integer"
+                    },
+                    "checkout_sessions": {
+                        "type": "integer"
+                    },
+                    "dead_subscriptions": {
+                        "description": "DeadSubscriptions never blocks; it is reported so the UI can warn that\ndeleting the plan also removes that many never-paid subscriptions.",
+                        "type": "integer"
+                    },
+                    "issued_invoices": {
+                        "type": "integer"
+                    },
+                    "live_subscriptions": {
+                        "type": "integer"
+                    },
+                    "settled_payments": {
+                        "type": "integer"
                     }
                 }
             },
@@ -4216,7 +5177,7 @@
                 "type": "object",
                 "properties": {
                     "active": {
-                        "description": "Active false takes the plan off sale. It is how a plan leaves the\ncatalogue: there is no delete, because subscriptions point at it and\ninvoices name it — removing the row would erase what customers bought.\nExisting subscribers are unaffected; they hold a subscription, not a\ncatalogue entry.",
+                        "description": "Active false takes the plan off sale — how a plan customers actually\nbought leaves the catalogue, since subscriptions point at it and invoices\nname it. Existing subscribers are unaffected; they hold a subscription,\nnot a catalogue entry. DELETE removes a plan nobody ever bought.",
                         "type": "boolean",
                         "example": true
                     },
@@ -4351,6 +5312,34 @@
                     }
                 }
             },
+            "metering.bulkDeleteUnitsRequest": {
+                "type": "object",
+                "properties": {
+                    "codes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "metering.bulkDeleteUnitsResponse": {
+                "type": "object",
+                "properties": {
+                    "blocked": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/metering.unitInUseView"
+                        }
+                    },
+                    "deleted": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "metering.consumeRequest": {
                 "type": "object",
                 "properties": {
@@ -4420,6 +5409,35 @@
                     }
                 }
             },
+            "metering.unitInUseView": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "references": {
+                        "$ref": "#/components/schemas/metering.unitReferencesView"
+                    },
+                    "retirable": {
+                        "description": "Retirable is always true: a unit that cannot be deleted can always be\nretired with `active: false`.",
+                        "type": "boolean"
+                    }
+                }
+            },
+            "metering.unitReferencesView": {
+                "type": "object",
+                "properties": {
+                    "allocations": {
+                        "type": "integer"
+                    },
+                    "ledger_entries": {
+                        "type": "integer"
+                    }
+                }
+            },
             "metering.unitView": {
                 "type": "object",
                 "properties": {
@@ -4447,7 +5465,7 @@
                 "type": "object",
                 "properties": {
                     "active": {
-                        "description": "Active false retires the unit. It is how a unit leaves the catalogue —\nthere is no delete, because every ledger entry and every plan allocation\nrefers to it, and removing the row would detach a unit from its own\nconsumption history.",
+                        "description": "Active false retires a unit that already has history — every ledger entry\nand every plan allocation refers to its code. DELETE removes a unit\nnothing refers to.",
                         "type": "boolean",
                         "example": true
                     },
@@ -4502,6 +5520,208 @@
                     },
                     "secret": {
                         "description": "returned ONCE on rotation",
+                        "type": "string"
+                    }
+                }
+            },
+            "social.composePostRequest": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "platforms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "rich_content": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "title": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.connectPlatformRequest": {
+                "type": "object",
+                "properties": {
+                    "identifier": {
+                        "type": "string"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "secret": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.credentialView": {
+                "type": "object",
+                "properties": {
+                    "identifier": {
+                        "type": "string"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.deliveryView": {
+                "type": "object",
+                "properties": {
+                    "attempts": {
+                        "type": "integer"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "external_url": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "published_at": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.platformView": {
+                "type": "object",
+                "properties": {
+                    "connected": {
+                        "type": "boolean"
+                    },
+                    "deliverable": {
+                        "description": "Deliverable is false for a platform lungor models but cannot post to\nyet, so the UI can show it as coming rather than hiding it.",
+                        "type": "boolean"
+                    },
+                    "max_runes": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.postListView": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/social.postView"
+                        }
+                    }
+                }
+            },
+            "social.postView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "body": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "deliveries": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/social.deliveryView"
+                        }
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "platforms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "published_at": {
+                        "type": "string"
+                    },
+                    "rich_content": {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        }
+                    },
+                    "scheduled_at": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.rewriteRequest": {
+                "type": "object",
+                "properties": {
+                    "platform": {
+                        "type": "string"
+                    },
+                    "post_id": {
+                        "type": "string"
+                    },
+                    "source": {
+                        "type": "string"
+                    },
+                    "tone": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.rewriteView": {
+                "type": "object",
+                "properties": {
+                    "over_limit": {
+                        "description": "OverLimit reports copy the model returned longer than the platform\nallows. The text is handed back untrimmed so the author can shorten it\nthemselves; scheduling it as-is is refused.",
+                        "type": "boolean"
+                    },
+                    "post_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.schedulePostRequest": {
+                "type": "object",
+                "properties": {
+                    "scheduled_at": {
                         "type": "string"
                     }
                 }

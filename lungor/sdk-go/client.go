@@ -225,6 +225,13 @@ type Entitlement struct {
 	//
 	// Nil when unknown; 0 is a real rank and not an absent one.
 	PlanRank *int `json:"plan_rank,omitempty"`
+	// CurrentPeriodEnd is when the period already paid for runs out — the date
+	// Entitled turns on, and the one to show as "active until".
+	//
+	// Nil when there is no subscription. A zero time would read as access having
+	// ended in year one rather than as nothing to report, which is why this stays
+	// a pointer where Status and PlanCode are flattened.
+	CurrentPeriodEnd *time.Time `json:"current_period_end,omitempty"`
 }
 
 // Balance returns the remaining allowance for a unit, and whether Lungor
@@ -299,6 +306,15 @@ func entitlementFrom(w wire.FinanceEntitlementResponse) Entitlement {
 	// rank, so flattening nil to 0 would report the smallest tier for a plan
 	// Lungor never named.
 	out.PlanRank = w.PlanRank
+	// The wire carries the date as a plain string: swag emits no date-time format
+	// for a *time.Time, so the generated field is untyped. An unparseable value
+	// leaves the date absent rather than failing the call — the verdict above is
+	// what the caller asked for, and it is already settled.
+	if w.CurrentPeriodEnd != nil {
+		if t, err := time.Parse(time.RFC3339, *w.CurrentPeriodEnd); err == nil {
+			out.CurrentPeriodEnd = &t
+		}
+	}
 	return out
 }
 

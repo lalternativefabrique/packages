@@ -292,3 +292,61 @@ func TestEntitlement_UnnamedPlanLeavesRankUnknown(t *testing.T) {
 		t.Fatalf("plan = (%q, %v), want unknown", got.PlanCode, got.PlanRank)
 	}
 }
+
+// The date reaches a consuming app through the subscription webhook and nowhere
+// else, so carrying it here is what lets one answer "active until" without
+// persisting a projection a missed delivery leaves stale.
+func TestEntitlement_CarriesWhenThePaidPeriodEnds(t *testing.T) {
+	end := time.Date(2026, 9, 18, 10, 30, 0, 0, time.UTC)
+	srv, _ := server(t, 200, map[string]any{
+		"entitled": true, "status": "active",
+		"current_period_end": end.Format(time.RFC3339),
+	})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.CurrentPeriodEnd == nil {
+		t.Fatal("no period end reported")
+	}
+	if !got.CurrentPeriodEnd.Equal(end) {
+		t.Fatalf("period end = %s, want %s", got.CurrentPeriodEnd, end)
+	}
+}
+
+// A user with no subscription has no paid period. Nil, not a zero time, which
+// would read as access having ended in year one.
+func TestEntitlement_NoSubscriptionCarriesNoPeriod(t *testing.T) {
+	srv, _ := server(t, 200, Entitlement{Entitled: false, Status: StatusNoSubscription})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "stranger")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.CurrentPeriodEnd != nil {
+		t.Fatalf("period end = %v, want none", got.CurrentPeriodEnd)
+	}
+}
+
+// The verdict is what the caller asked for and it is settled before the date is
+// read, so a value that cannot be parsed must not take the answer down with it.
+func TestEntitlement_UnparseablePeriodStillAnswers(t *testing.T) {
+	srv, _ := server(t, 200, map[string]any{
+		"entitled": true, "status": "active", "current_period_end": "not-a-date",
+	})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "user-1")
+	if err != nil {
+		t.Fatalf("err = %v, want the verdict to survive", err)
+	}
+	if !got.Entitled {
+		t.Fatal("the verdict was lost with the date")
+	}
+	if got.CurrentPeriodEnd != nil {
+		t.Fatalf("period end = %v, want none", got.CurrentPeriodEnd)
+	}
+}
