@@ -116,15 +116,28 @@ type FinanceEntitlementResponse struct {
 	Status   *string           `json:"status,omitempty"`
 }
 
+// FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
+type FinancePlanAllocationAmount struct {
+	Amount *int    `json:"amount,omitempty"`
+	Unit   *string `json:"unit,omitempty"`
+}
+
 // FinancePlanCatalogView defines model for finance.planCatalogView.
 type FinancePlanCatalogView struct {
-	Amount        *int    `json:"amount,omitempty"`
-	Code          *string `json:"code,omitempty"`
-	Currency      *string `json:"currency,omitempty"`
-	Id            *string `json:"id,omitempty"`
-	Interval      *string `json:"interval,omitempty"`
-	IntervalCount *int    `json:"interval_count,omitempty"`
-	Name          *string `json:"name,omitempty"`
+	// Allocations Allocations is what the plan includes per billing period, per metered
+	// unit. Empty when the plan caps nothing.
+	//
+	// Published for the same reason the price is: an app that cannot read what
+	// it sells has to restate it in its own configuration, and a figure stated
+	// twice is one that eventually disagrees with the ledger enforcing it.
+	Allocations   *[]FinancePlanAllocationAmount `json:"allocations,omitempty"`
+	Amount        *int                           `json:"amount,omitempty"`
+	Code          *string                        `json:"code,omitempty"`
+	Currency      *string                        `json:"currency,omitempty"`
+	Id            *string                        `json:"id,omitempty"`
+	Interval      *string                        `json:"interval,omitempty"`
+	IntervalCount *int                           `json:"interval_count,omitempty"`
+	Name          *string                        `json:"name,omitempty"`
 
 	// Rank Rank orders the plans against each other: higher means larger. It is what
 	// tells an upgrade from a downgrade, and it is a product statement rather

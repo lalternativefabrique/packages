@@ -3855,6 +3855,19 @@
                     }
                 }
             },
+            "finance.planAllocationAmount": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "example": 3000
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "credit"
+                    }
+                }
+            },
             "finance.planAllocationView": {
                 "type": "object",
                 "properties": {
@@ -3872,6 +3885,13 @@
             "finance.planCatalogView": {
                 "type": "object",
                 "properties": {
+                    "allocations": {
+                        "description": "Allocations is what the plan includes per billing period, per metered\nunit. Empty when the plan caps nothing.\n\nPublished for the same reason the price is: an app that cannot read what\nit sells has to restate it in its own configuration, and a figure stated\ntwice is one that eventually disagrees with the ledger enforcing it.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.planAllocationAmount"
+                        }
+                    },
                     "amount": {
                         "type": "integer",
                         "example": 2900

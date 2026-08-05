@@ -32,6 +32,37 @@ type Plan struct {
 	// rather than a function of Amount — a promotional tier priced below a
 	// smaller one would otherwise invert the two paths.
 	Rank int `json:"rank"`
+	// Allocations is what the plan includes per billing period, per metered
+	// unit. Empty when the plan caps nothing.
+	//
+	// Read THIS rather than restating the allowance in configuration: the same
+	// figures are what the ledger enforces, so a local copy is a second
+	// authority that disagrees the first time one side is edited.
+	Allocations []Allocation `json:"allocations,omitempty"`
+}
+
+// Allocation is one metered unit's allowance on a plan, per billing period.
+//
+// It is a CEILING, not a wallet: nothing is credited at the start of a period
+// and nothing carries over at the end.
+type Allocation struct {
+	Unit   string `json:"unit"`
+	Amount int64  `json:"amount"`
+}
+
+// Allowance returns what the plan includes of a unit, and whether it governs it
+// at all.
+//
+// A missing unit is not zero — zero is a real ceiling that includes none of the
+// unit, while missing means the plan does not cap it. A caller that conflates
+// them refuses work the plan never limited.
+func (p Plan) Allowance(unit string) (int64, bool) {
+	for _, a := range p.Allocations {
+		if a.Unit == unit {
+			return a.Amount, true
+		}
+	}
+	return 0, false
 }
 
 // Plans is an app's catalogue, ordered by rank.
@@ -113,7 +144,22 @@ func plansFrom(w wire.FinancePlansResponse) Plans {
 			Interval:      deref(p.Interval),
 			IntervalCount: derefInt(p.IntervalCount),
 			Rank:          derefInt(p.Rank),
+			Allocations:   allocationsFrom(p.Allocations),
 		})
+	}
+	return out
+}
+
+// allocationsFrom keeps nil as nil: a plan Lungor reported no allowance for
+// governs nothing, which an empty slice would render the same way as a plan
+// that caps every unit at zero.
+func allocationsFrom(w *[]wire.FinancePlanAllocationAmount) []Allocation {
+	if w == nil || len(*w) == 0 {
+		return nil
+	}
+	out := make([]Allocation, 0, len(*w))
+	for _, a := range *w {
+		out = append(out, Allocation{Unit: deref(a.Unit), Amount: int64(derefInt(a.Amount))})
 	}
 	return out
 }

@@ -110,3 +110,76 @@ func jsonHandler(body string, rec *recorded) http.Handler {
 		_, _ = w.Write([]byte(body))
 	})
 }
+
+
+// A catalogue that publishes what each tier includes, and one entry that
+// includes none of a unit it still governs.
+const allocatedCatalogueBody = `{"plans":[
+	{"id":"p-free","code":"free","name":"Free","amount":0,"currency":"EUR","rank":0,
+	 "allocations":[{"unit":"credit","amount":0}]},
+	{"id":"p-pro","code":"pro","name":"Pro","amount":2900,"currency":"EUR","rank":100,
+	 "allocations":[{"unit":"credit","amount":3000}]}
+]}`
+
+// What a plan includes travels with what it costs. Without it a consumer
+// restates the allowance in its own configuration, beside a ledger enforcing
+// another figure.
+func TestListPlans_CarryWhatEachTierIncludes(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, nil)
+	defer srv.Close()
+	srv.Config.Handler = jsonHandler(allocatedCatalogueBody, rec)
+
+	plans, err := New(srv.URL, "key").ListPlans(ctx())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	pro, ok := plans.ByCode("pro")
+	if !ok {
+		t.Fatal("catalogue has no pro plan")
+	}
+	amount, governed := pro.Allowance("credit")
+	if !governed || amount != 3000 {
+		t.Fatalf("pro credit allowance = (%d, %v), want (3000, true)", amount, governed)
+	}
+}
+
+// Zero is a real ceiling — the plan includes none of the unit — while a unit the
+// plan never mentions is one it does not cap at all. Reading the second as the
+// first refuses work the plan never limited.
+func TestListPlans_UngovernedUnitIsNotAZeroAllowance(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, nil)
+	defer srv.Close()
+	srv.Config.Handler = jsonHandler(allocatedCatalogueBody, rec)
+
+	plans, err := New(srv.URL, "key").ListPlans(ctx())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	free, _ := plans.ByCode("free")
+	if amount, governed := free.Allowance("credit"); !governed || amount != 0 {
+		t.Fatalf("free credit = (%d, %v), want a governed 0", amount, governed)
+	}
+	if _, governed := free.Allowance("seat"); governed {
+		t.Fatal("a unit the plan never mentions must not read as governed")
+	}
+}
+
+// A Lungor that publishes no allowance still has to deliver the priced
+// catalogue.
+func TestListPlans_CatalogueWithoutAllowancesStillCarriesPrices(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, nil)
+	defer srv.Close()
+	srv.Config.Handler = jsonHandler(catalogueBody, rec)
+
+	plans, err := New(srv.URL, "key").ListPlans(ctx())
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	pro, _ := plans.ByCode("pro")
+	if pro.Amount != 2900 {
+		t.Fatalf("pro amount = %d, want 2900", pro.Amount)
+	}
+	if pro.Allocations != nil {
+		t.Fatalf("allocations = %+v, want none", pro.Allocations)
+	}
+}
