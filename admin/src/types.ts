@@ -125,6 +125,12 @@ export interface AdminInvitation {
   expiresAt?: string | Date | null
   /** Set once someone signed up with it. Such rows fold into the account row. */
   usedAt?: string | Date | null
+  /**
+   * The full link to hand over, built by the backend so the URL is not
+   * reassembled from a token on both sides. Present only while the backend can
+   * still read the token back; absent means "Copier le lien" is not rendered.
+   */
+  inviteUrl?: string | null
 }
 
 /**
@@ -143,6 +149,19 @@ export interface AdminInvitationApi {
    * at all, rather than the host wiring a method that throws.
    */
   revokeInvitation?(email: string): Promise<unknown>
+  /**
+   * Optional: send (or re-send) the invitation email for a row that already
+   * exists. Apps that mint the invitation without mailing it wire this so the
+   * two steps stay separate — creating an invitation and delivering it fail for
+   * different reasons and are worth retrying independently.
+   */
+  resendInvitation?(email: string): Promise<unknown>
+  /**
+   * Optional: mint a fresh token and restart the TTL, invalidating the previous
+   * link. This is how a short-lived invitation is recovered once it expires,
+   * so the row is never a dead end. Does not mail anything on its own.
+   */
+  regenerateInvitation?(email: string): Promise<unknown>
 }
 
 export interface AccountsTableProps {
