@@ -1017,6 +1017,247 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/plans/{plan_id}": {
+            "patch": {
+                "description": "Changes a plan's display name, its price and whether it is on sale.\n\nThe CODE is not updatable: it is the business key subscriptions and provisioning match on, so renaming it would orphan every subscriber rather than rename their plan.\n\nThere is no delete. `active: false` is how a plan leaves the catalogue — it disappears from what can be bought while every existing subscriber stays exactly where they are.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Rename a plan, reprice it, or take it off sale",
+                "operationId": "updatePlan",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.updatePlanReq"
+                            }
+                        }
+                    },
+                    "description": "Plan",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.planView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/plans/{plan_id}/allocations": {
+            "get": {
+                "tags": [
+                    "plans"
+                ],
+                "summary": "List what a plan includes, per metered unit",
+                "operationId": "listPlanAllocations",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.planAllocationView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/plans/{plan_id}/allocations/{unit}": {
+            "put": {
+                "description": "Records the allowance of `unit` a plan includes per billing period. This is what caps a subscriber's consumption: POST /metering/usage refuses a debit that would take them past it, counting only what was consumed inside the current period.\n\nIdempotent — setting the same unit twice leaves one allowance, not two.\n\nAmount 0 means the plan includes none of this unit. That differs from having NO allocation, where the plan does not govern the unit and debits fall back to the prepaid wallet.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Set what a plan includes of a metered unit",
+                "operationId": "setPlanAllocation",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Usage unit code",
+                        "name": "unit",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.setPlanAllocationReq"
+                            }
+                        }
+                    },
+                    "description": "Allowance",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.planAllocationView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes the unit's allowance. The plan then caps nothing for it, and debits fall back to the prepaid wallet — which is why this is a deliberate act, not a way to reset an allowance. Set amount 0 to include none.",
+                "tags": [
+                    "plans"
+                ],
+                "summary": "Stop governing a metered unit from this plan",
+                "operationId": "deletePlanAllocation",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Usage unit code",
+                        "name": "unit",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/{app_id}/plans": {
             "get": {
                 "tags": [
@@ -1298,6 +1539,78 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/usage-units/{code}": {
+            "patch": {
+                "description": "Changes a unit's display name, its overage tariff and whether it is active.\n\nThe CODE is not updatable: it is what every ledger entry and every plan allocation refers to, so renaming it would detach a unit from its own consumption history.\n\nThere is no delete. `active: false` retires it, leaving the history it names intact.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Rename a usage unit, reprice it, or retire it",
+                "operationId": "updateUsageUnit",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Usage unit code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.updateUnitRequest"
+                            }
+                        }
+                    },
+                    "description": "Usage unit",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.unitView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3032,6 +3345,13 @@
                     },
                     "app": {
                         "$ref": "#/components/schemas/finance.appView"
+                    },
+                    "plans": {
+                        "description": "Plans is the starter catalog seeded with the app, empty when the caller\nopted out.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.planView"
+                        }
                     }
                 }
             },
@@ -3258,6 +3578,10 @@
                     "name": {
                         "type": "string"
                     },
+                    "seed_default_plans": {
+                        "description": "SeedDefaultPlans creates the starter catalog (see domain.DefaultPlanSet)\nalongside the app. A pointer so an omitted field defaults to true: an app\nwith no plan sells nothing, and every caller predating this field wants the\ncatalog. Declarative provisioning owns its own catalog and sends false.",
+                        "type": "boolean"
+                    },
                     "slug": {
                         "type": "string"
                     },
@@ -3445,6 +3769,12 @@
                     "entitled": {
                         "type": "boolean"
                     },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "plan_rank": {
+                        "type": "integer"
+                    },
                     "status": {
                         "type": "string"
                     }
@@ -3522,6 +3852,20 @@
                     },
                     "received_at": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.planAllocationView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "description": "Amount is the allowance per billing period. Zero means the plan includes\nnone of this unit — which is not the same as having no allocation, where\nthe plan does not govern the unit at all and debits fall back to the\nprepaid wallet.",
+                        "type": "integer",
+                        "example": 3000
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "email"
                     }
                 }
             },
@@ -3654,6 +3998,15 @@
                     }
                 }
             },
+            "finance.setPlanAllocationReq": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer",
+                        "example": 3000
+                    }
+                }
+            },
             "finance.setPlanRankRequest": {
                 "type": "object",
                 "properties": {
@@ -3737,6 +4090,24 @@
                     },
                     "status": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.updatePlanReq": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "description": "Active false takes the plan off sale. It is how a plan leaves the\ncatalogue: there is no delete, because subscriptions point at it and\ninvoices name it — removing the row would erase what customers bought.\nExisting subscribers are unaffected; they hold a subscription, not a\ncatalogue entry.",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "amount_cents": {
+                        "type": "integer",
+                        "example": 900
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Pro"
                     }
                 }
             },
@@ -3950,6 +4321,25 @@
                     },
                     "unit_amount": {
                         "type": "integer"
+                    }
+                }
+            },
+            "metering.updateUnitRequest": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "description": "Active false retires the unit. It is how a unit leaves the catalogue —\nthere is no delete, because every ledger entry and every plan allocation\nrefers to it, and removing the row would detach a unit from its own\nconsumption history.",
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Emails"
+                    },
+                    "unit_amount": {
+                        "description": "UnitAmount is the overage tariff in minor units. 0 means track-only:\nconsumption is counted and nothing is charged for it.",
+                        "type": "integer",
+                        "example": 0
                     }
                 }
             },

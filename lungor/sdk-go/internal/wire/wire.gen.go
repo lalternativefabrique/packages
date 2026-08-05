@@ -111,6 +111,8 @@ type FinanceCheckoutResponse struct {
 type FinanceEntitlementResponse struct {
 	Balances *map[string]int64 `json:"balances,omitempty"`
 	Entitled *bool             `json:"entitled,omitempty"`
+	PlanCode *string           `json:"plan_code,omitempty"`
+	PlanRank *int              `json:"plan_rank,omitempty"`
 	Status   *string           `json:"status,omitempty"`
 }
 
@@ -198,6 +200,30 @@ type MeteringDecisionResponse struct {
 	Recorded *bool `json:"recorded,omitempty"`
 }
 
+// MeteringUnitView defines model for metering.unitView.
+type MeteringUnitView struct {
+	Active     *bool   `json:"active,omitempty"`
+	Code       *string `json:"code,omitempty"`
+	Currency   *string `json:"currency,omitempty"`
+	Id         *string `json:"id,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	UnitAmount *int    `json:"unit_amount,omitempty"`
+}
+
+// MeteringUpdateUnitRequest defines model for metering.updateUnitRequest.
+type MeteringUpdateUnitRequest struct {
+	// Active Active false retires the unit. It is how a unit leaves the catalogue —
+	// there is no delete, because every ledger entry and every plan allocation
+	// refers to it, and removing the row would detach a unit from its own
+	// consumption history.
+	Active *bool   `json:"active,omitempty"`
+	Name   *string `json:"name,omitempty"`
+
+	// UnitAmount UnitAmount is the overage tariff in minor units. 0 means track-only:
+	// consumption is counted and nothing is charged for it.
+	UnitAmount *int `json:"unit_amount,omitempty"`
+}
+
 // RepositoryEndpointView defines model for repository.EndpointView.
 type RepositoryEndpointView struct {
 	CreatedAt   *string   `json:"createdAt,omitempty"`
@@ -270,6 +296,9 @@ type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
 
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
+
+// UpdateUsageUnitJSONRequestBody defines body for UpdateUsageUnit for application/json ContentType.
+type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -394,6 +423,11 @@ type ClientInterface interface {
 	AppWithdrawPendingPlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateUsageUnitWithBody request with any body
+	UpdateUsageUnitWithBody(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -612,6 +646,30 @@ func (c *Client) AppWithdrawPendingPlanWithBody(ctx context.Context, contentType
 
 func (c *Client) AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppWithdrawPendingPlanRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateUsageUnitWithBody(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUsageUnitRequestWithBody(c.Server, tenantId, appId, code, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateUsageUnitRequest(c.Server, tenantId, appId, code, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1171,6 +1229,67 @@ func NewAppWithdrawPendingPlanRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
+// NewUpdateUsageUnitRequest calls the generic UpdateUsageUnit builder with application/json body
+func NewUpdateUsageUnitRequest(server string, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateUsageUnitRequestWithBody(server, tenantId, appId, code, "application/json", bodyReader)
+}
+
+// NewUpdateUsageUnitRequestWithBody generates requests for UpdateUsageUnit with any type of body
+func NewUpdateUsageUnitRequestWithBody(server string, tenantId string, appId string, code string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "code", runtime.ParamLocationPath, code)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/usage-units/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListWebhookEndpointsRequest generates requests for ListWebhookEndpoints
 func NewListWebhookEndpointsRequest(server string, params *ListWebhookEndpointsParams) (*http.Request, error) {
 	var err error
@@ -1513,6 +1632,11 @@ type ClientWithResponsesInterface interface {
 
 	AppWithdrawPendingPlanWithResponse(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
+	// UpdateUsageUnitWithBodyWithResponse request with any body
+	UpdateUsageUnitWithBodyWithResponse(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
+
+	UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
+
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
 
@@ -1788,6 +1912,29 @@ func (r AppWithdrawPendingPlanResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AppWithdrawPendingPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateUsageUnitResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringUnitView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateUsageUnitResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateUsageUnitResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -2082,6 +2229,23 @@ func (c *ClientWithResponses) AppWithdrawPendingPlanWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseAppWithdrawPendingPlanResponse(rsp)
+}
+
+// UpdateUsageUnitWithBodyWithResponse request with arbitrary body returning *UpdateUsageUnitResponse
+func (c *ClientWithResponses) UpdateUsageUnitWithBodyWithResponse(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error) {
+	rsp, err := c.UpdateUsageUnitWithBody(ctx, tenantId, appId, code, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUsageUnitResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error) {
+	rsp, err := c.UpdateUsageUnit(ctx, tenantId, appId, code, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateUsageUnitResponse(rsp)
 }
 
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
@@ -2543,6 +2707,39 @@ func ParseAppWithdrawPendingPlanResponse(rsp *http.Response) (*AppWithdrawPendin
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateUsageUnitResponse parses an HTTP response from a UpdateUsageUnitWithResponse call
+func ParseUpdateUsageUnitResponse(rsp *http.Response) (*UpdateUsageUnitResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateUsageUnitResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringUnitView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	}
 

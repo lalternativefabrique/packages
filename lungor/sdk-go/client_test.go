@@ -232,3 +232,63 @@ func TestDeprecatedIdentityOptions_AreNoOps(t *testing.T) {
 		}
 	}
 }
+
+// The plan code is what a caller matches on to know WHICH tier it is serving.
+// Without it, every consumer keeps its own table of what each tier grants, and
+// that copy is a second authority on the catalogue.
+func TestEntitlement_ReportsTheSubscribedPlan(t *testing.T) {
+	rank := 2
+	srv, _ := server(t, 200, Entitlement{
+		Entitled: true, Status: "active",
+		PlanCode: "pro", PlanRank: &rank,
+	})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.PlanCode != "pro" {
+		t.Fatalf("plan code = %q, want pro", got.PlanCode)
+	}
+	if got.PlanRank == nil || *got.PlanRank != 2 {
+		t.Fatalf("plan rank = %v, want 2", got.PlanRank)
+	}
+}
+
+// Rank 0 is a real rank — the smallest tier — and not a missing one. Flattening
+// the pointer would report the smallest tier for a plan Lungor never named.
+func TestEntitlement_ZeroRankIsNotAMissingRank(t *testing.T) {
+	zero := 0
+	srv, _ := server(t, 200, Entitlement{
+		Entitled: true, Status: "active",
+		PlanCode: "free", PlanRank: &zero,
+	})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.PlanRank == nil || *got.PlanRank != 0 {
+		t.Fatalf("plan rank = %v, want a present 0", got.PlanRank)
+	}
+}
+
+// An older Lungor names no plan. The verdict still has to arrive, and the plan
+// has to read as unknown rather than as the smallest tier.
+func TestEntitlement_UnnamedPlanLeavesRankUnknown(t *testing.T) {
+	srv, _ := server(t, 200, Entitlement{Entitled: true, Status: "active"})
+	c := New(srv.URL, "k")
+
+	got, err := c.Entitlement(ctx(), "user-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.Entitled {
+		t.Fatalf("entitlement = %+v, want entitled", got)
+	}
+	if got.PlanCode != "" || got.PlanRank != nil {
+		t.Fatalf("plan = (%q, %v), want unknown", got.PlanCode, got.PlanRank)
+	}
+}

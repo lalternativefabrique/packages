@@ -212,6 +212,19 @@ type Entitlement struct {
 	// Balances holds the remaining allowance per metered unit, for the units
 	// asked for. Absent when none were requested or none are known.
 	Balances map[string]int64 `json:"balances,omitempty"`
+	// PlanCode is the subscribed plan's stable business key. Empty when there is
+	// no subscription, or when Lungor could not read the plan.
+	//
+	// Read THIS rather than keeping a local table of what each tier grants: a
+	// second copy of the catalogue is a second authority on it, and the two
+	// disagree the first time a plan changes on one side only.
+	PlanCode string `json:"plan_code,omitempty"`
+	// PlanRank orders plans against each other: higher means larger. It is what
+	// tells an upgrade from a downgrade, and it is a product statement rather
+	// than a function of price, so it cannot be derived from the amount.
+	//
+	// Nil when unknown; 0 is a real rank and not an absent one.
+	PlanRank *int `json:"plan_rank,omitempty"`
 }
 
 // Balance returns the remaining allowance for a unit, and whether Lungor
@@ -279,6 +292,13 @@ func entitlementFrom(w wire.FinanceEntitlementResponse) Entitlement {
 	if w.Balances != nil {
 		out.Balances = *w.Balances
 	}
+	if w.PlanCode != nil {
+		out.PlanCode = *w.PlanCode
+	}
+	// Kept a pointer on purpose, unlike every other field here: rank 0 is a real
+	// rank, so flattening nil to 0 would report the smallest tier for a plan
+	// Lungor never named.
+	out.PlanRank = w.PlanRank
 	return out
 }
 
