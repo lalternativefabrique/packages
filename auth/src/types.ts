@@ -130,6 +130,18 @@ export interface VerifyEmailFormProps {
   authClient: any
 }
 
+/** Why an invitation link did not work, as far as the invitee needs to know. */
+export type InvitationFailure = "expired" | "claimed" | "unknown"
+
+export interface InvitationNoticeProps {
+  reason?: InvitationFailure
+  /** Defaults to contact@ the apex domain the app is served from. */
+  supportEmail?: string
+  title?: string
+  /** Rendered under the contact line — typically a link back to the site. */
+  action?: React.ReactNode
+}
+
 export interface ForgotPasswordFormProps {
   /** Callback on successful OTP send, receives the email */
   onSuccess?: (email: string) => void
