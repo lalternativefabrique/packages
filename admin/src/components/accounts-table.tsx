@@ -212,6 +212,30 @@ export function AccountsTable({
         : Promise.reject(new Error("No revoke method configured")),
     )
 
+  const doResend = (inv: AdminInvitation) =>
+    run(`Email envoyé à ${inv.email}`, () =>
+      invitations?.resendInvitation
+        ? invitations.resendInvitation(inv.email)
+        : Promise.reject(new Error("No resend method configured")),
+    )
+
+  const doRegenerate = (inv: AdminInvitation) =>
+    run("Nouveau lien généré", () =>
+      invitations?.regenerateInvitation
+        ? invitations.regenerateInvitation(inv.email)
+        : Promise.reject(new Error("No regenerate method configured")),
+    )
+
+  const doCopyLink = async (inv: AdminInvitation) => {
+    if (!inv.inviteUrl) return
+    try {
+      await navigator.clipboard.writeText(inv.inviteUrl)
+      notifyOk("Lien copié")
+    } catch {
+      notifyErr("Impossible de copier le lien")
+    }
+  }
+
   const submitInvite = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!invitations || !email.trim()) return
@@ -221,7 +245,11 @@ export function AccountsTable({
         email: email.trim(),
         grant: grant || undefined,
       })
-      notifyOk(`Invitation envoyée à ${email.trim()}`)
+      notifyOk(
+        invitations.resendInvitation
+          ? `Invitation créée pour ${email.trim()}`
+          : `Invitation envoyée à ${email.trim()}`,
+      )
       setEmail("")
       load()
     } catch (err: unknown) {
@@ -374,6 +402,38 @@ export function AccountsTable({
                     </td>
                     <td className={TD}>
                       <div className="flex items-center justify-end gap-1">
+                        {row.invitation.inviteUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => doCopyLink(row.invitation)}
+                            aria-label={`Copier le lien d'invitation de ${row.invitation.email}`}
+                            className={BUTTON_ROW}
+                          >
+                            Copier le lien
+                          </button>
+                        ) : null}
+                        {invitations?.resendInvitation ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => doResend(row.invitation)}
+                            aria-label={`Envoyer l'invitation à ${row.invitation.email}`}
+                            className={BUTTON_ROW}
+                          >
+                            Envoyer l'email
+                          </button>
+                        ) : null}
+                        {invitations?.regenerateInvitation ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => doRegenerate(row.invitation)}
+                            aria-label={`Régénérer le lien d'invitation de ${row.invitation.email}`}
+                            className={BUTTON_ROW}
+                          >
+                            Régénérer
+                          </button>
+                        ) : null}
                         {invitations?.revokeInvitation ? (
                           <button
                             type="button"
