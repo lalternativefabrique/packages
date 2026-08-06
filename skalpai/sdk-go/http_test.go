@@ -1,10 +1,13 @@
 package skalpai
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -268,5 +271,73 @@ func TestWrapHTTPHandlerPreservesStatusAndBody(t *testing.T) {
 	}
 	if rec.Body.String() != "ok" {
 		t.Fatalf("body = %q, want ok", rec.Body.String())
+	}
+}
+
+func captureAccessLogs(t *testing.T) *bytes.Buffer {
+	t.Helper()
+
+	prev := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	var buf bytes.Buffer
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})))
+
+	return &buf
+}
+
+func serveWithSkip(t *testing.T, path string, status int) *bytes.Buffer {
+	t.Helper()
+
+	buf := captureAccessLogs(t)
+	h := WrapHTTPHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(status)
+	}), HTTPMiddlewareConfig{
+		ServiceName:    "test-service",
+		EmitAccessLogs: true,
+		SkipAccessLogs: SkipPaths("/health"),
+	})
+
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, path, nil))
+	return buf
+}
+
+func TestWrapHTTPHandlerSkipAccessLogsDropsProbeLine(t *testing.T) {
+	if out := serveWithSkip(t, "/health", http.StatusOK).String(); out != "" {
+		t.Fatalf("expected no access log for a skipped path, got: %s", out)
+	}
+}
+
+func TestWrapHTTPHandlerSkipAccessLogsKeepsOtherRoutes(t *testing.T) {
+	if out := serveWithSkip(t, "/v1/items", http.StatusOK).String(); out == "" {
+		t.Fatal("expected an access log for a non-skipped path")
+	}
+}
+
+func TestWrapHTTPHandlerSkipAccessLogsStillLogsServerErrors(t *testing.T) {
+	out := serveWithSkip(t, "/health", http.StatusInternalServerError).String()
+	if out == "" {
+		t.Fatal("a failing probe must still be logged: that is when its log line carries signal")
+	}
+	if !strings.Contains(out, "ERROR") {
+		t.Fatalf("expected the 5xx to be logged at error level, got: %s", out)
+	}
+}
+
+func TestWrapHTTPHandlerSkipAccessLogsLeavesSpanUntouched(t *testing.T) {
+	recorder := recordSpans(t)
+	captureAccessLogs(t)
+
+	h := WrapHTTPHandler(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
+		HTTPMiddlewareConfig{
+			ServiceName:    "test-service",
+			EmitAccessLogs: true,
+			SkipAccessLogs: SkipPaths("/health"),
+		})
+
+	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/health", nil))
+
+	if got := len(recorder.Ended()); got != 1 {
+		t.Fatalf("got %d spans, want 1: SkipAccessLogs must not gate tracing", got)
 	}
 }
