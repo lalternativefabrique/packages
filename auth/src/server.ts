@@ -146,3 +146,12 @@ export type {
   PlatformSession,
   PlatformSessionData,
 } from "./types"
+
+// Invitation claiming runs on the auth callback, where the session is
+// established — the one place every sign-up flow passes through.
+export {
+  claimInvitation,
+  inviteTokenFrom,
+  isInvitationFailure,
+} from "./invitation"
+export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
