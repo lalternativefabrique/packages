@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/skalpai-sdk-node",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Skalpai observability SDK for Node.js — auto-instruments traces, logs, and metrics",
   "type": "module",
   "main": "./dist/index.js",
