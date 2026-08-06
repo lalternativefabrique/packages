@@ -24,7 +24,8 @@ type HTTPMiddlewareConfig struct {
 	RouteExtractor func(*http.Request) string
 	// EmitAccessLogs emits one slog.Info record per request with method,
 	// route, status, and duration. 5xx responses are always logged at Error
-	// level regardless of this setting.
+	// level regardless of this setting. Use SkipAccessLogs to exempt
+	// individual endpoints rather than turning logging off wholesale.
 	EmitAccessLogs bool
 	// Redaction controls query-string sanitization in access logs.
 	// Zero value = redaction ON with DefaultSensitiveQueryKeys.
@@ -43,10 +44,18 @@ type HTTPMiddlewareConfig struct {
 	// probes; a reason not to skip business routes just because they are
 	// noisy.
 	SkipTracing func(*http.Request) bool
+	// SkipAccessLogs suppresses the access log for requests it returns true
+	// for, leaving metrics and tracing untouched. Nil = log every request
+	// EmitAccessLogs covers. See SkipPaths for the usual probe case.
+	//
+	// 5xx responses are logged regardless: a probe that starts failing is
+	// the one time its log line carries signal.
+	SkipAccessLogs func(*http.Request) bool
 }
 
-// SkipPaths returns a SkipTracing predicate matching the request path against
-// an exact set, for dropping spans from probe endpoints scraped on a timer.
+// SkipPaths returns a predicate matching the request path against an exact
+// set, for exempting probe endpoints scraped on a timer. It suits both
+// SkipTracing and SkipAccessLogs.
 func SkipPaths(paths ...string) func(*http.Request) bool {
 	set := make(map[string]struct{}, len(paths))
 	for _, p := range paths {
@@ -257,6 +266,9 @@ func statusClass(statusCode int) string {
 func emitAccessLog(r *http.Request, cfg HTTPMiddlewareConfig, rec *statusRecorder, duration time.Duration) {
 	isServerError := rec.status >= 500
 	if !cfg.EmitAccessLogs && !isServerError {
+		return
+	}
+	if !isServerError && cfg.SkipAccessLogs != nil && cfg.SkipAccessLogs(r) {
 		return
 	}
 
