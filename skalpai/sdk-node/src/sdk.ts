@@ -14,6 +14,7 @@ import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
 
 import { patchConsole } from './logs.js';
 import { startRuntimeMetrics } from './metrics.js';
+import { DEFAULT_EXCLUDED_PATHS, createSampler } from './sampler.js';
 
 export interface SkalpaiConfig {
   endpoint: string;
@@ -27,6 +28,8 @@ export interface SkalpaiConfig {
   disableConsoleLogs?: boolean;
   /** Disable runtime metrics collection (default: false) */
   disableMetrics?: boolean;
+  /** Request paths whose traces are dropped (default: ['/healthcheck']) */
+  excludePaths?: string[];
 }
 
 let sdk: NodeSDK | null = null;
@@ -55,6 +58,7 @@ export function init(config: SkalpaiConfig): void {
     metricsInterval = 15_000,
     disableConsoleLogs = false,
     disableMetrics = false,
+    excludePaths = DEFAULT_EXCLUDED_PATHS,
   } = config;
 
   const headers = { 'x-api-key': apiKey };
@@ -109,6 +113,7 @@ export function init(config: SkalpaiConfig): void {
   // SDK (traces)
   sdk = new NodeSDK({
     resource,
+    sampler: createSampler(excludePaths),
     spanProcessors: [new BatchSpanProcessor(traceExporter)],
   });
   sdk.start();
