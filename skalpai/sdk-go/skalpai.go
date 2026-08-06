@@ -95,7 +95,12 @@ func Init(ctx context.Context, cfg Config) (func(context.Context) error, error) 
 
 	headers := map[string]string{"x-api-key": cfg.APIKey}
 
+	// WithFromEnv reads OTEL_RESOURCE_ATTRIBUTES, which is how a deployment
+	// supplies service.instance.id. Without a per-instance attribute every
+	// replica of a service reports an identical resource, so a consumer cannot
+	// tell two cumulative counters apart from one counter that keeps resetting.
 	res, err := resource.New(ctx,
+		resource.WithFromEnv(),
 		resource.WithAttributes(
 			semconv.ServiceName(cfg.ServiceName),
 			semconv.ServiceVersion(cfg.ServiceVersion),
