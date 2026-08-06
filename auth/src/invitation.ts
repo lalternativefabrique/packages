@@ -114,6 +114,42 @@ export function inviteTokenFrom(
 }
 
 /**
+ * BetterAuth paths that complete a sign-up. Email/password returns the user
+ * straight from sign-up/email; the OTP and OAuth flows only produce a usable
+ * account once the verification/callback succeeds, so those are the moments
+ * worth reacting to.
+ */
+const SIGNUP_COMPLETING = [
+  "/sign-up/email",
+  "/sign-in/email-otp",
+  "/email-otp/verify-email",
+  "/callback/",
+]
+
+/**
+ * Whether this request is the one that just created a usable account — the
+ * moment to provision, claim an invitation, or greet someone. Matching on the
+ * path rather than on a response body keeps it flow-agnostic: the three
+ * sign-up flows return three different shapes.
+ */
+export function completesSignup(pathname: string): boolean {
+  return SIGNUP_COMPLETING.some((p) => pathname.includes(p))
+}
+
+/**
+ * Carries a failed claim to the next page. The claim happens inside an auth
+ * response nobody renders, so its result would otherwise reach only the server
+ * log — leaving an invitee on the default tier with no idea their link had
+ * lapsed. Short-lived and readable by the page, which reports it and clears it.
+ */
+export function invitationOutcomeCookie(
+  outcome: ClaimOutcome,
+  name = "invite_claim",
+): string {
+  return `${name}=${outcome}; Path=/; Max-Age=120; SameSite=Lax`
+}
+
+/**
  * Whether an outcome is one the invitee should be shown a reason for.
  * 'failed' is excluded: it means the call did not complete, so the offer may
  * still be good and telling someone their invitation is invalid would be wrong.
