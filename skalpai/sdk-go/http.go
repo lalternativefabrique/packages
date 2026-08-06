@@ -1,6 +1,7 @@
 package skalpai
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,7 +12,10 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	metricapi "go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // HTTPMiddlewareConfig controls the HTTP server telemetry emitted by the SDK.
@@ -26,6 +30,36 @@ type HTTPMiddlewareConfig struct {
 	// Zero value = redaction ON with DefaultSensitiveQueryKeys.
 	// Set Redaction.Disabled = true to opt out entirely.
 	Redaction RedactionConfig
+	// DisableTracing turns off the server span. Tracing is on by default:
+	// a caller that wires metrics but forgets an opt-in would otherwise
+	// export a silently trace-less service.
+	DisableTracing bool
+	// SkipTracing suppresses the span for requests it returns true for,
+	// leaving metrics and access logs untouched. Nil = trace everything.
+	// See SkipPaths for the usual probe-endpoint case.
+	//
+	// A skipped request starts no span, so anything it calls downstream
+	// roots its own trace instead of continuing this one. Harmless for
+	// probes; a reason not to skip business routes just because they are
+	// noisy.
+	SkipTracing func(*http.Request) bool
+}
+
+// SkipPaths returns a SkipTracing predicate matching the request path against
+// an exact set, for dropping spans from probe endpoints scraped on a timer.
+func SkipPaths(paths ...string) func(*http.Request) bool {
+	set := make(map[string]struct{}, len(paths))
+	for _, p := range paths {
+		set[p] = struct{}{}
+	}
+
+	return func(r *http.Request) bool {
+		if r.URL == nil {
+			return false
+		}
+		_, ok := set[r.URL.Path]
+		return ok
+	}
 }
 
 type httpServerInstruments struct {
@@ -41,14 +75,17 @@ var (
 )
 
 // NewHTTPMiddleware returns a standard net/http middleware that records
-// normalized request count, duration, active request, and response size metrics.
+// normalized request count, duration, active request, and response size
+// metrics, and emits a server span per request unless DisableTracing or
+// SkipTracing suppresses it.
 func NewHTTPMiddleware(cfg HTTPMiddlewareConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return WrapHTTPHandler(next, cfg)
 	}
 }
 
-// WrapHTTPHandler wraps a net/http handler with Skalpai HTTP server metrics.
+// WrapHTTPHandler wraps a net/http handler with Skalpai HTTP server metrics
+// and tracing.
 func WrapHTTPHandler(next http.Handler, cfg HTTPMiddlewareConfig) http.Handler {
 	if next == nil {
 		next = http.NotFoundHandler()
@@ -59,6 +96,17 @@ func WrapHTTPHandler(next http.Handler, cfg HTTPMiddlewareConfig) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		baseAttrs := requestAttributes(r, cfg.RouteExtractor, 0)
+
+		tracing := !cfg.DisableTracing && !(cfg.SkipTracing != nil && cfg.SkipTracing(r))
+
+		span := trace.SpanFromContext(r.Context())
+		if tracing {
+			var ctx context.Context
+			ctx, span = startServerSpan(r, cfg, serviceName, baseAttrs)
+			defer span.End()
+			r = r.WithContext(ctx)
+		}
+
 		instruments.activeRequests.Add(r.Context(), 1, metricapi.WithAttributes(baseAttrs...))
 		defer instruments.activeRequests.Add(r.Context(), -1, metricapi.WithAttributes(baseAttrs...))
 
@@ -68,12 +116,49 @@ func WrapHTTPHandler(next http.Handler, cfg HTTPMiddlewareConfig) http.Handler {
 
 		duration := time.Since(startedAt)
 		finalAttrs := requestAttributes(r, cfg.RouteExtractor, recorder.status)
+
+		if tracing {
+			recordSpanStatus(span, recorder.status, finalAttrs)
+		}
+
 		instruments.requestCount.Add(r.Context(), 1, metricapi.WithAttributes(finalAttrs...))
 		instruments.requestDuration.Record(r.Context(), duration.Seconds(), metricapi.WithAttributes(finalAttrs...))
 		instruments.responseSize.Record(r.Context(), recorder.bytes, metricapi.WithAttributes(finalAttrs...))
 
 		emitAccessLog(r, cfg, recorder, duration)
 	})
+}
+
+// startServerSpan continues the caller's trace when the request carries
+// W3C traceparent headers, so a span started here joins the upstream trace
+// instead of rooting an orphan one.
+func startServerSpan(r *http.Request, cfg HTTPMiddlewareConfig, serviceName string, attrs []attribute.KeyValue) (context.Context, trace.Span) {
+	ctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
+	return otel.Tracer(serviceName).Start(ctx, spanName(r, cfg.RouteExtractor),
+		trace.WithSpanKind(trace.SpanKindServer),
+		trace.WithAttributes(attrs...),
+	)
+}
+
+// spanName favours the templated route over the raw path to keep span names
+// bounded: a path carrying ids explodes cardinality in the trace backend.
+func spanName(r *http.Request, routeExtractor func(*http.Request) string) string {
+	if routeExtractor != nil {
+		if route := strings.TrimSpace(routeExtractor(r)); route != "" {
+			return r.Method + " " + route
+		}
+	}
+	return r.Method
+}
+
+func recordSpanStatus(span trace.Span, statusCode int, attrs []attribute.KeyValue) {
+	span.SetAttributes(attrs...)
+	if statusCode >= 500 {
+		span.SetStatus(codes.Error, statusClass(statusCode))
+		return
+	}
+	span.SetStatus(codes.Ok, "")
 }
 
 func getHTTPServerInstruments(serviceName string) httpServerInstruments {
@@ -192,6 +277,13 @@ func emitAccessLog(r *http.Request, cfg HTTPMiddlewareConfig, rec *statusRecorde
 		slog.Int("http.response.status_code", rec.status),
 		slog.Int64("http.response.size", rec.bytes),
 		slog.Float64("http.server.request.duration_ms", float64(duration.Microseconds())/1000.0),
+	}
+
+	if sc := trace.SpanContextFromContext(r.Context()); sc.IsValid() {
+		attrs = append(attrs,
+			slog.String("trace_id", sc.TraceID().String()),
+			slog.String("span_id", sc.SpanID().String()),
+		)
 	}
 
 	level := slog.LevelInfo
