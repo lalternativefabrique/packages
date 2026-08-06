@@ -151,6 +151,8 @@ export type {
 // established — the one place every sign-up flow passes through.
 export {
   claimInvitation,
+  completesSignup,
+  invitationOutcomeCookie,
   inviteTokenFrom,
   isInvitationFailure,
 } from "./invitation"

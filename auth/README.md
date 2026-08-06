@@ -45,17 +45,37 @@ that held the token.
 
 ```ts
 // server — auth callback (e.g. routes/api/auth/$.ts)
-import { claimInvitation, inviteTokenFrom } from "@lalternative/auth/server"
+import {
+  claimInvitation,
+  completesSignup,
+  invitationOutcomeCookie,
+  inviteTokenFrom,
+} from "@lalternative/auth/server"
+
+const response = await auth.handler(request)
+if (!response.ok || !completesSignup(new URL(request.url).pathname)) return response
+
+// Read the session back from the Set-Cookie the handler just issued, so this
+// works for every flow without parsing each response body shape.
+const setCookie = response.headers.get("set-cookie")
+const session = setCookie
+  ? await auth.api
+      .getSession({ headers: new Headers({ cookie: setCookie }) })
+      .catch(() => null)
+  : null
 
 const token = inviteTokenFrom(request)
-if (token && user) {
+if (token && session?.user) {
   // Best-effort: a sign-in must never fail because a claim did not go through.
   const outcome = await claimInvitation({
     endpoint: `${process.env.LUNGOR_API_URL}/invitations/claim`,
     apiKey: process.env.LUNGOR_APP_API_KEY,
     token,
-    externalUserId: user.id,
+    externalUserId: session.user.id,
   })
+  if (outcome !== "granted") {
+    response.headers.append("set-cookie", invitationOutcomeCookie(outcome))
+  }
 }
 ```
 
