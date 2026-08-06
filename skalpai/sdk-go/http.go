@@ -34,6 +34,32 @@ type HTTPMiddlewareConfig struct {
 	// a caller that wires metrics but forgets an opt-in would otherwise
 	// export a silently trace-less service.
 	DisableTracing bool
+	// SkipTracing suppresses the span for requests it returns true for,
+	// leaving metrics and access logs untouched. Nil = trace everything.
+	// See SkipPaths for the usual probe-endpoint case.
+	//
+	// A skipped request starts no span, so anything it calls downstream
+	// roots its own trace instead of continuing this one. Harmless for
+	// probes; a reason not to skip business routes just because they are
+	// noisy.
+	SkipTracing func(*http.Request) bool
+}
+
+// SkipPaths returns a SkipTracing predicate matching the request path against
+// an exact set, for dropping spans from probe endpoints scraped on a timer.
+func SkipPaths(paths ...string) func(*http.Request) bool {
+	set := make(map[string]struct{}, len(paths))
+	for _, p := range paths {
+		set[p] = struct{}{}
+	}
+
+	return func(r *http.Request) bool {
+		if r.URL == nil {
+			return false
+		}
+		_, ok := set[r.URL.Path]
+		return ok
+	}
 }
 
 type httpServerInstruments struct {
@@ -50,7 +76,8 @@ var (
 
 // NewHTTPMiddleware returns a standard net/http middleware that records
 // normalized request count, duration, active request, and response size
-// metrics, and emits a server span per request unless DisableTracing is set.
+// metrics, and emits a server span per request unless DisableTracing or
+// SkipTracing suppresses it.
 func NewHTTPMiddleware(cfg HTTPMiddlewareConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return WrapHTTPHandler(next, cfg)
@@ -70,8 +97,10 @@ func WrapHTTPHandler(next http.Handler, cfg HTTPMiddlewareConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		baseAttrs := requestAttributes(r, cfg.RouteExtractor, 0)
 
+		tracing := !cfg.DisableTracing && !(cfg.SkipTracing != nil && cfg.SkipTracing(r))
+
 		span := trace.SpanFromContext(r.Context())
-		if !cfg.DisableTracing {
+		if tracing {
 			var ctx context.Context
 			ctx, span = startServerSpan(r, cfg, serviceName, baseAttrs)
 			defer span.End()
@@ -88,7 +117,7 @@ func WrapHTTPHandler(next http.Handler, cfg HTTPMiddlewareConfig) http.Handler {
 		duration := time.Since(startedAt)
 		finalAttrs := requestAttributes(r, cfg.RouteExtractor, recorder.status)
 
-		if !cfg.DisableTracing {
+		if tracing {
 			recordSpanStatus(span, recorder.status, finalAttrs)
 		}
 
