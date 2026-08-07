@@ -221,6 +221,73 @@
                 }
             }
         },
+        "/invitations/claim": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Redeem an invitation token for a newly signed-up user",
+                "operationId": "claimInvitation",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.claimReq"
+                            }
+                        }
+                    },
+                    "description": "Claim",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.claimResp"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "410": {
+                        "description": "Gone",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/me": {
             "get": {
                 "tags": [
@@ -458,6 +525,49 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/social/oauth/{platform}/callback": {
+            "get": {
+                "description": "Consumes the state issued by the start call, exchanges the code and stores the credential, then redirects back to the UI.",
+                "tags": [
+                    "social"
+                ],
+                "summary": "OAuth redirect target",
+                "operationId": "socialOAuthCallback",
+                "parameters": [
+                    {
+                        "description": "Platform",
+                        "name": "platform",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Authorization code",
+                        "name": "code",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Opaque state issued at start",
+                        "name": "state",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Found"
                     }
                 }
             }
@@ -1311,7 +1421,7 @@
         },
         "/tenants/{tenant_id}/apps/plans/{plan_id}/allocations/{unit}": {
             "put": {
-                "description": "Records the allowance of `unit` a plan includes per billing period. This is what caps a subscriber's consumption: POST /metering/usage refuses a debit that would take them past it, counting only what was consumed inside the current period.\n\nIdempotent — setting the same unit twice leaves one allowance, not two.\n\nAmount 0 means the plan includes none of this unit. That differs from having NO allocation, where the plan does not govern the unit and debits fall back to the prepaid wallet.",
+                "description": "Records the allowance of `unit` a plan includes per billing period. This is what caps a subscriber's consumption: POST /metering/usage refuses a debit that would take them past it, counting only what was consumed inside the current period.\n\nIdempotent — setting the same unit twice leaves one allowance, not two.\n\nAmount 0 means the plan includes none of this unit. That differs from having NO allocation, where the plan does not govern the unit and debits fall back to the prepaid wallet.\n\nThe unit must be a usage unit declared by the plan's own app. An undeclared code is refused with 400 rather than stored as an allowance that resolves to nothing.",
                 "tags": [
                     "plans"
                 ],
@@ -1433,6 +1543,193 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/{app_id}": {
+            "delete": {
+                "description": "Revokes every live API key for the app, so nothing new can enter: no metering call, no checkout, no webhook. The app disappears from the console and its data stops changing.\n\nNothing is destroyed. Subscriptions, invoices and transactions reference the app with NO ACTION, and those invoices are the TENANT's accounting records — they carry its SIREN and its own numbering, and its ten-year retention runs on them. lungor holds them as a processor and does not erase them on request.\n\nThe response carries `export_url`: fetch it to download everything recorded under the app as a ZIP of CSVs. Until it is fetched, the deletion stays cancelable via POST `/restore`.",
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Take an app out of service",
+                "operationId": "deleteApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appDeletionView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/export": {
+            "get": {
+                "description": "Streams a ZIP of CSVs: customers, subscriptions, invoices, invoice lines, transactions, usage ledger, plans and usage units, plus a manifest with per-section row counts so a truncated download is recognisable.\n\nAvailable whether or not the app is being deleted — the tenant's data is its own to take at any time. Fetching it on an app under deletion marks the deletion `exported`.",
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Download everything recorded under an app",
+                "operationId": "exportApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/zip": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/zip": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/zip": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/invitations": {
+            "post": {
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Invite an end user to one of the tenant's apps",
+                "operationId": "inviteToApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.inviteReq"
+                            }
+                        }
+                    },
+                    "description": "Invitation",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.invitationView"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/{app_id}/plans": {
             "get": {
                 "tags": [
@@ -1476,6 +1773,113 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/registration-url": {
+            "patch": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Set the app's sign-up page, which invitation links are built on",
+                "operationId": "setAppRegistrationURL",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.setRegistrationURLReq"
+                            }
+                        }
+                    },
+                    "description": "Registration URL",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appView"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/restore": {
+            "post": {
+                "description": "Calls off a deletion while it is still in `exporting`. This does NOT reissue the API keys: revocation is not reversible, and an app coming back needs a fresh key via POST `/rotate-key`. What it restores is the app's presence in the console and its ability to be worked on again.",
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Cancel a deletion that has not been exported yet",
+                "operationId": "restoreApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2462,6 +2866,85 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/customers/{customer_id}": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Get one customer of a tenant with apps, subscriptions, plan history and payments",
+                "operationId": "getCustomer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "test|live view filter; default live",
+                        "name": "livemode",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.customerDetailView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/dashboard": {
             "get": {
                 "tags": [
@@ -2513,6 +2996,116 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/invitations": {
+            "get": {
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "List the tenant's app invitations",
+                "operationId": "listInvitations",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/finance.invitationView"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/invitations/{id}": {
+            "delete": {
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Withdraw an invitation",
+                "operationId": "revokeInvitation",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Invitation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/invitations/{id}/regenerate": {
+            "post": {
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Mint a fresh token for an unclaimed invitation",
+                "operationId": "regenerateInvitation",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Invitation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.invitationView"
                                 }
                             }
                         }
@@ -2771,6 +3364,179 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/social/apps/{app_id}/context": {
+            "get": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Get what lungor knows about an app as a product",
+                "operationId": "getSocialAppContext",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.appContextView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Save an app's product context, optionally scraping its site",
+                "operationId": "saveSocialAppContext",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.saveAppContextRequest"
+                            }
+                        }
+                    },
+                    "description": "Product context",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.appContextView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/apps/{app_id}/launch": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Draft a launch announcement from an app's product context",
+                "operationId": "launchSocialPost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.launchPostRequest"
+                            }
+                        }
+                    },
+                    "description": "Target platforms",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.launchView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/social/platforms": {
             "get": {
                 "tags": [
@@ -2901,6 +3667,57 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/platforms/{platform}/oauth/start": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Begin an OAuth authorisation for a platform",
+                "operationId": "startSocialOAuth",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Platform",
+                        "name": "platform",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.oauthStartView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3401,6 +4218,250 @@
                         "description": "Not Found",
                         "content": {
                             "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/style": {
+            "get": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Get the tenant's writing-voice profiles",
+                "operationId": "getSocialStyle",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.styleSettingsView"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Save the tenant's base writing-voice profile",
+                "operationId": "saveSocialStyle",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/social.saveStyleRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.styleProfileView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/style/preview": {
+            "post": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Render sample copy for an unsaved style profile",
+                "operationId": "previewSocialStyle",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/social.stylePreviewRequest"
+                            }
+                        }
+                    },
+                    "description": "Sliders as they currently sit",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.stylePreviewView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/social/style/{platform}": {
+            "put": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Save a platform override of the writing-voice profile",
+                "operationId": "saveSocialStyleOverride",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Platform",
+                        "name": "platform",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/social.saveStyleRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/social.styleProfileView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "social"
+                ],
+                "summary": "Drop a platform override, falling back to the base profile",
+                "operationId": "deleteSocialStyleOverride",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Platform",
+                        "name": "platform",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -4157,6 +5218,17 @@
                 },
                 "description": "Draft content",
                 "required": true
+            },
+            "social.saveStyleRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/social.saveStyleRequest"
+                        }
+                    }
+                },
+                "description": "Style profile",
+                "required": true
             }
         },
         "securitySchemes": {
@@ -4307,6 +5379,31 @@
                     }
                 }
             },
+            "finance.appDeletionView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "export_url": {
+                        "description": "ExportURL is where to fetch the archive of everything recorded under the\napp. Offered rather than pushed: the tenant is the merchant of record for\nthose invoices, so the data is its own to take.",
+                        "type": "string"
+                    },
+                    "keys_revoked": {
+                        "description": "KeysRevoked is how many live API keys stopped working. This is the one\neffect the tenant feels immediately.",
+                        "type": "integer"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.appGrantRequest": {
                 "type": "object",
                 "properties": {
@@ -4374,6 +5471,9 @@
                         "type": "string"
                     },
                     "name": {
+                        "type": "string"
+                    },
+                    "registration_url": {
                         "type": "string"
                     },
                     "slug": {
@@ -4549,6 +5649,31 @@
                     }
                 }
             },
+            "finance.claimReq": {
+                "type": "object",
+                "properties": {
+                    "country": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "token": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.claimResp": {
+                "type": "object",
+                "properties": {
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.closePeriodRequest": {
                 "type": "object",
                 "properties": {
@@ -4706,6 +5831,214 @@
                     }
                 }
             },
+            "finance.customerDetailAppView": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "slug": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.customerDetailPlanChangeView": {
+                "type": "object",
+                "properties": {
+                    "applied_now": {
+                        "type": "boolean"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "effective_at": {
+                        "type": "string"
+                    },
+                    "from_plan_code": {
+                        "type": "string"
+                    },
+                    "from_plan_name": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "occurred_at": {
+                        "type": "string"
+                    },
+                    "proration_amount": {
+                        "type": "integer"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    },
+                    "to_plan_code": {
+                        "type": "string"
+                    },
+                    "to_plan_name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.customerDetailSubscriptionView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string"
+                    },
+                    "cancel_at_period_end": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "current_period_end": {
+                        "type": "string"
+                    },
+                    "current_period_start": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "pending_plan_code": {
+                        "type": "string"
+                    },
+                    "pending_plan_effective_at": {
+                        "type": "string"
+                    },
+                    "pending_plan_name": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "plan_id": {
+                        "type": "string"
+                    },
+                    "plan_name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.customerDetailTransactionView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "invoice_id": {
+                        "type": "string"
+                    },
+                    "invoice_number": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "occurred_at": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string"
+                    },
+                    "provider_tx_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.customerDetailView": {
+                "type": "object",
+                "properties": {
+                    "address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "apps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.customerDetailAppView"
+                        }
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "plan_changes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.customerDetailPlanChangeView"
+                        }
+                    },
+                    "subscriptions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.customerDetailSubscriptionView"
+                        }
+                    },
+                    "transactions": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.customerDetailTransactionView"
+                        }
+                    },
+                    "vat_number": {
+                        "type": "string"
+                    },
+                    "vat_verified": {
+                        "type": "boolean"
+                    },
+                    "vat_verified_at": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.customerListItemView": {
                 "type": "object",
                 "properties": {
@@ -4791,6 +6124,50 @@
                         "type": "integer"
                     },
                     "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.invitationView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "claimed_at": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "invited_at": {
+                        "type": "string"
+                    },
+                    "link": {
+                        "description": "Link is the URL to hand the invitee. Empty when the app declares no\nregistration URL, which is what makes that omission visible in the UI\ninstead of producing a link that goes nowhere.",
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.inviteReq": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "plan_code": {
                         "type": "string"
                     }
                 }
@@ -5092,6 +6469,14 @@
                 "properties": {
                     "rank": {
                         "type": "integer"
+                    }
+                }
+            },
+            "finance.setRegistrationURLReq": {
+                "type": "object",
+                "properties": {
+                    "registration_url": {
+                        "type": "string"
                     }
                 }
             },
@@ -5524,6 +6909,36 @@
                     }
                 }
             },
+            "social.appContextView": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string"
+                    },
+                    "description_edited": {
+                        "type": "boolean"
+                    },
+                    "highlights": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "image_url": {
+                        "type": "string"
+                    },
+                    "scrape_error": {
+                        "description": "ScrapeError reports a fetch that failed while the context itself was\nsaved. It is a warning on a successful response, not an error status.",
+                        "type": "string"
+                    },
+                    "scraped_at": {
+                        "type": "string"
+                    },
+                    "site_url": {
+                        "type": "string"
+                    }
+                }
+            },
             "social.composePostRequest": {
                 "type": "object",
                 "properties": {
@@ -5604,6 +7019,56 @@
                     }
                 }
             },
+            "social.launchDraftView": {
+                "type": "object",
+                "properties": {
+                    "over_limit": {
+                        "type": "boolean"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.launchPostRequest": {
+                "type": "object",
+                "properties": {
+                    "platforms": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "unreleased": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "social.launchView": {
+                "type": "object",
+                "properties": {
+                    "drafts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/social.launchDraftView"
+                        }
+                    },
+                    "post_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.oauthStartView": {
+                "type": "object",
+                "properties": {
+                    "authorize_url": {
+                        "type": "string"
+                    }
+                }
+            },
             "social.platformView": {
                 "type": "object",
                 "properties": {
@@ -5619,6 +7084,13 @@
                     },
                     "name": {
                         "type": "string"
+                    },
+                    "needs_identifier": {
+                        "type": "boolean"
+                    },
+                    "oauth": {
+                        "description": "OAuth platforms are connected by a redirect, not by a pasted secret, and\nNeedsIdentifier says whether the secret form must ask for one. Both are\ndecided here so the UI stops re-deriving them from platform names.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -5686,6 +7158,9 @@
             "social.rewriteRequest": {
                 "type": "object",
                 "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
                     "platform": {
                         "type": "string"
                     },
@@ -5693,9 +7168,6 @@
                         "type": "string"
                     },
                     "source": {
-                        "type": "string"
-                    },
-                    "tone": {
                         "type": "string"
                     }
                 }
@@ -5718,11 +7190,173 @@
                     }
                 }
             },
+            "social.sampleSourceView": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.saveAppContextRequest": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "description": "Description is a pointer so that omitting it leaves a stored description\nalone, while sending \"\" deliberately clears it.",
+                        "type": "string"
+                    },
+                    "highlights": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "scrape": {
+                        "type": "boolean"
+                    },
+                    "site_url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.saveStyleRequest": {
+                "type": "object",
+                "properties": {
+                    "axes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "banned_phrases": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "signature_notes": {
+                        "type": "string"
+                    }
+                }
+            },
             "social.schedulePostRequest": {
                 "type": "object",
                 "properties": {
                     "scheduled_at": {
                         "type": "string"
+                    }
+                }
+            },
+            "social.stylePreviewRequest": {
+                "type": "object",
+                "properties": {
+                    "axes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "banned_phrases": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "sample_id": {
+                        "type": "string"
+                    },
+                    "signature_notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.stylePreviewView": {
+                "type": "object",
+                "properties": {
+                    "cached": {
+                        "type": "boolean"
+                    },
+                    "over_limit": {
+                        "type": "boolean"
+                    },
+                    "sample_id": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.styleProfileView": {
+                "type": "object",
+                "properties": {
+                    "axes": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "banned_phrases": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "language": {
+                        "type": "string"
+                    },
+                    "platform": {
+                        "type": "string"
+                    },
+                    "signature_notes": {
+                        "type": "string"
+                    }
+                }
+            },
+            "social.styleSettingsView": {
+                "type": "object",
+                "properties": {
+                    "axes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "base": {
+                        "$ref": "#/components/schemas/social.styleProfileView"
+                    },
+                    "languages": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "overrides": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/social.styleProfileView"
+                        }
+                    },
+                    "samples": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/social.sampleSourceView"
+                        }
                     }
                 }
             },
