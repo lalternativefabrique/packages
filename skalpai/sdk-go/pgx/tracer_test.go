@@ -16,12 +16,33 @@ func recordSpans(t *testing.T) (*tracetest.SpanRecorder, *QueryTracer) {
 	rec := tracetest.NewSpanRecorder()
 	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
 	t.Cleanup(func() { _ = tp.Shutdown(context.Background()) })
-	return rec, &QueryTracer{tracer: tp.Tracer("db")}
+	return rec, &QueryTracer{tracer: tp.Tracer("db"), provider: tp}
 }
 
+// traceQuery runs a query with no caller span, the way a background loop does.
 func traceQuery(qt *QueryTracer, sql string, err error) {
 	ctx := qt.TraceQueryStart(context.Background(), nil, pgx.TraceQueryStartData{SQL: sql})
 	qt.TraceQueryEnd(ctx, nil, pgx.TraceQueryEndData{Err: err})
+}
+
+// traceQueryUnderCaller runs a query the way a handler does: inside a span.
+// Both spans end up in the recorder, so it returns the query one for the
+// caller to assert on.
+func traceQueryUnderCaller(t *testing.T, rec *tracetest.SpanRecorder, qt *QueryTracer, sql string, err error) sdktrace.ReadOnlySpan {
+	t.Helper()
+
+	parentCtx, parent := qt.provider.Tracer("test").Start(context.Background(), "caller")
+	ctx := qt.TraceQueryStart(parentCtx, nil, pgx.TraceQueryStartData{SQL: sql})
+	qt.TraceQueryEnd(ctx, nil, pgx.TraceQueryEndData{Err: err})
+	parent.End()
+
+	for _, s := range rec.Ended() {
+		if s.Name() != "caller" {
+			return s
+		}
+	}
+	t.Fatalf("query %q emitted no span", sql)
+	return nil
 }
 
 // The span name carries the operation and table, never the full statement:
@@ -29,13 +50,9 @@ func traceQuery(qt *QueryTracer, sql string, err error) {
 func TestSpanNameIsOperationAndTable(t *testing.T) {
 	rec, qt := recordSpans(t)
 
-	traceQuery(qt, "INSERT INTO synthesis (id, title) VALUES ($1, $2)", nil)
+	span := traceQueryUnderCaller(t, rec, qt, "INSERT INTO synthesis (id, title) VALUES ($1, $2)", nil)
 
-	spans := rec.Ended()
-	if len(spans) != 1 {
-		t.Fatalf("got %d spans, want 1", len(spans))
-	}
-	if got := spans[0].Name(); got != "db.INSERT synthesis" {
+	if got := span.Name(); got != "db.INSERT synthesis" {
 		t.Fatalf("span name = %q, want %q", got, "db.INSERT synthesis")
 	}
 }
@@ -56,13 +73,9 @@ func TestSpanNameCoversEachOperation(t *testing.T) {
 
 	for _, tc := range cases {
 		rec, qt := recordSpans(t)
-		traceQuery(qt, tc.query, nil)
+		span := traceQueryUnderCaller(t, rec, qt, tc.query, nil)
 
-		spans := rec.Ended()
-		if len(spans) != 1 {
-			t.Fatalf("query %q: got %d spans, want 1", tc.query, len(spans))
-		}
-		if got := spans[0].Name(); got != tc.want {
+		if got := span.Name(); got != tc.want {
 			t.Fatalf("query %q: span name = %q, want %q", tc.query, got, tc.want)
 		}
 	}
@@ -73,9 +86,9 @@ func TestSpanNameCoversEachOperation(t *testing.T) {
 func TestFailedQueryMarksSpanError(t *testing.T) {
 	rec, qt := recordSpans(t)
 
-	traceQuery(qt, "SELECT 1 FROM synthesis", errors.New("connection refused"))
+	span := traceQueryUnderCaller(t, rec, qt, "SELECT 1 FROM synthesis", errors.New("connection refused"))
 
-	if code := rec.Ended()[0].Status().Code; code != codes.Error {
+	if code := span.Status().Code; code != codes.Error {
 		t.Fatalf("status = %v, want %v", code, codes.Error)
 	}
 }
@@ -85,9 +98,9 @@ func TestFailedQueryMarksSpanError(t *testing.T) {
 func TestNoRowsIsNotASpanError(t *testing.T) {
 	rec, qt := recordSpans(t)
 
-	traceQuery(qt, "SELECT id FROM synthesis WHERE id = $1", pgx.ErrNoRows)
+	span := traceQueryUnderCaller(t, rec, qt, "SELECT id FROM synthesis WHERE id = $1", pgx.ErrNoRows)
 
-	if code := rec.Ended()[0].Status().Code; code == codes.Error {
+	if code := span.Status().Code; code == codes.Error {
 		t.Fatalf("status = %v, want no error for pgx.ErrNoRows", code)
 	}
 }
@@ -97,10 +110,10 @@ func TestNoRowsIsNotASpanError(t *testing.T) {
 func TestSpanCarriesStatementAttribute(t *testing.T) {
 	rec, qt := recordSpans(t)
 
-	traceQuery(qt, "SELECT 1 FROM synthesis", nil)
+	span := traceQueryUnderCaller(t, rec, qt, "SELECT 1 FROM synthesis", nil)
 
 	var statement string
-	for _, attr := range rec.Ended()[0].Attributes() {
+	for _, attr := range span.Attributes() {
 		if string(attr.Key) == "db.statement" {
 			statement = attr.Value.AsString()
 		}
@@ -115,17 +128,55 @@ func TestSpanCarriesStatementAttribute(t *testing.T) {
 func TestSpanOmitsQueryArguments(t *testing.T) {
 	rec, qt := recordSpans(t)
 
-	ctx := qt.TraceQueryStart(context.Background(), nil, pgx.TraceQueryStartData{
+	parentCtx, parent := qt.provider.Tracer("test").Start(context.Background(), "caller")
+	ctx := qt.TraceQueryStart(parentCtx, nil, pgx.TraceQueryStartData{
 		SQL:  "SELECT id FROM users WHERE email = $1",
 		Args: []any{"secret@example.com"},
 	})
 	qt.TraceQueryEnd(ctx, nil, pgx.TraceQueryEndData{})
+	parent.End()
 
 	for _, attr := range rec.Ended()[0].Attributes() {
 		if attr.Value.AsString() == "secret@example.com" {
 			t.Fatalf("attribute %q leaked a query argument", attr.Key)
 		}
 	}
+}
+
+// A query with no caller span comes from a background loop, not from work a
+// user asked for. Tracing it roots a single-span trace that describes nothing,
+// and an outbox relay polling every second mints three of those per pass —
+// enough to bury every trace that does describe real work.
+func TestQueryWithoutCallerSpanIsNotTraced(t *testing.T) {
+	rec, qt := recordSpans(t)
+
+	traceQuery(qt, "SELECT id FROM outbox_events WHERE status = $1", nil)
+
+	if spans := rec.Ended(); len(spans) != 0 {
+		t.Fatalf("background query emitted %d spans, want none", len(spans))
+	}
+}
+
+// The surrounding BEGIN and COMMIT must be dropped too: they are the other two
+// thirds of the noise a polling transaction produces.
+func TestTransactionControlWithoutCallerSpanIsNotTraced(t *testing.T) {
+	rec, qt := recordSpans(t)
+
+	traceQuery(qt, "begin", nil)
+	traceQuery(qt, "commit", nil)
+
+	if spans := rec.Ended(); len(spans) != 0 {
+		t.Fatalf("background transaction emitted %d spans, want none", len(spans))
+	}
+}
+
+// Ending a query that was never traced must not panic: TraceQueryStart
+// returned the context untouched, so no span is stored on it.
+func TestEndWithoutStartedSpanIsSafe(t *testing.T) {
+	_, qt := recordSpans(t)
+
+	ctx := qt.TraceQueryStart(context.Background(), nil, pgx.TraceQueryStartData{SQL: "SELECT 1"})
+	qt.TraceQueryEnd(ctx, nil, pgx.TraceQueryEndData{Err: errors.New("boom")})
 }
 
 // The query span must descend from the caller's span, which is what puts the

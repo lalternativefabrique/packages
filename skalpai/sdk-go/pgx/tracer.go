@@ -30,6 +30,9 @@ import (
 // QueryTracer emits one span per database query.
 type QueryTracer struct {
 	tracer trace.Tracer
+	// provider is set only by tests, which need to open a caller span against
+	// the same recorder the tracer writes to.
+	provider trace.TracerProvider
 }
 
 // NewQueryTracer returns a pgx.QueryTracer reporting to the global provider.
@@ -46,9 +49,22 @@ func (t *QueryTracer) resolve() trace.Tracer {
 
 type spanKey struct{}
 
-// TraceQueryStart opens the span. Arguments are deliberately dropped: they
-// carry user content and credentials, which must not reach a trace backend.
+// TraceQueryStart opens the span, unless the query has no caller span to
+// attach to. Arguments are deliberately dropped: they carry user content and
+// credentials, which must not reach a trace backend.
+//
+// A query with no active span comes from a background loop rather than from
+// something a user asked for: an outbox relay polls every second and finds
+// nothing, and each poll would otherwise root its own single-span trace —
+// three of them, counting the surrounding BEGIN and COMMIT. At one poll per
+// second per replica those bury every trace that describes real work. The
+// query still shows in metrics; it just stops minting traces that lead
+// nowhere.
 func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	if !trace.SpanContextFromContext(ctx).IsValid() {
+		return ctx
+	}
+
 	ctx, span := t.resolve().Start(ctx, spanName(data.SQL),
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
