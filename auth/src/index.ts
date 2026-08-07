@@ -8,6 +8,8 @@ export type {
   PlatformUser,
   PlatformSession,
   PlatformSessionData,
+  LoginFormProps,
+  RegisterFormProps,
   VerifyEmailFormProps,
   ForgotPasswordFormProps,
   ResetPasswordFormProps,
@@ -20,6 +22,9 @@ export type {
 export { useSession, useLogout } from "./hooks/use-session"
 
 // Components
+export { LoginForm } from "./components/login-form"
+export { RegisterForm } from "./components/register-form"
+export { SocialButtons } from "./components/social-buttons"
 export { VerifyEmailForm } from "./components/verify-email-form"
 export { ForgotPasswordForm } from "./components/forgot-password-form"
 export { ResetPasswordForm } from "./components/reset-password-form"

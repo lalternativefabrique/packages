@@ -142,6 +142,47 @@ export interface InvitationNoticeProps {
   action?: React.ReactNode
 }
 
+export interface LoginFormProps {
+  /** Callback once the session cookie is set and the core token minted */
+  onSuccess?: () => void
+  /** Link to the registration page */
+  registerUrl?: string
+  /** Link to the password recovery page */
+  forgotPasswordUrl?: string
+  /**
+   * Where Better Auth sends the browser back after a social sign-in. Social
+   * buttons are only rendered when at least one provider is passed.
+   */
+  socialCallbackUrl?: string
+  /** Social providers to offer, in display order */
+  socialProviders?: Array<"google" | "github">
+  /**
+   * Endpoint trading the fresh better-auth session for the short-lived EdDSA
+   * token the Go core verifies. Called after a successful password sign-in;
+   * pass null to skip when the app has no core.
+   */
+  coreTokenUrl?: string | null
+  /** Auth client instance */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authClient: any
+}
+
+export interface RegisterFormProps {
+  /** Callback on successful sign-up, receives the email to verify */
+  onSuccess?: (email: string) => void
+  /** Link to the login page */
+  loginUrl?: string
+  /** Rendered under the submit button — typically terms and privacy links */
+  legal?: React.ReactNode
+  /** Where Better Auth sends the browser back after a social sign-up */
+  socialCallbackUrl?: string
+  /** Social providers to offer, in display order */
+  socialProviders?: Array<"google" | "github">
+  /** Auth client instance */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  authClient: any
+}
+
 export interface ForgotPasswordFormProps {
   /** Callback on successful OTP send, receives the email */
   onSuccess?: (email: string) => void

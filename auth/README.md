@@ -3,7 +3,8 @@
 Shared [Better Auth](https://better-auth.com) wrapper for L'Alternative apps.
 
 Provides platform auth defaults (email-OTP + admin plugins), a React client,
-and the auth UI forms (verify-email, forgot/reset password, auth layout).
+and the auth UI forms (login, register, verify-email, forgot/reset password,
+auth layout).
 
 ## Install
 
@@ -32,7 +33,7 @@ export const authClient = createPlatformAuthClient({ baseURL })
 
 ```tsx
 // UI + hooks
-import { VerifyEmailForm, ForgotPasswordForm, ResetPasswordForm, AuthLayout, useSession, useLogout } from "@lalternative/auth"
+import { LoginForm, RegisterForm, SocialButtons, VerifyEmailForm, ForgotPasswordForm, ResetPasswordForm, AuthLayout, useSession, useLogout } from "@lalternative/auth"
 ```
 
 ### Invitations
