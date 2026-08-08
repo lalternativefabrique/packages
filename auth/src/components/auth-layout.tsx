@@ -32,7 +32,7 @@ export function AuthLayout({
           )}
         </div>
 
-        <div className="sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card sm:p-8 sm:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.12)]">
+        <div className="sm:rounded-2xl sm:border sm:border-border/70 sm:bg-card sm:p-8 sm:shadow-lg sm:shadow-black/5">
           {children}
         </div>
 

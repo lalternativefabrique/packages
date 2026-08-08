@@ -22,9 +22,9 @@ export interface AuthFieldProps extends NativeProps {
  * thumbs miss; on a pointer device the same height reads as oversized, so the
  * two are not one compromise value.
  *
- * The focus ring is drawn with box-shadow rather than outline so it follows the
- * rounded corners exactly, and the border darkens at the same time — focus
- * survives forced-colors mode, where shadows are dropped.
+ * The focus ring is a ring rather than an outline so it follows the rounded
+ * corners exactly, and the border darkens at the same time — the border is what
+ * survives forced-colors mode, where the ring is dropped.
  */
 export function AuthField({
   label,
@@ -65,10 +65,10 @@ export function AuthField({
             isPassword ? "pr-12" : "",
             "text-foreground placeholder:text-muted-foreground/70",
             "transition-[border-color,box-shadow] duration-150 ease-out",
-            "focus-visible:outline-none focus-visible:ring-0",
+            "focus-visible:outline-none focus-visible:ring-[3px]",
             invalid
-              ? "border-destructive focus-visible:border-destructive focus-visible:shadow-[0_0_0_3px_hsl(var(--destructive)/0.18)]"
-              : "border-input focus-visible:border-ring focus-visible:shadow-[0_0_0_3px_hsl(var(--ring)/0.14)]",
+              ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
+              : "border-input focus-visible:border-ring focus-visible:ring-ring/15",
             "disabled:cursor-not-allowed disabled:opacity-60",
           ]
             .filter(Boolean)
