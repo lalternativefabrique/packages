@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react"
 import type { LoginFormLabels, LoginFormProps } from "../types"
+import { AuthField } from "./auth-field"
+import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 
 const DEFAULTS: Required<LoginFormLabels> = {
@@ -95,63 +97,66 @@ export function LoginForm({
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
-      </div>
+    <div className="space-y-7">
+      <header className="space-y-1.5">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-2xl">
+          {t.title}
+        </h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {t.subtitle}
+        </p>
+      </header>
 
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className="rounded-xl border border-destructive/25 bg-destructive/10 px-3.5 py-3 text-sm leading-snug text-destructive"
         >
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <input
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <AuthField
+          label={t.emailPlaceholder}
           type="email"
+          inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t.emailPlaceholder}
-          aria-label={t.emailPlaceholder}
           required
           disabled={isPending}
           autoComplete="email"
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          autoCapitalize="none"
+          spellCheck={false}
+          invalid={!!error}
         />
 
-        <div className="space-y-1">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.passwordPlaceholder}
-            aria-label={t.passwordPlaceholder}
-            required
-            disabled={isPending}
-            autoComplete="current-password"
-            className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <div className="text-right">
+        <AuthField
+          label={t.passwordPlaceholder}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          disabled={isPending}
+          autoComplete="current-password"
+          invalid={!!error}
+          hint={
             <a
               href={forgotPasswordUrl}
-              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              className="rounded text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {t.forgotPassword}
             </a>
-          </div>
-        </div>
+          }
+        />
 
-        <button
-          type="submit"
-          disabled={isPending || !email.trim() || !password}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+        <AuthSubmit
+          pending={isPending}
+          disabled={!email.trim() || !password}
+          pendingLabel={t.submitPending}
         >
-          {isPending ? t.submitPending : t.submit}
-        </button>
+          {t.submit}
+        </AuthSubmit>
       </form>
 
       <SocialButtons
@@ -164,7 +169,7 @@ export function LoginForm({
         {t.noAccount}{" "}
         <a
           href={registerUrl}
-          className="font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
+          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t.register}
         </a>

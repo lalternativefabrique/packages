@@ -24,6 +24,9 @@ export type {
 export { useSession, useLogout } from "./hooks/use-session"
 
 // Components
+export { AuthField } from "./components/auth-field"
+export type { AuthFieldProps } from "./components/auth-field"
+export { AuthSubmit } from "./components/auth-submit"
 export { LoginForm } from "./components/login-form"
 export { RegisterForm } from "./components/register-form"
 export { SocialButtons } from "./components/social-buttons"

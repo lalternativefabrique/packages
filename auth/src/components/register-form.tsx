@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
+import { AuthField } from "./auth-field"
+import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 
 const MIN_PASSWORD_LENGTH = 8
@@ -36,6 +38,8 @@ export function RegisterForm({
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
+
+  const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -87,74 +91,71 @@ export function RegisterForm({
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
-      </div>
+    <div className="space-y-7">
+      <header className="space-y-1.5">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-2xl">
+          {t.title}
+        </h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          {t.subtitle}
+        </p>
+      </header>
 
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className="rounded-xl border border-destructive/25 bg-destructive/10 px-3.5 py-3 text-sm leading-snug text-destructive"
         >
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <input
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <AuthField
+          label={t.namePlaceholder}
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={t.namePlaceholder}
-          aria-label={t.namePlaceholder}
           required
           disabled={isPending}
           autoComplete="name"
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
         />
 
-        <input
+        <AuthField
+          label={t.emailPlaceholder}
           type="email"
+          inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={t.emailPlaceholder}
-          aria-label={t.emailPlaceholder}
           required
           disabled={isPending}
           autoComplete="email"
-          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
+          autoCapitalize="none"
+          spellCheck={false}
         />
 
-        <div className="space-y-1">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.passwordPlaceholder}
-            aria-label={t.passwordPlaceholder}
-            required
-            disabled={isPending}
-            autoComplete="new-password"
-            aria-describedby="register-password-hint"
-            className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-          />
-          <p id="register-password-hint" className="text-xs text-muted-foreground">
-            {t.passwordHint}
-          </p>
-        </div>
-
-        <button
-          type="submit"
+        <AuthField
+          label={t.passwordPlaceholder}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
           disabled={isPending}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-        >
-          {isPending ? t.submitPending : t.submit}
-        </button>
+          autoComplete="new-password"
+          description={t.passwordHint}
+          // Only once they have typed something: flagging an untouched field
+          // red would scold someone for not having started yet.
+          invalid={tooShort}
+        />
+
+        <AuthSubmit pending={isPending} pendingLabel={t.submitPending}>
+          {t.submit}
+        </AuthSubmit>
 
         {legal && (
-          <div className="text-center text-xs text-muted-foreground">{legal}</div>
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
+            {legal}
+          </p>
         )}
       </form>
 
@@ -168,7 +169,7 @@ export function RegisterForm({
         {t.haveAccount}{" "}
         <a
           href={loginUrl}
-          className="font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
+          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t.login}
         </a>
