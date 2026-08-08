@@ -102,7 +102,7 @@ export function LoginForm({
         <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-2xl">
           {t.title}
         </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-balance text-sm leading-relaxed text-muted-foreground">
           {t.subtitle}
         </p>
       </header>
