@@ -378,3 +378,93 @@ func cleanupStream(ctx context.Context, nc *nats.Conn, name string) {
 	}
 	_ = js.DeleteStream(ctx, name)
 }
+
+func TestIntegration_JetStreamStore_TraceInjector(t *testing.T) {
+	nc := connectOrSkip(t)
+	defer nc.Close()
+
+	stream := uniqueStream("EVENTS")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	type ctxKey struct{}
+	injected := 0
+
+	store, err := NewJetStreamStore[string](ctx, nc, JetStreamStoreConfig[string]{
+		StreamName:            stream,
+		SubjectPrefix:         "events",
+		AggregateType:         "Test",
+		Payloads:              newRegistry(),
+		IDs:                   StringIDCodec{},
+		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
+		MaxAge:                10 * time.Minute,
+		TraceInjector: func(ctx context.Context, h nats.Header) {
+			injected++
+			if v, ok := ctx.Value(ctxKey{}).(string); ok {
+				h.Set("Traceparent", v)
+			}
+		},
+	})
+	require.NoError(t, err)
+	defer cleanupStream(ctx, nc, stream)
+
+	const traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+	saveCtx := context.WithValue(ctx, ctxKey{}, traceparent)
+
+	envs := []ddd.EventEnvelope[string]{
+		mkEnv(1, itCreated{Name: "first"}),
+		mkEnv(2, itRenamed{Name: "second"}),
+	}
+	require.NoError(t, store.Save(saveCtx, "agg-1", 0, envs))
+
+	assert.Equal(t, 2, injected, "the hook runs once per published event")
+
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+	str, err := js.Stream(ctx, stream)
+	require.NoError(t, err)
+
+	msg, err := str.GetMsg(ctx, 1)
+	require.NoError(t, err)
+	assert.Equal(t, traceparent, msg.Header.Get("Traceparent"))
+	assert.Equal(t, "it.created", msg.Header.Get("Event-Type"))
+	assert.Equal(t, "1", msg.Header.Get("Aggregate-Version"))
+}
+
+// A nil TraceInjector is the default: Save publishes exactly as before.
+func TestIntegration_JetStreamStore_NoTraceInjector(t *testing.T) {
+	nc := connectOrSkip(t)
+	defer nc.Close()
+
+	stream := uniqueStream("EVENTS")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	store, err := NewJetStreamStore[string](ctx, nc, JetStreamStoreConfig[string]{
+		StreamName:            stream,
+		SubjectPrefix:         "events",
+		AggregateType:         "Test",
+		Payloads:              newRegistry(),
+		IDs:                   StringIDCodec{},
+		CreateStreamIfMissing: true,
+		OCC:                   occModeFor(nc),
+		MaxAge:                10 * time.Minute,
+	})
+	require.NoError(t, err)
+	defer cleanupStream(ctx, nc, stream)
+
+	require.NoError(t, store.Save(ctx, "agg-1", 0, []ddd.EventEnvelope[string]{
+		mkEnv(1, itCreated{Name: "first"}),
+	}))
+
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+	str, err := js.Stream(ctx, stream)
+	require.NoError(t, err)
+
+	msg, err := str.GetMsg(ctx, 1)
+	require.NoError(t, err)
+	assert.Empty(t, msg.Header.Get("Traceparent"))
+	assert.Equal(t, "it.created", msg.Header.Get("Event-Type"))
+}

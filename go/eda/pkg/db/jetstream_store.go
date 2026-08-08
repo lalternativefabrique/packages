@@ -133,6 +133,12 @@ type JetStreamStoreConfig[ID comparable] struct {
 	CreateStreamIfMissing bool
 	// OCC selects the concurrency mode. Defaults to OCCModeAtomic.
 	OCC OCCMode
+	// TraceInjector, when set, writes the caller's trace context into the
+	// message headers so a consumer can restore it across the async boundary.
+	// Mirror of consumer.Config.TraceExtractor; it keeps this package free of
+	// any OpenTelemetry dependency, the otel wiring living in an obs adapter
+	// that supplies this hook. Default: nil (no trace headers are written).
+	TraceInjector func(ctx context.Context, h nats.Header)
 }
 
 // JetStreamStore is the generic, JetStream-backed event store.
@@ -262,6 +268,9 @@ func (s *JetStreamStore[ID]) Save(
 		}
 		for k, v := range env.Metadata {
 			msg.Header.Set("Meta-"+k, v)
+		}
+		if s.cfg.TraceInjector != nil {
+			s.cfg.TraceInjector(ctx, msg.Header)
 		}
 
 		opts := []jetstream.PublishOpt{
