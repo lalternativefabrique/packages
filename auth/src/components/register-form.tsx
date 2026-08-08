@@ -1,8 +1,25 @@
 import { useState, type FormEvent } from "react"
-import type { RegisterFormProps } from "../types"
+import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { SocialButtons } from "./social-buttons"
 
 const MIN_PASSWORD_LENGTH = 8
+
+const DEFAULTS: Required<RegisterFormLabels> = {
+  title: "Créer un compte",
+  subtitle: "Nous t'enverrons un code pour confirmer ton adresse e-mail.",
+  namePlaceholder: "Nom complet",
+  emailPlaceholder: "Adresse e-mail",
+  passwordPlaceholder: "Mot de passe",
+  passwordHint: `Au moins ${MIN_PASSWORD_LENGTH} caractères.`,
+  submit: "Créer mon compte",
+  submitPending: "Création…",
+  haveAccount: "Tu as déjà un compte ?",
+  login: "Se connecter",
+  nameRequired: "Renseigne ton nom",
+  emailRequired: "Renseigne ton adresse e-mail",
+  passwordTooShort: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères`,
+  signUpFailed: "La création du compte a échoué",
+}
 
 export function RegisterForm({
   onSuccess,
@@ -10,8 +27,10 @@ export function RegisterForm({
   legal,
   socialCallbackUrl = "/",
   socialProviders = [],
+  labels,
   authClient,
 }: RegisterFormProps) {
+  const t = { ...DEFAULTS, ...labels }
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -21,15 +40,15 @@ export function RegisterForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim()) {
-      setError("Please enter your name")
+      setError(t.nameRequired)
       return
     }
     if (!email.trim()) {
-      setError("Please enter your email address")
+      setError(t.emailRequired)
       return
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`)
+      setError(t.passwordTooShort)
       return
     }
     setError(undefined)
@@ -41,7 +60,7 @@ export function RegisterForm({
         password,
       })
       if (res?.error) {
-        setError(res.error.message ?? "Could not create your account")
+        setError(res.error.message ?? t.signUpFailed)
         return
       }
       // createPlatformAuth sets requireEmailVerification, so sign-up leaves the
@@ -49,9 +68,7 @@ export function RegisterForm({
       // step rather than into the app.
       onSuccess?.(email.trim())
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not create your account",
-      )
+      setError(err instanceof Error ? err.message : t.signUpFailed)
     } finally {
       setIsPending(false)
     }
@@ -65,21 +82,22 @@ export function RegisterForm({
         callbackURL: socialCallbackUrl,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Sign-up failed")
+      setError(err instanceof Error ? err.message : t.signUpFailed)
     }
   }
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          We&apos;ll send you a code to confirm your email address.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       )}
@@ -89,7 +107,8 @@ export function RegisterForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Full name"
+          placeholder={t.namePlaceholder}
+          aria-label={t.namePlaceholder}
           required
           disabled={isPending}
           autoComplete="name"
@@ -100,7 +119,8 @@ export function RegisterForm({
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email address"
+          placeholder={t.emailPlaceholder}
+          aria-label={t.emailPlaceholder}
           required
           disabled={isPending}
           autoComplete="email"
@@ -112,7 +132,8 @@ export function RegisterForm({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder={t.passwordPlaceholder}
+            aria-label={t.passwordPlaceholder}
             required
             disabled={isPending}
             autoComplete="new-password"
@@ -120,7 +141,7 @@ export function RegisterForm({
             className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <p id="register-password-hint" className="text-xs text-muted-foreground">
-            At least {MIN_PASSWORD_LENGTH} characters.
+            {t.passwordHint}
           </p>
         </div>
 
@@ -129,7 +150,7 @@ export function RegisterForm({
           disabled={isPending}
           className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
         >
-          {isPending ? "Creating account..." : "Create account"}
+          {isPending ? t.submitPending : t.submit}
         </button>
 
         {legal && (
@@ -144,12 +165,12 @@ export function RegisterForm({
       />
 
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {t.haveAccount}{" "}
         <a
           href={loginUrl}
           className="font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
         >
-          Sign in
+          {t.login}
         </a>
       </p>
     </div>

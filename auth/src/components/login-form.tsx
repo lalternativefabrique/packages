@@ -1,19 +1,27 @@
 import { useState, type FormEvent } from "react"
-import type { LoginFormProps } from "../types"
+import type { LoginFormLabels, LoginFormProps } from "../types"
 import { SocialButtons } from "./social-buttons"
 
-// accountLinking is disabled in createPlatformAuth, so a social sign-in on an
-// address already registered with a password is refused with this code. Without
-// a message the button reads as broken rather than as a rejected account.
-function oauthErrorMessage(code: string): string {
-  switch (code) {
-    case "account_not_linked":
-      return "This email is already registered with a password. Sign in with your password instead."
-    case "access_denied":
-      return "Sign-in was cancelled."
-    default:
-      return "Sign-in failed. Please try again."
-  }
+const DEFAULTS: Required<LoginFormLabels> = {
+  title: "Connexion",
+  subtitle: "Content de te revoir. Entre tes identifiants pour continuer.",
+  emailPlaceholder: "Adresse e-mail",
+  passwordPlaceholder: "Mot de passe",
+  forgotPassword: "Mot de passe oublié ?",
+  submit: "Se connecter",
+  submitPending: "Connexion…",
+  noAccount: "Pas encore de compte ?",
+  register: "Créer un compte",
+  emailRequired: "Renseigne ton adresse e-mail",
+  passwordRequired: "Renseigne ton mot de passe",
+  invalidCredentials: "Adresse e-mail ou mot de passe incorrect",
+  // accountLinking is disabled in createPlatformAuth, so a social sign-in on an
+  // address already registered with a password is refused with this code.
+  // Without a message the button reads as broken rather than as a rejection.
+  accountNotLinked:
+    "Cette adresse est déjà associée à un mot de passe. Connecte-toi avec ton mot de passe.",
+  socialCancelled: "Connexion annulée.",
+  socialFailed: "La connexion a échoué. Réessaie.",
 }
 
 export function LoginForm({
@@ -23,8 +31,10 @@ export function LoginForm({
   socialCallbackUrl = "/",
   socialProviders = [],
   coreTokenUrl = "/api/auth/core-token",
+  labels,
   authClient,
 }: LoginFormProps) {
+  const t = { ...DEFAULTS, ...labels }
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | undefined>()
@@ -33,11 +43,11 @@ export function LoginForm({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     if (!email.trim()) {
-      setError("Please enter your email address")
+      setError(t.emailRequired)
       return
     }
     if (!password) {
-      setError("Please enter your password")
+      setError(t.passwordRequired)
       return
     }
     setError(undefined)
@@ -48,18 +58,18 @@ export function LoginForm({
         password,
       })
       if (res?.error) {
-        setError(res.error.message ?? "Invalid email or password")
+        setError(res.error.message ?? t.invalidCredentials)
         return
       }
-      // The better-auth session cookie alone does not authenticate the Go core:
-      // it verifies the EdDSA JWT minted here against the issuer's JWKS. Skipped
-      // when the app has no core to call.
+      // The better-auth session cookie alone does not authenticate a Go core:
+      // it verifies the EdDSA JWT minted here against the issuer's JWKS.
+      // Skipped when the app sets the token itself, or has no core at all.
       if (coreTokenUrl) {
         await fetch(coreTokenUrl, { credentials: "include" })
       }
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid email or password")
+      setError(err instanceof Error ? err.message : t.invalidCredentials)
     } finally {
       setIsPending(false)
     }
@@ -73,8 +83,13 @@ export function LoginForm({
         callbackURL: socialCallbackUrl,
       })
     } catch (err) {
+      const code = err instanceof Error ? err.message : ""
       setError(
-        err instanceof Error ? oauthErrorMessage(err.message) : oauthErrorMessage(""),
+        code === "account_not_linked"
+          ? t.accountNotLinked
+          : code === "access_denied"
+            ? t.socialCancelled
+            : t.socialFailed,
       )
     }
   }
@@ -82,14 +97,15 @@ export function LoginForm({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Welcome back. Enter your credentials to continue.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t.subtitle}</p>
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       )}
@@ -99,7 +115,8 @@ export function LoginForm({
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email address"
+          placeholder={t.emailPlaceholder}
+          aria-label={t.emailPlaceholder}
           required
           disabled={isPending}
           autoComplete="email"
@@ -111,7 +128,8 @@ export function LoginForm({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
+            placeholder={t.passwordPlaceholder}
+            aria-label={t.passwordPlaceholder}
             required
             disabled={isPending}
             autoComplete="current-password"
@@ -122,7 +140,7 @@ export function LoginForm({
               href={forgotPasswordUrl}
               className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
-              Forgot your password?
+              {t.forgotPassword}
             </a>
           </div>
         </div>
@@ -132,7 +150,7 @@ export function LoginForm({
           disabled={isPending || !email.trim() || !password}
           className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
         >
-          {isPending ? "Signing in..." : "Sign in"}
+          {isPending ? t.submitPending : t.submit}
         </button>
       </form>
 
@@ -143,12 +161,12 @@ export function LoginForm({
       />
 
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {t.noAccount}{" "}
         <a
           href={registerUrl}
           className="font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
         >
-          Sign up
+          {t.register}
         </a>
       </p>
     </div>

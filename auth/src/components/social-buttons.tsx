@@ -1,20 +1,28 @@
 const LABELS: Record<string, string> = {
-  google: "Continue with Google",
-  github: "Continue with GitHub",
+  google: "Continuer avec Google",
+  github: "Continuer avec GitHub",
 }
 
 interface SocialButtonsProps {
   providers: Array<"google" | "github">
   onSelect: (provider: "google" | "github") => void | Promise<void>
   disabled?: boolean
+  /** Divider text between the password form and the providers */
+  separator?: string
+  /** Per-provider button copy, merged over the French defaults */
+  labels?: Partial<Record<"google" | "github", string>>
 }
 
 export function SocialButtons({
   providers,
   onSelect,
   disabled = false,
+  separator = "ou",
+  labels,
 }: SocialButtonsProps) {
   if (providers.length === 0) return null
+
+  const copy = { ...LABELS, ...labels }
 
   return (
     <div className="space-y-4">
@@ -24,7 +32,7 @@ export function SocialButtons({
         </div>
         <div className="relative flex justify-center">
           <span className="bg-background px-2 text-xs uppercase tracking-wider text-muted-foreground">
-            or
+            {separator}
           </span>
         </div>
       </div>
@@ -38,7 +46,7 @@ export function SocialButtons({
             disabled={disabled}
             className="inline-flex h-11 w-full items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
           >
-            {LABELS[provider] ?? provider}
+            {copy[provider] ?? provider}
           </button>
         ))}
       </div>

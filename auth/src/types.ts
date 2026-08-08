@@ -142,6 +142,46 @@ export interface InvitationNoticeProps {
   action?: React.ReactNode
 }
 
+/**
+ * Copy overrides for the sign-in screen. Every key is optional; what is not
+ * given falls back to the French defaults, matching InvitationNotice and the
+ * apps consuming this package. Pass a full set to render another language.
+ */
+export interface LoginFormLabels {
+  title?: string
+  subtitle?: string
+  emailPlaceholder?: string
+  passwordPlaceholder?: string
+  forgotPassword?: string
+  submit?: string
+  submitPending?: string
+  noAccount?: string
+  register?: string
+  emailRequired?: string
+  passwordRequired?: string
+  invalidCredentials?: string
+  accountNotLinked?: string
+  socialCancelled?: string
+  socialFailed?: string
+}
+
+export interface RegisterFormLabels {
+  title?: string
+  subtitle?: string
+  namePlaceholder?: string
+  emailPlaceholder?: string
+  passwordPlaceholder?: string
+  passwordHint?: string
+  submit?: string
+  submitPending?: string
+  haveAccount?: string
+  login?: string
+  nameRequired?: string
+  emailRequired?: string
+  passwordTooShort?: string
+  signUpFailed?: string
+}
+
 export interface LoginFormProps {
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
@@ -162,6 +202,8 @@ export interface LoginFormProps {
    * pass null to skip when the app has no core.
    */
   coreTokenUrl?: string | null
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: LoginFormLabels
   /** Auth client instance */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authClient: any
@@ -178,6 +220,8 @@ export interface RegisterFormProps {
   socialCallbackUrl?: string
   /** Social providers to offer, in display order */
   socialProviders?: Array<"google" | "github">
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: RegisterFormLabels
   /** Auth client instance */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authClient: any
