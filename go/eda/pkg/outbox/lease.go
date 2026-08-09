@@ -36,6 +36,11 @@ type RawRecord struct {
 	// Attempts is the number of delivery attempts so far (incremented by the
 	// store when the row is claimed).
 	Attempts int
+	// Headers travel with the payload to the broker. They carry what the
+	// producer knew and the relay cannot reconstruct — a trace context above
+	// all, since the relay's own context belongs to its polling loop, not to
+	// the request that enqueued the row. Empty unless the store reads them.
+	Headers map[string]string
 }
 
 // LeaseStore is the persistence seam for the lease relay. Implementations must
@@ -68,6 +73,13 @@ type RawPublisherFunc func(ctx context.Context, topic string, payload []byte) er
 
 func (f RawPublisherFunc) Publish(ctx context.Context, topic string, payload []byte) error {
 	return f(ctx, topic, payload)
+}
+
+// RawHeaderPublisher is the optional counterpart of RawPublisher for
+// transports that carry headers. The relay prefers it when the publisher
+// implements it, so adding headers never broke an existing RawPublisher.
+type RawHeaderPublisher interface {
+	PublishWithHeaders(ctx context.Context, topic string, payload []byte, headers map[string]string) error
 }
 
 // LeaseRelayConfig tunes a LeaseRelay. The zero value is usable via defaults.
@@ -146,6 +158,13 @@ func (r *LeaseRelay) Run(ctx context.Context) error {
 	}
 }
 
+func (r *LeaseRelay) publish(ctx context.Context, row RawRecord) error {
+	if hp, ok := r.pub.(RawHeaderPublisher); ok {
+		return hp.PublishWithHeaders(ctx, row.Topic, row.Payload, row.Headers)
+	}
+	return r.pub.Publish(ctx, row.Topic, row.Payload)
+}
+
 // RelayOnce claims a batch, publishes each row, and marks sent/failed. It
 // returns the number of rows successfully published.
 func (r *LeaseRelay) RelayOnce(ctx context.Context) (int, error) {
@@ -155,7 +174,7 @@ func (r *LeaseRelay) RelayOnce(ctx context.Context) (int, error) {
 	}
 	published := 0
 	for _, row := range rows {
-		if perr := r.pub.Publish(ctx, row.Topic, row.Payload); perr != nil {
+		if perr := r.publish(ctx, row); perr != nil {
 			_ = r.store.MarkFailed(ctx, row.ID, perr, r.backoffFor(row.Attempts))
 			if r.cfg.OnError != nil {
 				r.cfg.OnError(row, perr)
