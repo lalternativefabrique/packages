@@ -31,7 +31,7 @@ func TestFallsBackToSubjectWhenHeaderAbsent(t *testing.T) {
 			}
 			return ""
 		},
-		Envelope: func(raw []byte) (Envelope, error) {
+		Envelope: func(raw []byte, _ nats.Header) (Envelope, error) {
 			return Envelope{Scope: "scope-1", EventID: "e-1"}, nil
 		},
 	})
@@ -71,7 +71,7 @@ func TestHeaderWinsOverSubject(t *testing.T) {
 func TestCustomEnvelopeRoutesFlatEvents(t *testing.T) {
 	d, out, _ := newDispatcher(Source{
 		PublicType: func(string) string { return "public.thing" },
-		Envelope: func(raw []byte) (Envelope, error) {
+		Envelope: func(raw []byte, _ nats.Header) (Envelope, error) {
 			var e struct {
 				AppID      string    `json:"AppID"`
 				OccurredAt time.Time `json:"OccurredAt"`
@@ -118,7 +118,7 @@ func TestDefaultEnvelopeReadsMetadataShape(t *testing.T) {
 func TestUnknownScopeIsDropped(t *testing.T) {
 	d, out, _ := newDispatcher(Source{
 		PublicType: func(string) string { return "public.thing" },
-		Envelope: func([]byte) (Envelope, error) {
+		Envelope: func([]byte, nats.Header) (Envelope, error) {
 			return Envelope{Scope: "someone-else", EventID: "e-1"}, nil
 		},
 	})
@@ -136,7 +136,7 @@ func TestUnknownScopeIsDropped(t *testing.T) {
 func TestUnsubscribedTypeIsNotDelivered(t *testing.T) {
 	d, out, _ := newDispatcher(Source{
 		PublicType: func(string) string { return "public.other" },
-		Envelope: func([]byte) (Envelope, error) {
+		Envelope: func([]byte, nats.Header) (Envelope, error) {
 			return Envelope{Scope: "scope-1", EventID: "e-1"}, nil
 		},
 	})
@@ -154,7 +154,7 @@ func TestUnsubscribedTypeIsNotDelivered(t *testing.T) {
 func TestDeliveryIDIsDeterministic(t *testing.T) {
 	src := Source{
 		PublicType: func(string) string { return "public.thing" },
-		Envelope: func([]byte) (Envelope, error) {
+		Envelope: func([]byte, nats.Header) (Envelope, error) {
 			return Envelope{Scope: "scope-1", EventID: "e-1"}, nil
 		},
 	}
@@ -169,5 +169,50 @@ func TestDeliveryIDIsDeterministic(t *testing.T) {
 	}
 	if jobs[0].DeliveryID != jobs[1].DeliveryID {
 		t.Fatal("a replayed event produced a different delivery id")
+	}
+}
+
+func TestHeaderEnvelope(t *testing.T) {
+	h := nats.Header{}
+	h.Set("Tenant-Id", "tenant-1")
+	h.Set("Event-Id", "evt-1")
+	h.Set("Occurred-At", "2026-08-09T14:50:12.5Z")
+
+	env, err := HeaderEnvelope(nil, h)
+	if err != nil {
+		t.Fatalf("HeaderEnvelope: %v", err)
+	}
+	if env.Scope != "tenant-1" || env.EventID != "evt-1" {
+		t.Fatalf("got scope=%q eventID=%q", env.Scope, env.EventID)
+	}
+	if !env.Timestamp.Equal(time.Date(2026, 8, 9, 14, 50, 12, 500000000, time.UTC)) {
+		t.Fatalf("timestamp = %v", env.Timestamp)
+	}
+}
+
+// A body-only payload must still route: the go-eda store keeps its routing
+// facts in the headers, so reading the body would resolve an empty scope and
+// silently drop every event.
+func TestHeaderEnvelopeIgnoresBody(t *testing.T) {
+	h := nats.Header{}
+	h.Set("Tenant-Id", "tenant-2")
+	h.Set("Event-Id", "evt-2")
+
+	env, err := HeaderEnvelope([]byte(`{"subject":"no metadata here"}`), h)
+	if err != nil {
+		t.Fatalf("HeaderEnvelope: %v", err)
+	}
+	if env.Scope != "tenant-2" {
+		t.Fatalf("scope = %q, want tenant-2", env.Scope)
+	}
+}
+
+func TestHeaderEnvelopeRejectsBadTimestamp(t *testing.T) {
+	h := nats.Header{}
+	h.Set("Tenant-Id", "tenant-3")
+	h.Set("Occurred-At", "not-a-timestamp")
+
+	if _, err := HeaderEnvelope(nil, h); err == nil {
+		t.Fatal("expected an error on a malformed Occurred-At")
 	}
 }
