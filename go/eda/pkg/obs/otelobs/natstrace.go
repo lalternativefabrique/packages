@@ -84,12 +84,17 @@ func NormalizeNATSHeaders(h nats.Header) nats.Header {
 //
 //	cfg.TraceExtractor = otelobs.ExtractTraceContext
 func ExtractTraceContext(msg *nats.Msg) context.Context {
-	ctx := context.Background()
-	if msg.Header != nil {
-		normalized := NormalizeNATSHeaders(msg.Header)
-		ctx = otel.GetTextMapPropagator().Extract(ctx, propagation.HeaderCarrier(normalized))
+	return ExtractTraceContextInto(context.Background(), msg)
+}
+
+// ExtractTraceContextInto reads the message's trace context onto parent instead
+// of a fresh one, keeping the deadline and values the caller already carries —
+// a driver that owns a per-message context loses both otherwise.
+func ExtractTraceContextInto(parent context.Context, msg *nats.Msg) context.Context {
+	if msg == nil || msg.Header == nil {
+		return parent
 	}
-	return ctx
+	return otel.GetTextMapPropagator().Extract(parent, propagation.HeaderCarrier(NormalizeNATSHeaders(msg.Header)))
 }
 
 // ConsumeMessage wraps handler with a "consume.<subject>" span whose parent is
@@ -97,7 +102,13 @@ func ExtractTraceContext(msg *nats.Msg) context.Context {
 // messages outside the eda consumer; inside the consumer, prefer wiring
 // ExtractTraceContext as Config.TraceExtractor.
 func ConsumeMessage(msg *nats.Msg, handler func(context.Context, *nats.Msg) error) error {
-	ctx := ExtractTraceContext(msg)
+	return ConsumeMessageWithContext(context.Background(), msg, handler)
+}
+
+// ConsumeMessageWithContext is ConsumeMessage rooted on ctx, so a driver that
+// already holds a per-message context keeps its deadline and values.
+func ConsumeMessageWithContext(ctx context.Context, msg *nats.Msg, handler func(context.Context, *nats.Msg) error) error {
+	ctx = ExtractTraceContextInto(ctx, msg)
 
 	ctx, span := natsTracer.Start(ctx, "consume."+msg.Subject)
 	defer span.End()
