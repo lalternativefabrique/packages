@@ -32,14 +32,19 @@ type Source struct {
 	// register for. Returning "" drops the event: most internal events are not
 	// meant to leave the system, so silence is the safe default.
 	PublicType func(upstream string) string
-	// Envelope pulls the routing facts out of an upstream event body. Optional:
-	// nil reads the {metadata:{eventId,timestamp,tenantId}} shape.
+	// Envelope pulls the routing facts out of an upstream event. Optional:
+	// nil reads the {metadata:{eventId,timestamp,tenantId}} shape from the body.
 	//
 	// It exists because event envelopes are a product's own convention, and a
 	// publisher whose events are flat — or whose scope key is an application
 	// rather than a tenant — would otherwise resolve to an empty scope and have
 	// every one of its events dropped without a word.
-	Envelope func(raw []byte) (Envelope, error)
+	//
+	// The headers are passed alongside the body because a publisher may carry
+	// its routing facts there instead: an event store that keeps the body to
+	// the payload alone leaves nothing in it to route on. Use HeaderEnvelope
+	// for that layout.
+	Envelope func(raw []byte, header nats.Header) (Envelope, error)
 }
 
 // Envelope is what the dispatcher needs to route one upstream event: who it
@@ -115,7 +120,7 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 
 // MetadataEnvelope reads the {metadata:{eventId,timestamp,tenantId}} shape. It
 // is the default when a Source declares no Envelope of its own.
-func MetadataEnvelope(raw []byte) (Envelope, error) {
+func MetadataEnvelope(raw []byte, _ nats.Header) (Envelope, error) {
 	var env struct {
 		Metadata struct {
 			EventID   string    `json:"eventId"`
@@ -133,6 +138,25 @@ func MetadataEnvelope(raw []byte) (Envelope, error) {
 	}, nil
 }
 
+// HeaderEnvelope reads the routing facts from the NATS headers rather than the
+// body: Tenant-Id, Event-Id and Occurred-At. It suits publishers whose event
+// body carries the payload alone, which is the layout go-eda's event store
+// writes.
+func HeaderEnvelope(_ []byte, header nats.Header) (Envelope, error) {
+	env := Envelope{
+		Scope:   header.Get("Tenant-Id"),
+		EventID: header.Get("Event-Id"),
+	}
+	if occurred := header.Get("Occurred-At"); occurred != "" {
+		ts, err := time.Parse(time.RFC3339Nano, occurred)
+		if err != nil {
+			return Envelope{}, fmt.Errorf("parse Occurred-At: %w", err)
+		}
+		env.Timestamp = ts
+	}
+	return env, nil
+}
+
 func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 	publicType := d.source.PublicType(upstreamType(m))
 	if publicType == "" {
@@ -143,7 +167,7 @@ func (d *Dispatcher) handle(ctx context.Context, m *nats.Msg) error {
 	if readEnvelope == nil {
 		readEnvelope = MetadataEnvelope
 	}
-	env, err := readEnvelope(m.Data)
+	env, err := readEnvelope(m.Data, m.Header)
 	if err != nil {
 		return fmt.Errorf("decode envelope: %w", err)
 	}
