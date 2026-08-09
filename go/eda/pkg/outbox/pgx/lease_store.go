@@ -88,7 +88,7 @@ func (s *LeaseStore) ClaimBatch(ctx context.Context, limit int, lease time.Durat
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	rows, err := tx.Query(ctx, fmt.Sprintf(`
-		SELECT id, topic, payload, attempts
+		SELECT id, topic, payload, attempts, trace_headers
 		FROM %s
 		WHERE status = $1
 		  AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
@@ -104,9 +104,15 @@ func (s *LeaseStore) ClaimBatch(ctx context.Context, limit int, lease time.Durat
 	var ids []int64
 	for rows.Next() {
 		var r outbox.RawRecord
-		if err := rows.Scan(&r.ID, &r.Topic, &r.Payload, &r.Attempts); err != nil {
+		// trace_headers is nullable, and rows written before it was wired carry
+		// SQL NULL — scan through a pointer so those stay a nil map.
+		var headers *map[string]string
+		if err := rows.Scan(&r.ID, &r.Topic, &r.Payload, &r.Attempts, &headers); err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("scan pending: %w", err)
+		}
+		if headers != nil {
+			r.Headers = *headers
 		}
 		// Attempts as returned reflects the count AFTER this claim, matching the
 		// increment below, so backoff is computed against the current attempt.

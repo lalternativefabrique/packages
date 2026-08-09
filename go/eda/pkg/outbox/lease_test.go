@@ -20,6 +20,7 @@ type leaseRow struct {
 	id        int64
 	topic     string
 	payload   []byte
+	headers   map[string]string
 	attempts  int
 	sent      bool
 	nextAt    time.Time // zero = due immediately
@@ -37,7 +38,7 @@ func (s *fakeLeaseStore) ClaimBatch(_ context.Context, limit int, lease time.Dur
 		}
 		r.attempts++
 		r.nextAt = s.now.Add(lease) // lease it out
-		out = append(out, RawRecord{ID: r.id, Topic: r.topic, Payload: r.payload, Attempts: r.attempts})
+		out = append(out, RawRecord{ID: r.id, Topic: r.topic, Payload: r.payload, Headers: r.headers, Attempts: r.attempts})
 		if len(out) >= limit {
 			break
 		}
@@ -185,5 +186,68 @@ func TestLeaseRelay_PublishFailureSchedulesBackoff(t *testing.T) {
 	wantNext := store.now.Add(10 * time.Second)
 	if !store.rows[0].nextAt.Equal(wantNext) {
 		t.Errorf("nextAt = %v, want %v (10s backoff)", store.rows[0].nextAt, wantNext)
+	}
+}
+
+type headerPublisher struct {
+	gotHeaders map[string]string
+	calls      int
+}
+
+func (p *headerPublisher) Publish(context.Context, string, []byte) error {
+	p.calls++
+	return errors.New("the relay must prefer PublishWithHeaders")
+}
+
+func (p *headerPublisher) PublishWithHeaders(_ context.Context, _ string, _ []byte, headers map[string]string) error {
+	p.calls++
+	p.gotHeaders = headers
+	return nil
+}
+
+func TestLeaseRelay_ForwardsHeadersWhenPublisherSupportsThem(t *testing.T) {
+	store := &fakeLeaseStore{
+		now: time.Now(),
+		rows: []*leaseRow{{
+			id: 1, topic: "t", payload: []byte(`{}`),
+			headers: map[string]string{"Traceparent": "00-abc-def-01"},
+		}},
+	}
+	pub := &headerPublisher{}
+	relay := NewLeaseRelay(store, pub, LeaseRelayConfig{})
+
+	n, err := relay.RelayOnce(context.Background())
+	if err != nil {
+		t.Fatalf("RelayOnce: %v", err)
+	}
+	if n != 1 {
+		t.Fatalf("published %d rows, want 1", n)
+	}
+	if pub.gotHeaders["Traceparent"] != "00-abc-def-01" {
+		t.Errorf("headers = %v, want the row's traceparent", pub.gotHeaders)
+	}
+}
+
+// A publisher predating headers keeps working untouched.
+func TestLeaseRelay_PlainPublisherStillUsed(t *testing.T) {
+	store := &fakeLeaseStore{
+		now: time.Now(),
+		rows: []*leaseRow{{
+			id: 1, topic: "t", payload: []byte(`{}`),
+			headers: map[string]string{"Traceparent": "00-abc-def-01"},
+		}},
+	}
+	called := 0
+	pub := RawPublisherFunc(func(context.Context, string, []byte) error {
+		called++
+		return nil
+	})
+	relay := NewLeaseRelay(store, pub, LeaseRelayConfig{})
+
+	if _, err := relay.RelayOnce(context.Background()); err != nil {
+		t.Fatalf("RelayOnce: %v", err)
+	}
+	if called != 1 {
+		t.Errorf("plain Publish called %d times, want 1", called)
 	}
 }
