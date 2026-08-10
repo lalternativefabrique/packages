@@ -124,6 +124,28 @@ export function inviteTokenFrom(
 const INVITE_TOKEN_COOKIE = "invite_token"
 
 /**
+ * Pins the token onto the browser the first time a request carries it, so the
+ * rest of the sign-up can find it.
+ *
+ * Called on every auth request, not only the ones completing a sign-up: the
+ * token is legible on the FIRST call of a flow (the page holding it issues that
+ * XHR, so the Referer still has it) and gone by the last (verified from a
+ * screen that never held it, or returned from Google). Waiting for the moment
+ * the account exists is waiting one request too long.
+ *
+ * Returns null when there is nothing to pin — no token in the request, or one
+ * already held — so a caller can skip the Set-Cookie entirely.
+ */
+export function pinInviteToken(
+  request: Request,
+  param = "invite",
+): string | null {
+  if (inviteTokenCookie(request)) return null
+  const token = inviteTokenFrom(request, param)
+  return token ? holdInviteTokenCookie(token) : null
+}
+
+/**
  * Holds the token from the moment the link is opened until the account exists.
  *
  * The URL and the Referer each cover only part of the ground: the OTP flow

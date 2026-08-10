@@ -161,6 +161,7 @@ export {
   invitationOutcomeCookie,
   inviteTokenFrom,
   isInvitationFailure,
+  pinInviteToken,
   releaseInviteTokenCookie,
 } from "./invitation"
 export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
