@@ -37,6 +37,7 @@ export function createPlatformAuth(
     google,
     github,
     plugins = [],
+    databaseHooks,
     betaMode = false,
     isInvited,
     emailSubjects,
@@ -69,6 +70,10 @@ export function createPlatformAuth(
         enabled: false,
       },
     },
+    // Passed through as given. The platform defines none of its own today, so
+    // there is nothing to merge; should it ever add one, this becomes a merge
+    // rather than a hand-off, or an app silently switches a platform hook off.
+    ...(databaseHooks ? { databaseHooks } : {}),
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {

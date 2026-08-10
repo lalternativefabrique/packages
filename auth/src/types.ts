@@ -102,6 +102,17 @@ export interface PlatformAuthConfig {
    * default branded template is used.
    */
   renderOtpEmail?: (otp: string, type: PlatformAuthMailerType) => string
+  /**
+   * Better Auth database hooks, passed through unchanged.
+   *
+   * `user.create.after` is the seam an app uses to react to a signup — record
+   * the invite token it carried, queue the work that puts the account on a
+   * plan. It runs AFTER the insert commits (Better Auth queues it as an
+   * after-transaction hook), so it cannot be made atomic with the user row:
+   * a crash between the two leaves an account nothing reacted to. Anything
+   * durable therefore needs its own repair path.
+   */
+  databaseHooks?: BetterAuthOptions["databaseHooks"]
   /** Additional Better Auth plugins to append */
   plugins?: BetterAuthOptions["plugins"]
   /** Enable private beta mode (blocks public registration) */
