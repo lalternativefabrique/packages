@@ -80,6 +80,30 @@ bal, err := reader.Balance(ctx, tenantID, "credit")
 is anonymous. The consumer meters locally. Treating it as a failure locks out
 every anonymous visitor.
 
+## Repair
+
+The grant at signup is best-effort by design, so an account can end up with no
+subscription — refused everything, reading as a zero balance. Balance reads fix
+that on their own, but only once the tenant reaches one, and never for an
+operator acting on someone else's behalf.
+
+```go
+granted, err := policy.Repair(ctx, grant, tenantID)
+```
+
+Idempotent, and refuses three things before reaching the ledger — each its own
+error, because consumers answer them with different statuses:
+
+| | meaning |
+|---|---|
+| `ErrNoTenant` | nobody named — an unauthenticated caller, or a missing path segment |
+| `ErrAnonymousTenant` | minted per trial, no durable balance to subscribe |
+| `ErrNoLedger` | nothing configured to provision against |
+
+Consumers wrap this in one handler each. The wrapping is where they legitimately
+differ — route, admin gate, response shape, error-to-status — and these
+decisions are where they must not.
+
 ## What stays with the consumer
 
 Plans, units, tariffs, and what counts as a billable act. This package never
