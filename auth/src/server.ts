@@ -157,8 +157,10 @@ export type {
 export {
   claimInvitation,
   completesSignup,
+  holdInviteTokenCookie,
   invitationOutcomeCookie,
   inviteTokenFrom,
   isInvitationFailure,
+  releaseInviteTokenCookie,
 } from "./invitation"
 export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"

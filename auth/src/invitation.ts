@@ -86,15 +86,19 @@ export async function claimInvitation({
  *
  * The token lives on the page the invitee landed on (/register?invite=…), never
  * on the auth endpoints themselves, so it has to be recovered from the request
- * that completes the sign-up. Two sources, because no single one covers every
- * flow: the URL, for the OAuth callback reached through a redirect whose query
- * string the app controls; and the Referer, for the password and OTP flows,
- * which are XHR calls issued BY that page and therefore carry it.
+ * that completes the sign-up. Three sources, in order of trust:
  *
- * Reading it per-request keeps the claim stateless: nothing associates a
- * browser with a pending invitation, and a request with no token claims
- * nothing. A malformed Referer is ignored rather than thrown on — it is
- * attacker-controlled input on a best-effort path.
+ *   - the URL, for a callback reached through a redirect whose query string
+ *     the app controls;
+ *   - the cookie held since the link was opened, which is the only one that
+ *     survives an OAuth round trip or an OTP screen that never carried the
+ *     token (see holdInviteTokenCookie);
+ *   - the Referer, for the password flow, whose XHR is issued BY the page
+ *     holding it.
+ *
+ * The Referer stays last and stays supported: it covers a caller that never
+ * held the cookie. It is attacker-controlled input on a best-effort path, so a
+ * malformed one is ignored rather than thrown on.
  */
 export function inviteTokenFrom(
   request: Request,
@@ -102,6 +106,9 @@ export function inviteTokenFrom(
 ): string | null {
   const direct = new URL(request.url).searchParams.get(param)
   if (direct && direct.trim() !== "") return direct
+
+  const held = inviteTokenCookie(request)
+  if (held) return held
 
   const referer = request.headers.get("referer")
   if (!referer) return null
@@ -111,6 +118,51 @@ export function inviteTokenFrom(
   } catch {
     return null
   }
+}
+
+/** Name of the cookie holding the token between the link and the claim. */
+const INVITE_TOKEN_COOKIE = "invite_token"
+
+/**
+ * Holds the token from the moment the link is opened until the account exists.
+ *
+ * The URL and the Referer each cover only part of the ground: the OTP flow
+ * verifies from a screen that never carried the token, and an OAuth sign-up
+ * comes back from Google with no Referer of ours at all. Both lose it, and the
+ * invitee lands on the default tier with the offer still pending.
+ *
+ * SameSite=Lax rather than Strict: the return from Google is a cross-site
+ * top-level navigation, which Strict would refuse — the one case this exists
+ * for. HttpOnly because the page has no reason to read it, and short-lived
+ * because signing up takes minutes: a single-use invitation has no business
+ * sitting in a browser for longer.
+ */
+export function holdInviteTokenCookie(
+  token: string,
+  maxAgeSeconds = 1800,
+): string {
+  return `${INVITE_TOKEN_COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; SameSite=Lax`
+}
+
+/**
+ * Clears the held token. Sent once the claim has been attempted: the token is
+ * single-use, so keeping it would only replay a call that can no longer
+ * succeed.
+ */
+export function releaseInviteTokenCookie(): string {
+  return `${INVITE_TOKEN_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`
+}
+
+function inviteTokenCookie(request: Request): string | null {
+  const header = request.headers.get("cookie")
+  if (!header) return null
+  for (const part of header.split(";")) {
+    const [name, ...rest] = part.trim().split("=")
+    if (name !== INVITE_TOKEN_COOKIE) continue
+    const value = decodeURIComponent(rest.join("=")).trim()
+    return value === "" ? null : value
+  }
+  return null
 }
 
 /**
