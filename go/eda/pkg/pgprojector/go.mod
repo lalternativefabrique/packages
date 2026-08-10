@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/jackc/pgx/v5 v5.7.6
-	github.com/lalternative/packages/go/eda v0.0.0
+	github.com/lalternative/packages/go/eda v0.7.1
 	github.com/nats-io/nats.go v1.52.0
 	github.com/stretchr/testify v1.11.1
 )
