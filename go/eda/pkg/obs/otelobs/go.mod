@@ -3,7 +3,7 @@ module github.com/lalternative/packages/go/eda/pkg/obs/otelobs
 go 1.25.0
 
 require (
-	github.com/lalternative/packages/go/eda v0.0.0
+	github.com/lalternative/packages/go/eda v0.7.1
 	github.com/nats-io/nats.go v1.52.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.43.0
