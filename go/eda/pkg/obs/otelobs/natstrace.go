@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var natsTracer = otel.Tracer("nats-instrumentation")
@@ -97,8 +98,8 @@ func ExtractTraceContextInto(parent context.Context, msg *nats.Msg) context.Cont
 	return otel.GetTextMapPropagator().Extract(parent, propagation.HeaderCarrier(NormalizeNATSHeaders(msg.Header)))
 }
 
-// ConsumeMessage wraps handler with a "consume.<subject>" span whose parent is
-// the producer's span (restored from the message headers). Use it when driving
+// ConsumeMessage wraps handler with a "consume.<subject>" span linked to the
+// producer's span (restored from the message headers). Use it when driving
 // messages outside the eda consumer; inside the consumer, prefer wiring
 // ExtractTraceContext as Config.TraceExtractor.
 func ConsumeMessage(msg *nats.Msg, handler func(context.Context, *nats.Msg) error) error {
@@ -107,10 +108,25 @@ func ConsumeMessage(msg *nats.Msg, handler func(context.Context, *nats.Msg) erro
 
 // ConsumeMessageWithContext is ConsumeMessage rooted on ctx, so a driver that
 // already holds a per-message context keeps its deadline and values.
+//
+// The consume span is a root span carrying a link to the producer, not its
+// child: the publisher does not await the handler, so a parent-child edge would
+// nest work that outlives the request under it — a consumer running minutes
+// after a 300ms HTTP span reports as that span's child, making the trace
+// unreadable and every latency percentile on the producing route wrong.
 func ConsumeMessageWithContext(ctx context.Context, msg *nats.Msg, handler func(context.Context, *nats.Msg) error) error {
-	ctx = ExtractTraceContextInto(ctx, msg)
+	producerCtx := ExtractTraceContextInto(ctx, msg)
 
-	ctx, span := natsTracer.Start(ctx, "consume."+msg.Subject)
+	opts := []trace.SpanStartOption{trace.WithSpanKind(trace.SpanKindConsumer)}
+	if link := trace.LinkFromContext(producerCtx); link.SpanContext.IsValid() {
+		opts = append(opts, trace.WithLinks(link))
+	}
+
+	// WithNewRoot because ctx may already carry the producer's span context —
+	// the eda consumer sets it via Config.TraceExtractor before calling in —
+	// and Start would otherwise adopt it as the parent, which is what the link
+	// above exists to avoid. Deadline and values still come from ctx.
+	ctx, span := natsTracer.Start(ctx, "consume."+msg.Subject, append(opts, trace.WithNewRoot())...)
 	defer span.End()
 
 	span.SetAttributes(
