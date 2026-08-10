@@ -8,6 +8,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -88,6 +90,82 @@ func TestConsumeMessageWithContext_RunsHandlerOnDerivedContext(t *testing.T) {
 	}
 	if !called {
 		t.Error("handler never ran")
+	}
+}
+
+const producerTraceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
+func recordConsumeSpan(t *testing.T, ctx context.Context, msg *nats.Msg) tracetest.SpanStub {
+	t.Helper()
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	exporter := tracetest.NewInMemoryExporter()
+	provider := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	t.Cleanup(func() { _ = provider.Shutdown(context.Background()) })
+
+	previous := natsTracer
+	natsTracer = provider.Tracer("nats-instrumentation")
+	t.Cleanup(func() { natsTracer = previous })
+
+	if err := ConsumeMessageWithContext(ctx, msg, func(context.Context, *nats.Msg) error { return nil }); err != nil {
+		t.Fatalf("ConsumeMessageWithContext: %v", err)
+	}
+
+	spans := exporter.GetSpans()
+	if len(spans) != 1 {
+		t.Fatalf("got %d spans, want exactly the consume span", len(spans))
+	}
+	return spans[0]
+}
+
+func TestConsumeMessageWithContext_LinksProducerWithoutParenting(t *testing.T) {
+	// The publisher does not await the handler, so the consume span must be a
+	// root that merely links back — never a child whose duration outlives it.
+	span := recordConsumeSpan(t, context.Background(), &nats.Msg{
+		Subject: "integration.x",
+		Header:  nats.Header{"traceparent": []string{producerTraceparent}},
+	})
+
+	if span.Parent.IsValid() {
+		t.Errorf("consume span has parent %v, want a root span", span.Parent.SpanID())
+	}
+	if len(span.Links) != 1 {
+		t.Fatalf("got %d links, want one link to the producer", len(span.Links))
+	}
+	if got := span.Links[0].SpanContext.SpanID().String(); got != "00f067aa0ba902b7" {
+		t.Errorf("link points at span %s, want the producer's 00f067aa0ba902b7", got)
+	}
+	if span.SpanKind != trace.SpanKindConsumer {
+		t.Errorf("SpanKind = %v, want Consumer", span.SpanKind)
+	}
+}
+
+func TestConsumeMessageWithContext_DetachesFromPreExtractedContext(t *testing.T) {
+	// The eda consumer applies Config.TraceExtractor before calling in, so the
+	// producer's span context arrives on ctx rather than only in the headers.
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	msg := &nats.Msg{
+		Subject: "integration.x",
+		Header:  nats.Header{"traceparent": []string{producerTraceparent}},
+	}
+	span := recordConsumeSpan(t, ExtractTraceContext(msg), msg)
+
+	if span.Parent.IsValid() {
+		t.Errorf("consume span adopted ctx's span as parent %v, want a root span", span.Parent.SpanID())
+	}
+	if len(span.Links) != 1 {
+		t.Errorf("got %d links, want the producer link preserved", len(span.Links))
+	}
+}
+
+func TestConsumeMessageWithContext_NoProducerYieldsUnlinkedRoot(t *testing.T) {
+	span := recordConsumeSpan(t, context.Background(), &nats.Msg{Subject: "integration.x"})
+
+	if span.Parent.IsValid() {
+		t.Errorf("consume span has parent %v, want a root span", span.Parent.SpanID())
+	}
+	if len(span.Links) != 0 {
+		t.Errorf("got %d links, want none when no producer context travelled", len(span.Links))
 	}
 }
 
