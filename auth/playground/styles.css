@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@source "../src/**/*.tsx";
+
+/* AuthAlert animates with this. A consuming app declares it too — the package
+   ships no stylesheet of its own, and without the keyframes the message still
+   appears, just without the movement. */
+@keyframes auth-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* The tokens the components paint from. A consuming app defines its own; these
+   are a neutral stand-in so the playground shows the shape, not a brand. */
+@theme {
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(0 0% 10%);
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(0 0% 10%);
+  --color-muted: hsl(0 0% 96%);
+  --color-muted-foreground: hsl(0 0% 45%);
+  --color-border: hsl(0 0% 90%);
+  --color-input: hsl(0 0% 89%);
+  --color-ring: hsl(0 0% 10%);
+  --color-primary: hsl(0 0% 10%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-accent: hsl(0 0% 96%);
+  --color-accent-foreground: hsl(0 0% 10%);
+  --color-destructive: hsl(0 72% 45%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+}
