@@ -46,9 +46,13 @@ export function AuthLayout({
       ].join(" ")}
     >
       {panel && (
+        // A band, not a full ground: the card below reaches the bottom of the
+        // screen, so the colour only has to sit behind the heading. Covering
+        // the whole height would leave the panel's own copy showing under the
+        // card, which reads as a second, half-hidden screen.
         <div
           aria-hidden="true"
-          className="absolute inset-0 -z-10 md:hidden [&>*]:h-full [&>*]:w-full [&>img]:object-cover"
+          className="absolute inset-x-0 top-0 -z-10 h-64 overflow-hidden md:hidden [&>*]:h-full [&>*]:w-full [&>img]:object-cover"
         >
           {panel}
         </div>
@@ -62,7 +66,7 @@ export function AuthLayout({
           // from "what you do here".
           <div
             className={[
-              "mb-9 space-y-3",
+              "mb-8 space-y-3",
               // Over the colour field the heading is on the panel, not on the
               // page, so it takes the panel's ink until the split puts it back
               // on a light ground.
@@ -88,11 +92,11 @@ export function AuthLayout({
           className={[
             "sm:rounded-xl sm:border sm:border-foreground/[0.08] sm:bg-card",
             "sm:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)]",
-            // Over a colour field the card cannot stay the bare mobile form it
-            // is on a white page: it needs its own ground to sit on, from the
-            // narrowest width up.
+            // On the colour band the card is a sheet rising from the bottom of
+            // the screen: rounded at the top only, and stretched past the
+            // viewport so no ground shows beneath it however short the form.
             panel
-              ? "-mx-1 rounded-xl border border-black/5 bg-card p-1 shadow-xl sm:mx-0 sm:overflow-hidden sm:p-0 md:grid md:grid-cols-2"
+              ? "-mx-5 -mb-12 min-h-[60vh] rounded-t-2xl bg-card shadow-[0_-8px_32px_-12px_rgba(0,0,0,0.18)] sm:mx-0 sm:mb-0 sm:min-h-0 sm:overflow-hidden sm:rounded-xl md:grid md:grid-cols-2"
               : "",
           ]
             .filter(Boolean)
@@ -109,7 +113,9 @@ export function AuthLayout({
             </div>
           )}
 
-          <div className={panel ? "p-6 sm:p-7" : "sm:p-7"}>{children}</div>
+          <div className={panel ? "px-5 pb-12 pt-7 sm:p-7" : "sm:p-7"}>
+            {children}
+          </div>
         </div>
 
         {footer && (

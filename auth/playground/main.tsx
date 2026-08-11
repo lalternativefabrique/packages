@@ -2,14 +2,13 @@ import { useState, type ReactNode } from "react"
 import { createRoot } from "react-dom/client"
 import {
   AuthLayout,
-  AuthWordmark,
   ForgotPasswordForm,
   LoginForm,
   RegisterForm,
   ResetPasswordForm,
   VerifyEmailForm,
 } from "../src/components"
-import { BrandPanel } from "./brand-panel"
+import { BRANDS, SUBTITLES, type BrandKey } from "./brands"
 import "./styles.css"
 
 // Every call resolves to a rejection after a beat: the screens can then be
@@ -31,28 +30,24 @@ function delay<T>(value: T): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), 900))
 }
 
-// The dot is the app's own colour on an otherwise neutral screen — the one
-// place a brand shows up here.
-const Wordmark = () => (
-  <AuthWordmark
-    mark={<span className="size-1.5 rounded-full bg-amber-500" />}
-  >
-    partage
-  </AuthWordmark>
-)
-
 interface Opts {
   social: boolean
+  brand: (typeof BRANDS)[BrandKey]
   panel?: ReactNode
 }
 
 const SCREENS = {
   login: {
     label: "Connexion",
-    render: ({ social, panel }: Opts) => (
-      <AuthLayout logo={<Wordmark />} panel={panel} {...LoginForm.defaults}>
+    render: ({ social, panel, brand }: Opts) => (
+      <AuthLayout
+        panel={panel}
+        title={brand.name}
+        subtitle={SUBTITLES.login}
+      >
         <LoginForm
           authClient={authClient}
+          submitClassName={brand.submitClassName}
           coreTokenUrl={null}
           socialProviders={social ? ["google", "github"] : []}
         />
@@ -61,10 +56,15 @@ const SCREENS = {
   },
   register: {
     label: "Inscription",
-    render: ({ social, panel }: Opts) => (
-      <AuthLayout logo={<Wordmark />} panel={panel} {...RegisterForm.defaults}>
+    render: ({ social, panel, brand }: Opts) => (
+      <AuthLayout
+        panel={panel}
+        title={brand.name}
+        subtitle={SUBTITLES.register}
+      >
         <RegisterForm
           authClient={authClient}
+          submitClassName={brand.submitClassName}
           socialProviders={social ? ["google", "github"] : []}
         />
       </AuthLayout>
@@ -72,25 +72,48 @@ const SCREENS = {
   },
   verify: {
     label: "Vérification",
-    render: ({ panel }: Opts) => (
-      <AuthLayout logo={<Wordmark />} panel={panel} {...VerifyEmailForm.defaults}>
-        <VerifyEmailForm authClient={authClient} email="toi@exemple.fr" />
+    render: ({ panel, brand }: Opts) => (
+      <AuthLayout
+        panel={panel}
+        title={brand.name}
+        subtitle={SUBTITLES.verify}
+      >
+        <VerifyEmailForm
+          authClient={authClient}
+          submitClassName={brand.submitClassName}
+          email="toi@exemple.fr"
+        />
       </AuthLayout>
     ),
   },
   forgot: {
     label: "Mot de passe oublié",
-    render: ({ panel }: Opts) => (
-      <AuthLayout logo={<Wordmark />} panel={panel} {...ForgotPasswordForm.defaults}>
-        <ForgotPasswordForm authClient={authClient} />
+    render: ({ panel, brand }: Opts) => (
+      <AuthLayout
+        panel={panel}
+        title={brand.name}
+        subtitle={SUBTITLES.forgot}
+      >
+        <ForgotPasswordForm
+          authClient={authClient}
+          submitClassName={brand.submitClassName}
+        />
       </AuthLayout>
     ),
   },
   reset: {
     label: "Réinitialisation",
-    render: ({ panel }: Opts) => (
-      <AuthLayout logo={<Wordmark />} panel={panel} {...ResetPasswordForm.defaults}>
-        <ResetPasswordForm authClient={authClient} email="toi@exemple.fr" />
+    render: ({ panel, brand }: Opts) => (
+      <AuthLayout
+        panel={panel}
+        title={brand.name}
+        subtitle={SUBTITLES.reset}
+      >
+        <ResetPasswordForm
+          authClient={authClient}
+          submitClassName={brand.submitClassName}
+          email="toi@exemple.fr"
+        />
       </AuthLayout>
     ),
   },
@@ -102,6 +125,8 @@ function Playground() {
   const [screen, setScreen] = useState<ScreenKey>("login")
   const [social, setSocial] = useState(false)
   const [branded, setBranded] = useState(false)
+  const [brandKey, setBrandKey] = useState<BrandKey>("partage")
+  const brand = BRANDS[brandKey]
 
   return (
     <>
@@ -109,6 +134,22 @@ function Playground() {
           above them would push every one down and misreport its vertical
           rhythm — which is the thing being judged here. Anchored at the bottom
           because the top is where the screens put their own heading. */}
+      <div className="fixed bottom-[4.25rem] left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-foreground/10 bg-card/90 p-1 shadow-lg backdrop-blur">
+        {(Object.keys(BRANDS) as BrandKey[]).map((key) => (
+          <button
+            key={key}
+            onClick={() => setBrandKey(key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              brandKey === key
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {BRANDS[key].name}
+          </button>
+        ))}
+      </div>
+
       <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1 rounded-full border border-foreground/10 bg-card/90 p-1 shadow-lg backdrop-blur">
         {(Object.keys(SCREENS) as ScreenKey[]).map((key) => (
           <button
@@ -148,12 +189,8 @@ function Playground() {
 
       {SCREENS[screen].render({
         social,
-        panel: branded ? (
-          <BrandPanel
-            title="Écris une fois. Publie partout."
-            tagline="Un brouillon, réécrit pour chaque plateforme, programmé à l'heure que tu choisis."
-          />
-        ) : undefined,
+        brand,
+        panel: branded ? brand.panel : undefined,
       })}
     </>
   )
