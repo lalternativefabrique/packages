@@ -92,6 +92,22 @@ type FinanceAppGrantResponse struct {
 	SubscriptionId *string `json:"subscription_id,omitempty"`
 }
 
+// FinanceAppRegisterCustomerRequest defines model for finance.appRegisterCustomerRequest.
+type FinanceAppRegisterCustomerRequest struct {
+	Country        *string `json:"country,omitempty"`
+	Email          *string `json:"email,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
+	Silent         *bool   `json:"silent,omitempty"`
+}
+
+// FinanceAppRegisterCustomerResponse defines model for finance.appRegisterCustomerResponse.
+type FinanceAppRegisterCustomerResponse struct {
+	Created    *bool   `json:"created,omitempty"`
+	CreatedAt  *string `json:"created_at,omitempty"`
+	CustomerId *string `json:"customer_id,omitempty"`
+}
+
 // FinanceAppWithdrawPendingRequest defines model for finance.appWithdrawPendingRequest.
 type FinanceAppWithdrawPendingRequest struct {
 	ExternalUserId *string `json:"external_user_id,omitempty"`
@@ -174,6 +190,19 @@ type FinanceInvitationView struct {
 type FinanceInviteReq struct {
 	Email    *string `json:"email,omitempty"`
 	PlanCode *string `json:"plan_code,omitempty"`
+}
+
+// FinanceLookupResp defines model for finance.lookupResp.
+type FinanceLookupResp struct {
+	Email     *string `json:"email,omitempty"`
+	ExpiresAt *string `json:"expires_at,omitempty"`
+	PlanCode  *string `json:"plan_code,omitempty"`
+
+	// Status Status is claimable, claimed or expired. An app shows a different thing
+	// for each: only the last two say the offer was real, which is what tells
+	// someone that asking for a new link is worth it rather than doubting the
+	// address they were invited at.
+	Status *string `json:"status,omitempty"`
 }
 
 // FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
@@ -598,6 +627,9 @@ type ListWebhookEndpointsParams struct {
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
+// AppRegisterCustomerJSONRequestBody defines body for AppRegisterCustomer for application/json ContentType.
+type AppRegisterCustomerJSONRequestBody = FinanceAppRegisterCustomerRequest
+
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
 
@@ -743,6 +775,11 @@ type ClientInterface interface {
 	// ListPublicPlans request
 	ListPublicPlans(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// AppRegisterCustomerWithBody request with any body
+	AppRegisterCustomerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AppRegisterCustomer(ctx context.Context, body AppRegisterCustomerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetEntitlement request
 	GetEntitlement(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -758,6 +795,9 @@ type ClientInterface interface {
 	ClaimInvitationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LookupInvitation request
+	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ConsumeUsageWithBody request with any body
 	ConsumeUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -940,6 +980,30 @@ func (c *Client) ListPublicPlans(ctx context.Context, appId string, reqEditors .
 	return c.Client.Do(req)
 }
 
+func (c *Client) AppRegisterCustomerWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppRegisterCustomerRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppRegisterCustomer(ctx context.Context, body AppRegisterCustomerJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppRegisterCustomerRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetEntitlement(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetEntitlementRequest(c.Server, params)
 	if err != nil {
@@ -1002,6 +1066,18 @@ func (c *Client) ClaimInvitationWithBody(ctx context.Context, contentType string
 
 func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewClaimInvitationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupInvitationRequest(c.Server, token)
 	if err != nil {
 		return nil, err
 	}
@@ -1802,6 +1878,46 @@ func NewListPublicPlansRequest(server string, appId string) (*http.Request, erro
 	return req, nil
 }
 
+// NewAppRegisterCustomerRequest calls the generic AppRegisterCustomer builder with application/json body
+func NewAppRegisterCustomerRequest(server string, body AppRegisterCustomerJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAppRegisterCustomerRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAppRegisterCustomerRequestWithBody generates requests for AppRegisterCustomer with any type of body
+func NewAppRegisterCustomerRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/customers")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetEntitlementRequest generates requests for GetEntitlement
 func NewGetEntitlementRequest(server string, params *GetEntitlementParams) (*http.Request, error) {
 	var err error
@@ -1973,6 +2089,40 @@ func NewClaimInvitationRequestWithBody(server string, contentType string, body i
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewLookupInvitationRequest generates requests for LookupInvitation
+func NewLookupInvitationRequest(server string, token string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "token", runtime.ParamLocationPath, token)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/invitations/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -3966,6 +4116,11 @@ type ClientWithResponsesInterface interface {
 	// ListPublicPlansWithResponse request
 	ListPublicPlansWithResponse(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*ListPublicPlansResponse, error)
 
+	// AppRegisterCustomerWithBodyWithResponse request with any body
+	AppRegisterCustomerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppRegisterCustomerResponse, error)
+
+	AppRegisterCustomerWithResponse(ctx context.Context, body AppRegisterCustomerJSONRequestBody, reqEditors ...RequestEditorFn) (*AppRegisterCustomerResponse, error)
+
 	// GetEntitlementWithResponse request
 	GetEntitlementWithResponse(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error)
 
@@ -3981,6 +4136,9 @@ type ClientWithResponsesInterface interface {
 	ClaimInvitationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
 
 	ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
+
+	// LookupInvitationWithResponse request
+	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
 
 	// ConsumeUsageWithBodyWithResponse request with any body
 	ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error)
@@ -4174,6 +4332,30 @@ func (r ListPublicPlansResponse) StatusCode() int {
 	return 0
 }
 
+type AppRegisterCustomerResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *FinanceAppRegisterCustomerResponse
+	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppRegisterCustomerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppRegisterCustomerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetEntitlementResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4262,6 +4444,30 @@ func (r ClaimInvitationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ClaimInvitationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type LookupInvitationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceLookupResp
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupInvitationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupInvitationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5252,6 +5458,23 @@ func (c *ClientWithResponses) ListPublicPlansWithResponse(ctx context.Context, a
 	return ParseListPublicPlansResponse(rsp)
 }
 
+// AppRegisterCustomerWithBodyWithResponse request with arbitrary body returning *AppRegisterCustomerResponse
+func (c *ClientWithResponses) AppRegisterCustomerWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppRegisterCustomerResponse, error) {
+	rsp, err := c.AppRegisterCustomerWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppRegisterCustomerResponse(rsp)
+}
+
+func (c *ClientWithResponses) AppRegisterCustomerWithResponse(ctx context.Context, body AppRegisterCustomerJSONRequestBody, reqEditors ...RequestEditorFn) (*AppRegisterCustomerResponse, error) {
+	rsp, err := c.AppRegisterCustomer(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppRegisterCustomerResponse(rsp)
+}
+
 // GetEntitlementWithResponse request returning *GetEntitlementResponse
 func (c *ClientWithResponses) GetEntitlementWithResponse(ctx context.Context, params *GetEntitlementParams, reqEditors ...RequestEditorFn) (*GetEntitlementResponse, error) {
 	rsp, err := c.GetEntitlement(ctx, params, reqEditors...)
@@ -5302,6 +5525,15 @@ func (c *ClientWithResponses) ClaimInvitationWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseClaimInvitationResponse(rsp)
+}
+
+// LookupInvitationWithResponse request returning *LookupInvitationResponse
+func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error) {
+	rsp, err := c.LookupInvitation(ctx, token, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupInvitationResponse(rsp)
 }
 
 // ConsumeUsageWithBodyWithResponse request with arbitrary body returning *ConsumeUsageResponse
@@ -5883,6 +6115,46 @@ func ParseListPublicPlansResponse(rsp *http.Response) (*ListPublicPlansResponse,
 	return response, nil
 }
 
+// ParseAppRegisterCustomerResponse parses an HTTP response from a AppRegisterCustomerWithResponse call
+func ParseAppRegisterCustomerResponse(rsp *http.Response) (*AppRegisterCustomerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppRegisterCustomerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest FinanceAppRegisterCustomerResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetEntitlementResponse parses an HTTP response from a GetEntitlementWithResponse call
 func ParseGetEntitlementResponse(rsp *http.Response) (*GetEntitlementResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6020,6 +6292,46 @@ func ParseClaimInvitationResponse(rsp *http.Response) (*ClaimInvitationResponse,
 			return nil, err
 		}
 		response.JSON410 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseLookupInvitationResponse parses an HTTP response from a LookupInvitationWithResponse call
+func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupInvitationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceLookupResp
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 

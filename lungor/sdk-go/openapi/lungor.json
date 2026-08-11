@@ -64,6 +64,64 @@
                 }
             }
         },
+        "/customers": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Creates the customer row and nothing else — no subscription, no invoice. This is how an app with an existing user base imports it: the checkout and the grant endpoints both create a subscription alongside the customer, and granting is refused outright for a priced plan. Idempotent on (tenant, email), so re-running an import neither duplicates rows nor overwrites known fields with blanks; `created` reports whether this call added the customer. Set `silent` on a back-fill: the customer predates lungor, so announcing them as a new signup would state something false and bury the day's real signups.",
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Declare an existing app user as a customer (app key)",
+                "operationId": "appRegisterCustomer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appRegisterCustomerRequest"
+                            }
+                        }
+                    },
+                    "description": "Customer",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appRegisterCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/entitlements": {
             "get": {
                 "security": [
@@ -277,6 +335,64 @@
                     },
                     "410": {
                         "description": "Gone",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/invitations/{token}": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Resolves a token to the address it was issued to and the tier it confers, so an app can greet the invitee and pre-fill the form before they sign up. Claiming is what burns the token; this never does.\n\nAnswers 200 for a claimed or expired invitation too, with the status saying so: an app that cannot tell a lapsed offer from a wrong link leaves a genuine invitee doubting the address they were invited at. 404 is reserved for a token that does not exist, or belongs to another app.",
+                "tags": [
+                    "invitations"
+                ],
+                "summary": "Read an invitation without consuming it",
+                "operationId": "lookupInvitation",
+                "parameters": [
+                    {
+                        "description": "Invitation token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.lookupResp"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2868,6 +2984,7 @@
         },
         "/tenants/{tenant_id}/customers/{customer_id}": {
             "get": {
+                "description": "Carries `deletion` when an erasure request is in force: `pending` means access was cut and the request is still cancelable until `anonymize_after`, `anonymized` means the identifying columns were neutralised and nothing is left to restore. The field is absent when no request is in force, including after one was called off.",
                 "tags": [
                     "billing"
                 ],
@@ -2934,6 +3051,168 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "The customer row is NOT deleted. Subscriptions, invoices, transactions and plan changes reference it with RESTRICT, and those invoices are the TENANT's accounting records — they carry its SIREN and its own per-tenant numbering, under a ten-year retention it cannot opt out of. GDPR agrees: the right to erasure yields to a legal retention obligation (art. 17.3.b).\n\nSo erasure means anonymization, in two steps. Accepting the request is immediate: every live subscription is canceled, so nothing new is charged and access stops. The irreversible half waits out `anonymize_after`, then neutralizes the identifying columns while every financial row keeps its amount, its date and its sequence number.\n\nUntil `anonymize_after` the request stays cancelable via POST `/restore`. That does NOT reinstate the canceled subscriptions — cancellation is a termination the customer was told about, not a flag to flip back.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Erase a customer (cancels their subscriptions now, anonymizes after a grace period)",
+                "operationId": "deleteCustomer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.deleteCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/customers/{customer_id}/restore": {
+            "post": {
+                "description": "Restores the customer's identity, not their business: the subscriptions canceled when the request was accepted stay canceled, because cancellation is a termination the customer was told about, not a flag to flip back. Only a `pending` request can be called off — once the columns are neutralized there is nothing left to restore, and the call answers 409.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Call off a customer erasure that has not been applied yet",
+                "operationId": "restoreCustomer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.restoreCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5435,6 +5714,40 @@
                     }
                 }
             },
+            "finance.appRegisterCustomerRequest": {
+                "type": "object",
+                "properties": {
+                    "country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "silent": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.appRegisterCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "created": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.appRevenueView": {
                 "type": "object",
                 "properties": {
@@ -5831,6 +6144,31 @@
                     }
                 }
             },
+            "finance.customerDeletionView": {
+                "type": "object",
+                "properties": {
+                    "anonymize_after": {
+                        "type": "string"
+                    },
+                    "anonymized_at": {
+                        "type": "string"
+                    },
+                    "cancelable": {
+                        "description": "Cancelable tells the console whether to offer the restore button.",
+                        "type": "boolean"
+                    },
+                    "requested_at": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "Status is \"pending\" (access cut, still cancelable) or \"anonymized\"\n(identifying columns neutralised, terminal).",
+                        "type": "string"
+                    },
+                    "subscriptions_canceled": {
+                        "type": "integer"
+                    }
+                }
+            },
             "finance.customerDetailAppView": {
                 "type": "object",
                 "properties": {
@@ -5998,6 +6336,9 @@
                     "created_at": {
                         "type": "string"
                     },
+                    "deletion": {
+                        "$ref": "#/components/schemas/finance.customerDeletionView"
+                    },
                     "email": {
                         "type": "string"
                     },
@@ -6045,10 +6386,17 @@
                     "active_subscriptions": {
                         "type": "integer"
                     },
+                    "anonymize_after": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     },
                     "currency": {
+                        "type": "string"
+                    },
+                    "deletion_status": {
+                        "description": "DeletionStatus is \"pending\", \"anonymized\", or \"\" when no erasure request\nis live. A deleted customer stays listed: the accounting records must be\nretained, so the row is marked rather than hidden.",
                         "type": "string"
                     },
                     "email": {
@@ -6096,6 +6444,30 @@
                         "type": "integer"
                     },
                     "total_tx": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "finance.deleteCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "anonymize_after": {
+                        "type": "string"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    },
+                    "deletion_id": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "subscriptions_canceled": {
+                        "description": "SubscriptionsCanceled is how many live subscriptions stopped. Zero is a\nnormal outcome — a customer who never subscribed.",
                         "type": "integer"
                     }
                 }
@@ -6220,6 +6592,24 @@
                         "type": "string"
                     },
                     "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.lookupResp": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "Status is claimable, claimed or expired. An app shows a different thing\nfor each: only the last two say the offer was real, which is what tells\nsomeone that asking for a new link is worth it rather than doubting the\naddress they were invited at.",
                         "type": "string"
                     }
                 }
@@ -6451,6 +6841,23 @@
                 "type": "object",
                 "properties": {
                     "secret_key": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.restoreCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "customer_id": {
+                        "type": "string"
+                    },
+                    "deletion_id": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "status": {
                         "type": "string"
                     }
                 }
