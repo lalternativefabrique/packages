@@ -64,6 +64,64 @@
                 }
             }
         },
+        "/customers": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Creates the customer row and nothing else — no subscription, no invoice. This is how an app with an existing user base imports it: the checkout and the grant endpoints both create a subscription alongside the customer, and granting is refused outright for a priced plan. Idempotent on (tenant, email), so re-running an import neither duplicates rows nor overwrites known fields with blanks; `created` reports whether this call added the customer. Set `silent` on a back-fill: the customer predates lungor, so announcing them as a new signup would state something false and bury the day's real signups.",
+                "tags": [
+                    "customers"
+                ],
+                "summary": "Declare an existing app user as a customer (app key)",
+                "operationId": "appRegisterCustomer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appRegisterCustomerRequest"
+                            }
+                        }
+                    },
+                    "description": "Customer",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appRegisterCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/entitlements": {
             "get": {
                 "security": [
@@ -5656,6 +5714,40 @@
                     }
                 }
             },
+            "finance.appRegisterCustomerRequest": {
+                "type": "object",
+                "properties": {
+                    "country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "silent": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "finance.appRegisterCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "created": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.appRevenueView": {
                 "type": "object",
                 "properties": {
@@ -6294,10 +6386,17 @@
                     "active_subscriptions": {
                         "type": "integer"
                     },
+                    "anonymize_after": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     },
                     "currency": {
+                        "type": "string"
+                    },
+                    "deletion_status": {
+                        "description": "DeletionStatus is \"pending\", \"anonymized\", or \"\" when no erasure request\nis live. A deleted customer stays listed: the accounting records must be\nretained, so the row is marked rather than hidden.",
                         "type": "string"
                     },
                     "email": {
