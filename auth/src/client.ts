@@ -1,12 +1,25 @@
 import { createAuthClient } from "better-auth/react"
 import { emailOTPClient, adminClient } from "better-auth/client/plugins"
-import type { PlatformAuthClientConfig } from "./types"
+import type { AuthClientSurface, PlatformAuthClientConfig } from "./types"
+
+/**
+ * A Better Auth React client carrying the platform plugins.
+ *
+ * The concrete inferred type cannot be named in a published .d.ts (TS2742 — it
+ * reaches into zod's internals), so the surface the auth screens call is
+ * declared by hand in AuthClientSurface and intersected with the rest of the
+ * client. Keep it in sync with the plugins enabled below.
+ */
+export type PlatformAuthClient = AuthClientSurface &
+  Omit<ReturnType<typeof createAuthClient>, keyof AuthClientSurface>
 
 /**
  * Creates a Better Auth client for React usage.
- * Provides useSession() hook and other React-integrated methods.
+ * Provides useSession() and the email-OTP / admin plugin methods.
  */
-export function createPlatformAuthClient(config?: PlatformAuthClientConfig) {
+export function createPlatformAuthClient(
+  config?: PlatformAuthClientConfig,
+): PlatformAuthClient {
   return createAuthClient({
     baseURL:
       config?.baseURL ??
@@ -14,7 +27,5 @@ export function createPlatformAuthClient(config?: PlatformAuthClientConfig) {
         ? window.location.origin
         : "http://localhost:3000"),
     plugins: [emailOTPClient(), adminClient(), ...(config?.plugins ?? [])],
-  })
+  }) as unknown as PlatformAuthClient
 }
-
-export type PlatformAuthClient = ReturnType<typeof createPlatformAuthClient>

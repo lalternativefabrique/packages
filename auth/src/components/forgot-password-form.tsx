@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react"
+import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import type {
   ForgotPasswordFormLabels,
   ForgotPasswordFormProps,
@@ -26,6 +27,7 @@ export function ForgotPasswordForm({
   labels,
   submitClassName,
   fieldClassName,
+  linkComponent,
   authClient,
 }: ForgotPasswordFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -89,12 +91,13 @@ export function ForgotPasswordForm({
 
       <p className="text-center text-sm text-muted-foreground">
         {t.rememberPassword}{" "}
-        <a
-          href={loginUrl}
-          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <AuthLink
+          to={loginUrl}
+          as={linkComponent}
+          className={AUTH_LINK_CLASS}
         >
           {t.login}
-        </a>
+        </AuthLink>
       </p>
     </div>
   )

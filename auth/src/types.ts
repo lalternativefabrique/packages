@@ -147,7 +147,7 @@ export interface VerifyEmailFormLabels {
   missingEmail?: string
 }
 
-export interface VerifyEmailFormProps extends AuthThemeProps {
+export interface VerifyEmailFormProps extends AuthThemeProps, AuthNavProps {
   /** Email to verify */
   email: string
   /** Callback on successful verification */
@@ -158,9 +158,8 @@ export interface VerifyEmailFormProps extends AuthThemeProps {
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: VerifyEmailFormLabels
-  /** Auth client instance */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authClient: any
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: AuthClientSurface
 }
 
 /** Why an invitation link did not work, as far as the invitee needs to know. */
@@ -237,6 +236,49 @@ export interface AuthHeadingProps {
  * neutral admin, say. Each replaces the colour utilities it names, so pass the
  * whole look rather than an addition to it.
  */
+/**
+ * The Better Auth client surface these screens actually call.
+ *
+ * Declared structurally rather than as the inferred client type: the plugin-
+ * augmented instance cannot be named in a published .d.ts without TS2742, and
+ * every consumer builds its client with its own plugin list. Typing what is
+ * called keeps a client missing emailOtp a compile error instead of a runtime
+ * one.
+ */
+export interface AuthClientResult {
+  error?: { message?: string; code?: string; status?: number } | null
+}
+
+export interface AuthClientSurface {
+  signIn: {
+    email(input: { email: string; password: string }): Promise<AuthClientResult>
+    social(input: {
+      provider: "google" | "github"
+      callbackURL?: string
+      errorCallbackURL?: string
+    }): Promise<AuthClientResult>
+  }
+  signUp: {
+    email(input: {
+      name: string
+      email: string
+      password: string
+    }): Promise<AuthClientResult>
+  }
+  emailOtp: {
+    verifyEmail(input: { email: string; otp: string }): Promise<AuthClientResult>
+    sendVerificationOtp(input: {
+      email: string
+      type: "email-verification" | "forget-password" | "sign-in"
+    }): Promise<AuthClientResult>
+    resetPassword(input: {
+      email: string
+      otp: string
+      password: string
+    }): Promise<AuthClientResult>
+  }
+}
+
 export interface AuthThemeProps {
   /** Replaces the submit button's `bg-primary text-primary-foreground` */
   submitClassName?: string
@@ -244,7 +286,35 @@ export interface AuthThemeProps {
   fieldClassName?: string
 }
 
-export interface LoginFormProps extends AuthThemeProps {
+/**
+ * Router link used for the navigation between auth screens.
+ *
+ * Every consuming app routes client-side, where a bare anchor triggers a full
+ * document load: the app boots again, and an invitation held in the URL is
+ * dropped on the way. Apps without a router pass nothing and get an anchor.
+ */
+export type LinkComponent = React.ComponentType<{
+  to: string
+  className?: string
+  children: React.ReactNode
+}>
+
+export interface AuthNavProps {
+  /** Client-side link component. Defaults to a plain anchor. */
+  linkComponent?: LinkComponent
+}
+
+export interface AuthInviteProps {
+  /**
+   * Invitation token carried by the URL. The screen surfaces it and keeps it on
+   * the links to its sibling screens and on the OAuth callback; redeeming it is
+   * the auth handler's job — a social sign-up leaves the browser, so no
+   * component is mounted to do it.
+   */
+  invite?: string
+}
+
+export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
   /**
@@ -272,12 +342,11 @@ export interface LoginFormProps extends AuthThemeProps {
   coreTokenUrl?: string | null
   /** Copy overrides; anything omitted keeps the French default */
   labels?: LoginFormLabels
-  /** Auth client instance */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authClient: any
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: AuthClientSurface
 }
 
-export interface RegisterFormProps extends AuthThemeProps {
+export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
   /** Callback on successful sign-up, receives the email to verify */
   onSuccess?: (email: string) => void
   /** Error raised outside the form, rendered in the same banner */
@@ -292,9 +361,8 @@ export interface RegisterFormProps extends AuthThemeProps {
   socialProviders?: Array<"google" | "github">
   /** Copy overrides; anything omitted keeps the French default */
   labels?: RegisterFormLabels
-  /** Auth client instance */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authClient: any
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: AuthClientSurface
 }
 
 export interface ForgotPasswordFormLabels {
@@ -309,16 +377,15 @@ export interface ForgotPasswordFormLabels {
   sendFailed?: string
 }
 
-export interface ForgotPasswordFormProps extends AuthThemeProps {
+export interface ForgotPasswordFormProps extends AuthThemeProps, AuthNavProps {
   /** Callback on successful OTP send, receives the email */
   onSuccess?: (email: string) => void
   /** Link to login page */
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: ForgotPasswordFormLabels
-  /** Auth client instance */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authClient: any
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: AuthClientSurface
 }
 
 export interface ResetPasswordFormLabels {
@@ -342,7 +409,7 @@ export interface ResetPasswordFormLabels {
   resendFailed?: string
 }
 
-export interface ResetPasswordFormProps extends AuthThemeProps {
+export interface ResetPasswordFormProps extends AuthThemeProps, AuthNavProps {
   /** Email address to reset password for */
   email: string
   /** Callback on successful password reset */
@@ -351,9 +418,8 @@ export interface ResetPasswordFormProps extends AuthThemeProps {
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: ResetPasswordFormLabels
-  /** Auth client instance */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  authClient: any
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: AuthClientSurface
 }
 
 export interface AuthLayoutProps extends AuthHeadingProps {

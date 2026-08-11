@@ -4,6 +4,8 @@ import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
+import { AUTH_HINT_LINK_CLASS, AUTH_LINK_CLASS, AuthLink } from "./auth-link"
+import { withInviteToken } from "../invite-token"
 
 const DEFAULTS: Required<LoginFormLabels> = {
   title: "Connexion",
@@ -38,6 +40,8 @@ export function LoginForm({
   submitClassName,
   fieldClassName,
   error: externalError,
+  linkComponent,
+  invite,
   authClient,
 }: LoginFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -90,7 +94,9 @@ export function LoginForm({
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: socialCallbackUrl,
+        // The invitation rides the callback: an OAuth sign-up leaves the
+        // browser, and the auth handler redeems the token on the way back.
+        callbackURL: withInviteToken(socialCallbackUrl, invite),
       })
     } catch (err) {
       const code = err instanceof Error ? err.message : ""
@@ -135,12 +141,13 @@ export function LoginForm({
           invalid={!!error}
           fieldClassName={fieldClassName}
           hint={
-            <a
-              href={forgotPasswordUrl}
-              className="rounded text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <AuthLink
+              to={forgotPasswordUrl}
+              as={linkComponent}
+              className={AUTH_HINT_LINK_CLASS}
             >
               {t.forgotPassword}
-            </a>
+            </AuthLink>
           }
         />
 
@@ -162,12 +169,13 @@ export function LoginForm({
 
       <p className="text-center text-sm text-muted-foreground">
         {t.noAccount}{" "}
-        <a
-          href={registerUrl}
-          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <AuthLink
+          to={withInviteToken(registerUrl, invite)}
+          as={linkComponent}
+          className={AUTH_LINK_CLASS}
         >
           {t.register}
-        </a>
+        </AuthLink>
       </p>
     </div>
   )

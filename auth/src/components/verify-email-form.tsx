@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react"
+import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import type { VerifyEmailFormLabels, VerifyEmailFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthOtpField, OTP_LENGTH } from "./auth-otp-field"
@@ -29,6 +30,7 @@ export function VerifyEmailForm({
   labels,
   submitClassName,
   fieldClassName,
+  linkComponent,
   authClient,
 }: VerifyEmailFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -119,12 +121,13 @@ export function VerifyEmailForm({
 
         <p>
           {t.alreadyVerified}{" "}
-          <a
-            href={loginUrl}
-            className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          <AuthLink
+            to={loginUrl}
+            as={linkComponent}
+            className={AUTH_LINK_CLASS}
           >
             {t.login}
-          </a>
+          </AuthLink>
         </p>
       </div>
     </div>

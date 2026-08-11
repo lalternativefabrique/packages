@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from "react"
+import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
+import { withInviteToken } from "../invite-token"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
@@ -36,6 +38,8 @@ export function RegisterForm({
   submitClassName,
   fieldClassName,
   error: externalError,
+  linkComponent,
+  invite,
   authClient,
 }: RegisterFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -99,7 +103,9 @@ export function RegisterForm({
     try {
       await authClient.signIn.social({
         provider,
-        callbackURL: socialCallbackUrl,
+        // The invitation rides the callback: an OAuth sign-up leaves the
+        // browser, and the auth handler redeems the token on the way back.
+        callbackURL: withInviteToken(socialCallbackUrl, invite),
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : t.signUpFailed)
@@ -186,12 +192,13 @@ export function RegisterForm({
 
       <p className="text-center text-sm text-muted-foreground">
         {t.haveAccount}{" "}
-        <a
-          href={loginUrl}
-          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        <AuthLink
+          to={withInviteToken(loginUrl, invite)}
+          as={linkComponent}
+          className={AUTH_LINK_CLASS}
         >
           {t.login}
-        </a>
+        </AuthLink>
       </p>
     </div>
   )

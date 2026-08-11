@@ -18,6 +18,12 @@ export type {
   AuthLayoutProps,
   InvitationNoticeProps,
   InvitationFailure,
+  AuthClientSurface,
+  AuthClientResult,
+  AuthThemeProps,
+  AuthNavProps,
+  AuthInviteProps,
+  LinkComponent,
 } from "./types"
 
 // Hooks
@@ -35,6 +41,19 @@ export { ForgotPasswordForm } from "./components/forgot-password-form"
 export { ResetPasswordForm } from "./components/reset-password-form"
 export { AuthLayout } from "./components/auth-layout"
 export { InvitationNotice } from "./components/invitation-notice"
+
+export { normalizeInviteToken, withInviteToken } from "./invite-token"
+
+// OAuth failures reach the page through the address bar, so a route reading one
+// before render needs these outside the components.
+export {
+  clearOAuthError,
+  initialOAuthError,
+  oauthErrorMessage,
+} from "./oauth-error"
+export type { OAuthErrorLabels } from "./oauth-error"
+
+export { AuthLink } from "./components/auth-link"
 
 // Invitations. claimInvitation itself is server-only and lives in /server; what
 // is exported here is what a page rendering InvitationNotice needs.
