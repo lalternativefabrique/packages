@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/auth",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Shared Better Auth wrapper for L'Alternative apps (server + React client + auth UI)",
   "type": "module",
   "main": "./dist/index.js",
