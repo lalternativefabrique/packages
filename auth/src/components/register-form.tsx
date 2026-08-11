@@ -13,6 +13,7 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   title: "Créer un compte",
   subtitle: "Nous t'enverrons un code pour confirmer ton adresse e-mail.",
   namePlaceholder: "Nom complet",
+  optional: "facultatif",
   emailPlaceholder: "Adresse e-mail",
   passwordPlaceholder: "Mot de passe",
   passwordHint: `Au moins ${MIN_PASSWORD_LENGTH} caractères.`,
@@ -22,7 +23,6 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   submitPending: "Création…",
   haveAccount: "Tu as déjà un compte ?",
   login: "Se connecter",
-  nameRequired: "Renseigne ton nom",
   emailRequired: "Renseigne ton adresse e-mail",
   passwordTooShort: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères`,
   signUpFailed: "La création du compte a échoué",
@@ -59,10 +59,6 @@ export function RegisterForm({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) {
-      setError(t.nameRequired)
-      return
-    }
     if (!email.trim()) {
       setError(t.emailRequired)
       return
@@ -79,7 +75,10 @@ export function RegisterForm({
     setIsPending(true)
     try {
       const res = await authClient.signUp.email({
-        name: name.trim(),
+        // The key is omitted rather than sent empty when the field is left
+        // blank: the server decides what an account without a name is called,
+        // and the client does not invent one from the address.
+        ...(name.trim() ? { name: name.trim() } : {}),
         email: email.trim(),
         password,
       })
@@ -122,10 +121,14 @@ export function RegisterForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          required
           disabled={isPending}
           autoComplete="name"
           fieldClassName={fieldClassName}
+          hint={
+            <span className="text-xs text-muted-foreground">
+              {t.optional}
+            </span>
+          }
         />
 
         <AuthField

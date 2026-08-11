@@ -202,6 +202,7 @@ export interface RegisterFormLabels {
   title?: string
   subtitle?: string
   namePlaceholder?: string
+  optional?: string
   emailPlaceholder?: string
   passwordPlaceholder?: string
   passwordHint?: string
@@ -211,7 +212,6 @@ export interface RegisterFormLabels {
   submitPending?: string
   haveAccount?: string
   login?: string
-  nameRequired?: string
   emailRequired?: string
   passwordTooShort?: string
   signUpFailed?: string
@@ -261,7 +261,8 @@ export interface AuthClientSurface {
   }
   signUp: {
     email(input: {
-      name: string
+      /** Omitted when the sign-up form's optional name field is left blank */
+      name?: string
       email: string
       password: string
     }): Promise<AuthClientResult>
