@@ -15,6 +15,7 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   namePlaceholder: "Nom complet",
   optional: "facultatif",
   emailPlaceholder: "Adresse e-mail",
+  emailLocked: "Ton invitation est liée à cette adresse.",
   passwordPlaceholder: "Mot de passe",
   passwordHint: `Au moins ${MIN_PASSWORD_LENGTH} caractères.`,
   confirmPlaceholder: "Confirme le mot de passe",
@@ -29,6 +30,7 @@ const DEFAULTS: Required<RegisterFormLabels> = {
 }
 
 export function RegisterForm({
+  lockedEmail,
   onSuccess,
   loginUrl = "/login",
   legal,
@@ -44,7 +46,8 @@ export function RegisterForm({
 }: RegisterFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
+  const [typedEmail, setTypedEmail] = useState("")
+  const email = lockedEmail ?? typedEmail
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
@@ -136,12 +139,17 @@ export function RegisterForm({
           type="email"
           inputMode="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => setTypedEmail(e.target.value)}
           required
+          // readOnly rather than disabled: a disabled field is skipped by the
+          // tab order and drops out of the accessibility tree, so the address
+          // the account is being created for would go unread.
+          readOnly={!!lockedEmail}
           disabled={isPending}
           autoComplete="email"
           autoCapitalize="none"
           spellCheck={false}
+          description={lockedEmail ? t.emailLocked : undefined}
           fieldClassName={fieldClassName}
         />
 

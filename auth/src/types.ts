@@ -204,6 +204,7 @@ export interface RegisterFormLabels {
   namePlaceholder?: string
   optional?: string
   emailPlaceholder?: string
+  emailLocked?: string
   passwordPlaceholder?: string
   passwordHint?: string
   confirmPlaceholder?: string
@@ -358,6 +359,12 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInvite
 }
 
 export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
+  /**
+   * Address the invitation was issued to. Given, it fills the email field and
+   * fixes it: an invitation grants its tier to one address, so signing up with
+   * another would drop the grant with nothing said about it.
+   */
+  lockedEmail?: string
   /** Callback on successful sign-up, receives the email to verify */
   onSuccess?: (email: string) => void
   /** Error raised outside the form, rendered in the same banner */
