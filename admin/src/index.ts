@@ -9,6 +9,7 @@ export type {
   AdminNavItem,
   AdminLayoutProps,
   AdminHomeProps,
+  AdminHomeLabels,
   UsersTableProps,
   AccountsBulkAction,
   AccountsBulkResult,
@@ -25,6 +26,8 @@ export { hasAdminFeatures, isAdminProfile } from "./hooks/use-admin"
 // Components
 export { AdminLayout } from "./components/admin-layout"
 export { AdminHome } from "./components/admin-home"
+export { AdminKpi } from "./components/admin-kpi"
+export type { AdminKpiProps } from "./components/admin-kpi"
 export { UsersTable } from "./components/users-table"
 export { AccountsTable } from "./components/accounts-table"
 export { AdminLoginForm } from "./components/admin-login-form"

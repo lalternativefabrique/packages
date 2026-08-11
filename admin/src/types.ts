@@ -85,12 +85,44 @@ export interface AdminLayoutProps {
   children: ReactNode
 }
 
+export interface AdminHomeLabels {
+  title?: string
+  /** Rendered under the heading. Empty by default. */
+  subtitle?: string
+  accounts?: string
+  accountsHint?: string
+  admins?: string
+  adminsHint?: string
+  signups?: string
+  /** `{days}` is replaced with the window actually used. */
+  signupsHint?: string
+  recentTitle?: string
+  recentEmpty?: string
+  loading?: string
+  loadFailed?: string
+  adminBadge?: string
+  /** Shown for an account with neither email nor name. */
+  fallbackAccount?: string
+}
+
 export interface AdminHomeProps {
   api: Pick<AdminUserApi, "listUsers">
   /** Router-supplied link to the users page (wraps the count card). */
   usersLink: (opts: { className: string; children: ReactNode }) => ReactNode
-  /** Page heading. Defaults to "Tableau de bord". */
-  title?: string
+  /** Copy overrides; anything omitted keeps the French default. */
+  labels?: AdminHomeLabels
+  /** Locale for the sign-up dates. Defaults to fr-FR. */
+  locale?: string
+  /** How many days back count as a recent sign-up. Defaults to 7. */
+  recentWindowDays?: number
+  /**
+   * Product-specific sections. `before` sits under the account tiles, `after`
+   * below the recent sign-ups. What belongs here differs per app — usage,
+   * queue depth, credits, per-tier margin — so it is supplied rather than
+   * modelled here for everyone.
+   */
+  before?: ReactNode
+  after?: ReactNode
 }
 
 export interface UsersTableProps {
