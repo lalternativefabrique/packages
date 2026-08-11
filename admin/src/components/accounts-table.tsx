@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type {
+  AccountsBulkAction,
   AccountsTableProps,
   AdminInvitation,
   AdminUser,
@@ -120,7 +121,11 @@ export function AccountsTable({
   onDeleteUser,
   onError,
   onSuccess,
+  bulkActions,
 }: AccountsTableProps) {
+  const selectable = Boolean(bulkActions?.length)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [running, setRunning] = useState<string | null>(null)
   const [users, setUsers] = useState<AdminUser[]>([])
   const [invites, setInvites] = useState<AdminInvitation[]>([])
   const [loading, setLoading] = useState(true)
@@ -262,7 +267,52 @@ export function AccountsTable({
   const grantLabel = (value?: string | null) =>
     grantOptions?.find((o) => o.value === value)?.label ?? value
 
-  const colSpan = 5
+  const colSpan = selectable ? 6 : 5
+
+  const selectedIds = users.filter((u) => selected.has(u.id)).map((u) => u.id)
+  const allSelected = users.length > 0 && selectedIds.length === users.length
+
+  function toggle(userId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(userId)) next.delete(userId)
+      else next.add(userId)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(users.map((u) => u.id)))
+  }
+
+  // Runs the action, then reports per-account outcomes rather than a bare
+  // "done": a bulk run that half-worked is the case an operator most needs
+  // told, and a summary that hides it is how a partial failure goes unnoticed.
+  async function runBulk(action: AccountsBulkAction) {
+    if (selectedIds.length === 0 || running) return
+    setRunning(action.id)
+    try {
+      const result = (await action.run(selectedIds)) ?? {}
+      const failed = result.failed ?? []
+      // Only what succeeded is cleared: leaving the failures selected is what
+      // lets the operator retry them without picking them out again.
+      setSelected(new Set(failed.map((f) => f.userId)))
+      if (result.message) {
+        onSuccess?.(result.message)
+      } else if (failed.length === 0) {
+        onSuccess?.(`${action.label} : ${selectedIds.length} compte(s)`)
+      } else {
+        onError?.(
+          `${action.label} : ${selectedIds.length - failed.length} sur ${selectedIds.length}. ` +
+            failed.map((f) => f.reason).join(" · "),
+        )
+      }
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : `${action.label} a échoué`)
+    } finally {
+      setRunning(null)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -329,10 +379,51 @@ export function AccountsTable({
         </div>
       ) : null}
 
+      {selectable && selectedIds.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3">
+          <span className="text-sm tabular-nums">
+            {selectedIds.length} sélectionné{selectedIds.length > 1 ? "s" : ""}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {bulkActions?.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={() => void runBulk(action)}
+                disabled={running !== null}
+                className={BUTTON_ROW}
+              >
+                {running === action.id
+                  ? (action.runningLabel ?? action.label)
+                  : action.label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            disabled={running !== null}
+            className="text-sm text-muted-foreground underline"
+          >
+            Désélectionner
+          </button>
+        </div>
+      ) : null}
+
       <div className={TABLE_WRAP}>
         <table className={TABLE}>
           <thead className={THEAD}>
             <tr>
+              {selectable ? (
+                <th className={`${TH} w-10`}>
+                  <input
+                    type="checkbox"
+                    aria-label="Tout sélectionner"
+                    checked={allSelected}
+                    onChange={toggleAll}
+                  />
+                </th>
+              ) : null}
               <th className={TH}>Email</th>
               <th className={TH}>Rôle</th>
               <th className={TH}>Statut</th>
@@ -369,6 +460,9 @@ export function AccountsTable({
                     key={`inv:${row.invitation.email}`}
                     className={`${ROW} bg-muted/20`}
                   >
+                    {/* No checkbox: an invitation has no account to act on
+                        yet, and the bulk actions all take user ids. */}
+                    {selectable ? <td className={TD} /> : null}
                     <td className={TD}>
                       <div className="font-medium text-muted-foreground">
                         {row.invitation.email}
@@ -455,6 +549,16 @@ export function AccountsTable({
                   </tr>
                 ) : (
                   <tr key={row.user.id} className={ROW}>
+                    {selectable ? (
+                      <td className={TD}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Sélectionner ${row.user.email}`}
+                          checked={selected.has(row.user.id)}
+                          onChange={() => toggle(row.user.id)}
+                        />
+                      </td>
+                    ) : null}
                     <td className={TD}>
                       <div className="font-medium">{row.user.email}</div>
                       {row.user.name ? (

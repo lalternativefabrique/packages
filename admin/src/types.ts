@@ -164,6 +164,36 @@ export interface AdminInvitationApi {
   regenerateInvitation?(email: string): Promise<unknown>
 }
 
+/**
+ * A bulk action offered over the selected accounts.
+ *
+ * Exists because the operator's own screen already holds what these need — the
+ * account ids — while an app that asks for one in a text field is asking them
+ * to go and read it out of the database. Selecting rows is how the id stays
+ * where it already is.
+ */
+export interface AccountsBulkAction {
+  /** Stable key, also used as the React key. */
+  id: string
+  label: string
+  /** Shown while the action runs, defaults to the label. */
+  runningLabel?: string
+  /**
+   * Runs over the selected user ids. Report per-account outcomes rather than
+   * throwing on the first one: a bulk action that stops halfway leaves the
+   * operator unable to tell what was done from what was not.
+   */
+  run: (userIds: string[]) => Promise<AccountsBulkResult | void>
+}
+
+/** What a bulk action did, per account. Omitted entries count as succeeded. */
+export interface AccountsBulkResult {
+  /** Ids the action could not complete, with the reason to show. */
+  failed?: { userId: string; reason: string }[]
+  /** Replaces the default summary when the action has something better to say. */
+  message?: string
+}
+
 export interface AccountsTableProps {
   api: AdminUserApi
   /** Omit to get exactly the {@link UsersTableProps} behaviour, invitations aside. */
@@ -174,6 +204,11 @@ export interface AccountsTableProps {
   onDeleteUser?: (userId: string) => Promise<unknown>
   onError?: (message: string) => void
   onSuccess?: (message: string) => void
+  /**
+   * Bulk actions over selected accounts. Omitted, no checkbox column is
+   * rendered and the table behaves exactly as before.
+   */
+  bulkActions?: AccountsBulkAction[]
 }
 
 export interface AdminLoginFormProps {

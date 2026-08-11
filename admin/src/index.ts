@@ -10,6 +10,8 @@ export type {
   AdminLayoutProps,
   AdminHomeProps,
   UsersTableProps,
+  AccountsBulkAction,
+  AccountsBulkResult,
   AccountsTableProps,
   AdminLoginFormProps,
   AdminLoginLabels,
