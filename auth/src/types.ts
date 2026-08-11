@@ -129,13 +129,35 @@ export interface PlatformAuthClientConfig {
   plugins?: any[]
 }
 
-export interface VerifyEmailFormProps {
+export interface VerifyEmailFormLabels {
+  title?: string
+  subtitle?: string
+  subtitleNoEmail?: string
+  codePlaceholder?: string
+  submit?: string
+  submitPending?: string
+  resend?: string
+  resendPending?: string
+  resent?: string
+  alreadyVerified?: string
+  login?: string
+  codeRequired?: string
+  invalidCode?: string
+  resendFailed?: string
+  missingEmail?: string
+}
+
+export interface VerifyEmailFormProps extends AuthHeadingProps {
   /** Email to verify */
   email: string
   /** Callback on successful verification */
   onSuccess?: () => void
   /** URL to navigate to on success */
   successUrl?: string
+  /** Link to the login page */
+  loginUrl?: string
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: VerifyEmailFormLabels
   /** Auth client instance */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authClient: any
@@ -193,9 +215,25 @@ export interface RegisterFormLabels {
   signUpFailed?: string
 }
 
-export interface LoginFormProps {
+/**
+ * Styling of the form's own heading. The package fixes the structure and a
+ * neutral default; the app fixes the type. Passing a class replaces the
+ * default size and weight, so pass the whole look, not an addition to it.
+ */
+export interface AuthHeadingProps {
+  /** Replaces the default `text-2xl font-semibold tracking-tight` */
+  titleClassName?: string
+}
+
+export interface LoginFormProps extends AuthHeadingProps {
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
+  /**
+   * Error raised outside the form — a failed OAuth round-trip coming back as
+   * `?error=`, a guard bouncing an unauthenticated visitor. Rendered in the
+   * same banner as the form's own errors, and superseded by them on submit.
+   */
+  error?: string
   /** Link to the registration page */
   registerUrl?: string
   /** Link to the password recovery page */
@@ -220,9 +258,11 @@ export interface LoginFormProps {
   authClient: any
 }
 
-export interface RegisterFormProps {
+export interface RegisterFormProps extends AuthHeadingProps {
   /** Callback on successful sign-up, receives the email to verify */
   onSuccess?: (email: string) => void
+  /** Error raised outside the form, rendered in the same banner */
+  error?: string
   /** Link to the login page */
   loginUrl?: string
   /** Rendered under the submit button — typically terms and privacy links */
@@ -238,36 +278,76 @@ export interface RegisterFormProps {
   authClient: any
 }
 
-export interface ForgotPasswordFormProps {
+export interface ForgotPasswordFormLabels {
+  title?: string
+  subtitle?: string
+  emailPlaceholder?: string
+  submit?: string
+  submitPending?: string
+  rememberPassword?: string
+  login?: string
+  emailRequired?: string
+  sendFailed?: string
+}
+
+export interface ForgotPasswordFormProps extends AuthHeadingProps {
   /** Callback on successful OTP send, receives the email */
   onSuccess?: (email: string) => void
   /** Link to login page */
   loginUrl?: string
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: ForgotPasswordFormLabels
   /** Auth client instance */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authClient: any
 }
 
-export interface ResetPasswordFormProps {
+export interface ResetPasswordFormLabels {
+  title?: string
+  subtitle?: string
+  codePlaceholder?: string
+  passwordPlaceholder?: string
+  passwordHint?: string
+  confirmPlaceholder?: string
+  submit?: string
+  submitPending?: string
+  resend?: string
+  resendPending?: string
+  resent?: string
+  rememberPassword?: string
+  login?: string
+  codeRequired?: string
+  passwordTooShort?: string
+  passwordMismatch?: string
+  resetFailed?: string
+  resendFailed?: string
+}
+
+export interface ResetPasswordFormProps extends AuthHeadingProps {
   /** Email address to reset password for */
   email: string
   /** Callback on successful password reset */
   onSuccess?: () => void
   /** Link to login page */
   loginUrl?: string
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: ResetPasswordFormLabels
   /** Auth client instance */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   authClient: any
 }
 
 export interface AuthLayoutProps {
-  /** Logo element to display at the top */
+  /** The app's mark, rendered above the form inside the card */
   logo?: React.ReactNode
-  /** Page title */
-  title: string
-  /** Subtitle below the title */
-  subtitle?: string
-  /** Content to render inside the card */
+  /**
+   * Illustration filling the right half of the card from md up, dropped below
+   * it. Any node: an `<img className="h-full w-full object-cover">`, a
+   * gradient, a testimonial. Purely decorative — it is hidden from assistive
+   * technology, so it must not carry anything the form does not say.
+   */
+  panel?: React.ReactNode
+  /** The form. It renders its own title. */
   children: React.ReactNode
   /** Footer content below the card (e.g. legal links) */
   footer?: React.ReactNode

@@ -37,13 +37,24 @@ export function SocialButtons({
         <span className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="space-y-2.5">
+      {/* One per row while there is space for the wording, side by side once
+          there are several: in a half-card the full label no longer fits, and
+          a truncated "Continuer avec…" says less than the mark alone. The
+          wording stays as the accessible name either way. */}
+      <div
+        className={
+          providers.length > 1
+            ? "grid gap-2.5 sm:grid-cols-2"
+            : "grid gap-2.5"
+        }
+      >
         {providers.map((provider) => (
           <button
             key={provider}
             type="button"
             onClick={() => onSelect(provider)}
             disabled={disabled}
+            aria-label={copy[provider] ?? provider}
             className={[
               "flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl sm:h-11",
               "border border-input bg-background text-base font-medium text-foreground sm:text-sm",
@@ -54,7 +65,9 @@ export function SocialButtons({
             ].join(" ")}
           >
             <ProviderMark provider={provider} />
-            {copy[provider] ?? provider}
+            <span className={providers.length > 1 ? "sm:hidden" : ""}>
+              {copy[provider] ?? provider}
+            </span>
           </button>
         ))}
       </div>

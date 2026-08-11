@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from "react"
 import type { LoginFormLabels, LoginFormProps } from "../types"
+import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
+import { AuthHeading } from "./auth-heading"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 
@@ -34,13 +36,19 @@ export function LoginForm({
   socialProviders = [],
   coreTokenUrl = "/api/auth/core-token",
   labels,
+  titleClassName,
+  error: externalError,
   authClient,
 }: LoginFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | undefined>()
+  const [ownError, setOwnError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
+
+  // What the person just did outranks what happened before they arrived.
+  const error = ownError ?? externalError
+  const setError = setOwnError
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -98,23 +106,13 @@ export function LoginForm({
 
   return (
     <div className="space-y-7">
-      <header className="space-y-1.5">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em] text-foreground sm:text-2xl">
-          {t.title}
-        </h1>
-        <p className="text-balance text-sm leading-relaxed text-muted-foreground">
-          {t.subtitle}
-        </p>
-      </header>
+      <AuthHeading
+        title={t.title}
+        subtitle={t.subtitle}
+        titleClassName={titleClassName}
+      />
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-destructive/25 bg-destructive/10 px-3.5 py-3 text-sm leading-snug text-destructive"
-        >
-          {error}
-        </div>
-      )}
+      <AuthAlert>{error}</AuthAlert>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <AuthField

@@ -1,11 +1,37 @@
 import { useState, type FormEvent } from "react"
-import type { VerifyEmailFormProps } from "../types"
+import type { VerifyEmailFormLabels, VerifyEmailFormProps } from "../types"
+import { AuthAlert } from "./auth-alert"
+import { AuthHeading } from "./auth-heading"
+import { AuthOtpField, OTP_LENGTH } from "./auth-otp-field"
+import { AuthSubmit } from "./auth-submit"
+
+const DEFAULTS: Required<VerifyEmailFormLabels> = {
+  title: "Vérifie ton adresse",
+  subtitle: "Entre le code à 6 chiffres envoyé à",
+  subtitleNoEmail: "Entre le code à 6 chiffres reçu par e-mail.",
+  codePlaceholder: "Code de vérification",
+  submit: "Vérifier",
+  submitPending: "Vérification…",
+  resend: "Renvoyer le code",
+  resendPending: "Envoi…",
+  resent: "Un nouveau code vient de t'être envoyé.",
+  alreadyVerified: "Adresse déjà vérifiée ?",
+  login: "Se connecter",
+  codeRequired: "Entre le code à 6 chiffres",
+  invalidCode: "Code invalide. Réessaie.",
+  resendFailed: "L'envoi du code a échoué",
+  missingEmail: "Adresse e-mail introuvable. Recommence l'inscription.",
+}
 
 export function VerifyEmailForm({
   email,
   onSuccess,
+  loginUrl = "/login",
+  labels,
+  titleClassName,
   authClient,
 }: VerifyEmailFormProps) {
+  const t = { ...DEFAULTS, ...labels }
   const [otp, setOtp] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
@@ -14,22 +40,22 @@ export function VerifyEmailForm({
 
   const handleVerify = async (e: FormEvent) => {
     e.preventDefault()
-    if (!otp.trim() || otp.length < 6) {
-      setError("Please enter the 6-digit code")
+    if (otp.length < OTP_LENGTH) {
+      setError(t.codeRequired)
       return
     }
     setError(undefined)
+    setResendMessage(undefined)
     setIsVerifying(true)
     try {
       const res = await authClient.emailOtp.verifyEmail({ email, otp })
-      console.log("[verify-email] response:", JSON.stringify(res?.data), "error:", JSON.stringify(res?.error))
       if (res?.error) {
-        setError(res.error.message ?? "Invalid code. Please try again.")
+        setError(res.error.message ?? t.invalidCode)
         return
       }
       onSuccess?.()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invalid code. Please try again.")
+      setError(err instanceof Error ? err.message : t.invalidCode)
     } finally {
       setIsVerifying(false)
     }
@@ -37,7 +63,7 @@ export function VerifyEmailForm({
 
   const handleResend = async () => {
     if (!email) {
-      setError("Email address is not available. Please register again.")
+      setError(t.missingEmail)
       return
     }
     setError(undefined)
@@ -48,86 +74,63 @@ export function VerifyEmailForm({
         email,
         type: "email-verification",
       })
-      setResendMessage("A new code has been sent to your inbox.")
+      setResendMessage(t.resent)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend code.")
+      setError(err instanceof Error ? err.message : t.resendFailed)
     } finally {
       setIsResending(false)
     }
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Verify your email
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {email ? (
-            <>
-              Enter the 6-digit code sent to{" "}
-              <span className="font-medium text-foreground">{email}</span>
-            </>
-          ) : (
-            "Enter the 6-digit code sent to your email"
-          )}
-        </p>
-      </div>
+    <div className="space-y-7">
+      <AuthHeading
+        title={t.title}
+        subtitle={email ? `${t.subtitle} ${email}.` : t.subtitleNoEmail}
+        titleClassName={titleClassName}
+      />
 
-      {error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-          {error}
-        </div>
-      )}
+      <AuthAlert>{error}</AuthAlert>
+      <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
-      {resendMessage && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700">
-          {resendMessage}
-        </div>
-      )}
-
-      <form onSubmit={handleVerify} className="space-y-4" noValidate>
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
+      <form onSubmit={handleVerify} className="space-y-5" noValidate>
+        <AuthOtpField
+          id="verify-email-otp"
+          label={t.codePlaceholder}
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-          placeholder="000000"
-          required
+          onChange={setOtp}
           disabled={isVerifying}
-          autoComplete="one-time-code"
-          className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-center text-lg tracking-[0.4em] font-mono ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
         />
 
-        <button
-          type="submit"
-          disabled={isVerifying || otp.length < 6}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+        <AuthSubmit
+          pending={isVerifying}
+          disabled={otp.length < OTP_LENGTH}
+          pendingLabel={t.submitPending}
         >
-          {isVerifying ? "Verifying..." : "Verify email"}
-        </button>
+          {t.submit}
+        </AuthSubmit>
+      </form>
 
+      <div className="space-y-4 text-center text-sm text-muted-foreground">
         <button
           type="button"
           onClick={handleResend}
           disabled={isResending}
-          className="inline-flex h-11 w-full items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+          className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-55"
         >
-          {isResending ? "Sending..." : "Resend code"}
+          {isResending ? t.resendPending : t.resend}
         </button>
-      </form>
 
-      <p className="text-center text-sm text-muted-foreground">
-        Already verified?{" "}
-        <a
-          href="/login"
-          className="font-medium text-foreground underline underline-offset-4 hover:text-foreground/80"
-        >
-          Sign in
-        </a>
-      </p>
+        <p>
+          {t.alreadyVerified}{" "}
+          <a
+            href={loginUrl}
+            className="rounded font-medium text-foreground underline underline-offset-4 decoration-foreground/25 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {t.login}
+          </a>
+        </p>
+      </div>
     </div>
   )
 }
