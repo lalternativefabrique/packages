@@ -22,11 +22,16 @@ export function AuthAlert({ children, tone = "error" }: AuthAlertProps) {
         children
           ? [
               "rounded-lg border px-3.5 py-3 text-sm leading-snug",
+              "motion-safe:animate-[auth-alert-in_180ms_ease-out]",
               tone === "error"
                 ? "border-destructive/25 bg-destructive/10 text-destructive"
                 : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
             ].join(" ")
-          : undefined
+          : // Empty it must stay in the tree for the live region to fire, but
+            // it must not stay in the layout: a `space-y` counts an empty
+            // child as a row, which pushed the first field down by a full step
+            // on every screen with no message to show.
+            "hidden"
       }
     >
       {children}

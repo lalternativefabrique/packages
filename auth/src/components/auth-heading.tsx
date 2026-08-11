@@ -24,7 +24,7 @@ export function AuthHeading({
 }: AuthHeadingProps) {
   return (
     <header className="space-y-2.5 text-center">
-      <h1 className={`text-foreground ${titleClassName}`}>{title}</h1>
+      <h1 className={titleClassName}>{title}</h1>
       {subtitle && (
         <p className="text-balance text-[0.9375rem] leading-relaxed text-muted-foreground">
           {subtitle}

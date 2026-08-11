@@ -32,7 +32,7 @@ export function AuthOtpField({
     <div className="space-y-2">
       <label
         htmlFor={id}
-        className="block text-sm font-medium leading-none text-foreground"
+        className="block text-[0.6875rem] font-semibold uppercase leading-none tracking-[0.09em] text-foreground/70"
       >
         {label}
       </label>
