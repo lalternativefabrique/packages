@@ -42,6 +42,7 @@ export function RegisterForm({
   error: externalError,
   linkComponent,
   invite,
+  collectName = true,
   authClient,
 }: RegisterFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -119,20 +120,22 @@ export function RegisterForm({
       <AuthAlert>{error}</AuthAlert>
 
       <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
-        <AuthField
-          label={t.namePlaceholder}
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={isPending}
-          autoComplete="name"
-          fieldClassName={fieldClassName}
-          hint={
-            <span className="text-xs text-muted-foreground">
-              {t.optional}
-            </span>
-          }
-        />
+        {collectName && (
+          <AuthField
+            label={t.namePlaceholder}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isPending}
+            autoComplete="name"
+            fieldClassName={fieldClassName}
+            hint={
+              <span className="text-xs text-muted-foreground">
+                {t.optional}
+              </span>
+            }
+          />
+        )}
 
         <AuthField
           label={t.emailPlaceholder}

@@ -371,6 +371,14 @@ export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInv
   error?: string
   /** Link to the login page */
   loginUrl?: string
+  /**
+   * Whether to ask for a name. On by default.
+   *
+   * Turn it off where the name is collected later — a checkout that needs it
+   * for the invoice, say. Sign-up then sends none, and the server decides what
+   * an account without one is called.
+   */
+  collectName?: boolean
   /** Rendered under the submit button — typically terms and privacy links */
   legal?: React.ReactNode
   /** Where Better Auth sends the browser back after a social sign-up */
