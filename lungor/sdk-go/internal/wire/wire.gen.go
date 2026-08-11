@@ -176,6 +176,19 @@ type FinanceInviteReq struct {
 	PlanCode *string `json:"plan_code,omitempty"`
 }
 
+// FinanceLookupResp defines model for finance.lookupResp.
+type FinanceLookupResp struct {
+	Email     *string `json:"email,omitempty"`
+	ExpiresAt *string `json:"expires_at,omitempty"`
+	PlanCode  *string `json:"plan_code,omitempty"`
+
+	// Status Status is claimable, claimed or expired. An app shows a different thing
+	// for each: only the last two say the offer was real, which is what tells
+	// someone that asking for a new link is worth it rather than doubting the
+	// address they were invited at.
+	Status *string `json:"status,omitempty"`
+}
+
 // FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
 type FinancePlanAllocationAmount struct {
 	Amount *int    `json:"amount,omitempty"`
@@ -759,6 +772,9 @@ type ClientInterface interface {
 
 	ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// LookupInvitation request
+	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ConsumeUsageWithBody request with any body
 	ConsumeUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1002,6 +1018,18 @@ func (c *Client) ClaimInvitationWithBody(ctx context.Context, contentType string
 
 func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewClaimInvitationRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupInvitationRequest(c.Server, token)
 	if err != nil {
 		return nil, err
 	}
@@ -1973,6 +2001,40 @@ func NewClaimInvitationRequestWithBody(server string, contentType string, body i
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewLookupInvitationRequest generates requests for LookupInvitation
+func NewLookupInvitationRequest(server string, token string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "token", runtime.ParamLocationPath, token)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/invitations/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -3982,6 +4044,9 @@ type ClientWithResponsesInterface interface {
 
 	ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
 
+	// LookupInvitationWithResponse request
+	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
+
 	// ConsumeUsageWithBodyWithResponse request with any body
 	ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error)
 
@@ -4262,6 +4327,30 @@ func (r ClaimInvitationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ClaimInvitationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type LookupInvitationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceLookupResp
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupInvitationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupInvitationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5304,6 +5393,15 @@ func (c *ClientWithResponses) ClaimInvitationWithResponse(ctx context.Context, b
 	return ParseClaimInvitationResponse(rsp)
 }
 
+// LookupInvitationWithResponse request returning *LookupInvitationResponse
+func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error) {
+	rsp, err := c.LookupInvitation(ctx, token, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupInvitationResponse(rsp)
+}
+
 // ConsumeUsageWithBodyWithResponse request with arbitrary body returning *ConsumeUsageResponse
 func (c *ClientWithResponses) ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error) {
 	rsp, err := c.ConsumeUsageWithBody(ctx, contentType, body, reqEditors...)
@@ -6020,6 +6118,46 @@ func ParseClaimInvitationResponse(rsp *http.Response) (*ClaimInvitationResponse,
 			return nil, err
 		}
 		response.JSON410 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseLookupInvitationResponse parses an HTTP response from a LookupInvitationWithResponse call
+func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupInvitationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceLookupResp
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 

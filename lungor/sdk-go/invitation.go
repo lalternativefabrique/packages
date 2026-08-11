@@ -77,3 +77,81 @@ func (c *Client) ClaimInvitation(ctx context.Context, in ClaimInput) (ClaimResul
 	}
 	return out, nil
 }
+
+// InvitationStatus is where an offer stands. Only Claimed and Expired say it
+// was real, which is what tells an invitee that asking for a new link is worth
+// it rather than doubting the address they were invited at.
+type InvitationStatus string
+
+const (
+	InvitationClaimable InvitationStatus = "claimable"
+	InvitationClaimed   InvitationStatus = "claimed"
+	InvitationExpired   InvitationStatus = "expired"
+)
+
+// Invitation is what a token holder may be told about their own offer, before
+// they sign up: the address it was issued to, and the tier it confers.
+type Invitation struct {
+	Email    string
+	PlanCode string
+	Status   InvitationStatus
+	// ExpiresAt is zero when Lungor reported none.
+	ExpiresAt time.Time
+}
+
+// Claimable reports whether the offer still stands.
+func (i Invitation) Claimable() bool { return i.Status == InvitationClaimable }
+
+// LookupInvitation reads an invitation WITHOUT consuming it, so an app can
+// greet the invitee and pre-fill the form before they sign up.
+//
+// ClaimInvitation is what burns the token; this never does. That distinction is
+// the whole point: an app that had to claim in order to learn the invited
+// address would spend the offer on a visitor who then closed the tab.
+//
+// A token belonging to another app answers ErrNotFound, exactly as an unknown
+// one does — an app holds a valid key of its own, so telling the two apart is
+// what would let it probe offers made for another.
+//
+// A claimed or expired invitation is NOT an error: it answers with the status
+// saying so. Only a token that does not exist is ErrNotFound.
+func (c *Client) LookupInvitation(ctx context.Context, token string) (Invitation, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return Invitation{}, ErrNotConfigured
+	}
+	if token == "" {
+		return Invitation{}, fmt.Errorf("%w: token is required", ErrBadRequest)
+	}
+
+	var body wire.FinanceLookupResp
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.LookupInvitation(ctx, token)
+	}); err != nil {
+		return Invitation{}, err
+	}
+	return invitationFrom(body), nil
+}
+
+// invitationFrom converts the generated wire type into the one callers use.
+//
+// An absent status reads as expired rather than claimable: the generated
+// pointers make "not said" indistinguishable from "empty", and defaulting to
+// claimable would offer a tier on an answer Lungor never gave.
+func invitationFrom(w wire.FinanceLookupResp) Invitation {
+	out := Invitation{Status: InvitationExpired}
+	if w.Email != nil {
+		out.Email = *w.Email
+	}
+	if w.PlanCode != nil {
+		out.PlanCode = *w.PlanCode
+	}
+	if w.Status != nil && *w.Status != "" {
+		out.Status = InvitationStatus(*w.Status)
+	}
+	if w.ExpiresAt != nil {
+		if t, err := time.Parse(time.RFC3339, *w.ExpiresAt); err == nil {
+			out.ExpiresAt = t
+		}
+	}
+	return out
+}
