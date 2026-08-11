@@ -105,11 +105,11 @@ export function ResetPasswordForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
       <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
         <AuthOtpField
           id="reset-password-otp"
           label={t.codePlaceholder}
@@ -143,6 +143,7 @@ export function ResetPasswordForm({
         />
 
         <AuthSubmit
+          spacedAbove
           pending={isResetting}
           disabled={otp.length < OTP_LENGTH || !password || !confirmPassword}
           pendingLabel={t.submitPending}

@@ -85,11 +85,11 @@ export function VerifyEmailForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
       <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
-      <form onSubmit={handleVerify} className="space-y-5" noValidate>
+      <form onSubmit={handleVerify} className="space-y-[1.125rem]" noValidate>
         <AuthOtpField
           id="verify-email-otp"
           label={t.codePlaceholder}
@@ -100,6 +100,7 @@ export function VerifyEmailForm({
         />
 
         <AuthSubmit
+          spacedAbove
           pending={isVerifying}
           disabled={otp.length < OTP_LENGTH}
           pendingLabel={t.submitPending}

@@ -113,10 +113,10 @@ export function RegisterForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
         <AuthField
           label={t.namePlaceholder}
           type="text"
@@ -170,6 +170,7 @@ export function RegisterForm({
         />
 
         <AuthSubmit
+          spacedAbove
           pending={isPending}
           pendingLabel={t.submitPending}
           className={submitClassName}

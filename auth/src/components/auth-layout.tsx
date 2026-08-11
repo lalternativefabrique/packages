@@ -35,10 +35,14 @@ export function AuthLayout({
   footer,
 }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-dvh flex-col bg-background px-5 pb-10 pt-12 sm:items-center sm:bg-muted/40 sm:px-6 sm:py-16">
-      <div className={`mx-auto w-full ${panel ? "max-w-4xl" : "max-w-[420px]"}`}>
+    <div className="flex min-h-dvh flex-col bg-background px-5 pb-12 pt-14 sm:items-center sm:bg-muted/30 sm:px-6 sm:py-20">
+      <div className={`mx-auto w-full ${panel ? "max-w-4xl" : "max-w-[400px]"}`}>
         {(logo || title) && (
-          <div className="mb-7 space-y-5">
+          // The spacing is composed, not repeated: the mark sits close to the
+          // title it introduces, and the gap down to the card is the largest
+          // on the screen — that step is what separates "who this is" from
+          // "what you do here".
+          <div className="mb-10 space-y-6">
             {logo && <div className="flex justify-center">{logo}</div>}
             {title && (
               <AuthHeading
@@ -52,7 +56,8 @@ export function AuthLayout({
 
         <div
           className={[
-            "sm:rounded-lg sm:border sm:border-border/70 sm:bg-card sm:shadow-sm",
+            "sm:rounded-xl sm:border sm:border-foreground/[0.08] sm:bg-card",
+            "sm:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)]",
             panel ? "sm:overflow-hidden md:grid md:grid-cols-2" : "",
           ]
             .filter(Boolean)
@@ -69,11 +74,11 @@ export function AuthLayout({
             </div>
           )}
 
-          <div className="flex flex-col justify-center sm:p-8">{children}</div>
+          <div className="sm:px-7 sm:py-8">{children}</div>
         </div>
 
         {footer && (
-          <div className="mt-6 text-center text-xs leading-relaxed text-muted-foreground">
+          <div className="mt-8 text-center text-xs leading-relaxed text-muted-foreground">
             {footer}
           </div>
         )}

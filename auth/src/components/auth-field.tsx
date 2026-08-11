@@ -33,7 +33,7 @@ export function AuthField({
   hint,
   description,
   invalid = false,
-  fieldClassName = "border-foreground/25 bg-background",
+  fieldClassName = "border-foreground/30 bg-background",
   ...props
 }: AuthFieldProps) {
   const id = useId()
@@ -46,9 +46,11 @@ export function AuthField({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-3">
+        {/* Small caps with wide tracking: at this size the label reads as a
+            field marker rather than as prose competing with the heading. */}
         <label
           htmlFor={id}
-          className="text-sm font-medium leading-none text-foreground"
+          className="text-[0.6875rem] font-semibold uppercase leading-none tracking-[0.09em] text-foreground/70"
         >
           {label}
         </label>
@@ -63,19 +65,22 @@ export function AuthField({
           aria-invalid={invalid || undefined}
           aria-describedby={descriptionId}
           className={[
-            "h-[52px] w-full rounded-lg border px-4 text-base",
-            "sm:h-11 sm:text-sm",
+            "h-[52px] w-full rounded-md border px-3.5 text-base",
+            "sm:h-[46px] sm:text-[0.9375rem]",
             isPassword ? "pr-12" : "",
-            "text-foreground placeholder:text-muted-foreground/70",
-            "transition-[border-color,box-shadow] duration-150 ease-out",
-            "focus-visible:outline-none focus-visible:ring-[3px]",
+            "text-foreground placeholder:text-muted-foreground/60",
+            // Focus reads as the border committing rather than as a halo
+            // appearing beside it: the ring is tight and the border darkens to
+            // full ink in the same 180ms, so the field answers the caret.
+            "transition-[border-color,box-shadow] duration-200 ease-out",
+            "focus-visible:outline-none focus-visible:ring-2",
             invalid
-              ? "border-destructive bg-background focus-visible:border-destructive focus-visible:ring-destructive/20"
-              // The default border is foreground/25, not border-input: the
+              ? "border-destructive bg-background focus-visible:border-destructive focus-visible:ring-destructive/15"
+              // The default border is foreground/30, not border-input: the
               // latter against a white card lands near 1.3:1, well under the
               // 3:1 WCAG 1.4.11 asks of a control's boundary — the field reads
               // as a faint tint rather than as something to type in.
-              : `${fieldClassName} focus-visible:border-ring focus-visible:ring-ring/15`,
+              : `${fieldClassName} focus-visible:border-foreground focus-visible:ring-foreground/10`,
             "disabled:cursor-not-allowed disabled:opacity-60",
           ]
             .filter(Boolean)

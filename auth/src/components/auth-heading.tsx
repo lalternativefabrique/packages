@@ -6,24 +6,27 @@ interface AuthHeadingProps {
 }
 
 /**
- * The heading of an auth screen, centred above left-aligned fields. That
- * contrast of alignment is what gives the card its hierarchy without a rule.
+ * The heading of an auth screen.
  *
- * It lives in the form rather than in the layout so a screen carries exactly
- * one <h1>, and so the copy travels with the component that owns the step.
+ * This screen is the only one someone sees before they have any reason to
+ * trust the product, so the type carries it: the title is the screen's centre
+ * of gravity, set large and tightly tracked, with the subtitle stepping well
+ * back rather than competing.
+ *
+ * Optical sizing matters at this weight — `text-balance` keeps a two-line
+ * subtitle from breaking into a lonely last word, which reads as an accident
+ * where everything else is deliberate.
  */
 export function AuthHeading({
   title,
   subtitle,
-  titleClassName = "text-2xl font-semibold tracking-tight",
+  titleClassName = "text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] sm:text-[2.25rem]",
 }: AuthHeadingProps) {
   return (
-    <header className="space-y-1.5 text-center">
-      <h1 className={`leading-tight text-foreground ${titleClassName}`}>
-        {title}
-      </h1>
+    <header className="space-y-2.5 text-center">
+      <h1 className={`text-foreground ${titleClassName}`}>{title}</h1>
       {subtitle && (
-        <p className="text-balance text-sm leading-relaxed text-muted-foreground">
+        <p className="text-balance text-[0.9375rem] leading-relaxed text-muted-foreground">
           {subtitle}
         </p>
       )}

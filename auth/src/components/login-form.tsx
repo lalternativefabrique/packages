@@ -111,10 +111,10 @@ export function LoginForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
 
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
         <AuthField
           label={t.emailPlaceholder}
           type="email"
@@ -152,6 +152,7 @@ export function LoginForm({
         />
 
         <AuthSubmit
+          spacedAbove
           pending={isPending}
           disabled={!email.trim() || !password}
           pendingLabel={t.submitPending}

@@ -7,6 +7,13 @@ interface AuthSubmitProps {
   children: ReactNode
   /** Replaces the default `bg-primary text-primary-foreground hover:bg-primary/90` */
   className?: string
+  /**
+   * Adds the step that detaches the action from the fields above it. The
+   * inputs sit on a tighter rhythm so they read as one block to fill in; the
+   * button is what you do once that block is done, and an even gap would put
+   * it on the same footing as another field.
+   */
+  spacedAbove?: boolean
 }
 
 /**
@@ -25,6 +32,7 @@ export function AuthSubmit({
   pendingLabel,
   children,
   className = "bg-primary text-primary-foreground hover:bg-primary/90",
+  spacedAbove = false,
 }: AuthSubmitProps) {
   return (
     <button
@@ -32,11 +40,16 @@ export function AuthSubmit({
       disabled={disabled || pending}
       aria-busy={pending || undefined}
       className={[
-        "relative flex h-[52px] w-full items-center justify-center rounded-lg sm:h-11",
-        "text-base font-medium sm:text-sm",
+        spacedAbove ? "!mt-7" : "",
+        "relative flex h-[52px] w-full items-center justify-center rounded-md sm:h-[46px]",
+        // Slightly tracked at this weight: a wide solid button set in plain
+        // medium reads as a slab, and the letterspacing is what makes it read
+        // as typeset rather than filled in.
+        "text-[0.9375rem] font-medium tracking-[0.01em]",
         className,
-        "shadow-sm transition-[background-color,transform,box-shadow] duration-150 ease-out",
-        "active:translate-y-px",
+        "transition-[background-color,transform,box-shadow] duration-200 ease-out",
+        "shadow-[0_1px_2px_rgba(0,0,0,0.08)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.12)]",
+        "active:translate-y-px active:shadow-[0_1px_2px_rgba(0,0,0,0.08)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-55",
       ].join(" ")}
