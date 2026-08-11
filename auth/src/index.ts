@@ -44,6 +44,9 @@ export { InvitationNotice } from "./components/invitation-notice"
 
 export { normalizeInviteToken, withInviteToken } from "./invite-token"
 
+// A route guarding on the same refusal outside the form needs the predicate.
+export { isEmailNotVerified } from "./email-not-verified"
+
 // OAuth failures reach the page through the address bar, so a route reading one
 // before render needs these outside the components.
 export {

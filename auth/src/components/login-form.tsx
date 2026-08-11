@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react"
 import type { LoginFormLabels, LoginFormProps } from "../types"
+import { isEmailNotVerified } from "../email-not-verified"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
@@ -20,6 +21,8 @@ const DEFAULTS: Required<LoginFormLabels> = {
   emailRequired: "Renseigne ton adresse e-mail",
   passwordRequired: "Renseigne ton mot de passe",
   invalidCredentials: "Adresse e-mail ou mot de passe incorrect",
+  emailNotVerified:
+    "Ton adresse e-mail n'est pas encore confirmée. Vérifie ta boîte de réception.",
   // accountLinking is disabled in createPlatformAuth, so a social sign-in on an
   // address already registered with a password is refused with this code.
   // Without a message the button reads as broken rather than as a rejection.
@@ -31,6 +34,7 @@ const DEFAULTS: Required<LoginFormLabels> = {
 
 export function LoginForm({
   onSuccess,
+  onEmailNotVerified,
   registerUrl = "/register",
   forgotPasswordUrl = "/forgot-password",
   socialCallbackUrl = "/",
@@ -72,7 +76,15 @@ export function LoginForm({
         password,
       })
       if (res?.error) {
-        setError(res.error.message ?? t.invalidCredentials)
+        if (isEmailNotVerified(res.error) && onEmailNotVerified) {
+          onEmailNotVerified(email.trim())
+          return
+        }
+        setError(
+          isEmailNotVerified(res.error)
+            ? t.emailNotVerified
+            : (res.error.message ?? t.invalidCredentials),
+        )
         return
       }
       // The better-auth session cookie alone does not authenticate a Go core:

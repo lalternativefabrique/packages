@@ -192,6 +192,7 @@ export interface LoginFormLabels {
   emailRequired?: string
   passwordRequired?: string
   invalidCredentials?: string
+  emailNotVerified?: string
   accountNotLinked?: string
   socialCancelled?: string
   socialFailed?: string
@@ -317,6 +318,15 @@ export interface AuthInviteProps {
 export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
+  /**
+   * Called with the typed address when the credentials are right but the
+   * account never confirmed its email — `createPlatformAuth` sets
+   * `requireEmailVerification`, so that sign-in is refused and no session is
+   * created. Route to the OTP screen, as `RegisterForm.onSuccess` does. Left
+   * unset, the refusal is rendered as an error like any other, which reads as
+   * a wrong password.
+   */
+  onEmailNotVerified?: (email: string) => void
   /**
    * Error raised outside the form — a failed OAuth round-trip coming back as
    * `?error=`, a guard bouncing an unauthenticated visitor. Rendered in the
