@@ -5,6 +5,8 @@ interface AuthOtpFieldProps {
   disabled?: boolean
   invalid?: boolean
   id: string
+  /** Replaces the default border and background utilities */
+  fieldClassName?: string
 }
 
 export const OTP_LENGTH = 6
@@ -24,6 +26,7 @@ export function AuthOtpField({
   disabled = false,
   invalid = false,
   id,
+  fieldClassName = "border-foreground/25 bg-background",
 }: AuthOtpFieldProps) {
   return (
     <div className="space-y-2">
@@ -46,14 +49,14 @@ export function AuthOtpField({
         autoComplete="one-time-code"
         aria-invalid={invalid || undefined}
         className={[
-          "h-[52px] w-full rounded-xl border bg-background px-4 sm:h-11",
+          "h-[52px] w-full rounded-lg border px-4 sm:h-11",
           "text-center font-mono text-lg tracking-[0.4em]",
           "text-foreground",
           "transition-[border-color,box-shadow] duration-150 ease-out",
           "focus-visible:outline-none focus-visible:ring-[3px]",
           invalid
-            ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
-            : "border-input focus-visible:border-ring focus-visible:ring-ring/15",
+            ? "border-destructive bg-background focus-visible:border-destructive focus-visible:ring-destructive/20"
+            : `${fieldClassName} focus-visible:border-ring focus-visible:ring-ring/15`,
           "disabled:cursor-not-allowed disabled:opacity-60",
         ].join(" ")}
       />

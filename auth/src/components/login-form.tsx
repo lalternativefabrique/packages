@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react"
 import type { LoginFormLabels, LoginFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
-import { AuthHeading } from "./auth-heading"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 
@@ -36,7 +35,8 @@ export function LoginForm({
   socialProviders = [],
   coreTokenUrl = "/api/auth/core-token",
   labels,
-  titleClassName,
+  submitClassName,
+  fieldClassName,
   error: externalError,
   authClient,
 }: LoginFormProps) {
@@ -105,13 +105,7 @@ export function LoginForm({
   }
 
   return (
-    <div className="space-y-7">
-      <AuthHeading
-        title={t.title}
-        subtitle={t.subtitle}
-        titleClassName={titleClassName}
-      />
-
+    <div className="space-y-6">
       <AuthAlert>{error}</AuthAlert>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -127,6 +121,7 @@ export function LoginForm({
           autoCapitalize="none"
           spellCheck={false}
           invalid={!!error}
+          fieldClassName={fieldClassName}
         />
 
         <AuthField
@@ -138,6 +133,7 @@ export function LoginForm({
           disabled={isPending}
           autoComplete="current-password"
           invalid={!!error}
+          fieldClassName={fieldClassName}
           hint={
             <a
               href={forgotPasswordUrl}
@@ -152,6 +148,7 @@ export function LoginForm({
           pending={isPending}
           disabled={!email.trim() || !password}
           pendingLabel={t.submitPending}
+          className={submitClassName}
         >
           {t.submit}
         </AuthSubmit>
@@ -174,4 +171,12 @@ export function LoginForm({
       </p>
     </div>
   )
+}
+
+// The heading lives in AuthLayout, above the card, so the screen — not the
+// form — passes the copy. Exposing the defaults here keeps the wording in one
+// place: `<AuthLayout {...LoginForm.defaults}>` renders what the form used to.
+LoginForm.defaults = {
+  title: DEFAULTS.title,
+  subtitle: DEFAULTS.subtitle,
 }

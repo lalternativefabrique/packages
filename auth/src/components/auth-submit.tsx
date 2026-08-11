@@ -5,6 +5,8 @@ interface AuthSubmitProps {
   disabled?: boolean
   pendingLabel: string
   children: ReactNode
+  /** Replaces the default `bg-primary text-primary-foreground hover:bg-primary/90` */
+  className?: string
 }
 
 /**
@@ -22,6 +24,7 @@ export function AuthSubmit({
   disabled = false,
   pendingLabel,
   children,
+  className = "bg-primary text-primary-foreground hover:bg-primary/90",
 }: AuthSubmitProps) {
   return (
     <button
@@ -29,10 +32,11 @@ export function AuthSubmit({
       disabled={disabled || pending}
       aria-busy={pending || undefined}
       className={[
-        "relative flex h-[52px] w-full items-center justify-center rounded-xl sm:h-11",
-        "bg-primary text-base font-medium text-primary-foreground sm:text-sm",
+        "relative flex h-[52px] w-full items-center justify-center rounded-lg sm:h-11",
+        "text-base font-medium sm:text-sm",
+        className,
         "shadow-sm transition-[background-color,transform,box-shadow] duration-150 ease-out",
-        "hover:bg-primary/90 active:translate-y-px",
+        "active:translate-y-px",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-55",
       ].join(" ")}

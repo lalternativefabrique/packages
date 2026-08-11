@@ -56,8 +56,8 @@ export function SocialButtons({
             disabled={disabled}
             aria-label={copy[provider] ?? provider}
             className={[
-              "flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl sm:h-11",
-              "border border-input bg-background text-base font-medium text-foreground sm:text-sm",
+              "flex h-[52px] w-full items-center justify-center gap-2.5 rounded-lg sm:h-11",
+              "border border-foreground/25 bg-background text-base font-medium text-foreground sm:text-sm",
               "transition-[background-color,border-color,transform] duration-150 ease-out",
               "hover:border-foreground/20 hover:bg-accent active:translate-y-px",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",

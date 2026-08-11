@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react"
 import type { ResetPasswordFormLabels, ResetPasswordFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
-import { AuthHeading } from "./auth-heading"
 import { AuthOtpField, OTP_LENGTH } from "./auth-otp-field"
 import { AuthSubmit } from "./auth-submit"
 
@@ -34,7 +33,8 @@ export function ResetPasswordForm({
   onSuccess,
   loginUrl = "/login",
   labels,
-  titleClassName,
+  submitClassName,
+  fieldClassName,
   authClient,
 }: ResetPasswordFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -103,13 +103,7 @@ export function ResetPasswordForm({
   }
 
   return (
-    <div className="space-y-7">
-      <AuthHeading
-        title={t.title}
-        subtitle={t.subtitle}
-        titleClassName={titleClassName}
-      />
-
+    <div className="space-y-6">
       <AuthAlert>{error}</AuthAlert>
       <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
@@ -120,6 +114,7 @@ export function ResetPasswordForm({
           value={otp}
           onChange={setOtp}
           disabled={isResetting}
+          fieldClassName={fieldClassName}
         />
 
         <AuthField
@@ -149,6 +144,7 @@ export function ResetPasswordForm({
           pending={isResetting}
           disabled={otp.length < OTP_LENGTH || !password || !confirmPassword}
           pendingLabel={t.submitPending}
+          className={submitClassName}
         >
           {t.submit}
         </AuthSubmit>
@@ -176,4 +172,10 @@ export function ResetPasswordForm({
       </div>
     </div>
   )
+}
+
+// See LoginForm.defaults.
+ResetPasswordForm.defaults = {
+  title: DEFAULTS.title,
+  subtitle: DEFAULTS.subtitle,
 }

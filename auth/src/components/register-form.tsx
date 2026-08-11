@@ -2,7 +2,6 @@ import { useState, type FormEvent } from "react"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
-import { AuthHeading } from "./auth-heading"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 
@@ -15,6 +14,8 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   emailPlaceholder: "Adresse e-mail",
   passwordPlaceholder: "Mot de passe",
   passwordHint: `Au moins ${MIN_PASSWORD_LENGTH} caractères.`,
+  confirmPlaceholder: "Confirme le mot de passe",
+  passwordMismatch: "Les deux mots de passe ne correspondent pas",
   submit: "Créer mon compte",
   submitPending: "Création…",
   haveAccount: "Tu as déjà un compte ?",
@@ -32,7 +33,8 @@ export function RegisterForm({
   socialCallbackUrl = "/",
   socialProviders = [],
   labels,
-  titleClassName,
+  submitClassName,
+  fieldClassName,
   error: externalError,
   authClient,
 }: RegisterFormProps) {
@@ -40,6 +42,7 @@ export function RegisterForm({
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
 
@@ -48,6 +51,7 @@ export function RegisterForm({
   const setError = setOwnError
 
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH
+  const mismatch = confirmPassword.length > 0 && confirmPassword !== password
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -61,6 +65,10 @@ export function RegisterForm({
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(t.passwordTooShort)
+      return
+    }
+    if (password !== confirmPassword) {
+      setError(t.passwordMismatch)
       return
     }
     setError(undefined)
@@ -99,13 +107,7 @@ export function RegisterForm({
   }
 
   return (
-    <div className="space-y-7">
-      <AuthHeading
-        title={t.title}
-        subtitle={t.subtitle}
-        titleClassName={titleClassName}
-      />
-
+    <div className="space-y-6">
       <AuthAlert>{error}</AuthAlert>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -117,6 +119,7 @@ export function RegisterForm({
           required
           disabled={isPending}
           autoComplete="name"
+          fieldClassName={fieldClassName}
         />
 
         <AuthField
@@ -130,6 +133,7 @@ export function RegisterForm({
           autoComplete="email"
           autoCapitalize="none"
           spellCheck={false}
+          fieldClassName={fieldClassName}
         />
 
         <AuthField
@@ -144,9 +148,26 @@ export function RegisterForm({
           // Only once they have typed something: flagging an untouched field
           // red would scold someone for not having started yet.
           invalid={tooShort}
+          fieldClassName={fieldClassName}
         />
 
-        <AuthSubmit pending={isPending} pendingLabel={t.submitPending}>
+        <AuthField
+          label={t.confirmPlaceholder}
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          disabled={isPending}
+          autoComplete="new-password"
+          invalid={mismatch}
+          fieldClassName={fieldClassName}
+        />
+
+        <AuthSubmit
+          pending={isPending}
+          pendingLabel={t.submitPending}
+          className={submitClassName}
+        >
           {t.submit}
         </AuthSubmit>
 
@@ -174,4 +195,10 @@ export function RegisterForm({
       </p>
     </div>
   )
+}
+
+// See LoginForm.defaults.
+RegisterForm.defaults = {
+  title: DEFAULTS.title,
+  subtitle: DEFAULTS.subtitle,
 }

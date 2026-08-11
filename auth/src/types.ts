@@ -147,7 +147,7 @@ export interface VerifyEmailFormLabels {
   missingEmail?: string
 }
 
-export interface VerifyEmailFormProps extends AuthHeadingProps {
+export interface VerifyEmailFormProps extends AuthThemeProps {
   /** Email to verify */
   email: string
   /** Callback on successful verification */
@@ -205,6 +205,8 @@ export interface RegisterFormLabels {
   emailPlaceholder?: string
   passwordPlaceholder?: string
   passwordHint?: string
+  confirmPlaceholder?: string
+  passwordMismatch?: string
   submit?: string
   submitPending?: string
   haveAccount?: string
@@ -225,7 +227,24 @@ export interface AuthHeadingProps {
   titleClassName?: string
 }
 
-export interface LoginFormProps extends AuthHeadingProps {
+/**
+ * Per-screen colour overrides.
+ *
+ * The components paint themselves from the host's theme tokens (`--primary`,
+ * `--card`, `--input`, `--ring`), so an app that sets those gets a coherent
+ * surface for free and needs none of this. These are for the case where one
+ * screen has to differ from the theme — a branded submit on an otherwise
+ * neutral admin, say. Each replaces the colour utilities it names, so pass the
+ * whole look rather than an addition to it.
+ */
+export interface AuthThemeProps {
+  /** Replaces the submit button's `bg-primary text-primary-foreground` */
+  submitClassName?: string
+  /** Replaces a field's border and background utilities */
+  fieldClassName?: string
+}
+
+export interface LoginFormProps extends AuthThemeProps {
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
   /**
@@ -258,7 +277,7 @@ export interface LoginFormProps extends AuthHeadingProps {
   authClient: any
 }
 
-export interface RegisterFormProps extends AuthHeadingProps {
+export interface RegisterFormProps extends AuthThemeProps {
   /** Callback on successful sign-up, receives the email to verify */
   onSuccess?: (email: string) => void
   /** Error raised outside the form, rendered in the same banner */
@@ -290,7 +309,7 @@ export interface ForgotPasswordFormLabels {
   sendFailed?: string
 }
 
-export interface ForgotPasswordFormProps extends AuthHeadingProps {
+export interface ForgotPasswordFormProps extends AuthThemeProps {
   /** Callback on successful OTP send, receives the email */
   onSuccess?: (email: string) => void
   /** Link to login page */
@@ -323,7 +342,7 @@ export interface ResetPasswordFormLabels {
   resendFailed?: string
 }
 
-export interface ResetPasswordFormProps extends AuthHeadingProps {
+export interface ResetPasswordFormProps extends AuthThemeProps {
   /** Email address to reset password for */
   email: string
   /** Callback on successful password reset */
@@ -337,17 +356,24 @@ export interface ResetPasswordFormProps extends AuthHeadingProps {
   authClient: any
 }
 
-export interface AuthLayoutProps {
-  /** The app's mark, rendered above the form inside the card */
+export interface AuthLayoutProps extends AuthHeadingProps {
+  /** The app's mark, rendered above the card */
   logo?: React.ReactNode
   /**
-   * Illustration filling the right half of the card from md up, dropped below
+   * Illustration filling the LEFT half of the card from md up, dropped below
    * it. Any node: an `<img className="h-full w-full object-cover">`, a
    * gradient, a testimonial. Purely decorative — it is hidden from assistive
-   * technology, so it must not carry anything the form does not say.
+   * technology, so it must not carry anything the form does not say. Omit it
+   * and the card stays a single column.
    */
   panel?: React.ReactNode
-  /** The form. It renders its own title. */
+  /**
+   * Heading above the card. Each form exports its default copy as
+   * `<Form>.defaults`, so a screen can pass it through or replace it.
+   */
+  title?: string
+  subtitle?: string
+  /** The form, rendered inside the card */
   children: React.ReactNode
   /** Footer content below the card (e.g. legal links) */
   footer?: React.ReactNode

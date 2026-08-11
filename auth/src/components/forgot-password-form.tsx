@@ -5,7 +5,6 @@ import type {
 } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
-import { AuthHeading } from "./auth-heading"
 import { AuthSubmit } from "./auth-submit"
 
 const DEFAULTS: Required<ForgotPasswordFormLabels> = {
@@ -25,7 +24,8 @@ export function ForgotPasswordForm({
   onSuccess,
   loginUrl = "/login",
   labels,
-  titleClassName,
+  submitClassName,
+  fieldClassName,
   authClient,
 }: ForgotPasswordFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -59,13 +59,7 @@ export function ForgotPasswordForm({
   }
 
   return (
-    <div className="space-y-7">
-      <AuthHeading
-        title={t.title}
-        subtitle={t.subtitle}
-        titleClassName={titleClassName}
-      />
-
+    <div className="space-y-6">
       <AuthAlert>{error}</AuthAlert>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
@@ -87,6 +81,7 @@ export function ForgotPasswordForm({
           pending={isPending}
           disabled={!email.trim()}
           pendingLabel={t.submitPending}
+          className={submitClassName}
         >
           {t.submit}
         </AuthSubmit>
@@ -103,4 +98,10 @@ export function ForgotPasswordForm({
       </p>
     </div>
   )
+}
+
+// See LoginForm.defaults.
+ForgotPasswordForm.defaults = {
+  title: DEFAULTS.title,
+  subtitle: DEFAULTS.subtitle,
 }

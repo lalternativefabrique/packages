@@ -21,7 +21,7 @@ export function AuthAlert({ children, tone = "error" }: AuthAlertProps) {
       className={
         children
           ? [
-              "rounded-xl border px-3.5 py-3 text-sm leading-snug",
+              "rounded-lg border px-3.5 py-3 text-sm leading-snug",
               tone === "error"
                 ? "border-destructive/25 bg-destructive/10 text-destructive"
                 : "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",

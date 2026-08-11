@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react"
 import type { VerifyEmailFormLabels, VerifyEmailFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
-import { AuthHeading } from "./auth-heading"
 import { AuthOtpField, OTP_LENGTH } from "./auth-otp-field"
 import { AuthSubmit } from "./auth-submit"
 
@@ -28,7 +27,8 @@ export function VerifyEmailForm({
   onSuccess,
   loginUrl = "/login",
   labels,
-  titleClassName,
+  submitClassName,
+  fieldClassName,
   authClient,
 }: VerifyEmailFormProps) {
   const t = { ...DEFAULTS, ...labels }
@@ -83,13 +83,7 @@ export function VerifyEmailForm({
   }
 
   return (
-    <div className="space-y-7">
-      <AuthHeading
-        title={t.title}
-        subtitle={email ? `${t.subtitle} ${email}.` : t.subtitleNoEmail}
-        titleClassName={titleClassName}
-      />
-
+    <div className="space-y-6">
       <AuthAlert>{error}</AuthAlert>
       <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
@@ -100,12 +94,14 @@ export function VerifyEmailForm({
           value={otp}
           onChange={setOtp}
           disabled={isVerifying}
+          fieldClassName={fieldClassName}
         />
 
         <AuthSubmit
           pending={isVerifying}
           disabled={otp.length < OTP_LENGTH}
           pendingLabel={t.submitPending}
+          className={submitClassName}
         >
           {t.submit}
         </AuthSubmit>
@@ -133,4 +129,10 @@ export function VerifyEmailForm({
       </div>
     </div>
   )
+}
+
+// See LoginForm.defaults.
+VerifyEmailForm.defaults = {
+  title: DEFAULTS.title,
+  subtitle: DEFAULTS.subtitle,
 }

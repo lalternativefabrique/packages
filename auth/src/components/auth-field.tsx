@@ -9,6 +9,8 @@ export interface AuthFieldProps extends NativeProps {
   /** Persistent helper text under the field, tied to it for screen readers */
   description?: string
   invalid?: boolean
+  /** Replaces the default border and background utilities */
+  fieldClassName?: string
 }
 
 /**
@@ -31,6 +33,7 @@ export function AuthField({
   hint,
   description,
   invalid = false,
+  fieldClassName = "border-foreground/25 bg-background",
   ...props
 }: AuthFieldProps) {
   const id = useId()
@@ -60,15 +63,19 @@ export function AuthField({
           aria-invalid={invalid || undefined}
           aria-describedby={descriptionId}
           className={[
-            "h-[52px] w-full rounded-xl border bg-background px-4 text-base",
+            "h-[52px] w-full rounded-lg border px-4 text-base",
             "sm:h-11 sm:text-sm",
             isPassword ? "pr-12" : "",
             "text-foreground placeholder:text-muted-foreground/70",
             "transition-[border-color,box-shadow] duration-150 ease-out",
             "focus-visible:outline-none focus-visible:ring-[3px]",
             invalid
-              ? "border-destructive focus-visible:border-destructive focus-visible:ring-destructive/20"
-              : "border-input focus-visible:border-ring focus-visible:ring-ring/15",
+              ? "border-destructive bg-background focus-visible:border-destructive focus-visible:ring-destructive/20"
+              // The default border is foreground/25, not border-input: the
+              // latter against a white card lands near 1.3:1, well under the
+              // 3:1 WCAG 1.4.11 asks of a control's boundary — the field reads
+              // as a faint tint rather than as something to type in.
+              : `${fieldClassName} focus-visible:border-ring focus-visible:ring-ring/15`,
             "disabled:cursor-not-allowed disabled:opacity-60",
           ]
             .filter(Boolean)
