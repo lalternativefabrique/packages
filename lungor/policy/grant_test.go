@@ -203,3 +203,25 @@ func TestEnsureOnMissingReportsFalseWhenGrantFails(t *testing.T) {
 		t.Fatal("EnsureOnMissing = true, want false: nothing was granted")
 	}
 }
+
+// EnsureNow is the repair path's grant: it skips the record and calls anyway,
+// where Ensure exists precisely to avoid that call.
+func TestEnsureNowGrantsDespiteTheRecord(t *testing.T) {
+	prov := &fakeProvisioner{}
+	state := &fakeState{granted: true}
+	g := &Grant{Provisioner: prov, State: state, Emails: &fakeEmails{email: "u@example.com", ok: true}}
+
+	granted, err := g.EnsureNow(context.Background(), "u1", "")
+	if err != nil {
+		t.Fatalf("EnsureNow: %v", err)
+	}
+	if !granted {
+		t.Fatal("granted = false, want true")
+	}
+	if prov.calls != 1 {
+		t.Fatalf("provisioner called %d times, want 1", prov.calls)
+	}
+	if state.marked != 1 {
+		t.Fatalf("marked %d times, want 1", state.marked)
+	}
+}

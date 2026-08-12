@@ -12,9 +12,15 @@ import "context"
 // that on their own, but only once the tenant reaches one — and nothing lets an
 // operator act for someone stuck before that.
 //
-// Idempotent, because Grant.Ensure is: a tenant already recorded as granted
-// answers without a call to Lungor, which is what makes the button behind this
-// safe to press twice.
+// Idempotent, but on the ledger rather than on the local record: granting a
+// tenant who already holds a subscription is a no-op on Lungor's side, so the
+// button behind this stays safe to press twice.
+//
+// It deliberately does NOT skip the call for a tenant recorded as granted. That
+// record only says a grant once succeeded; nothing reconciles it with the
+// ledger afterwards, so a tenant the provider no longer holds is marked granted
+// forever and every cheap path skips them. Reading it here would make the
+// repair refuse exactly the case it exists for.
 //
 // Consumers wrap it in one handler each. The wrapping is where they differ —
 // route, admin gate, response shape, how an error becomes a status — and the
@@ -36,5 +42,5 @@ func Repair(ctx context.Context, grant *Grant, tenantID string) (bool, error) {
 	}
 	// Email empty: the repair paths hold only an id, so the address is resolved
 	// through the grant's own resolver.
-	return grant.Ensure(ctx, tenantID, "")
+	return grant.EnsureNow(ctx, tenantID, "")
 }

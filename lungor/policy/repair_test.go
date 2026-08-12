@@ -22,17 +22,36 @@ func TestRepairGrantsWhenTheLedgerHoldsNothing(t *testing.T) {
 	}
 }
 
-// Pressing the button twice must not cost two calls, nor two subscriptions.
-func TestRepairIsIdempotent(t *testing.T) {
+// The local record says a grant once succeeded, and nothing reconciles it with
+// the ledger afterwards. A tenant the provider dropped is marked granted
+// forever, so a repair that trusted the record would refuse the one case an
+// operator reaches for it: an account that looks provisioned and is not.
+func TestRepairIgnoresTheLocalRecord(t *testing.T) {
 	prov := &fakeProvisioner{}
-	g := &Grant{Provisioner: prov, State: &fakeState{granted: true}}
+	state := &fakeState{granted: true}
+	g := &Grant{Provisioner: prov, State: state, Emails: &fakeEmails{email: "u@example.com", ok: true}}
 
 	granted, err := Repair(context.Background(), g, "tenant-1")
 	if err != nil || !granted {
 		t.Fatalf("Repair = (%v, %v), want (true, nil)", granted, err)
 	}
-	if prov.calls != 0 {
-		t.Fatalf("called the ledger %d times for a tenant already granted", prov.calls)
+	if prov.calls != 1 {
+		t.Fatalf("reached the ledger %d times, want 1", prov.calls)
+	}
+}
+
+// Pressing the button twice must not cost two subscriptions. The guarantee is
+// the provider's — granting a tenant it already holds is a no-op — not the
+// local record's.
+func TestRepairIsIdempotentOnTheLedger(t *testing.T) {
+	prov := &fakeProvisioner{}
+	g := &Grant{Provisioner: prov, State: &fakeState{}, Emails: &fakeEmails{email: "u@example.com", ok: true}}
+
+	for i := range 2 {
+		granted, err := Repair(context.Background(), g, "tenant-1")
+		if err != nil || !granted {
+			t.Fatalf("Repair #%d = (%v, %v), want (true, nil)", i+1, granted, err)
+		}
 	}
 }
 
