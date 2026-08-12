@@ -31,10 +31,29 @@ type Grant struct {
 // email may be empty; it is resolved through Emails when the caller does not
 // already hold it.
 func (g *Grant) Ensure(ctx context.Context, tenantID, email string) (bool, error) {
+	return g.ensure(ctx, tenantID, email, false)
+}
+
+// EnsureNow grants without consulting the local record first.
+//
+// The record answers "has this already been done", which is what makes Ensure
+// cheap on the paths that run constantly. It cannot answer "is the ledger
+// really holding it": nothing reconciles the two, so a tenant dropped on the
+// provider's side stays marked as granted forever, and every path that trusts
+// the record skips the one call that would put them back.
+//
+// That is the whole job of an operator's repair button, so it must not be the
+// one thing gated on the record it exists to disprove. Granting is idempotent
+// on the provider, so the cost of being wrong here is one redundant call.
+func (g *Grant) EnsureNow(ctx context.Context, tenantID, email string) (bool, error) {
+	return g.ensure(ctx, tenantID, email, true)
+}
+
+func (g *Grant) ensure(ctx context.Context, tenantID, email string, force bool) (bool, error) {
 	if g == nil || g.Provisioner == nil {
 		return false, nil
 	}
-	if g.State != nil {
+	if g.State != nil && !force {
 		granted, err := g.State.Granted(ctx, tenantID)
 		if err != nil {
 			return false, err
