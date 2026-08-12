@@ -1,5 +1,7 @@
 import type { BetterAuthOptions } from "better-auth"
 
+type SocialProviderOptions = NonNullable<BetterAuthOptions["socialProviders"]>
+
 /**
  * Session user shape exposed by the platform auth instance.
  *
@@ -80,16 +82,16 @@ export interface PlatformAuthConfig {
    * stdout — useful in dev/test, useless in production.
    */
   mailer?: PlatformAuthMailer
-  /** Google OAuth config (omit to disable) */
-  google?: {
-    clientId: string
-    clientSecret: string
-  }
-  /** GitHub OAuth config (omit to disable) */
-  github?: {
-    clientId: string
-    clientSecret: string
-  }
+  /**
+   * Google OAuth config (omit to disable).
+   *
+   * Passed to Better Auth as given, so anything it accepts works here —
+   * `scope`, `mapProfileToUser`, `redirectURI`. The platform sets `prompt` and
+   * `accessType` first; pass either to override it.
+   */
+  google?: SocialProviderOptions["google"]
+  /** GitHub OAuth config (omit to disable). Passed to Better Auth as given. */
+  github?: SocialProviderOptions["github"]
   /**
    * Override the OTP email subject line per verification type. Merged over
    * the platform defaults — provide only the keys you want to change. The

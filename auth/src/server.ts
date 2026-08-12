@@ -1,6 +1,7 @@
 import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-auth"
 import { emailOTP, admin } from "better-auth/plugins"
 import type { PlatformAuthConfig, PlatformAuthMailerType } from "./types"
+import { withGoogleDefaults } from "./google-defaults"
 
 const DEFAULT_EMAIL_SUBJECTS: Record<string, string> = {
   "email-verification": "Verify your account",
@@ -122,22 +123,18 @@ export function createPlatformAuth(
       ...plugins, // app-specific plugins (e.g. tanstackStartCookies)
     ],
     socialProviders: {
-      ...(google
-        ? {
-            google: {
-              clientId: google.clientId,
-              clientSecret: google.clientSecret,
-            },
-          }
-        : {}),
-      ...(github
-        ? {
-            github: {
-              clientId: github.clientId,
-              clientSecret: github.clientSecret,
-            },
-          }
-        : {}),
+      // Spread as given rather than rebuilt field by field: anything Better
+      // Auth accepts belongs to the app, and a config silently dropped on the
+      // way through is how an app ends up writing a plugin to put it back.
+      //
+      // The two defaults below are the platform's, not Google's: without
+      // accessType 'offline' Google never mints a refresh token, and without
+      // 'consent' it stops minting one for an account that already consented.
+      // A NULL refreshToken means deleting an account can revoke the access
+      // token but cannot remove the app from myaccount.google.com/permissions,
+      // so the grant outlives the account it belonged to.
+      ...(google ? { google: withGoogleDefaults(google) } : {}),
+      ...(github ? { github } : {}),
     },
   }) as unknown as Auth<BetterAuthOptions>
 }
