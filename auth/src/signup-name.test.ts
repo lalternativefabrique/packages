@@ -46,3 +46,10 @@ test("a non-string name is treated as missing", () => {
   const out = withSignUpName({ email: "ada@example.com", name: null })
   assert.equal(out.name, "ada")
 })
+
+// The magic-link plugin creates the account itself with `name: name || ""`,
+// so it arrives as an empty string rather than an absent key.
+test("the empty name a magic-link signup creates is filled in", () => {
+  const out = withSignUpName({ email: "ada@example.com", name: "" })
+  assert.equal(out.name, "ada")
+})

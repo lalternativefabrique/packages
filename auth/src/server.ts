@@ -85,36 +85,44 @@ export function createPlatformAuth(
         enabled: false,
       },
     },
-    // Passed through as given. The platform defines none of its own today, so
-    // there is nothing to merge; should it ever add one, this becomes a merge
-    // rather than a hand-off, or an app silently switches a platform hook off.
-    ...(databaseHooks ? { databaseHooks } : {}),
+    // Naming happens here rather than on /sign-up/email so that every way in
+    // is covered: a magic link that signs up bypasses the endpoint entirely
+    // and calls createUser straight, with `name: name || ""`.
+    databaseHooks: {
+      ...databaseHooks,
+      user: {
+        ...databaseHooks?.user,
+        create: {
+          ...databaseHooks?.user?.create,
+          before: async (user: Record<string, unknown>, ctx: unknown) => {
+            const named = withSignUpName(user)
+            const appHook = databaseHooks?.user?.create?.before
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const applied = await appHook?.(named as any, ctx as any)
+            if (applied === false) return false
+            if (applied && typeof applied === "object" && "data" in applied) {
+              return { data: withSignUpName(applied.data) }
+            }
+            return { data: named }
+          },
+        },
+      },
+    },
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {
+        if (!betaMode) return
         if (ctx.path !== "/sign-up/email") return
-        const body = ctx.body as
-          | { email?: string; name?: string; inviteToken?: string }
-          | undefined
-
-        if (betaMode) {
-          const email = body?.email
-          const inviteToken = body?.inviteToken
-          const invited =
-            email && inviteToken && isInvited
-              ? await isInvited(email, inviteToken)
-              : false
-          if (!invited) {
-            throw new APIError("FORBIDDEN", {
-              message: "Registration is invite-only during the private beta.",
-            })
-          }
+        const body = ctx.body as { email?: string; inviteToken?: string } | undefined
+        const email = body?.email
+        const inviteToken = body?.inviteToken
+        if (email && inviteToken && isInvited) {
+          const ok = await isInvited(email, inviteToken)
+          if (ok) return
         }
-
-        if (!body) return
-        // Better Auth merges what a before hook returns under `context` into
-        // the request context, so only the amended body is handed back.
-        return { context: { body: withSignUpName(body) } }
+        throw new APIError("FORBIDDEN", {
+          message: "Registration is invite-only during the private beta.",
+        })
       },
     },
     plugins: [
