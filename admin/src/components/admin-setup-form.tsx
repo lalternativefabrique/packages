@@ -108,7 +108,7 @@ export function AdminSetupForm({
 
   if (done) {
     return (
-      <div className={`w-full max-w-md ${className}`}>
+      <div className={`lalt-admin w-full max-w-md ${className}`}>
         <div className={`${CARD} p-8 text-center`}>
           <h2 className="text-base font-medium">{t.created}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{t.redirecting}</p>
@@ -118,7 +118,7 @@ export function AdminSetupForm({
   }
 
   return (
-    <div className={`w-full max-w-md ${className}`}>
+    <div className={`lalt-admin w-full max-w-md ${className}`}>
       <h1 className={FORM_TITLE}>{title}</h1>
       {subtitle ? <p className={FORM_SUBTITLE}>{subtitle}</p> : null}
 

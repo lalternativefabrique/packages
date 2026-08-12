@@ -7,6 +7,8 @@ export type {
   AdminInvitationApi,
   AdminAuthClient,
   AdminNavItem,
+  AdminApp,
+  AdminAppTone,
   AdminLayoutProps,
   AdminHomeProps,
   AdminHomeLabels,

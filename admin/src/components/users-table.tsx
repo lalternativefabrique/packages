@@ -158,7 +158,7 @@ export function UsersTable({
       ) : null}
 
       {/* Its own scroll container so the page body never scrolls sideways. */}
-      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+      <div className="admin-paper overflow-x-auto rounded-xl">
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>

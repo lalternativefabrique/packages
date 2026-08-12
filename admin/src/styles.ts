@@ -1,22 +1,21 @@
 /**
  * Shared class strings for the admin surface.
  *
- * The admin is an internal tool, not a product surface: it stays visually
- * neutral and identical across every app rather than wearing each app's brand
- * colour. So the primary action and focus rings are plain black (white on dark)
- * — deliberately NOT the host's `--primary`, which would turn the button green
- * in one app and blue in the next.
+ * Tokens come from `admin.css`, scoped to `.lalt-admin` and owned by this
+ * package rather than read from the host — so the back-office renders the same
+ * in every app, including one that defines no theme of its own.
  *
- * Surfaces (background, card, border, text) still come from the host tokens, so
- * the admin follows the app's light/dark theme instead of fighting it. Proportions
- * follow the same rhythm as the apps' own auth pages: a roomy field (py-2.5
- * rather than a cramped fixed height) sitting on a ground one step back from the
- * card, so the input reads as a well even before it is focused.
+ * The primary action and focus rings are plain black (white on dark),
+ * deliberately NOT `--primary`, so brand colour never competes with the
+ * emerald/violet the tables already use to carry state.
+ *
+ * Cards and tables use `admin-paper`: a sheet one step warmer than the ground,
+ * lifted by a shadow instead of closed by a hard border.
  */
 
 /**
- * Neutral text input. `bg-background` sits a step behind `bg-card`, which is what
- * makes the field legible as an input on a card without a heavy border.
+ * Neutral text input. `bg-background` sits a step behind the paper surface,
+ * which is what makes the field legible as an input without a heavy border.
  */
 export const INPUT =
   "w-full rounded-lg border bg-background px-4 py-2.5 text-sm outline-none transition-colors " +
@@ -34,7 +33,7 @@ export const BUTTON_PRIMARY =
 export const LABEL = "block text-sm font-medium"
 
 /** Card surface used by the forms and tiles. */
-export const CARD = "rounded-xl border bg-card shadow-sm"
+export const CARD = "admin-paper rounded-xl"
 
 /** Inline error banner. */
 export const ALERT =
@@ -53,12 +52,12 @@ export const PAGE_TITLE = "text-2xl font-semibold tracking-tight"
  * Table shell. Scrolls inside itself so a wide row never makes the page body
  * scroll sideways.
  */
-export const TABLE_WRAP = "overflow-x-auto rounded-xl border bg-card shadow-sm"
+export const TABLE_WRAP = "admin-paper overflow-x-auto rounded-xl"
 
 export const TABLE = "w-full text-left text-sm"
 
 export const THEAD =
-  "border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"
+  "border-b text-xs uppercase tracking-wide text-muted-foreground"
 
 export const TH = "px-4 py-3 font-medium"
 
