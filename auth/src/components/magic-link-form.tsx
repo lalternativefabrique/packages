@@ -5,6 +5,7 @@ import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { withInviteToken } from "../invite-token"
+import { magicLinkErrorCallback } from "../magic-link-error"
 
 /**
  * Sign-in by emailed link.
@@ -14,7 +15,8 @@ import { withInviteToken } from "../invite-token"
  * /magic-link/verify hop. That is deliberate on its part — a form that
  * distinguished the two would tell an anonymous caller which addresses are
  * registered. Every failure past the send therefore comes back as a `?error=`
- * on the callback, which is what magicLinkErrorMessage reads.
+ * on the errorCallbackURL, which is what magicLinkErrorMessage reads — and
+ * which defaults to this page, since asking for another link is the fix.
  */
 
 const DEFAULTS: Required<MagicLinkFormLabels> = {
@@ -37,6 +39,7 @@ export function MagicLinkForm({
   loginUrl = "/login",
   callbackUrl = "/",
   newUserCallbackUrl,
+  errorCallbackUrl,
   labels,
   submitClassName,
   fieldClassName,
@@ -71,6 +74,18 @@ export function MagicLinkForm({
         ...(newUserCallbackUrl
           ? { newUserCallbackURL: withInviteToken(newUserCallbackUrl, invite) }
           : {}),
+        // Resolved here rather than at render: the default is the current page,
+        // and this runs in the browser, where there is one.
+        errorCallbackURL: withInviteToken(
+          magicLinkErrorCallback(
+            errorCallbackUrl,
+            loginUrl,
+            typeof window !== "undefined"
+              ? window.location.pathname
+              : undefined,
+          ),
+          invite,
+        ),
       })
       if (res?.error) {
         setOwnError(res.error.message ?? t.sendFailed)
