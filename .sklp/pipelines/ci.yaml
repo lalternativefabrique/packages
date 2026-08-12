@@ -65,6 +65,8 @@ scopes:
     - "lungor/core/**"
   lungor-sdk:
     - "lungor/sdk-go/**"
+  lungor-policy:
+    - "lungor/policy/**"
   skalpai-sdk:
     - "skalpai/sdk-go/**"
   spore-sdk:
@@ -160,6 +162,15 @@ steps:
     tools: [go]
     run: |
       cd lungor/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: lungor-policy
+    scope: [lungor-policy]
+    tools: [go]
+    run: |
+      cd lungor/policy
       go build ./...
       go vet ./...
       go test -count=1 ./...
