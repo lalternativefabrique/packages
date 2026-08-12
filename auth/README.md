@@ -98,6 +98,14 @@ vocabulary without either claiming the other's failures. `INVALID_TOKEN` covers
 expiry and reuse alike: the token is consumed atomically on first use, so a link
 followed twice is indistinguishable from one that timed out.
 
+`LoginForm` and `RegisterForm` take the same `errorCallbackUrl`, defaulting the
+same way — to the page the form is on, the one that reads the code and renders
+it. Better Auth would otherwise keep the browser on its own error route, where
+nothing shows the code and a refused provider button reads as broken. The
+refusal worth naming is `account_not_linked`: `createPlatformAuth` disables
+account linking on purpose, so "Continue with Google" on an address already
+registered with a password is rejected rather than folded into that account.
+
 ### Invitations
 
 An invitation link lands on the app's own sign-up page

@@ -57,6 +57,7 @@ export { isEmailNotVerified } from "./email-not-verified"
 export {
   clearOAuthError,
   initialOAuthError,
+  oauthErrorCallback,
   oauthErrorMessage,
 } from "./oauth-error"
 export type { OAuthErrorLabels } from "./oauth-error"
