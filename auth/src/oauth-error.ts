@@ -49,6 +49,22 @@ export function initialOAuthError(
 }
 
 /**
+ * Where a refused social sign-in should send the browser back to.
+ *
+ * Falls back to the page the form is on, which is the one that reads `?error=`
+ * and renders it. Better Auth would otherwise keep the browser on its own
+ * error route, where nothing shows the code and the button reads as broken.
+ * `fallback` covers the server render, where there is no current page to name.
+ */
+export function oauthErrorCallback(
+  explicit: string | undefined,
+  fallback: string,
+  currentPath: string | undefined,
+): string {
+  return explicit ?? currentPath ?? fallback
+}
+
+/**
  * Drops the failure from the address bar once it has been shown.
  *
  * Without this the message comes back on every reload, and outlives the retry
