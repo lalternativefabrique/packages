@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/admin",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Shared admin back-office UI for L'Alternative apps (React components + hooks over the Better Auth admin plugin)",
   "type": "module",
   "main": "./dist/index.js",
