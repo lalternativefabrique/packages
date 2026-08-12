@@ -53,6 +53,10 @@ services:
       timeout: 30s
 
 scopes:
+  auth:
+    - "auth/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
   eda:
     - "go/eda/**"
   webhooks:
@@ -69,6 +73,20 @@ scopes:
     - "pnpm-workspace.yaml"
 
 steps:
+  # build, not just typecheck: the package hand-writes the types its consumers
+  # compile against, because the plugin-augmented better-auth client cannot be
+  # named in a published .d.ts (TS2742). Only emitting the declarations proves
+  # the hand-written surface still resolves — `tsc --noEmit` passes on a package
+  # whose .d.ts cannot be generated at all.
+  - name: auth
+    scope: [auth]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/auth test
+      npx -y pnpm@11.3.0 --filter @lalternative/auth typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/auth build
+
   # eda's pkg/* are SEPARATE modules, so `go test ./...` at the root does not
   # reach them — outbox/pgx and pgprojector run in production at Lungor and
   # would otherwise be built by nothing here.

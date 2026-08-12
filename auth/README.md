@@ -2,9 +2,9 @@
 
 Shared [Better Auth](https://better-auth.com) wrapper for L'Alternative apps.
 
-Provides platform auth defaults (email-OTP + admin plugins), a React client,
-and the auth UI forms (login, register, verify-email, forgot/reset password,
-auth layout).
+Provides platform auth defaults (email-OTP + admin plugins, opt-in magic link),
+a React client, and the auth UI forms (login, register, verify-email,
+forgot/reset password, magic link, auth layout).
 
 ## Install
 
@@ -35,6 +35,62 @@ export const authClient = createPlatformAuthClient({ baseURL })
 // UI + hooks
 import { LoginForm, RegisterForm, SocialButtons, VerifyEmailForm, ForgotPasswordForm, ResetPasswordForm, AuthLayout, useSession, useLogout } from "@lalternative/auth"
 ```
+
+### Magic link
+
+Passwordless sign-in by emailed link. Off unless `magicLink` is passed — the
+`/sign-in/magic-link` route is only mounted when it is, so an app that does not
+render the form does not expose the endpoint either.
+
+```ts
+export const auth = createPlatformAuth({
+  // …
+  magicLink: {
+    expiresIn: 300,      // default
+    allowSignUp: false,  // default
+  },
+})
+```
+
+`allowSignUp` is off on purpose. `createPlatformAuth` requires a verified email
+and can be put behind an invite-only beta, and both of those gates gate
+`/sign-up/email` — a magic link that creates the account walks past them. Turn
+it on only where sign-up is open anyway.
+
+The mailer receives the ready-made URL rather than an OTP:
+
+```ts
+const mailer: PlatformAuthMailer = async ({ to, subject, html, type, url }) => {
+  // type === "magic-link", url is signed and points at the app's callback
+}
+```
+
+```tsx
+import { MagicLinkForm } from "@lalternative/auth"
+
+<MagicLinkForm authClient={authClient} callbackUrl="/dashboard" />
+```
+
+The form confirms that a link was sent, never that the account exists: Better
+Auth answers the send identically either way, and only refuses at
+`/magic-link/verify`. Distinguishing the two in the form would tell an
+anonymous caller which addresses are registered.
+
+That means **every** failure past the send comes back on the callback as
+`?error=`, with no component mounted to have caught it — the same shape as an
+OAuth round-trip, and read the same way:
+
+```ts
+import { initialMagicLinkError, isMagicLinkError } from "@lalternative/auth"
+
+const error = initialMagicLinkError() // undefined unless the code is a magic-link one
+```
+
+`initialMagicLinkError` ignores OAuth's codes, and `initialOAuthError` is
+unchanged, so a screen offering both flows reads the one `?error=` against each
+vocabulary without either claiming the other's failures. `INVALID_TOKEN` covers
+expiry and reuse alike: the token is consumed atomically on first use, so a link
+followed twice is indistinguishable from one that timed out.
 
 ### Invitations
 
