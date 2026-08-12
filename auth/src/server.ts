@@ -2,6 +2,7 @@ import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-
 import { emailOTP, admin, magicLink } from "better-auth/plugins"
 import type { PlatformAuthConfig, PlatformAuthMailerType } from "./types"
 import { withGoogleDefaults } from "./google-defaults"
+import { withSignUpName } from "./signup-name"
 
 const DEFAULT_EMAIL_SUBJECTS: Record<string, string> = {
   "email-verification": "Verify your account",
@@ -91,18 +92,29 @@ export function createPlatformAuth(
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {
-        if (!betaMode) return
         if (ctx.path !== "/sign-up/email") return
-        const body = ctx.body as { email?: string; inviteToken?: string } | undefined
-        const email = body?.email
-        const inviteToken = body?.inviteToken
-        if (email && inviteToken && isInvited) {
-          const ok = await isInvited(email, inviteToken)
-          if (ok) return
+        const body = ctx.body as
+          | { email?: string; name?: string; inviteToken?: string }
+          | undefined
+
+        if (betaMode) {
+          const email = body?.email
+          const inviteToken = body?.inviteToken
+          const invited =
+            email && inviteToken && isInvited
+              ? await isInvited(email, inviteToken)
+              : false
+          if (!invited) {
+            throw new APIError("FORBIDDEN", {
+              message: "Registration is invite-only during the private beta.",
+            })
+          }
         }
-        throw new APIError("FORBIDDEN", {
-          message: "Registration is invite-only during the private beta.",
-        })
+
+        if (!body) return
+        // Better Auth merges what a before hook returns under `context` into
+        // the request context, so only the amended body is handed back.
+        return { context: { body: withSignUpName(body) } }
       },
     },
     plugins: [

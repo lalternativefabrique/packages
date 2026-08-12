@@ -89,8 +89,8 @@ export function RegisterForm({
     try {
       const res = await authClient.signUp.email({
         // The key is omitted rather than sent empty when the field is left
-        // blank: the server decides what an account without a name is called,
-        // and the client does not invent one from the address.
+        // blank: createPlatformAuth fills it in (see withSignUpName), and the
+        // client does not invent one from the address.
         ...(name.trim() ? { name: name.trim() } : {}),
         email: email.trim(),
         password,
