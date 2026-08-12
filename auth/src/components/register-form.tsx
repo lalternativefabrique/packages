@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { withInviteToken } from "../invite-token"
+import { oauthErrorCallback } from "../oauth-error"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
@@ -27,6 +28,13 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   emailRequired: "Renseigne ton adresse e-mail",
   passwordTooShort: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères`,
   signUpFailed: "La création du compte a échoué",
+  // accountLinking is disabled in createPlatformAuth, so signing up with Google
+  // on an address already registered is refused rather than folded into the
+  // existing account.
+  accountNotLinked:
+    "Cette adresse a déjà un compte. Connecte-toi avec ton mot de passe.",
+  socialCancelled: "Inscription annulée.",
+  socialFailed: "La création du compte a échoué. Réessaie.",
 }
 
 export function RegisterForm({
@@ -35,6 +43,7 @@ export function RegisterForm({
   loginUrl = "/login",
   legal,
   socialCallbackUrl = "/",
+  errorCallbackUrl,
   socialProviders = [],
   labels,
   submitClassName,
@@ -109,9 +118,16 @@ export function RegisterForm({
         // The invitation rides the callback: an OAuth sign-up leaves the
         // browser, and the auth handler redeems the token on the way back.
         callbackURL: withInviteToken(socialCallbackUrl, invite),
+        // Resolved here rather than at render: the default is the current page,
+        // and this runs in the browser, where there is one.
+        errorCallbackURL: oauthErrorCallback(
+          errorCallbackUrl,
+          "/register",
+          typeof window !== "undefined" ? window.location.pathname : undefined,
+        ),
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t.signUpFailed)
+      setError(err instanceof Error ? err.message : t.socialFailed)
     }
   }
 

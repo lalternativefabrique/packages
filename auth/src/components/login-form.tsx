@@ -7,6 +7,7 @@ import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 import { AUTH_HINT_LINK_CLASS, AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { withInviteToken } from "../invite-token"
+import { oauthErrorCallback } from "../oauth-error"
 
 const DEFAULTS: Required<LoginFormLabels> = {
   title: "Connexion",
@@ -38,6 +39,7 @@ export function LoginForm({
   registerUrl = "/register",
   forgotPasswordUrl = "/forgot-password",
   socialCallbackUrl = "/",
+  errorCallbackUrl,
   socialProviders = [],
   coreTokenUrl = "/api/auth/core-token",
   labels,
@@ -109,16 +111,16 @@ export function LoginForm({
         // The invitation rides the callback: an OAuth sign-up leaves the
         // browser, and the auth handler redeems the token on the way back.
         callbackURL: withInviteToken(socialCallbackUrl, invite),
+        // Resolved here rather than at render: the default is the current page,
+        // and this runs in the browser, where there is one.
+        errorCallbackURL: oauthErrorCallback(
+          errorCallbackUrl,
+          "/login",
+          typeof window !== "undefined" ? window.location.pathname : undefined,
+        ),
       })
     } catch (err) {
-      const code = err instanceof Error ? err.message : ""
-      setError(
-        code === "account_not_linked"
-          ? t.accountNotLinked
-          : code === "access_denied"
-            ? t.socialCancelled
-            : t.socialFailed,
-      )
+      setError(err instanceof Error ? err.message : t.socialFailed)
     }
   }
 

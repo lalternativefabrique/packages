@@ -253,6 +253,9 @@ export interface RegisterFormLabels {
   emailRequired?: string
   passwordTooShort?: string
   signUpFailed?: string
+  accountNotLinked?: string
+  socialCancelled?: string
+  socialFailed?: string
 }
 
 /**
@@ -397,6 +400,16 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInvite
    * buttons are only rendered when at least one provider is passed.
    */
   socialCallbackUrl?: string
+  /**
+   * Where a social sign-in that did NOT work sends the browser, with `?error=`
+   * on it.
+   *
+   * Defaults to the page this form is on, which is the one that reads the code
+   * with `initialOAuthError` and renders it. Better Auth would otherwise keep
+   * the browser on its own error route, where nothing shows the code and the
+   * button reads as broken.
+   */
+  errorCallbackUrl?: string
   /** Social providers to offer, in display order */
   socialProviders?: Array<"google" | "github">
   /**
@@ -436,6 +449,16 @@ export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInv
   legal?: React.ReactNode
   /** Where Better Auth sends the browser back after a social sign-up */
   socialCallbackUrl?: string
+  /**
+   * Where a social sign-up that did NOT work sends the browser, with `?error=`
+   * on it.
+   *
+   * Defaults to the page this form is on, which is the one that reads the code
+   * with `initialOAuthError` and renders it. Better Auth would otherwise keep
+   * the browser on its own error route, where nothing shows the code and the
+   * button reads as broken.
+   */
+  errorCallbackUrl?: string
   /** Social providers to offer, in display order */
   socialProviders?: Array<"google" | "github">
   /** Copy overrides; anything omitted keeps the French default */
