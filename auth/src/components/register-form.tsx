@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { withInviteToken } from "../invite-token"
+import { withSignUpName } from "../signup-name"
 import { oauthErrorCallback } from "../oauth-error"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
@@ -87,14 +88,12 @@ export function RegisterForm({
     setError(undefined)
     setIsPending(true)
     try {
-      const res = await authClient.signUp.email({
-        // The key is omitted rather than sent empty when the field is left
-        // blank: createPlatformAuth fills it in (see withSignUpName), and the
-        // client does not invent one from the address.
-        ...(name.trim() ? { name: name.trim() } : {}),
-        email: email.trim(),
-        password,
-      })
+      // `name` is always sent: Better Auth types it as a required string and
+      // its schema rejects the request before any hook runs, so omitting the
+      // key when the field is blank fails with `[body.name] Invalid input`.
+      const res = await authClient.signUp.email(
+        withSignUpName({ name, email: email.trim(), password }),
+      )
       if (res?.error) {
         setError(res.error.message ?? t.signUpFailed)
         return
