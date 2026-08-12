@@ -1,3 +1,20 @@
+/**
+ * Where a link that did not work should send the browser back to.
+ *
+ * Falls back to the current page rather than to Better Auth's own default,
+ * which is the success callback: that is a signed-in destination, so an auth
+ * guard bounces the visitor and drops the `?error=` on the way, and an expired
+ * link ends up looking like nothing happened. `fallback` covers the server
+ * render, where there is no current page to name.
+ */
+export function magicLinkErrorCallback(
+  explicit: string | undefined,
+  fallback: string,
+  currentPath: string | undefined,
+): string {
+  return explicit ?? currentPath ?? fallback
+}
+
 export type MagicLinkErrorLabels = {
   invalidToken: string
   signUpDisabled: string

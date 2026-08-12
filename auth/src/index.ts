@@ -66,6 +66,7 @@ export type { OAuthErrorLabels } from "./oauth-error"
 export {
   initialMagicLinkError,
   isMagicLinkError,
+  magicLinkErrorCallback,
   magicLinkErrorMessage,
 } from "./magic-link-error"
 export type { MagicLinkErrorLabels } from "./magic-link-error"

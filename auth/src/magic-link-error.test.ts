@@ -3,6 +3,7 @@ import { test } from "node:test"
 import {
   initialMagicLinkError,
   isMagicLinkError,
+  magicLinkErrorCallback,
   magicLinkErrorMessage,
   MAGIC_LINK_ERROR_DEFAULTS,
   type MagicLinkErrorLabels,
@@ -51,6 +52,22 @@ test("isMagicLinkError tells the flow's own failures from OAuth's", () => {
   assert.equal(isMagicLinkError("account_not_linked"), false)
   assert.equal(isMagicLinkError("access_denied"), false)
   assert.equal(isMagicLinkError(null), false)
+})
+
+// The bug this replaced: with no errorCallbackURL, Better Auth falls back to
+// the SUCCESS callback, which is a signed-in destination. An auth guard bounces
+// the visitor and drops the ?error= on the way, so an expired link reads as
+// nothing having happened.
+test("a failed link comes back to the page that can send another one", () => {
+  assert.equal(magicLinkErrorCallback(undefined, "/login", "/magic-link"), "/magic-link")
+})
+
+test("an explicit destination outranks the current page", () => {
+  assert.equal(magicLinkErrorCallback("/help", "/login", "/magic-link"), "/help")
+})
+
+test("the fallback covers the server render, where there is no current page", () => {
+  assert.equal(magicLinkErrorCallback(undefined, "/login", undefined), "/login")
 })
 
 test("initialMagicLinkError reads nothing off a server render", () => {

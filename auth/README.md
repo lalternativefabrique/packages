@@ -86,6 +86,12 @@ import { initialMagicLinkError, isMagicLinkError } from "@lalternative/auth"
 const error = initialMagicLinkError() // undefined unless the code is a magic-link one
 ```
 
+That `?error=` lands on `errorCallbackUrl`, which defaults to the page the form
+is on — the one place asking for another link is possible. Better Auth would
+otherwise fall back to `callbackUrl`, typically a signed-in destination, where
+an auth guard bounces the visitor and drops the error on the way, leaving an
+expired link looking like nothing happened at all.
+
 `initialMagicLinkError` ignores OAuth's codes, and `initialOAuthError` is
 unchanged, so a screen offering both flows reads the one `?error=` against each
 vocabulary without either claiming the other's failures. `INVALID_TOKEN` covers

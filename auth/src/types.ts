@@ -498,6 +498,16 @@ export interface MagicLinkFormProps
    * elsewhere — an onboarding step, say. Defaults to `callbackUrl`.
    */
   newUserCallbackUrl?: string
+  /**
+   * Where a link that did NOT work sends the browser, with `?error=` on it.
+   *
+   * Defaults to the page this form is on, which is the one place asking for
+   * another link is possible. Better Auth would otherwise fall back to
+   * `callbackUrl` — typically a signed-in destination, where an auth guard
+   * bounces the visitor and drops the error on the way, leaving an expired
+   * link looking like nothing happened at all.
+   */
+  errorCallbackUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: MagicLinkFormLabels
   /** Auth client instance, e.g. from createPlatformAuthClient */
