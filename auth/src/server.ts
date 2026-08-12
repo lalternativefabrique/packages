@@ -1,5 +1,5 @@
 import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-auth"
-import { emailOTP, admin } from "better-auth/plugins"
+import { emailOTP, admin, magicLink } from "better-auth/plugins"
 import type { PlatformAuthConfig, PlatformAuthMailerType } from "./types"
 
 const DEFAULT_EMAIL_SUBJECTS: Record<string, string> = {
@@ -17,6 +17,18 @@ function defaultRenderOtpEmail(otp: string): string {
                   ${otp}
                 </div>
                 <p style="color:#999;font-size:12px;margin-top:24px">If you didn't request this, you can safely ignore this email.</p>
+              </div>
+            `
+}
+
+function defaultRenderMagicLinkEmail(url: string): string {
+  return `
+              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+                <h2 style="font-size:20px;font-weight:600;margin-bottom:16px">Your sign-in link</h2>
+                <p style="color:#555;margin-bottom:24px">Click the button below to sign in. The link expires in 5 minutes and works once.</p>
+                <a href="${url}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;border-radius:8px;padding:14px 28px;font-weight:600">Sign in</a>
+                <p style="color:#999;font-size:12px;margin-top:24px;word-break:break-all">Or paste this address into your browser:<br>${url}</p>
+                <p style="color:#999;font-size:12px;margin-top:16px">If you didn't request this, you can safely ignore this email.</p>
               </div>
             `
 }
@@ -42,6 +54,7 @@ export function createPlatformAuth(
     isInvited,
     emailSubjects,
     renderOtpEmail,
+    magicLink: magicLinkConfig,
   } = config
 
   const subjects = { ...DEFAULT_EMAIL_SUBJECTS, ...emailSubjects }
@@ -118,6 +131,39 @@ export function createPlatformAuth(
         expiresIn: 300,
         overrideDefaultEmailVerification: true,
       }),
+      ...(magicLinkConfig
+        ? [
+            magicLink({
+              expiresIn: magicLinkConfig.expiresIn ?? 300,
+              // A magic link that signs up walks past both gates the platform
+              // puts on the front door: requireEmailVerification, and the
+              // invite-only hook, which only guards /sign-up/email.
+              disableSignUp: !magicLinkConfig.allowSignUp,
+              async sendMagicLink({ email, url }) {
+                const subject =
+                  magicLinkConfig.subject ?? `Your sign-in link - ${appName}`
+                const html = (
+                  magicLinkConfig.render ?? defaultRenderMagicLinkEmail
+                )(url, email)
+
+                if (mailer) {
+                  await mailer({
+                    to: email,
+                    subject,
+                    html,
+                    type: "magic-link",
+                    url,
+                  })
+                  return
+                }
+
+                console.warn(
+                  `[EMAIL] No mailer configured — logging magic link to stdout for ${email}: ${url}`,
+                )
+              },
+            }),
+          ]
+        : []),
       admin(),
       ...plugins, // app-specific plugins (e.g. tanstackStartCookies)
     ],

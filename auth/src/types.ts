@@ -48,6 +48,7 @@ export type PlatformAuthMailerType =
   | "forget-password"
   | "sign-in"
   | "change-email"
+  | "magic-link"
 
 export interface PlatformAuthMailerArgs {
   /** Recipient address */
@@ -58,11 +59,39 @@ export interface PlatformAuthMailerArgs {
   html: string
   /** Better Auth verification kind */
   type: PlatformAuthMailerType
-  /** The OTP value, in case the consumer wants to render its own template */
-  otp: string
+  /**
+   * The OTP value, in case the consumer wants to render its own template.
+   * Absent on `magic-link`, which carries a URL rather than a code.
+   */
+  otp?: string
+  /**
+   * The sign-in URL, on `magic-link` only. Already signed and pointed at the
+   * app's callback — send it as given.
+   */
+  url?: string
 }
 
 export type PlatformAuthMailer = (args: PlatformAuthMailerArgs) => Promise<void>
+
+export interface MagicLinkConfig {
+  /** Seconds until the emailed link stops working. Defaults to 300 (5 min). */
+  expiresIn?: number
+  /**
+   * Whether an unknown address may create an account by following the link.
+   * Off by default, and deliberately so: `createPlatformAuth` requires a
+   * verified email and can be put behind an invite-only beta, both of which a
+   * self-signing-up magic link would walk straight past. Turn it on only for
+   * an app whose sign-up is open anyway.
+   */
+  allowSignUp?: boolean
+  /** Subject line. Defaults to `Your sign-in link - ${appName}`. */
+  subject?: string
+  /**
+   * Override the email HTML renderer. Receives the signed sign-in URL and the
+   * recipient. When omitted, the platform's default template is used.
+   */
+  render?: (url: string, email: string) => string
+}
 
 export interface PlatformAuthConfig {
   /** PostgreSQL connection pool or connection string */
@@ -102,6 +131,12 @@ export interface PlatformAuthConfig {
    * default branded template is used.
    */
   renderOtpEmail?: (otp: string, type: PlatformAuthMailerType) => string
+  /**
+   * Passwordless sign-in by emailed link. Omit to leave it off — the endpoint
+   * is only mounted when this is given, so an app that does not render the
+   * form does not expose the route either.
+   */
+  magicLink?: MagicLinkConfig
   /**
    * Better Auth database hooks, passed through unchanged.
    *
@@ -282,6 +317,22 @@ export interface AuthClientSurface {
   }
 }
 
+/**
+ * The magic-link half of the client surface, kept apart from
+ * {@link AuthClientSurface}: the plugin is opt-in server-side, so only the
+ * screens that offer the flow require a client carrying it.
+ */
+export interface MagicLinkClientSurface {
+  signIn: {
+    magicLink(input: {
+      email: string
+      callbackURL?: string
+      newUserCallbackURL?: string
+      errorCallbackURL?: string
+    }): Promise<AuthClientResult>
+  }
+}
+
 export interface AuthThemeProps {
   /** Replaces the submit button's `bg-primary text-primary-foreground` */
   submitClassName?: string
@@ -412,6 +463,43 @@ export interface ForgotPasswordFormProps extends AuthThemeProps, AuthNavProps {
   labels?: ForgotPasswordFormLabels
   /** Auth client instance, e.g. from createPlatformAuthClient */
   authClient: AuthClientSurface
+}
+
+export interface MagicLinkFormLabels {
+  title?: string
+  subtitle?: string
+  emailPlaceholder?: string
+  submit?: string
+  submitPending?: string
+  sent?: string
+  resend?: string
+  usePassword?: string
+  login?: string
+  emailRequired?: string
+  sendFailed?: string
+}
+
+export interface MagicLinkFormProps
+  extends AuthThemeProps,
+    AuthNavProps,
+    AuthInviteProps {
+  /** Callback once the link is on its way, receives the address it went to */
+  onSuccess?: (email: string) => void
+  /** Error raised outside the form, rendered in the same banner */
+  error?: string
+  /** Link to the password sign-in page */
+  loginUrl?: string
+  /** Where Better Auth sends the browser once the link is followed */
+  callbackUrl?: string
+  /**
+   * Where an existing account lands, when a first-time visitor should land
+   * elsewhere — an onboarding step, say. Defaults to `callbackUrl`.
+   */
+  newUserCallbackUrl?: string
+  /** Copy overrides; anything omitted keeps the French default */
+  labels?: MagicLinkFormLabels
+  /** Auth client instance, e.g. from createPlatformAuthClient */
+  authClient: MagicLinkClientSurface
 }
 
 export interface ResetPasswordFormLabels {
