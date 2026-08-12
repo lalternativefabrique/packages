@@ -75,11 +75,36 @@ export interface AdminNavItem {
   render: (opts: { className: string; activeClassName: string }) => ReactNode
 }
 
+/** Accent tones a brand badge may carry. */
+export type AdminAppTone =
+  | "violet"
+  | "indigo"
+  | "emerald"
+  | "blue"
+  | "amber"
+  | "neutral"
+
+/**
+ * Which product this back-office administers. Rendered as a badge in the
+ * header: with several admin panels open on the same dark chrome, it is what
+ * answers "where am I" before an irreversible action is clicked.
+ */
+export interface AdminApp {
+  /** Product name, e.g. "Synthiz". */
+  name: string
+  /** Accent of the badge. Defaults to neutral. */
+  tone?: AdminAppTone
+  /** Replaces the coloured dot, e.g. an inline SVG mark. */
+  logo?: ReactNode
+}
+
 export interface AdminLayoutProps {
   /** Router-supplied nav links (Dashboard, Users, …). */
   nav?: ReactNode
   /** Router-supplied "back to app" link. */
   backToApp?: ReactNode
+  /** The product being administered. Omitted, no badge is rendered. */
+  app?: AdminApp
   /** Header title. Defaults to "Administration". */
   title?: string
   children: ReactNode

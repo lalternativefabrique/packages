@@ -76,7 +76,7 @@ export function AdminLoginForm({
   }
 
   return (
-    <div className={`w-full max-w-md ${className}`}>
+    <div className={`lalt-admin w-full max-w-md ${className}`}>
       <h1 className={FORM_TITLE}>{title}</h1>
       {subtitle ? <p className={FORM_SUBTITLE}>{subtitle}</p> : null}
 

@@ -125,7 +125,7 @@ export function AdminHome({
 
       {before}
 
-      <section className="rounded-xl border bg-card p-5">
+      <section className="admin-paper rounded-xl p-5">
         <h2 className="font-medium">{t.recentTitle}</h2>
         {loading ? (
           <p className="mt-3 text-sm text-muted-foreground">{t.loading}</p>

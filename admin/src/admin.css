@@ -1,0 +1,102 @@
+/*
+ * Tokens for the admin surface, scoped to `.lalt-admin` so they never leak into
+ * the host app. Values are Synthiz's, frozen here on purpose: the back-office
+ * must render the same in every app, so it owns them rather than reading the
+ * host's — an app without these variables used to render an unstyled admin.
+ *
+ * `.dark` on an ancestor still flips the palette, so the admin follows the
+ * session's light/dark choice without depending on the host for the colours.
+ */
+
+.lalt-admin {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 10%;
+
+  --text-primary: 0 0% 10%;
+  --text-secondary: 0 0% 45%;
+  --text-tertiary: 0 0% 64%;
+
+  --border: 0 0% 90%;
+  --border-subtle: 0 0% 0% / 0.06;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 10%;
+  --card-cream: #fffdf9;
+  --card-surface: #ffffff;
+
+  --primary: 0 0% 10%;
+  --primary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+
+  --accent: 217 91% 60%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 0 0% 90%;
+  --ring: 0 0% 10%;
+  --radius: 0.5rem;
+
+  --shadow-color: rgba(0, 0, 0, 0.08);
+
+  background-color: hsl(var(--background));
+  color: hsl(var(--text-primary));
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Helvetica, Arial,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.dark .lalt-admin,
+.lalt-admin.dark {
+  --background: 228 8% 13%;
+  --foreground: 0 0% 90%;
+
+  --text-primary: 0 0% 90%;
+  --text-secondary: 0 0% 58%;
+  --text-tertiary: 0 0% 44%;
+
+  --border: 0 0% 25%;
+  --border-subtle: 0 0% 100% / 0.08;
+
+  --card: 228 7% 18%;
+  --card-foreground: 0 0% 90%;
+  --card-cream: #262830;
+  --card-surface: #24262e;
+
+  --primary: 0 0% 90%;
+  --primary-foreground: 0 0% 10%;
+
+  --muted: 228 7% 22%;
+  --muted-foreground: 0 0% 53%;
+
+  --accent: 217 91% 65%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 55%;
+  --destructive-foreground: 0 0% 100%;
+
+  --input: 0 0% 27%;
+  --ring: 0 0% 75%;
+
+  --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+/*
+ * The paper surface: a sheet one step warmer and lighter than the ground, lifted
+ * by a shadow rather than closed by a hard border. `--card-cream` is what gives
+ * it the tint; a plain `bg-card` reads flat next to it.
+ */
+.lalt-admin .admin-paper {
+  background-color: var(--card-cream);
+  border: 0.5px solid hsl(var(--border-subtle));
+  box-shadow:
+    0 1px 2px var(--shadow-color),
+    0 4px 12px -4px var(--shadow-color);
+}

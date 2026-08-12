@@ -16,7 +16,7 @@ export interface AdminKpiProps {
  */
 export function AdminKpi({ label, value, hint, loading = false }: AdminKpiProps) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="admin-paper rounded-xl p-5">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
