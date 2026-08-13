@@ -5,6 +5,7 @@ import {
   magicLinkClient,
 } from "better-auth/client/plugins"
 import type {
+  AdminClientSurface,
   AuthClientSurface,
   MagicLinkClientSurface,
   PlatformAuthClientConfig,
@@ -21,9 +22,14 @@ import type {
  * signIn carries both halves: the client always mounts magicLinkClient, since
  * which methods exist client-side costs nothing — whether the route answers is
  * decided server-side by passing `magicLink` to createPlatformAuth.
+ *
+ * admin is optional on AuthClientSurface, whose job is to type the prop the
+ * forms take, and required here: this client always mounts adminClient(), so a
+ * back-office calling admin.listUsers() off it must not have to widen the type.
  */
-export type PlatformAuthClient = Omit<AuthClientSurface, "signIn"> & {
+export type PlatformAuthClient = Omit<AuthClientSurface, "signIn" | "admin"> & {
   signIn: AuthClientSurface["signIn"] & MagicLinkClientSurface["signIn"]
+  admin: AdminClientSurface
 } & Omit<
     ReturnType<typeof createAuthClient>,
     keyof AuthClientSurface | keyof MagicLinkClientSurface
