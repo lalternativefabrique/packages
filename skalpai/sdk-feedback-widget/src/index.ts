@@ -1,5 +1,7 @@
 type FeedbackType = 'bug' | 'idea' | 'other';
 
+export type Placement = 'bottom-left' | 'bottom-right' | 'inline';
+
 type Labels = {
   title: string;
   send: string;
@@ -52,6 +54,9 @@ const STYLES = `
   :host {
     all: initial;
     font-family: system-ui, -apple-system, sans-serif;
+    --skalpai-fab-inset-block: 16px;
+    --skalpai-fab-inset-inline: 16px;
+    --skalpai-panel-gap: 48px;
     --skalpai-bg: #ffffff;
     --skalpai-fg: #111111;
     --skalpai-panel: #ffffff;
@@ -80,7 +85,10 @@ const STYLES = `
   }
   *, *::before, *::after { box-sizing: border-box; }
   .btn-fab {
-    position: fixed; bottom: 16px; left: 16px; z-index: 2147483646;
+    position: fixed;
+    bottom: var(--skalpai-fab-inset-block);
+    left: var(--skalpai-fab-inset-inline);
+    z-index: 2147483646;
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 14px; border: 0; border-radius: 999px;
     background: var(--skalpai-fg); color: var(--skalpai-bg);
@@ -90,11 +98,37 @@ const STYLES = `
   }
   .btn-fab:hover { opacity: .9; }
   .panel {
-    position: fixed; bottom: 64px; left: 16px; z-index: 2147483647;
+    position: fixed;
+    bottom: calc(var(--skalpai-fab-inset-block) + var(--skalpai-panel-gap));
+    left: var(--skalpai-fab-inset-inline);
+    z-index: 2147483647;
     width: 320px; max-width: calc(100vw - 32px);
     background: var(--skalpai-panel); color: var(--skalpai-fg);
     border: 1px solid var(--skalpai-border); border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,.35); overflow: hidden;
+  }
+
+  :host([placement="bottom-right"]) .btn-fab,
+  :host([placement="bottom-right"]) .panel {
+    left: auto;
+    right: var(--skalpai-fab-inset-inline);
+  }
+
+  :host([placement="inline"]) {
+    position: relative;
+    display: inline-flex;
+  }
+  :host([placement="inline"]) .btn-fab {
+    position: static;
+    width: 100%;
+    box-shadow: none;
+  }
+  :host([placement="inline"]) .panel {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: auto;
+    max-width: min(320px, calc(100vw - 32px));
   }
   .head {
     display: flex; justify-content: space-between; align-items: center;
@@ -194,7 +228,7 @@ const HTMLElementCtor: typeof HTMLElement =
     : (class {} as unknown as typeof HTMLElement);
 
 export class SkalpaiFeedbackElement extends HTMLElementCtor {
-  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'theme', 'user-email'];
+  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'theme', 'user-email', 'placement'];
 
   private root: ShadowRoot;
   private open = false;
@@ -263,6 +297,15 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   set theme(v: 'light' | 'dark' | 'auto' | null) {
     if (v && v !== 'auto') this.setAttribute('theme', v);
     else this.removeAttribute('theme');
+  }
+
+  get placement(): Placement {
+    const v = this.getAttribute('placement');
+    return v === 'bottom-right' || v === 'inline' ? v : 'bottom-left';
+  }
+  set placement(v: Placement | null) {
+    if (v && v !== 'bottom-left') this.setAttribute('placement', v);
+    else this.removeAttribute('placement');
   }
 
   constructor() {

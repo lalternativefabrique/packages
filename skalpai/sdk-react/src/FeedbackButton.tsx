@@ -3,6 +3,8 @@ import '@lalternative/skalpai-feedback-widget';
 
 export type FeedbackTheme = 'light' | 'dark' | 'auto';
 
+export type FeedbackPlacement = 'bottom-left' | 'bottom-right' | 'inline';
+
 export type FeedbackLabels = {
   title?: string;
   send?: string;
@@ -31,6 +33,13 @@ export interface FeedbackButtonProps {
   theme?: FeedbackTheme;
   /** Localized labels — omitted keys fall back to the widget defaults (FR) */
   labels?: FeedbackLabels;
+  /**
+   * Where the launcher sits. Default: 'bottom-left' (floating). Use 'inline' to
+   * drop it into the host layout — the launcher stops being fixed, so it cannot
+   * overlap the surrounding chrome. Fine-tune the floating insets with the
+   * `--skalpai-fab-inset-block` / `--skalpai-fab-inset-inline` custom properties.
+   */
+  placement?: FeedbackPlacement;
 }
 
 export function FeedbackButton({
@@ -40,6 +49,7 @@ export function FeedbackButton({
   userIdentifier,
   theme,
   labels,
+  placement,
 }: FeedbackButtonProps) {
   const ref = useRef<HTMLElement | null>(null);
 
@@ -62,6 +72,7 @@ export function FeedbackButton({
       project-id={projectId}
       {...(theme && theme !== 'auto' ? { theme } : {})}
       {...(labelsAttr ? { labels: labelsAttr } : {})}
+      {...(placement && placement !== 'bottom-left' ? { placement } : {})}
     />
   );
 }
@@ -76,6 +87,7 @@ declare module 'react' {
           'project-id'?: string;
           theme?: 'light' | 'dark';
           labels?: string;
+          placement?: FeedbackPlacement;
         },
         HTMLElement
       >;
