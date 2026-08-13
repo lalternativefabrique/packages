@@ -3,6 +3,7 @@ packages:
   - "spore/*"
   - "auth"
   - "admin"
+  - "editor"
 allowBuilds:
   '@openapitools/openapi-generator-cli': true
   '@scarf/scarf': false

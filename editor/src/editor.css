@@ -1,0 +1,32 @@
+/* Colours are variables so a host theme can override them without forking the
+   package. The defaults read on both a light and a dark background. */
+:root {
+  --lalt-editor-insert: #1d4ed8;
+  --lalt-editor-insert-bg: rgb(29 78 216 / 0.08);
+  --lalt-editor-delete: #b91c1c;
+  --lalt-editor-delete-bg: rgb(185 28 28 / 0.06);
+}
+
+.lalt-revision {
+  display: block;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.25rem;
+}
+
+.lalt-revision--insert {
+  color: var(--lalt-editor-insert);
+  background: var(--lalt-editor-insert-bg);
+}
+
+.lalt-revision--delete {
+  color: var(--lalt-editor-delete);
+  background: var(--lalt-editor-delete-bg);
+  text-decoration: line-through;
+}
+
+/* A decided suggestion stops competing for attention but stays visible, so the
+   reviewer can see what they already answered without re-reading the diff. */
+.lalt-revision--decided {
+  opacity: 0.45;
+  background: none;
+}
