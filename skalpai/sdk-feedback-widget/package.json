@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/skalpai-feedback-widget",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Skalpai feedback widget — framework-agnostic Web Component",
   "type": "module",
   "main": "./dist/index.js",
