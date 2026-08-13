@@ -291,6 +291,33 @@ export interface AuthClientResult {
   error?: { message?: string; code?: string; status?: number } | null
 }
 
+export interface AuthClientDataResult<T> extends AuthClientResult {
+  data?: T | null
+}
+
+/**
+ * The admin() plugin's client half. Part of {@link AuthClientSurface} rather
+ * than kept apart like {@link MagicLinkClientSurface}: createPlatformAuthClient
+ * always mounts adminClient(), so a client built by it always answers here.
+ *
+ * The user shape is left open — each app stores its own columns, and this
+ * surface exists to type the calls, not the rows they return.
+ */
+export interface AdminClientSurface {
+  listUsers(input: {
+    query?: Record<string, unknown>
+  }): Promise<AuthClientDataResult<{ users?: unknown[]; total?: number }>>
+  banUser(input: {
+    userId: string
+    banReason?: string
+  }): Promise<AuthClientResult>
+  unbanUser(input: { userId: string }): Promise<AuthClientResult>
+  setRole(input: {
+    userId: string
+    role: "admin" | "user"
+  }): Promise<AuthClientResult>
+}
+
 export interface AuthClientSurface {
   signIn: {
     email(input: { email: string; password: string }): Promise<AuthClientResult>
@@ -306,6 +333,7 @@ export interface AuthClientSurface {
       name?: string
       email: string
       password: string
+      callbackURL?: string
     }): Promise<AuthClientResult>
   }
   emailOtp: {
@@ -320,6 +348,12 @@ export interface AuthClientSurface {
       password: string
     }): Promise<AuthClientResult>
   }
+  /**
+   * Optional: the forms take an AuthClientSurface as a prop, and a client built
+   * by hand for a login screen has no reason to mount adminClient(). Required
+   * on PlatformAuthClient, which always does.
+   */
+  admin?: AdminClientSurface
 }
 
 /**

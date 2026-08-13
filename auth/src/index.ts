@@ -24,6 +24,8 @@ export type {
   InvitationFailure,
   AuthClientSurface,
   AuthClientResult,
+  AuthClientDataResult,
+  AdminClientSurface,
   AuthThemeProps,
   AuthNavProps,
   AuthInviteProps,
