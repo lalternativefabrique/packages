@@ -55,7 +55,7 @@
   overflow-x: auto;
 }
 
-@media (min-width: 640px) {
+@media (hover: hover) and (pointer: fine) {
   .lalt-toolbar {
     left: var(--lalt-toolbar-left, 0);
     top: var(--lalt-toolbar-top, 0);
@@ -95,7 +95,7 @@
   color: inherit;
 }
 
-@media (min-width: 640px) {
+@media (hover: hover) and (pointer: fine) {
   .lalt-toolbar__button {
     min-height: 0;
     padding: 0.25rem 0.5rem;
@@ -137,7 +137,7 @@
   color: var(--lalt-editor-text, #111827);
 }
 
-@media (min-width: 640px) {
+@media (hover: hover) and (pointer: fine) {
   .lalt-toolbar__menu {
     position: absolute;
     left: auto;
@@ -169,7 +169,7 @@
   color: inherit;
 }
 
-@media (min-width: 640px) {
+@media (hover: hover) and (pointer: fine) {
   .lalt-toolbar__item {
     min-height: 0;
     padding: 0.375rem 0.5rem;
@@ -192,7 +192,7 @@
   opacity: 0.5;
 }
 
-@media (min-width: 640px) {
+@media (hover: hover) and (pointer: fine) {
   .lalt-toolbar__shortcut {
     display: inline;
   }
@@ -261,7 +261,7 @@
 }
 
 /* Bigger where a finger is doing the aiming. */
-@media (max-width: 639px) {
+@media not (hover: hover), (pointer: coarse) {
   .lalt-suggestion__action {
     width: 2.25rem;
     height: 2.25rem;
