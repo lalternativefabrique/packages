@@ -6,12 +6,14 @@
   --lalt-editor-delete: #b91c1c;
   --lalt-editor-delete-bg: rgb(185 28 28 / 0.06);
   --lalt-editor-surface: #ffffff;
+  --lalt-editor-text: #111827;
   --lalt-editor-border: rgb(0 0 0 / 0.1);
   --lalt-editor-hover: rgb(0 0 0 / 0.06);
 }
 
-/* Defaults only: a host that owns a theme overrides these on :root and never
-   reaches this block. Without it the toolbar is a white slab on a dark page. */
+/* Defaults only, and only for a host with no theme of its own: an app that
+   toggles dark by class must override these tokens instead, or the toolbar
+   follows the system while the page follows the class. */
 @media (prefers-color-scheme: dark) {
   :root {
     --lalt-editor-insert: #93c5fd;
@@ -19,6 +21,7 @@
     --lalt-editor-delete: #fca5a5;
     --lalt-editor-delete-bg: rgb(252 165 165 / 0.1);
     --lalt-editor-surface: #1f2937;
+    --lalt-editor-text: #f3f4f6;
     --lalt-editor-border: rgb(255 255 255 / 0.14);
     --lalt-editor-hover: rgb(255 255 255 / 0.08);
   }
@@ -45,6 +48,7 @@
   background: var(--lalt-editor-surface, #ffffff);
   border-top: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
   box-shadow: 0 -4px 16px rgb(0 0 0 / 0.12);
+  color: var(--lalt-editor-text, #111827);
   user-select: none;
   overflow-x: auto;
 }
@@ -112,6 +116,7 @@
   background: var(--lalt-editor-surface, #ffffff);
   border-top: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
   box-shadow: 0 -8px 24px rgb(0 0 0 / 0.16);
+  color: var(--lalt-editor-text, #111827);
 }
 
 @media (min-width: 640px) {
