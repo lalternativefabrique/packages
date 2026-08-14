@@ -203,3 +203,62 @@
   opacity: 0.45;
   background: none;
 }
+
+/* An edit shown where it happens, rather than in a panel the author has to
+   map back onto the text. The old passage stays visible struck through, the
+   proposal follows it, and the two decisions sit within thumb reach of both. */
+.lalt-suggestion__old {
+  color: var(--lalt-editor-delete);
+  background: var(--lalt-editor-delete-bg);
+  text-decoration: line-through;
+}
+
+.lalt-suggestion {
+  display: inline;
+  white-space: normal;
+}
+
+.lalt-suggestion__new {
+  color: var(--lalt-editor-insert);
+  background: var(--lalt-editor-insert-bg);
+  border-radius: 0.25rem;
+  padding: 0.05em 0.15em;
+}
+
+.lalt-suggestion__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-left: 0.25rem;
+  vertical-align: middle;
+  border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
+  border-radius: 999px;
+  background: var(--lalt-editor-surface, #ffffff);
+  color: var(--lalt-editor-text, #111827);
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Bigger where a finger is doing the aiming. */
+@media (max-width: 639px) {
+  .lalt-suggestion__action {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1rem;
+  }
+}
+
+.lalt-suggestion__action--accept {
+  color: var(--lalt-editor-insert);
+}
+
+.lalt-suggestion__action--reject {
+  color: var(--lalt-editor-delete);
+}
+
+.lalt-suggestion__action:hover {
+  background: var(--lalt-editor-hover, rgb(0 0 0 / 0.06));
+}
