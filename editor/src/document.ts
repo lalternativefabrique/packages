@@ -1,8 +1,16 @@
+/**
+ * RichNode is one node of a TipTap document.
+ *
+ * The index signature is what lets a document cross the boundary with an
+ * editor handle typed as a plain object, which is how TipTap hands its JSON
+ * back. Without it every call site pays for the mismatch in casts.
+ */
 export interface RichNode {
-  type: string;
+  type?: string;
   attrs?: Record<string, unknown>;
   content?: RichNode[];
   text?: string;
+  [key: string]: unknown;
 }
 
 export type RichDoc = RichNode;
