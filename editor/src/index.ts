@@ -14,3 +14,4 @@ export { InlineSuggestions, inlineSuggestionsKey } from "./InlineSuggestions";
 export type { InlineSuggestion, SuggestionActions } from "./InlineSuggestions";
 export { expandToWords, splitRevision } from "./passage";
 export type { RevisionPart, TextRange } from "./passage";
+export { docToMarkdown } from "./markdown";
