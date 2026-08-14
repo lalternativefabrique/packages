@@ -77,7 +77,15 @@ export function SelectionToolbar({
       ref={ref}
       role="toolbar"
       className="lalt-toolbar"
-      style={{ position: "fixed", left: place.left, top: place.top, zIndex: 100 }}
+      // Custom properties rather than left/top directly: under the mobile
+      // breakpoint the stylesheet docks the toolbar to the bottom of the
+      // screen and ignores these, which inline left/top would override.
+      style={
+        {
+          "--lalt-toolbar-left": `${place.left}px`,
+          "--lalt-toolbar-top": `${place.top}px`,
+        } as React.CSSProperties
+      }
     >
       {actions.map((action) => (
         <button
