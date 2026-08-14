@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/editor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Shared TipTap editor for L'Alternative apps: rich text, format menu, selection toolbar and inline AI revisions",
   "type": "module",
   "main": "./dist/index.js",

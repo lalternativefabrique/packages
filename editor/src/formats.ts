@@ -38,34 +38,44 @@ export function blockFormats(
 ): BlockFormat[] {
   if (!editor) return [];
 
+  // Shortcuts are the ones TipTap's own extensions bind, read from their
+  // source rather than invented: heading binds Mod-Alt-<level>, the list
+  // extensions bind Mod-Shift-7/8, and setParagraph binds nothing at all.
+  // A label promising a shortcut that does nothing is worse than no label.
+  const mod = isApple() ? "⌘" : "Ctrl";
+
   return [
     {
       id: "paragraph",
       label: labels.paragraph,
-      shortcut: "Ctrl+Alt+0",
       isActive: editor.isActive("paragraph"),
       onSelect: () => editor.chain().focus().setParagraph().run(),
     },
     ...([1, 2, 3] as const).map((level) => ({
       id: `heading${level}`,
       label: labels[`heading${level}` as keyof FormatLabels],
-      shortcut: `Ctrl+Alt+${level}`,
+      shortcut: `${mod}+Alt+${level}`,
       isActive: editor.isActive("heading", { level }),
       onSelect: () => editor.chain().focus().toggleHeading({ level }).run(),
     })),
     {
       id: "orderedList",
       label: labels.orderedList,
-      shortcut: "Ctrl+Alt+4",
+      shortcut: `${mod}+Shift+7`,
       isActive: editor.isActive("orderedList"),
       onSelect: () => editor.chain().focus().toggleOrderedList().run(),
     },
     {
       id: "bulletList",
       label: labels.bulletList,
-      shortcut: "Ctrl+Alt+5",
+      shortcut: `${mod}+Shift+8`,
       isActive: editor.isActive("bulletList"),
       onSelect: () => editor.chain().focus().toggleBulletList().run(),
     },
   ];
+}
+
+function isApple(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Mac|iPad|iPhone|iPod/.test(navigator.platform || navigator.userAgent);
 }
