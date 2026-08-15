@@ -13,6 +13,8 @@ export type { ReadViewportInput, ViewportMetrics, VisualViewportLike } from "./v
 export { useViewport } from "./useViewport";
 export { blockFormats, defaultFormatLabels } from "./formats";
 export type { FormatLabels } from "./formats";
+export { EditorScreen, defaultSaveLabels } from "./EditorScreen";
+export type { EditorScreenProps, SaveLabels, SaveState } from "./EditorScreen";
 export { defaultSlashItems, defaultSlashLabels, filterSlashItems } from "./slash";
 export type {
   DefaultSlashId,

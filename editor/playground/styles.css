@@ -72,18 +72,18 @@ body {
   line-height: 1.55;
 }
 
-.pg-doc .ProseMirror {
+.pg-screen .ProseMirror {
   outline: none;
   font-size: 16px;
 }
 
-.pg-doc h1 {
+.pg-screen .ProseMirror h1 {
   font-size: 24px;
   line-height: 1.2;
   margin: 0 0 12px;
 }
 
-.pg-doc p {
+.pg-screen .ProseMirror p {
   margin: 0 0 14px;
 }
 
@@ -255,4 +255,61 @@ body {
 
 .pg-force-touch .lalt-toolbar__shortcut {
   display: none;
+}
+
+/* Chrome the host would supply: the package ships no buttons of its own, so
+   the playground draws plain ones to judge the layout around them. */
+.pg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--lalt-editor-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lalt-editor-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pg-btn--primary {
+  background: var(--lalt-editor-text);
+  border-color: var(--lalt-editor-text);
+  color: var(--lalt-editor-surface);
+}
+
+/* Horizontally scrollable rather than wrapped: a second row of tabs pushes the
+   writing down the screen, and on a phone that space is the document. */
+.pg-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pg-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pg-tab {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--lalt-editor-text);
+  font: inherit;
+  font-size: 13px;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.pg-tab--active {
+  background: var(--lalt-editor-hover);
+  opacity: 1;
+  font-weight: 500;
 }

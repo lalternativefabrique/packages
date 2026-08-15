@@ -419,3 +419,162 @@
   opacity: 0.6;
 }
 
+/* The page a writing surface sits in.
+
+   Sized in dvh rather than vh: on mobile Safari a vh unit keeps counting the
+   browser chrome that scrolls away, so the column runs past the bottom of the
+   screen and the last paragraph is unreachable. */
+.lalt-screen {
+  display: flex;
+  flex-direction: column;
+  height: var(--lalt-screen-height, 100dvh);
+  min-height: 0;
+  color: var(--lalt-editor-text);
+}
+
+/* A host mounting the screen inside its own shell — a phone frame, a panel,
+   a route that already owns the page height — sets the height to 100% and
+   lets its container do the sizing. */
+.lalt-screen--fill {
+  --lalt-screen-height: 100%;
+}
+
+.lalt-screen__bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--lalt-editor-border);
+  background: var(--lalt-editor-surface);
+}
+
+.lalt-screen__status {
+  min-width: 0;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+
+.lalt-screen__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+}
+
+.lalt-screen__subnav {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  border-bottom: 1px solid var(--lalt-editor-border);
+  background: var(--lalt-editor-surface);
+}
+
+/* The scroller is here, not on the body: the bar above it has to stay put
+   while the prose moves, and a document taller than the screen must not drag
+   the whole page under a raised keyboard. */
+.lalt-screen__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lalt-screen__column {
+  width: 100%;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.25rem 1rem;
+  /* Clears the on-screen keyboard, plus room to scroll the last line up out
+     from under it. Zero wherever nothing covers the viewport. */
+  padding-bottom: calc(var(--lalt-keyboard, 0px) + 40vh);
+}
+
+/* No border, no box: the page is the document, not a form with a content
+   field in it. */
+.lalt-screen__title {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  outline: none;
+}
+
+.lalt-screen__title::placeholder {
+  opacity: 0.35;
+}
+
+.lalt-screen__aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.lalt-screen__footer {
+  margin-top: 1.5rem;
+}
+
+.lalt-screen__save {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  width: 0.5rem;
+}
+
+.lalt-screen__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: background-color 150ms;
+}
+
+.lalt-screen__dot--saving {
+  background: #f59e0b;
+}
+
+.lalt-screen__dot--saved {
+  background: #10b981;
+}
+
+.lalt-screen__dot--dirty {
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.lalt-screen__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Room to breathe once there is a screen to spend it on. The phone layout
+   above is the one that has to work; this is the widening. */
+@media (min-width: 640px) {
+  .lalt-screen__bar {
+    padding: 0.5rem 1.5rem;
+  }
+
+  .lalt-screen__column {
+    padding: 2rem 2rem;
+    padding-bottom: calc(var(--lalt-keyboard, 0px) + 30vh);
+  }
+
+  .lalt-screen__title {
+    font-size: 1.875rem;
+  }
+}

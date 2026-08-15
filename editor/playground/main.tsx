@@ -3,20 +3,44 @@ import { createRoot } from "react-dom/client"
 import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 
+import { PluginKey } from "@tiptap/pm/state"
+
 import { SelectionToolbar } from "../src/SelectionToolbar"
 import { useSelectionToolbar } from "../src/useSelectionToolbar"
 import { blockFormats } from "../src/formats"
+import { SlashCommands } from "../src/SlashCommands"
+import { defaultSlashItems } from "../src/slash"
+import { EditorScreen, type SaveState } from "../src/EditorScreen"
 import { KEYBOARD_HEIGHT, KeyboardOverlay, useSimulatedKeyboard } from "./keyboard"
 import { SAMPLE } from "./sample"
 import "./styles.css"
 
+const SLASH_ITEMS = defaultSlashItems({
+  descriptions: {
+    heading1: "Grand titre de section",
+    heading2: "Sous-titre",
+    bulletList: "Liste non ordonnée",
+    orderedList: "Liste ordonnée",
+    blockquote: "Bloc de citation",
+    codeBlock: "Code monospace",
+    horizontalRule: "Ligne horizontale",
+  },
+})
+
+const slashCommands = SlashCommands.configure({
+  items: () => SLASH_ITEMS,
+  pluginKey: new PluginKey("playgroundSlash"),
+})
+
 function Playground() {
   const [phone, setPhone] = useState(true)
   const [preferBelow, setPreferBelow] = useState(true)
+  const [title, setTitle] = useState("Pourquoi l'installation de Revol…")
+  const [save, setSave] = useState<SaveState>("saved")
   const keyboard = useSimulatedKeyboard()
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, slashCommands],
     content: SAMPLE,
     autofocus: false,
   })
@@ -37,14 +61,40 @@ function Playground() {
 
       <div className={`pg-stage${phone ? " pg-force-touch" : ""}`}>
         <div className={`pg-screen${phone ? " pg-screen--phone" : ""}`}>
-          <div className="pg-chrome">
-            <span>‹ Retour</span>
-            <span style={{ marginLeft: "auto" }}>Brouillon</span>
-          </div>
-
-          <div className="pg-doc">
+          <EditorScreen
+            fill
+            title={title}
+            onTitleChange={(next) => {
+              setTitle(next)
+              setSave("dirty")
+              window.setTimeout(() => setSave("saving"), 400)
+              window.setTimeout(() => setSave("saved"), 900)
+            }}
+            saveState={save}
+            lead={<button type="button" className="pg-btn">‹</button>}
+            status={`${editor?.storage.characterCount?.characters?.() ?? 0}`}
+            actions={
+              <>
+                <button type="button" className="pg-btn pg-btn--primary">
+                  Programmer
+                </button>
+                <button type="button" className="pg-btn" aria-label="Plus">
+                  ⋯
+                </button>
+              </>
+            }
+            subnav={
+              <div className="pg-tabs">
+                <button type="button" className="pg-tab pg-tab--active">
+                  Ton texte
+                </button>
+                <button type="button" className="pg-tab">LinkedIn</button>
+                <button type="button" className="pg-tab">Article</button>
+              </div>
+            }
+          >
             <EditorContent editor={editor} />
-          </div>
+          </EditorScreen>
         </div>
       </div>
 
