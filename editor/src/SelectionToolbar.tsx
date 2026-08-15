@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { placeToolbar, type SelectionRect } from "./placement";
+import { useViewport } from "./useViewport";
 
 export interface ToolbarAction {
   id: string;
@@ -44,6 +45,7 @@ export function SelectionToolbar({
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(FALLBACK);
   const [formatsOpen, setFormatsOpen] = useState(false);
+  const viewport = useViewport();
 
   // Measured after paint rather than assumed: the toolbar's width depends on
   // labels the host supplies, and guessing it puts the toolbar off-centre.
@@ -68,7 +70,7 @@ export function SelectionToolbar({
   const place = placeToolbar({
     selection,
     toolbar: size,
-    viewport: { width: window.innerWidth, height: window.innerHeight },
+    viewport: { width: viewport.width, height: viewport.height },
     preferBelow,
   });
 
@@ -80,10 +82,16 @@ export function SelectionToolbar({
       // Custom properties rather than left/top directly: under the mobile
       // breakpoint the stylesheet docks the toolbar to the bottom of the
       // screen and ignores these, which inline left/top would override.
+      //
+      // The inset is what the docked bar sits on top of. `bottom: 0` means the
+      // bottom of the layout viewport, which the on-screen keyboard covers
+      // without shrinking — so the bar has to be lifted by the strip the
+      // keyboard occupies to stay in sight.
       style={
         {
           "--lalt-toolbar-left": `${place.left}px`,
           "--lalt-toolbar-top": `${place.top}px`,
+          "--lalt-keyboard-inset": `${viewport.bottomInset}px`,
         } as React.CSSProperties
       }
     >

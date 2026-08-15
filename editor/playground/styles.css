@@ -1,0 +1,258 @@
+@import "../src/editor.css";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f2f2f7;
+  color: #111827;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #000000;
+    color: #f3f4f6;
+  }
+}
+
+/* The frame the editor is judged inside. On the phone preset it is a fixed
+   390px column with its own scroll, so a desktop browser shows the same
+   proportions a handset does — the bar's placement is only wrong at that
+   width, and a maximised window hides it. */
+.pg-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Wide enough to seat the control panel to the left of the phone column: the
+   stage is centred on the space that is left, so the two never overlap. */
+@media (min-width: 701px) {
+  .pg-stage {
+    left: 268px;
+  }
+}
+
+.pg-screen {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--lalt-editor-surface, #ffffff);
+  overflow: hidden;
+}
+
+.pg-screen--phone {
+  width: 390px;
+  border-left: 1px solid var(--lalt-editor-border);
+  border-right: 1px solid var(--lalt-editor-border);
+}
+
+.pg-chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--lalt-editor-border);
+  font-size: 13px;
+  color: var(--lalt-editor-text);
+  opacity: 0.65;
+}
+
+.pg-doc {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px 24px;
+  line-height: 1.55;
+}
+
+.pg-doc .ProseMirror {
+  outline: none;
+  font-size: 16px;
+}
+
+.pg-doc h1 {
+  font-size: 24px;
+  line-height: 1.2;
+  margin: 0 0 12px;
+}
+
+.pg-doc p {
+  margin: 0 0 14px;
+}
+
+/* Beside the simulated screen, never over it: the toolbar is judged against
+   what the phone column shows, and a panel covering it would hide the thing
+   under review. Falls back to overlaying only when the window is too narrow
+   to seat both. */
+.pg-controls {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 232px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--lalt-editor-border);
+  background: var(--lalt-editor-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.14);
+  font-size: 12px;
+}
+
+@media (max-width: 700px) {
+  .pg-controls {
+    width: auto;
+    right: 12px;
+    opacity: 0.96;
+  }
+}
+
+.pg-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pg-label {
+  min-width: 62px;
+  opacity: 0.6;
+}
+
+.pg-btn {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--lalt-editor-hover);
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pg-btn[aria-pressed="true"] {
+  background: var(--lalt-editor-text);
+  color: var(--lalt-editor-surface);
+}
+
+.pg-readout {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--lalt-editor-border);
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.pg-readout b {
+  font-weight: 600;
+}
+
+.pg-verdict {
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.pg-verdict--bad {
+  background: rgb(185 28 28 / 0.12);
+  color: #b91c1c;
+}
+
+.pg-verdict--good {
+  background: rgb(21 128 61 / 0.12);
+  color: #15803d;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pg-verdict--bad {
+    color: #fca5a5;
+  }
+
+  .pg-verdict--good {
+    color: #86efac;
+  }
+}
+
+/* Coarse-pointer rules drive the docked bar. A desktop browser reports a fine
+   pointer, so the phone preset forces the docked styles on to be reviewable
+   at all — this mirrors the media query in editor.css and must track it. */
+/* Constrained to the phone column rather than the window: the toolbar is
+   fixed, so without this it would centre itself on the whole browser and stop
+   telling us anything about how it sits on a handset. */
+.pg-force-touch .lalt-toolbar,
+.pg-force-touch .lalt-toolbar__menu {
+  --pg-column: 390px;
+  --pg-stage-left: 0px;
+  --pg-column-left: max(
+    var(--pg-stage-left),
+    calc(var(--pg-stage-left) + (100vw - var(--pg-stage-left) - var(--pg-column)) / 2)
+  );
+}
+
+/* Tracks the offset .pg-stage takes to seat the control panel. */
+@media (min-width: 701px) {
+  .pg-force-touch .lalt-toolbar,
+  .pg-force-touch .lalt-toolbar__menu {
+    --pg-stage-left: 268px;
+  }
+}
+
+.pg-force-touch .lalt-toolbar {
+  left: var(--pg-column-left);
+  right: var(--pg-column-left);
+  top: auto;
+  bottom: calc(var(--lalt-keyboard-inset, 0px) + 0.5rem);
+  gap: 0.125rem;
+  width: fit-content;
+  max-width: calc(100% - 1rem);
+  margin: 0 auto;
+  padding: 0.25rem;
+  border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
+  border-radius: 999px;
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.18),
+    0 1px 3px rgb(0 0 0 / 0.1);
+  overflow-x: auto;
+}
+
+.pg-force-touch .lalt-toolbar__button {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.9375rem;
+}
+
+.pg-force-touch .lalt-toolbar__menu {
+  position: fixed;
+  left: calc(var(--pg-column-left) + var(--pg-column) / 2);
+  right: auto;
+  top: auto;
+  bottom: calc(var(--lalt-keyboard-inset, 0px) + 3.75rem);
+  transform: translateX(-50%);
+  min-width: 12rem;
+  max-width: calc(100vw - 2rem);
+  border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
+  border-radius: 0.875rem;
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.18),
+    0 1px 3px rgb(0 0 0 / 0.1);
+}
+
+.pg-force-touch .lalt-toolbar__item {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.pg-force-touch .lalt-toolbar__shortcut {
+  display: none;
+}
