@@ -326,3 +326,96 @@
 .lalt-suggestion__action:hover {
   background: var(--lalt-editor-hover, rgb(0 0 0 / 0.06));
 }
+
+/* The `/` menu, anchored to the caret by the extension and painted here.
+
+   Fixed to the viewport rather than positioned in the document: the menu is
+   appended to the body so an editor inside an `overflow: hidden` pane cannot
+   clip it. */
+.lalt-slash-anchor {
+  position: fixed;
+  z-index: 10000;
+}
+
+.lalt-slash {
+  min-width: 16rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  overflow: hidden;
+  border: 1px solid var(--lalt-editor-border);
+  border-radius: 0.5rem;
+  background: var(--lalt-editor-surface);
+  color: var(--lalt-editor-text);
+  box-shadow: 0 10px 20px rgb(0 0 0 / 0.12);
+}
+
+.lalt-slash--empty {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.lalt-slash__item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Room for a thumb where there is no pointer to aim with. */
+@media not (hover: hover), (pointer: coarse) {
+  .lalt-slash__item {
+    padding: 0.6875rem 0.75rem;
+  }
+}
+
+.lalt-slash__item--active,
+.lalt-slash__item:hover {
+  background: var(--lalt-editor-hover);
+}
+
+.lalt-slash__icon {
+  display: flex;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+.lalt-slash__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.lalt-slash__title {
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.lalt-slash__description {
+  overflow: hidden;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.55;
+}
+
+.lalt-slash__shortcut {
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--lalt-editor-border);
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.625rem;
+  opacity: 0.6;
+}
+

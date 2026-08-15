@@ -16,6 +16,7 @@ export default defineConfig({
     "@tiptap/pm",
     "@tiptap/react",
     "@tiptap/starter-kit",
+    "@tiptap/suggestion",
   ],
   async onSuccess() {
     const { copyFile } = await import("node:fs/promises");

@@ -13,6 +13,18 @@ export type { ReadViewportInput, ViewportMetrics, VisualViewportLike } from "./v
 export { useViewport } from "./useViewport";
 export { blockFormats, defaultFormatLabels } from "./formats";
 export type { FormatLabels } from "./formats";
+export { defaultSlashItems, defaultSlashLabels, filterSlashItems } from "./slash";
+export type {
+  DefaultSlashId,
+  DefaultSlashItemsOptions,
+  SlashDescriptions,
+  SlashItem,
+  SlashLabels,
+} from "./slash";
+export { SlashMenu } from "./SlashMenu";
+export type { SlashMenuHandle, SlashMenuProps } from "./SlashMenu";
+export { SlashCommands } from "./SlashCommands";
+export type { SlashCommandsOptions } from "./SlashCommands";
 export { InlineSuggestions, inlineSuggestionsKey } from "./InlineSuggestions";
 export type { InlineSuggestion, SuggestionActions } from "./InlineSuggestions";
 export { expandToWords, splitRevision } from "./passage";
