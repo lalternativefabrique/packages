@@ -8,6 +8,8 @@ import (
 	"sync"
 
 	"github.com/nats-io/nats.go/jetstream"
+
+	"github.com/lalternative/packages/go/eda/pkg/ddd"
 )
 
 // Snapshot is the on-disk shape of an aggregate snapshot. State is a
@@ -23,6 +25,38 @@ type Snapshot[ID comparable] struct {
 // ErrSnapshotNotFound is returned when no snapshot exists for the requested
 // aggregate.
 var ErrSnapshotNotFound = errors.New("eventstore: snapshot not found")
+
+// ForAggregates adapts a SnapshotStore to the shape ddd.SnapshotLoader reads.
+// The two records carry the same fields under different names — this package
+// owns the storage, ddd owns the loading, and neither should have to know the
+// other's spelling at every call site.
+func ForAggregates[ID comparable](s SnapshotStore[ID]) ddd.SnapshotStore[ID] {
+	return aggregateSnapshots[ID]{store: s}
+}
+
+type aggregateSnapshots[ID comparable] struct{ store SnapshotStore[ID] }
+
+func (a aggregateSnapshots[ID]) Save(ctx context.Context, snap ddd.SnapshotRecord[ID]) error {
+	return a.store.Save(ctx, Snapshot[ID]{
+		AggregateID:      snap.AggregateID,
+		AggregateType:    snap.AggregateType,
+		AggregateVersion: snap.AggregateVersion,
+		State:            snap.State,
+	})
+}
+
+func (a aggregateSnapshots[ID]) Load(ctx context.Context, id ID) (ddd.SnapshotRecord[ID], error) {
+	snap, err := a.store.Load(ctx, id)
+	if err != nil {
+		return ddd.SnapshotRecord[ID]{}, err
+	}
+	return ddd.SnapshotRecord[ID]{
+		AggregateID:      snap.AggregateID,
+		AggregateType:    snap.AggregateType,
+		AggregateVersion: snap.AggregateVersion,
+		State:            snap.State,
+	}, nil
+}
 
 // SnapshotStore persists and retrieves aggregate snapshots. Implementations
 // must be goroutine-safe.

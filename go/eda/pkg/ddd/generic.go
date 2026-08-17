@@ -211,3 +211,13 @@ func LoadFromHistory[ID comparable, A AggregateRoot[ID]](a A, base *BaseAggregat
 	}
 	return nil
 }
+
+// RestoreVersion sets the version an aggregate resumes from when its state
+// came from somewhere other than a replay — a snapshot. The version is what
+// optimistic concurrency is checked against, so an aggregate restored without
+// it would claim to be fresh and its next save would be rejected, or worse,
+// accepted against the wrong expected version.
+//
+// Only snapshot loading should call this. Replay maintains the version on its
+// own, and a command must never move it.
+func (b *BaseAggregateRoot[ID]) RestoreVersion(version int) { b.version = version }
