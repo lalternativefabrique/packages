@@ -31,6 +31,17 @@ type Config struct {
 	Format string
 	// Concurrency defaults to DefaultConcurrency.
 	Concurrency int
+	// MaxChars is how much text goes into one request. It defaults to MaxChars,
+	// the limit hosted endpoints impose — but a limit is not a target. Reading
+	// happens one request at a time, so a text that fits in a single one is
+	// read serially however high Concurrency is set: cutting smaller is what
+	// turns waiting into parallel work.
+	//
+	// A self-hosted voice is the case where this matters. It has no per-request
+	// limit and is slower per character than a hosted one, so leaving the
+	// hosted limit in place reads a whole page as one long utterance while
+	// three of its four workers sit idle.
+	MaxChars int
 	// Client defaults to one with no global timeout: a long piece can take
 	// most of a minute, and cancellation belongs to the context rather than to
 	// a deadline that cannot tell slow from stuck.
@@ -64,6 +75,9 @@ func NewOpenAIVoice(cfg Config) *OpenAIVoice {
 	if cfg.Concurrency <= 0 {
 		cfg.Concurrency = DefaultConcurrency
 	}
+	if cfg.MaxChars <= 0 {
+		cfg.MaxChars = MaxChars
+	}
 	if cfg.Client == nil {
 		cfg.Client = &http.Client{}
 	}
@@ -86,7 +100,7 @@ func (v *OpenAIVoice) Speak(ctx context.Context, text string) ([]byte, string, e
 }
 
 func (v *OpenAIVoice) SpeakStream(ctx context.Context, text string, emit func([]byte) error) (string, error) {
-	pieces := Split(text, MaxChars)
+	pieces := Split(text, v.cfg.MaxChars)
 	if len(pieces) == 0 {
 		return "", errors.New("tts: nothing to read")
 	}

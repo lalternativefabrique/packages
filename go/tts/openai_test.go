@@ -267,3 +267,46 @@ func TestSpeakSendsNoAuthorizationWithoutAKey(t *testing.T) {
 		t.Fatalf("Speak: %v", err)
 	}
 }
+
+// Cutting smaller is what lets Concurrency do anything: a text that fits in a
+// single request is read one utterance at a time, however many workers are
+// allowed. This is the knob a self-hosted voice needs, since it has no
+// per-request limit of its own and is slower per character than a hosted one.
+func TestSmallerPiecesAreWhatMakesReadingParallel(t *testing.T) {
+	text := strings.Repeat("une phrase de longueur normale. ", 90)
+
+	var atOnce, peak int32
+	var mu sync.Mutex
+	srv := speechServer(t, func(string) (int, []byte, time.Duration) {
+		mu.Lock()
+		atOnce++
+		if atOnce > peak {
+			peak = atOnce
+		}
+		mu.Unlock()
+		time.Sleep(50 * time.Millisecond)
+		mu.Lock()
+		atOnce--
+		mu.Unlock()
+		return http.StatusOK, []byte("x"), 0
+	})
+
+	// The hosted limit: the whole text is one request, and nothing runs beside
+	// anything else.
+	v := NewOpenAIVoice(Config{BaseURL: srv.URL})
+	if _, _, err := v.Speak(context.Background(), text); err != nil {
+		t.Fatalf("Speak: %v", err)
+	}
+	if peak != 1 {
+		t.Errorf("at the default size %d requests overlapped, want 1", peak)
+	}
+
+	peak = 0
+	small := NewOpenAIVoice(Config{BaseURL: srv.URL, MaxChars: 800})
+	if _, _, err := small.Speak(context.Background(), text); err != nil {
+		t.Fatalf("Speak: %v", err)
+	}
+	if peak < 2 {
+		t.Errorf("cut at 800 chars, only %d request(s) overlapped — nothing was parallel", peak)
+	}
+}
