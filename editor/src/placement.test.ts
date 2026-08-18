@@ -77,4 +77,33 @@ describe("placeToolbar", () => {
 
     expect(actual.left).toBe(guessed.left - 70);
   });
+
+  // Below is not enough on iOS: the system draws Cut/Copy/Paste in that space,
+  // over the page and unmeasurable from it, so a toolbar placed against the
+  // selection lands underneath the callout rather than below it.
+  it("clears the system callout when placing below", () => {
+    const tight = placeToolbar({ selection, toolbar, viewport, preferBelow: true });
+    const cleared = placeToolbar({
+      selection,
+      toolbar,
+      viewport,
+      preferBelow: true,
+      calloutHeight: 44,
+    });
+
+    expect(cleared.top).toBe(tight.top + 44);
+    expect(cleared.top).toBeGreaterThanOrEqual(selection.bottom + 44);
+  });
+
+  it("keeps the toolbar on screen when the callout would push it off", () => {
+    const place = placeToolbar({
+      selection: { x: 500, top: 700, bottom: 740 },
+      toolbar,
+      viewport,
+      preferBelow: true,
+      calloutHeight: 44,
+    });
+
+    expect(place.top + toolbar.height).toBeLessThanOrEqual(viewport.height);
+  });
 });

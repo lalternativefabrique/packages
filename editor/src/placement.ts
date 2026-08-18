@@ -17,6 +17,10 @@ export interface PlaceToolbarInput {
   /** iOS renders its own callout above a selection, which covers a toolbar
    *  placed there, so the caller asks for below on that platform. */
   preferBelow?: boolean;
+  /** Height of the system's own selection callout — Cut/Copy/Paste — which is
+   *  drawn over the page and cannot be measured from it. Clearing it is what
+   *  keeps the two from overlapping. Zero where there is no such callout. */
+  calloutHeight?: number;
 }
 
 export interface ToolbarPlacement {
@@ -26,6 +30,11 @@ export interface ToolbarPlacement {
 }
 
 const GAP = 8;
+
+/** iOS draws its Cut/Copy/Paste callout roughly this tall, below a selection
+ *  the page cannot see. Measured from the platform rather than derived: it is
+ *  a system surface, so nothing in the document reports its size. */
+export const IOS_CALLOUT_HEIGHT = 44;
 
 /**
  * placeToolbar positions a floating toolbar against a selection.
@@ -39,14 +48,21 @@ export function placeToolbar({
   toolbar,
   viewport,
   preferBelow = false,
+  calloutHeight = 0,
 }: PlaceToolbarInput): ToolbarPlacement {
+  const clearance = GAP + calloutHeight;
   const fitsAbove = selection.top - GAP - toolbar.height >= 0;
-  const fitsBelow = selection.bottom + GAP + toolbar.height <= viewport.height;
+  const fitsBelow = selection.bottom + clearance + toolbar.height <= viewport.height;
 
   const below = preferBelow ? fitsBelow || !fitsAbove : !fitsAbove && fitsBelow;
 
   const top = below
-    ? selection.bottom + GAP
+    ? Math.min(
+        selection.bottom + clearance,
+        // Never past the bottom edge: a selection low on the page would put
+        // the toolbar off-screen once the callout's height is added.
+        Math.max(0, viewport.height - toolbar.height - GAP),
+      )
     : Math.max(0, selection.top - GAP - toolbar.height);
 
   const centred = selection.x - toolbar.width / 2;

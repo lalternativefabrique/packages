@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { placeToolbar, type SelectionRect } from "./placement";
+import { placeToolbar, IOS_CALLOUT_HEIGHT, type SelectionRect } from "./placement";
 import { useViewport } from "./useViewport";
 
 export interface ToolbarAction {
@@ -94,6 +94,9 @@ export function SelectionToolbar({
     toolbar: size,
     viewport: { width: viewport.width, height: viewport.height },
     preferBelow,
+    // preferBelow is set by the same platform check that puts the callout
+    // there, so it is what says whether there is one to clear.
+    calloutHeight: preferBelow ? IOS_CALLOUT_HEIGHT : 0,
   });
 
   return createPortal(
