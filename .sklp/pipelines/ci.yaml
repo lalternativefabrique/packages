@@ -59,6 +59,8 @@ scopes:
     - "pnpm-workspace.yaml"
   eda:
     - "go/eda/**"
+  composition:
+    - "go/composition/**"
   webhooks:
     - "go/webhooks/**"
   lungor-core:
@@ -100,6 +102,14 @@ steps:
       for mod in . $(find pkg -name go.mod -printf '%h\n' | sort); do
         (cd "$mod" && go build ./... && go vet ./... && go test -count=1 ./...)
       done
+
+  - name: composition
+    scope: [composition]
+    tools: [go]
+    run: |
+      cd go/composition
+      go build ./... && go vet ./... && go test -count=1 ./...
+      go vet -tags=integration ./...
 
   # Every published module is built, vetted and unit-tested. These modules are
   # consumed by three products, so a break here is a break there.
