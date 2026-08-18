@@ -128,11 +128,15 @@ export function SelectionToolbar({
           key={action.id}
           type="button"
           className="lalt-toolbar__button"
+          // The label is what the narrow layout hides, so it has to stay
+          // reachable to anyone not reading the icon.
+          aria-label={action.icon ? action.label : undefined}
+          data-has-icon={action.icon ? "" : undefined}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => action.onSelect(selectedText)}
         >
           {action.icon}
-          <span>{action.label}</span>
+          <span className="lalt-toolbar__label">{action.label}</span>
         </button>
       ))}
 

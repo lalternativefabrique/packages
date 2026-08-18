@@ -129,6 +129,24 @@
   box-shadow: inset 1px 0 0 var(--lalt-editor-border, rgb(0 0 0 / 0.1));
 }
 
+/* On a phone the three labels do not fit, and the bar clips its last button —
+   the format menu ends up unreachable behind an edge with nothing saying it
+   scrolls. Where an icon already carries the meaning the label steps aside and
+   survives as the accessible name.
+
+   Not a (pointer: coarse) query: a narrow desktop window has the same problem
+   and a wide tablet has neither. */
+@media (max-width: 30rem) {
+  .lalt-toolbar__button[data-has-icon] .lalt-toolbar__label {
+    display: none;
+  }
+
+  .lalt-toolbar__button[data-has-icon] {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 .lalt-toolbar__button:active {
   background: var(--lalt-editor-active, rgb(0 0 0 / 0.12));
 }
