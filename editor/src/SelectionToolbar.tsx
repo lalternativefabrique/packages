@@ -33,6 +33,12 @@ export interface SelectionToolbarProps {
 
 const FALLBACK = { width: 320, height: 40 };
 
+// Whether the width used to place the bar is the one it actually has. The
+// fallback is a guess, and placing on a guess puts the bar off-centre by
+// however far the guess is wrong — which is invisible while the bar happens to
+// be 320px wide and obvious as soon as a host adds another action to it.
+type Measured = { width: number; height: number; real: boolean };
+
 export function SelectionToolbar({
   selectedText,
   selection,
@@ -43,18 +49,34 @@ export function SelectionToolbar({
   container,
 }: SelectionToolbarProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState(FALLBACK);
+  const [size, setSize] = useState<Measured>({ ...FALLBACK, real: false });
   const [formatsOpen, setFormatsOpen] = useState(false);
   const viewport = useViewport();
 
   // Measured after paint rather than assumed: the toolbar's width depends on
   // labels the host supplies, and guessing it puts the toolbar off-centre.
+  //
+  // Observed rather than recomputed from a dependency list: the width follows
+  // the rendered labels, and a list naming the things that happen to change it
+  // today misses the next one — a longer label, a font that loads late.
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.width > 0) setSize({ width: rect.width, height: rect.height });
-  }, [selectedText, actions.length, formats.length]);
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width > 0)
+        setSize((prev) =>
+          prev.real && prev.width === rect.width && prev.height === rect.height
+            ? prev
+            : { width: rect.width, height: rect.height, real: true },
+        );
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!formatsOpen) return;
@@ -92,6 +114,12 @@ export function SelectionToolbar({
           "--lalt-toolbar-left": `${place.left}px`,
           "--lalt-toolbar-top": `${place.top}px`,
           "--lalt-keyboard-inset": `${viewport.bottomInset}px`,
+          // Hidden for the one frame between mounting and being measured:
+          // that first paint places the bar on the fallback width, and showing
+          // it means showing the bar jump once the real width arrives.
+          // Hidden rather than unmounted — it has to be in the document to
+          // have a width at all.
+          visibility: size.real ? undefined : "hidden",
         } as React.CSSProperties
       }
     >

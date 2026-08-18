@@ -67,4 +67,14 @@ describe("placeToolbar", () => {
 
     expect(place.left).toBe(0);
   });
+
+  // The bar is centred on the selection, so its left edge is computed from its
+  // width. Placing it before it has been measured is what put it off-centre by
+  // half the difference the moment a host added another action to it.
+  it("centres on the selection using the width it was given", () => {
+    const guessed = placeToolbar({ selection, toolbar: { width: 320, height: 40 }, viewport });
+    const actual = placeToolbar({ selection, toolbar: { width: 460, height: 40 }, viewport });
+
+    expect(actual.left).toBe(guessed.left - 70);
+  });
 });
