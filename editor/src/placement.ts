@@ -56,14 +56,22 @@ export function placeToolbar({
 
   const below = preferBelow ? fitsBelow || !fitsAbove : !fitsAbove && fitsBelow;
 
+  // Both branches stay within reach of the selection. Clamping to the viewport
+  // edge instead would park the toolbar at the top of the screen whenever a
+  // raised keyboard shrinks the viewport under the selection's own
+  // coordinates — far from the words it acts on, which is worse than a few
+  // pixels of overlap.
   const top = below
     ? Math.min(
         selection.bottom + clearance,
         // Never past the bottom edge: a selection low on the page would put
         // the toolbar off-screen once the callout's height is added.
-        Math.max(0, viewport.height - toolbar.height - GAP),
+        Math.max(selection.top, viewport.height - toolbar.height - GAP),
       )
-    : Math.max(0, selection.top - GAP - toolbar.height);
+    : Math.max(
+        Math.min(GAP, selection.top),
+        selection.top - GAP - toolbar.height,
+      );
 
   const centred = selection.x - toolbar.width / 2;
   const left = Math.max(0, Math.min(centred, viewport.width - toolbar.width));

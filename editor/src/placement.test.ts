@@ -106,4 +106,19 @@ describe("placeToolbar", () => {
 
     expect(place.top + toolbar.height).toBeLessThanOrEqual(viewport.height);
   });
+
+  // A raised keyboard shrinks the viewport under the selection's own
+  // coordinates. Clamping to that edge parks the toolbar at the top of the
+  // screen, half a page from the words it acts on.
+  it("stays beside the selection when the keyboard shrinks the viewport", () => {
+    const place = placeToolbar({
+      selection: { x: 200, top: 420, bottom: 450 },
+      toolbar,
+      viewport: { width: 390, height: 300 },
+      preferBelow: true,
+      calloutHeight: 44,
+    });
+
+    expect(place.top).toBeGreaterThan(300);
+  });
 });
