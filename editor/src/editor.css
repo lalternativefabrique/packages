@@ -48,25 +48,31 @@
    variable; it is 0 whenever nothing covers anything. */
 .lalt-toolbar {
   position: fixed;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: calc(var(--lalt-keyboard-inset, 0px) + 0.5rem);
+  left: 0;
+  right: 0;
+  /* Flush on the keyboard, filling the strip iOS puts its own accessory bar in
+     — the arrows and the Done tick. The two cannot be merged: that bar is
+     drawn by the system over the page, so ours occupies the same band rather
+     than replacing it. Square edges and full width so the band is one shape
+     instead of a pill floating inside another. */
+  bottom: var(--lalt-keyboard-inset, 0px);
   z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* Left-aligned, not centred: the row scrolls when it overflows, and a
+     centred row hides its first item as readily as its last. */
+  justify-content: flex-start;
   gap: 0.125rem;
-  width: fit-content;
-  max-width: calc(100% - 1rem);
-  margin: 0 auto;
-  margin-bottom: env(safe-area-inset-bottom);
-  padding: 0.25rem;
-  border-radius: 999px;
+  width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 0.5rem;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-radius: 0;
   background: var(--lalt-editor-surface, #ffffff);
-  border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
-  box-shadow:
-    0 6px 20px rgb(0 0 0 / 0.18),
-    0 1px 3px rgb(0 0 0 / 0.1);
+  border: none;
+  border-top: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
+  box-shadow: 0 -2px 12px rgb(0 0 0 / 0.08);
   color: var(--lalt-editor-text, #111827);
   user-select: none;
   /* A long row scrolls rather than stretching the pill past the screen. This
@@ -87,7 +93,13 @@
     top: var(--lalt-toolbar-top, 0);
     right: auto;
     bottom: auto;
+    /* Back to a pill: the band shape belongs to the strip above a keyboard,
+       and there is no keyboard here — the bar appears mid-paragraph. */
+    width: fit-content;
     max-width: none;
+    min-height: 0;
+    border-radius: 999px;
+    border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
     margin: 0;
     padding: 0.1875rem;
     /* Deep enough to read as floating over the text rather than sitting in
