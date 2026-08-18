@@ -48,31 +48,28 @@
    variable; it is 0 whenever nothing covers anything. */
 .lalt-toolbar {
   position: fixed;
-  left: 0;
-  right: 0;
-  /* Flush on the keyboard, filling the strip iOS puts its own accessory bar in
-     — the arrows and the Done tick. The two cannot be merged: that bar is
-     drawn by the system over the page, so ours occupies the same band rather
-     than replacing it. Square edges and full width so the band is one shape
-     instead of a pill floating inside another. */
-  bottom: var(--lalt-keyboard-inset, 0px);
+  /* Beside the text it acts on, not docked to the bottom. Selecting dismisses
+     the keyboard on touch, so there is no strip to dock to and no system bar
+     to be drawn under. */
+  left: var(--lalt-toolbar-left, 0);
+  top: var(--lalt-toolbar-top, 0);
+  right: auto;
+  bottom: auto;
   z-index: 100;
   display: flex;
   align-items: center;
-  /* Left-aligned, not centred: the row scrolls when it overflows, and a
-     centred row hides its first item as readily as its last. */
   justify-content: flex-start;
   gap: 0.125rem;
-  width: 100%;
-  min-height: 2.75rem;
+  width: fit-content;
+  max-width: calc(100vw - 1rem);
   margin: 0;
-  padding: 0 0.5rem;
-  padding-bottom: env(safe-area-inset-bottom);
-  border-radius: 0;
+  padding: 0.25rem;
+  border-radius: 999px;
   background: var(--lalt-editor-surface, #ffffff);
-  border: none;
-  border-top: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
-  box-shadow: 0 -2px 12px rgb(0 0 0 / 0.08);
+  border: 1px solid var(--lalt-editor-border, rgb(0 0 0 / 0.1));
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.18),
+    0 1px 3px rgb(0 0 0 / 0.1);
   color: var(--lalt-editor-text, #111827);
   user-select: none;
   /* A long row scrolls rather than stretching the pill past the screen. This

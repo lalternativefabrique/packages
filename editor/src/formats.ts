@@ -44,33 +44,47 @@ export function blockFormats(
   // A label promising a shortcut that does nothing is worse than no label.
   const mod = isApple() ? "⌘" : "Ctrl";
 
+  // focus() is what makes a command apply to the selection rather than to
+  // nothing — but on a phone the toolbar is only reachable because the
+  // keyboard was dismissed, and focusing calls it straight back. The
+  // scrollIntoView: false variant restores the range without the editor
+  // asking for the keyboard again.
+  const act = (run: () => boolean) => {
+    const focused = editor.isFocused;
+    if (focused) return run();
+    editor.commands.focus(undefined, { scrollIntoView: false });
+    const applied = run();
+    (editor.view.dom as HTMLElement).blur();
+    return applied;
+  };
+
   return [
     {
       id: "paragraph",
       label: labels.paragraph,
       isActive: editor.isActive("paragraph"),
-      onSelect: () => editor.chain().focus().setParagraph().run(),
+      onSelect: () => act(() => editor.chain().setParagraph().run()),
     },
     ...([1, 2, 3] as const).map((level) => ({
       id: `heading${level}`,
       label: labels[`heading${level}` as keyof FormatLabels],
       shortcut: `${mod}+Alt+${level}`,
       isActive: editor.isActive("heading", { level }),
-      onSelect: () => editor.chain().focus().toggleHeading({ level }).run(),
+      onSelect: () => act(() => editor.chain().toggleHeading({ level }).run()),
     })),
     {
       id: "orderedList",
       label: labels.orderedList,
       shortcut: `${mod}+Shift+7`,
       isActive: editor.isActive("orderedList"),
-      onSelect: () => editor.chain().focus().toggleOrderedList().run(),
+      onSelect: () => act(() => editor.chain().toggleOrderedList().run()),
     },
     {
       id: "bulletList",
       label: labels.bulletList,
       shortcut: `${mod}+Shift+8`,
       isActive: editor.isActive("bulletList"),
-      onSelect: () => editor.chain().focus().toggleBulletList().run(),
+      onSelect: () => act(() => editor.chain().toggleBulletList().run()),
     },
   ];
 }
