@@ -4479,7 +4479,9 @@ type ConsumeUsageResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *MeteringDecisionResponse
 	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
 	JSON402      *MeteringDecisionResponse
+	JSON404      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
@@ -4503,6 +4505,8 @@ type GetUsageBalanceResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *MeteringBalanceResponse
 	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
@@ -4526,6 +4530,8 @@ type TopupUsageResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *MeteringDecisionResponse
 	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
@@ -6366,12 +6372,26 @@ func ParseConsumeUsageResponse(rsp *http.Response) (*ConsumeUsageResponse, error
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 402:
 		var dest MeteringDecisionResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON402 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
@@ -6406,6 +6426,20 @@ func ParseGetUsageBalanceResponse(rsp *http.Response) (*GetUsageBalanceResponse,
 		}
 		response.JSON400 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
 	}
 
 	return response, nil
@@ -6438,6 +6472,20 @@ func ParseTopupUsageResponse(rsp *http.Response) (*TopupUsageResponse, error) {
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
