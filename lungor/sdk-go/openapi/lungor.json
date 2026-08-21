@@ -705,49 +705,6 @@
                 }
             }
         },
-        "/social/oauth/{platform}/callback": {
-            "get": {
-                "description": "Consumes the state issued by the start call, exchanges the code and stores the credential, then redirects back to the UI.",
-                "tags": [
-                    "social"
-                ],
-                "summary": "OAuth redirect target",
-                "operationId": "socialOAuthCallback",
-                "parameters": [
-                    {
-                        "description": "Platform",
-                        "name": "platform",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Authorization code",
-                        "name": "code",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Opaque state issued at start",
-                        "name": "state",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "302": {
-                        "description": "Found"
-                    }
-                }
-            }
-        },
         "/subscriptions/cancel": {
             "post": {
                 "security": [
@@ -1001,11 +958,51 @@
             }
         },
         "/tenants/{tenant_id}": {
+            "get": {
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Get the tenant, including its invoicing legal identity",
+                "operationId": "getTenant",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.tenantView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
             "patch": {
                 "tags": [
                     "apps"
                 ],
-                "summary": "Update tenant legal entity",
+                "summary": "Update the tenant legal entity and invoicing identity",
                 "operationId": "updateTenant",
                 "parameters": [
                     {
@@ -1035,8 +1032,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "additionalProperties": true
+                                    "$ref": "#/components/schemas/finance.tenantView"
                                 }
                             }
                         }
@@ -3044,7 +3040,7 @@
         },
         "/tenants/{tenant_id}/customers/{customer_id}": {
             "get": {
-                "description": "Carries `deletion` when an erasure request is in force: `pending` means access was cut and the request is still cancelable until `anonymize_after`, `anonymized` means the identifying columns were neutralised and nothing is left to restore. The field is absent when no request is in force, including after one was called off.",
+                "description": "Carries `deletion` when an erasure request is in force: `pending` means access was cut and the request is still cancelable until `anonymize_after`, `anonymized` means the identifying columns were neutralised and nothing is left to restore. The field is absent when no request is in force, including after one was called off.\n`subscriptions` is the one list NOT scoped by `livemode`: a customer holds one subscription per app and two apps of the same tenant need not share a mode, so all of them are returned and each carries its own `livemode`. Apps, plan changes and transactions stay scoped to the requested mode.",
                 "tags": [
                     "billing"
                 ],
@@ -3200,6 +3196,180 @@
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "Overwrites name, email, country, address and VAT number. Fields are written as given: sending a blank one clears it. Changing the VAT number drops any existing VIES verification, since a verification belongs to the number that was checked — `vat_needs_recheck` then tells the console to offer a re-verification.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Edit a customer's billing identity",
+                "operationId": "updateCustomer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.updateCustomerRequest"
+                            }
+                        }
+                    },
+                    "description": "Profile",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.updateCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/customers/{customer_id}/payment-link": {
+            "post": {
+                "description": "Opens a checkout session for an existing customer and returns its hosted-payment URL, for the operator to send them. This is how a customer on a free plan reaches a paid one: change-plan charges a saved payment method, and a customer who never checked out has none — the card can only be collected by the customer themselves, on the gateway's own page.\nNothing is charged or granted here. The paid subscription stays incomplete until the customer pays; their current free subscription keeps running until then, and yields its slot only once the payment settles. Abandoning the link leaves the customer exactly where they were — the session expires on its own after two hours.\nRefuses a free plan with 400 — there is nothing to collect, so that move is change-plan's job.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Open a payment link moving a customer onto a paid plan",
+                "operationId": "createCustomerPaymentLink",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.paymentLinkRequest"
+                            }
+                        }
+                    },
+                    "description": "Target plan",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.paymentLinkResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/tenants/{tenant_id}/customers/{customer_id}/restore": {
@@ -3273,6 +3443,172 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/customers/{customer_id}/subscriptions": {
+            "post": {
+                "description": "Subscribes an existing customer to a free plan of one of the tenant's apps, the back-office counterpart of the app-key grant. Priced plans are refused: collecting a payment is what a checkout is for. The subscription is created in the app's own mode, so an app in test mode produces a test subscription — a live one takes an app that is live.\nAnswers 409 when `plan_code` names a plan `app_id` does not own: a subscription must carry a plan of its own app, or it would be metered against another app's allowances.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Put a customer on a plan",
+                "operationId": "assignCustomerPlan",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.assignPlanRequest"
+                            }
+                        }
+                    },
+                    "description": "Target plan",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.assignPlanResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/customers/{customer_id}/usage": {
+            "get": {
+                "description": "Per declared unit, what the customer may spend this period and what they have spent of it. Units the app meters without an allowance report a lifetime prepaid balance instead, flagged by periodic=false.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Report a customer's usage against their allowance",
+                "operationId": "getCustomerUsage",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Restrict to one app; omitted spans the tenant's apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/metering.customerUsageView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3703,1113 +4039,6 @@
                 }
             }
         },
-        "/tenants/{tenant_id}/social/apps/{app_id}/context": {
-            "get": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Get what lungor knows about an app as a product",
-                "operationId": "getSocialAppContext",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "App ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.appContextView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Save an app's product context, optionally scraping its site",
-                "operationId": "saveSocialAppContext",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "App ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.saveAppContextRequest"
-                            }
-                        }
-                    },
-                    "description": "Product context",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.appContextView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/apps/{app_id}/launch": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Draft a launch announcement from an app's product context",
-                "operationId": "launchSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "App ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.launchPostRequest"
-                            }
-                        }
-                    },
-                    "description": "Target platforms",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.launchView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/platforms": {
-            "get": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "List platforms and their connection state",
-                "operationId": "listSocialPlatforms",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/social.platformView"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "The credential is verified against the platform before being stored, so a wrong token fails here rather than when a scheduled post goes out.",
-                "tags": [
-                    "social"
-                ],
-                "summary": "Connect a social platform account",
-                "operationId": "connectSocialPlatform",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.connectPlatformRequest"
-                            }
-                        }
-                    },
-                    "description": "Platform credential",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.credentialView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/platforms/{platform}": {
-            "delete": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Disconnect a social platform account",
-                "operationId": "disconnectSocialPlatform",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Platform name",
-                        "name": "platform",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/platforms/{platform}/oauth/start": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Begin an OAuth authorisation for a platform",
-                "operationId": "startSocialOAuth",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Platform",
-                        "name": "platform",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.oauthStartView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/posts": {
-            "get": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "List social posts",
-                "operationId": "listSocialPosts",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Filter by status",
-                        "name": "status",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Filter by app",
-                        "name": "app_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Page size",
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "description": "Offset",
-                        "name": "offset",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postListView"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Create or update a social post draft",
-                "operationId": "composeSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/social.composePostRequest"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/posts/{post_id}": {
-            "get": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Get one social post",
-                "operationId": "getSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Post ID",
-                        "name": "post_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "patch": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Update an existing draft",
-                "operationId": "updateSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Post ID",
-                        "name": "post_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/social.composePostRequest"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/posts/{post_id}/approve": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Approve a post awaiting review",
-                "operationId": "approveSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Post ID",
-                        "name": "post_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/posts/{post_id}/cancel": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Cancel a post that has not gone out",
-                "operationId": "cancelSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Post ID",
-                        "name": "post_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/posts/{post_id}/schedule": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Schedule a post for a date",
-                "operationId": "scheduleSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Post ID",
-                        "name": "post_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.schedulePostRequest"
-                            }
-                        }
-                    },
-                    "description": "Publication date",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.postView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/rewrite": {
-            "post": {
-                "description": "The result never publishes itself. With post_id set, the post moves to awaiting_review and a human must approve it.",
-                "tags": [
-                    "social"
-                ],
-                "summary": "Rewrite raw material into platform copy with an LLM",
-                "operationId": "rewriteSocialPost",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.rewriteRequest"
-                            }
-                        }
-                    },
-                    "description": "Source material and target platform",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.rewriteView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/style": {
-            "get": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Get the tenant's writing-voice profiles",
-                "operationId": "getSocialStyle",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.styleSettingsView"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Save the tenant's base writing-voice profile",
-                "operationId": "saveSocialStyle",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/social.saveStyleRequest"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.styleProfileView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/style/preview": {
-            "post": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Render sample copy for an unsaved style profile",
-                "operationId": "previewSocialStyle",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/social.stylePreviewRequest"
-                            }
-                        }
-                    },
-                    "description": "Sliders as they currently sit",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.stylePreviewView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "402": {
-                        "description": "Payment Required",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/social/style/{platform}": {
-            "put": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Save a platform override of the writing-voice profile",
-                "operationId": "saveSocialStyleOverride",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Platform",
-                        "name": "platform",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "$ref": "#/components/requestBodies/social.saveStyleRequest"
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/social.styleProfileView"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "social"
-                ],
-                "summary": "Drop a platform override, falling back to the base profile",
-                "operationId": "deleteSocialStyleOverride",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Platform",
-                        "name": "platform",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/tenants/{tenant_id}/subscriptions": {
             "get": {
                 "tags": [
@@ -4955,7 +4184,7 @@
         },
         "/tenants/{tenant_id}/subscriptions/{sub_id}/change-plan": {
             "post": {
-                "description": "Upgrades apply immediately and charge only the prorated difference for the days left in the period already paid (nothing is charged below a 2 € floor). Downgrades change nothing today — they are recorded as a pending plan that the next renewal applies, because lowering the tier now can leave a customer above the new ceiling for a period they already paid for. Plans must be ranked (PUT /plans/{plan_id}/rank) for a move to classify as anything other than \"none\".",
+                "description": "Upgrades apply immediately and charge only the prorated difference for the days left in the period already paid (nothing is charged below a 2 € floor). Downgrades change nothing today — they are recorded as a pending plan that the next renewal applies, because lowering the tier now can leave a customer above the new ceiling for a period they already paid for. Plans must be ranked (PUT /plans/{plan_id}/rank) for a move to classify as anything other than \"none\".\nA move onto a plan that charges nothing is the exception: it applies immediately, so the billing stops today rather than at the renewal. The customer keeps a subscription — this is not a cancellation — but a customer who already spent past the free plan's allowance is refused for the remainder of the period they paid for.\nAnswers 409 when the move is understood but refused: trading a paid plan for a LARGER free one (cancel instead), or owing a proration with no saved payment method (send a payment link instead). Neither is retryable.",
                 "tags": [
                     "billing"
                 ],
@@ -5013,6 +4242,16 @@
                             }
                         }
                     },
+                    "402": {
+                        "description": "Payment Required",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.changePlanResponse"
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "description": "Forbidden",
                         "content": {
@@ -5025,6 +4264,16 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5148,6 +4397,109 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/transactions/{transaction_id}/refund": {
+            "post": {
+                "description": "Sends money back through the provider that took it, then records a `refund` transaction against the charge. `amount_cents` may be omitted to refund everything still refundable. The amount is bounded by what the charge has left after earlier refunds, pending ones included. Refunds are only recorded once the provider accepts them, so a 502 means nothing was refunded and nothing was written. Not every provider supports this: a PayPlug charge answers 501 and must be refunded from the PayPlug dashboard.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Refund a settled charge, fully or partially",
+                "operationId": "refundTransaction",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Transaction ID of the charge",
+                        "name": "transaction_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.refundRequest"
+                            }
+                        }
+                    },
+                    "description": "Refund",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.refundResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "501": {
+                        "description": "Not Implemented",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5546,30 +4898,6 @@
         }
     ],
     "components": {
-        "requestBodies": {
-            "social.composePostRequest": {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/social.composePostRequest"
-                        }
-                    }
-                },
-                "description": "Draft content",
-                "required": true
-            },
-            "social.saveStyleRequest": {
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "$ref": "#/components/schemas/social.saveStyleRequest"
-                        }
-                    }
-                },
-                "description": "Style profile",
-                "required": true
-            }
-        },
         "securitySchemes": {
             "AppKeyAuth": {
                 "type": "apiKey",
@@ -5755,6 +5083,9 @@
                     "external_user_id": {
                         "type": "string"
                     },
+                    "name": {
+                        "type": "string"
+                    },
                     "plan_code": {
                         "type": "string"
                     }
@@ -5873,6 +5204,31 @@
                     },
                     "withdrawn": {
                         "type": "boolean"
+                    }
+                }
+            },
+            "finance.assignPlanRequest": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.assignPlanResponse": {
+                "type": "object",
+                "properties": {
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
                     }
                 }
             },
@@ -5997,6 +5353,10 @@
                     "external_user_id": {
                         "type": "string"
                     },
+                    "name": {
+                        "description": "Name is the customer's legal name, as it must appear on the invoice.\nOptional: an omitted name never clears one already on record, and the\ngateway's own checkout collects a cardholder when none is known.",
+                        "type": "string"
+                    },
                     "price_id": {
                         "type": "string"
                     },
@@ -6103,6 +5463,10 @@
             "finance.createCredsReq": {
                 "type": "object",
                 "properties": {
+                    "client_id": {
+                        "description": "ClientID is bridge-only: it authenticates with a Client-Id/Client-Secret\nPAIR where every other provider uses a single key. Both halves are sealed\ntogether, so the pair can never be half-rotated.",
+                        "type": "string"
+                    },
                     "environment": {
                         "description": "legacy: test | live (single)",
                         "type": "string"
@@ -6317,6 +5681,9 @@
                     "interval": {
                         "type": "string"
                     },
+                    "livemode": {
+                        "type": "boolean"
+                    },
                     "pending_plan_code": {
                         "type": "string"
                     },
@@ -6399,6 +5766,15 @@
                     "deletion": {
                         "$ref": "#/components/schemas/finance.customerDeletionView"
                     },
+                    "delivery_address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "delivery_country": {
+                        "type": "string"
+                    },
                     "email": {
                         "type": "string"
                     },
@@ -6406,6 +5782,12 @@
                         "type": "string"
                     },
                     "id": {
+                        "type": "string"
+                    },
+                    "legal_id": {
+                        "type": "string"
+                    },
+                    "legal_id_scheme": {
                         "type": "string"
                     },
                     "name": {
@@ -6674,6 +6056,28 @@
                     }
                 }
             },
+            "finance.paymentLinkRequest": {
+                "type": "object",
+                "properties": {
+                    "plan_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.paymentLinkResponse": {
+                "type": "object",
+                "properties": {
+                    "payment_url": {
+                        "type": "string"
+                    },
+                    "session_id": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "finance.payoutListItemView": {
                 "type": "object",
                 "properties": {
@@ -6897,6 +6301,35 @@
                     }
                 }
             },
+            "finance.refundRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_cents": {
+                        "type": "integer"
+                    },
+                    "reason": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.refundResponse": {
+                "type": "object",
+                "properties": {
+                    "amount_cents": {
+                        "type": "integer"
+                    },
+                    "pending": {
+                        "description": "Pending is true when the provider accepted the refund but has not settled\nit yet — the money reaches the buyer days later.",
+                        "type": "boolean"
+                    },
+                    "refund_id": {
+                        "type": "string"
+                    },
+                    "remaining_cents": {
+                        "type": "integer"
+                    }
+                }
+            },
             "finance.replaceCredsReq": {
                 "type": "object",
                 "properties": {
@@ -6990,6 +6423,65 @@
                     }
                 }
             },
+            "finance.tenantView": {
+                "type": "object",
+                "properties": {
+                    "address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "discount_terms": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "late_penalty_rate": {
+                        "type": "number"
+                    },
+                    "legal_entity": {
+                        "type": "string"
+                    },
+                    "legal_id": {
+                        "type": "string"
+                    },
+                    "legal_id_scheme": {
+                        "type": "string"
+                    },
+                    "legal_mention": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "operation_category": {
+                        "type": "string"
+                    },
+                    "payment_terms_days": {
+                        "type": "integer"
+                    },
+                    "recovery_indemnity_cents": {
+                        "type": "integer"
+                    },
+                    "slug": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "vat_number": {
+                        "type": "string"
+                    },
+                    "vat_on_debits": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "finance.transactionListItemView": {
                 "type": "object",
                 "properties": {
@@ -7025,6 +6517,93 @@
                     }
                 }
             },
+            "finance.updateCustomerRequest": {
+                "type": "object",
+                "properties": {
+                    "address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "delivery_address_lines": {
+                        "description": "DeliveryAddressLines states where the supply is delivered when that\ndiffers from the billing address. Empty means \"same as billing\".",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "delivery_country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "legal_id": {
+                        "description": "LegalID is the buyer's SIREN, mandatory on an invoice to a taxable\ncustomer from 2026 — required alongside the VAT number, not instead of\nit. LegalIDScheme defaults to SIREN (\"0002\") when a LegalID is given.",
+                        "type": "string"
+                    },
+                    "legal_id_scheme": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "vat_number": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.updateCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "delivery_address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "delivery_country": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "legal_id": {
+                        "type": "string"
+                    },
+                    "legal_id_scheme": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "vat_needs_recheck": {
+                        "type": "boolean"
+                    },
+                    "vat_number": {
+                        "type": "string"
+                    },
+                    "vat_verified": {
+                        "type": "boolean"
+                    }
+                }
+            },
             "finance.updatePlanReq": {
                 "type": "object",
                 "properties": {
@@ -7046,8 +6625,50 @@
             "finance.updateTenantReq": {
                 "type": "object",
                 "properties": {
+                    "address_lines": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "country": {
+                        "type": "string"
+                    },
+                    "discount_terms": {
+                        "type": "string"
+                    },
+                    "late_penalty_rate": {
+                        "type": "number"
+                    },
                     "legal_entity": {
                         "type": "string"
+                    },
+                    "legal_id": {
+                        "type": "string"
+                    },
+                    "legal_id_scheme": {
+                        "type": "string"
+                    },
+                    "legal_mention": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "operation_category": {
+                        "type": "string"
+                    },
+                    "payment_terms_days": {
+                        "type": "integer"
+                    },
+                    "recovery_indemnity_cents": {
+                        "type": "integer"
+                    },
+                    "vat_number": {
+                        "type": "string"
+                    },
+                    "vat_on_debits": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -7219,6 +6840,38 @@
                     }
                 }
             },
+            "metering.customerUsageView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "balance": {
+                        "type": "integer"
+                    },
+                    "consumed": {
+                        "type": "integer"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
+                    },
+                    "periodic": {
+                        "type": "boolean"
+                    },
+                    "unit": {
+                        "type": "string"
+                    }
+                }
+            },
             "metering.decisionResponse": {
                 "type": "object",
                 "properties": {
@@ -7373,457 +7026,6 @@
                     "secret": {
                         "description": "returned ONCE on rotation",
                         "type": "string"
-                    }
-                }
-            },
-            "social.appContextView": {
-                "type": "object",
-                "properties": {
-                    "description": {
-                        "type": "string"
-                    },
-                    "description_edited": {
-                        "type": "boolean"
-                    },
-                    "highlights": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "image_url": {
-                        "type": "string"
-                    },
-                    "scrape_error": {
-                        "description": "ScrapeError reports a fetch that failed while the context itself was\nsaved. It is a warning on a successful response, not an error status.",
-                        "type": "string"
-                    },
-                    "scraped_at": {
-                        "type": "string"
-                    },
-                    "site_url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.composePostRequest": {
-                "type": "object",
-                "properties": {
-                    "app_id": {
-                        "type": "string"
-                    },
-                    "body": {
-                        "type": "string"
-                    },
-                    "platforms": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "rich_content": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "title": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.connectPlatformRequest": {
-                "type": "object",
-                "properties": {
-                    "identifier": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "secret": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.credentialView": {
-                "type": "object",
-                "properties": {
-                    "identifier": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.deliveryView": {
-                "type": "object",
-                "properties": {
-                    "attempts": {
-                        "type": "integer"
-                    },
-                    "error": {
-                        "type": "string"
-                    },
-                    "external_url": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "published_at": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.launchDraftView": {
-                "type": "object",
-                "properties": {
-                    "over_limit": {
-                        "type": "boolean"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "text": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.launchPostRequest": {
-                "type": "object",
-                "properties": {
-                    "platforms": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "unreleased": {
-                        "type": "boolean"
-                    }
-                }
-            },
-            "social.launchView": {
-                "type": "object",
-                "properties": {
-                    "drafts": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/social.launchDraftView"
-                        }
-                    },
-                    "post_id": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.oauthStartView": {
-                "type": "object",
-                "properties": {
-                    "authorize_url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.platformView": {
-                "type": "object",
-                "properties": {
-                    "connected": {
-                        "type": "boolean"
-                    },
-                    "deliverable": {
-                        "description": "Deliverable is false for a platform lungor models but cannot post to\nyet, so the UI can show it as coming rather than hiding it.",
-                        "type": "boolean"
-                    },
-                    "max_runes": {
-                        "type": "integer"
-                    },
-                    "name": {
-                        "type": "string"
-                    },
-                    "needs_identifier": {
-                        "type": "boolean"
-                    },
-                    "oauth": {
-                        "description": "OAuth platforms are connected by a redirect, not by a pasted secret, and\nNeedsIdentifier says whether the secret form must ask for one. Both are\ndecided here so the UI stops re-deriving them from platform names.",
-                        "type": "boolean"
-                    }
-                }
-            },
-            "social.postListView": {
-                "type": "object",
-                "properties": {
-                    "items": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/social.postView"
-                        }
-                    }
-                }
-            },
-            "social.postView": {
-                "type": "object",
-                "properties": {
-                    "app_id": {
-                        "type": "string"
-                    },
-                    "body": {
-                        "type": "string"
-                    },
-                    "created_at": {
-                        "type": "string"
-                    },
-                    "deliveries": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/social.deliveryView"
-                        }
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "platforms": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "published_at": {
-                        "type": "string"
-                    },
-                    "rich_content": {
-                        "type": "array",
-                        "items": {
-                            "type": "integer"
-                        }
-                    },
-                    "scheduled_at": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "updated_at": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.rewriteRequest": {
-                "type": "object",
-                "properties": {
-                    "app_id": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "post_id": {
-                        "type": "string"
-                    },
-                    "source": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.rewriteView": {
-                "type": "object",
-                "properties": {
-                    "over_limit": {
-                        "description": "OverLimit reports copy the model returned longer than the platform\nallows. The text is handed back untrimmed so the author can shorten it\nthemselves; scheduling it as-is is refused.",
-                        "type": "boolean"
-                    },
-                    "post_id": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    },
-                    "text": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.sampleSourceView": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "label": {
-                        "type": "string"
-                    },
-                    "text": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.saveAppContextRequest": {
-                "type": "object",
-                "properties": {
-                    "description": {
-                        "description": "Description is a pointer so that omitting it leaves a stored description\nalone, while sending \"\" deliberately clears it.",
-                        "type": "string"
-                    },
-                    "highlights": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "scrape": {
-                        "type": "boolean"
-                    },
-                    "site_url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.saveStyleRequest": {
-                "type": "object",
-                "properties": {
-                    "axes": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "integer"
-                        }
-                    },
-                    "banned_phrases": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "language": {
-                        "type": "string"
-                    },
-                    "signature_notes": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.schedulePostRequest": {
-                "type": "object",
-                "properties": {
-                    "scheduled_at": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.stylePreviewRequest": {
-                "type": "object",
-                "properties": {
-                    "axes": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "integer"
-                        }
-                    },
-                    "banned_phrases": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "language": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "sample_id": {
-                        "type": "string"
-                    },
-                    "signature_notes": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.stylePreviewView": {
-                "type": "object",
-                "properties": {
-                    "cached": {
-                        "type": "boolean"
-                    },
-                    "over_limit": {
-                        "type": "boolean"
-                    },
-                    "sample_id": {
-                        "type": "string"
-                    },
-                    "text": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.styleProfileView": {
-                "type": "object",
-                "properties": {
-                    "axes": {
-                        "type": "object",
-                        "additionalProperties": {
-                            "type": "integer"
-                        }
-                    },
-                    "banned_phrases": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "language": {
-                        "type": "string"
-                    },
-                    "platform": {
-                        "type": "string"
-                    },
-                    "signature_notes": {
-                        "type": "string"
-                    }
-                }
-            },
-            "social.styleSettingsView": {
-                "type": "object",
-                "properties": {
-                    "axes": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "base": {
-                        "$ref": "#/components/schemas/social.styleProfileView"
-                    },
-                    "languages": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "overrides": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/social.styleProfileView"
-                        }
-                    },
-                    "samples": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/social.sampleSourceView"
-                        }
                     }
                 }
             },
