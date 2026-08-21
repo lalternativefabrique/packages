@@ -82,6 +82,7 @@ type FinanceAppGrantRequest struct {
 	Country        *string `json:"country,omitempty"`
 	Email          *string `json:"email,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
+	Name           *string `json:"name,omitempty"`
 	PlanCode       *string `json:"plan_code,omitempty"`
 }
 
@@ -126,9 +127,14 @@ type FinanceCheckoutRequest struct {
 	Country        *string `json:"country,omitempty"`
 	Email          *string `json:"email,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
-	PriceId        *string `json:"price_id,omitempty"`
-	SuccessUrl     *string `json:"success_url,omitempty"`
-	TenantId       *string `json:"tenant_id,omitempty"`
+
+	// Name Name is the customer's legal name, as it must appear on the invoice.
+	// Optional: an omitted name never clears one already on record, and the
+	// gateway's own checkout collects a cardholder when none is known.
+	Name       *string `json:"name,omitempty"`
+	PriceId    *string `json:"price_id,omitempty"`
+	SuccessUrl *string `json:"success_url,omitempty"`
+	TenantId   *string `json:"tenant_id,omitempty"`
 }
 
 // FinanceCheckoutResponse defines model for finance.checkoutResponse.
@@ -295,6 +301,19 @@ type MeteringConsumeRequest struct {
 	Unit           *string `json:"unit,omitempty"`
 }
 
+// MeteringCustomerUsageView defines model for metering.customerUsageView.
+type MeteringCustomerUsageView struct {
+	AppId       *string `json:"app_id,omitempty"`
+	Balance     *int    `json:"balance,omitempty"`
+	Consumed    *int    `json:"consumed,omitempty"`
+	Limit       *int    `json:"limit,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	PeriodEnd   *string `json:"period_end,omitempty"`
+	PeriodStart *string `json:"period_start,omitempty"`
+	Periodic    *bool   `json:"periodic,omitempty"`
+	Unit        *string `json:"unit,omitempty"`
+}
+
 // MeteringDecisionResponse defines model for metering.decisionResponse.
 type MeteringDecisionResponse struct {
 	// Allowed Allowed is the verdict. Read THIS rather than branching on the status
@@ -373,201 +392,6 @@ type RotateSecretResult struct {
 	Secret *string `json:"secret,omitempty"`
 }
 
-// SocialAppContextView defines model for social.appContextView.
-type SocialAppContextView struct {
-	Description       *string   `json:"description,omitempty"`
-	DescriptionEdited *bool     `json:"description_edited,omitempty"`
-	Highlights        *[]string `json:"highlights,omitempty"`
-	ImageUrl          *string   `json:"image_url,omitempty"`
-
-	// ScrapeError ScrapeError reports a fetch that failed while the context itself was
-	// saved. It is a warning on a successful response, not an error status.
-	ScrapeError *string `json:"scrape_error,omitempty"`
-	ScrapedAt   *string `json:"scraped_at,omitempty"`
-	SiteUrl     *string `json:"site_url,omitempty"`
-}
-
-// SocialComposePostRequest defines model for social.composePostRequest.
-type SocialComposePostRequest struct {
-	AppId       *string   `json:"app_id,omitempty"`
-	Body        *string   `json:"body,omitempty"`
-	Platforms   *[]string `json:"platforms,omitempty"`
-	RichContent *[]int    `json:"rich_content,omitempty"`
-	Title       *string   `json:"title,omitempty"`
-}
-
-// SocialConnectPlatformRequest defines model for social.connectPlatformRequest.
-type SocialConnectPlatformRequest struct {
-	Identifier *string `json:"identifier,omitempty"`
-	Platform   *string `json:"platform,omitempty"`
-	Secret     *string `json:"secret,omitempty"`
-}
-
-// SocialCredentialView defines model for social.credentialView.
-type SocialCredentialView struct {
-	Identifier *string `json:"identifier,omitempty"`
-	Platform   *string `json:"platform,omitempty"`
-	UpdatedAt  *string `json:"updated_at,omitempty"`
-}
-
-// SocialDeliveryView defines model for social.deliveryView.
-type SocialDeliveryView struct {
-	Attempts    *int    `json:"attempts,omitempty"`
-	Error       *string `json:"error,omitempty"`
-	ExternalUrl *string `json:"external_url,omitempty"`
-	Id          *string `json:"id,omitempty"`
-	Platform    *string `json:"platform,omitempty"`
-	PublishedAt *string `json:"published_at,omitempty"`
-	Status      *string `json:"status,omitempty"`
-}
-
-// SocialLaunchDraftView defines model for social.launchDraftView.
-type SocialLaunchDraftView struct {
-	OverLimit *bool   `json:"over_limit,omitempty"`
-	Platform  *string `json:"platform,omitempty"`
-	Text      *string `json:"text,omitempty"`
-}
-
-// SocialLaunchPostRequest defines model for social.launchPostRequest.
-type SocialLaunchPostRequest struct {
-	Platforms  *[]string `json:"platforms,omitempty"`
-	Unreleased *bool     `json:"unreleased,omitempty"`
-}
-
-// SocialLaunchView defines model for social.launchView.
-type SocialLaunchView struct {
-	Drafts *[]SocialLaunchDraftView `json:"drafts,omitempty"`
-	PostId *string                  `json:"post_id,omitempty"`
-}
-
-// SocialOauthStartView defines model for social.oauthStartView.
-type SocialOauthStartView struct {
-	AuthorizeUrl *string `json:"authorize_url,omitempty"`
-}
-
-// SocialPlatformView defines model for social.platformView.
-type SocialPlatformView struct {
-	Connected *bool `json:"connected,omitempty"`
-
-	// Deliverable Deliverable is false for a platform lungor models but cannot post to
-	// yet, so the UI can show it as coming rather than hiding it.
-	Deliverable     *bool   `json:"deliverable,omitempty"`
-	MaxRunes        *int    `json:"max_runes,omitempty"`
-	Name            *string `json:"name,omitempty"`
-	NeedsIdentifier *bool   `json:"needs_identifier,omitempty"`
-
-	// Oauth OAuth platforms are connected by a redirect, not by a pasted secret, and
-	// NeedsIdentifier says whether the secret form must ask for one. Both are
-	// decided here so the UI stops re-deriving them from platform names.
-	Oauth *bool `json:"oauth,omitempty"`
-}
-
-// SocialPostListView defines model for social.postListView.
-type SocialPostListView struct {
-	Items *[]SocialPostView `json:"items,omitempty"`
-}
-
-// SocialPostView defines model for social.postView.
-type SocialPostView struct {
-	AppId       *string               `json:"app_id,omitempty"`
-	Body        *string               `json:"body,omitempty"`
-	CreatedAt   *string               `json:"created_at,omitempty"`
-	Deliveries  *[]SocialDeliveryView `json:"deliveries,omitempty"`
-	Id          *string               `json:"id,omitempty"`
-	Platforms   *[]string             `json:"platforms,omitempty"`
-	PublishedAt *string               `json:"published_at,omitempty"`
-	RichContent *[]int                `json:"rich_content,omitempty"`
-	ScheduledAt *string               `json:"scheduled_at,omitempty"`
-	Status      *string               `json:"status,omitempty"`
-	Title       *string               `json:"title,omitempty"`
-	UpdatedAt   *string               `json:"updated_at,omitempty"`
-}
-
-// SocialRewriteRequest defines model for social.rewriteRequest.
-type SocialRewriteRequest struct {
-	AppId    *string `json:"app_id,omitempty"`
-	Platform *string `json:"platform,omitempty"`
-	PostId   *string `json:"post_id,omitempty"`
-	Source   *string `json:"source,omitempty"`
-}
-
-// SocialRewriteView defines model for social.rewriteView.
-type SocialRewriteView struct {
-	// OverLimit OverLimit reports copy the model returned longer than the platform
-	// allows. The text is handed back untrimmed so the author can shorten it
-	// themselves; scheduling it as-is is refused.
-	OverLimit *bool   `json:"over_limit,omitempty"`
-	PostId    *string `json:"post_id,omitempty"`
-	Status    *string `json:"status,omitempty"`
-	Text      *string `json:"text,omitempty"`
-}
-
-// SocialSampleSourceView defines model for social.sampleSourceView.
-type SocialSampleSourceView struct {
-	Id    *string `json:"id,omitempty"`
-	Label *string `json:"label,omitempty"`
-	Text  *string `json:"text,omitempty"`
-}
-
-// SocialSaveAppContextRequest defines model for social.saveAppContextRequest.
-type SocialSaveAppContextRequest struct {
-	// Description Description is a pointer so that omitting it leaves a stored description
-	// alone, while sending "" deliberately clears it.
-	Description *string   `json:"description,omitempty"`
-	Highlights  *[]string `json:"highlights,omitempty"`
-	Scrape      *bool     `json:"scrape,omitempty"`
-	SiteUrl     *string   `json:"site_url,omitempty"`
-}
-
-// SocialSaveStyleRequest defines model for social.saveStyleRequest.
-type SocialSaveStyleRequest struct {
-	Axes           *map[string]int `json:"axes,omitempty"`
-	BannedPhrases  *[]string       `json:"banned_phrases,omitempty"`
-	Language       *string         `json:"language,omitempty"`
-	SignatureNotes *string         `json:"signature_notes,omitempty"`
-}
-
-// SocialSchedulePostRequest defines model for social.schedulePostRequest.
-type SocialSchedulePostRequest struct {
-	ScheduledAt *string `json:"scheduled_at,omitempty"`
-}
-
-// SocialStylePreviewRequest defines model for social.stylePreviewRequest.
-type SocialStylePreviewRequest struct {
-	Axes           *map[string]int `json:"axes,omitempty"`
-	BannedPhrases  *[]string       `json:"banned_phrases,omitempty"`
-	Language       *string         `json:"language,omitempty"`
-	Platform       *string         `json:"platform,omitempty"`
-	SampleId       *string         `json:"sample_id,omitempty"`
-	SignatureNotes *string         `json:"signature_notes,omitempty"`
-}
-
-// SocialStylePreviewView defines model for social.stylePreviewView.
-type SocialStylePreviewView struct {
-	Cached    *bool   `json:"cached,omitempty"`
-	OverLimit *bool   `json:"over_limit,omitempty"`
-	SampleId  *string `json:"sample_id,omitempty"`
-	Text      *string `json:"text,omitempty"`
-}
-
-// SocialStyleProfileView defines model for social.styleProfileView.
-type SocialStyleProfileView struct {
-	Axes           *map[string]int `json:"axes,omitempty"`
-	BannedPhrases  *[]string       `json:"banned_phrases,omitempty"`
-	Language       *string         `json:"language,omitempty"`
-	Platform       *string         `json:"platform,omitempty"`
-	SignatureNotes *string         `json:"signature_notes,omitempty"`
-}
-
-// SocialStyleSettingsView defines model for social.styleSettingsView.
-type SocialStyleSettingsView struct {
-	Axes      *[]string                 `json:"axes,omitempty"`
-	Base      *SocialStyleProfileView   `json:"base,omitempty"`
-	Languages *[]string                 `json:"languages,omitempty"`
-	Overrides *[]SocialStyleProfileView `json:"overrides,omitempty"`
-	Samples   *[]SocialSampleSourceView `json:"samples,omitempty"`
-}
-
 // UpdateEndpointUpdateEndpointRequest defines model for update_endpoint.UpdateEndpointRequest.
 type UpdateEndpointUpdateEndpointRequest struct {
 	Description *string   `json:"description,omitempty"`
@@ -594,28 +418,10 @@ type GetUsageBalanceParams struct {
 	Unit string `form:"unit" json:"unit"`
 }
 
-// SocialOAuthCallbackParams defines parameters for SocialOAuthCallback.
-type SocialOAuthCallbackParams struct {
-	// Code Authorization code
-	Code *string `form:"code,omitempty" json:"code,omitempty"`
-
-	// State Opaque state issued at start
-	State string `form:"state" json:"state"`
-}
-
-// ListSocialPostsParams defines parameters for ListSocialPosts.
-type ListSocialPostsParams struct {
-	// Status Filter by status
-	Status *string `form:"status,omitempty" json:"status,omitempty"`
-
-	// AppId Filter by app
+// GetCustomerUsageParams defines parameters for GetCustomerUsage.
+type GetCustomerUsageParams struct {
+	// AppId Restrict to one app; omitted spans the tenant's apps
 	AppId *string `form:"app_id,omitempty" json:"app_id,omitempty"`
-
-	// Limit Page size
-	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
-
-	// Offset Offset
-	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
 // ListWebhookEndpointsParams defines parameters for ListWebhookEndpoints.
@@ -662,36 +468,6 @@ type BulkDeleteUsageUnitsJSONRequestBody = MeteringBulkDeleteUnitsRequest
 
 // UpdateUsageUnitJSONRequestBody defines body for UpdateUsageUnit for application/json ContentType.
 type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
-
-// SaveSocialAppContextJSONRequestBody defines body for SaveSocialAppContext for application/json ContentType.
-type SaveSocialAppContextJSONRequestBody = SocialSaveAppContextRequest
-
-// LaunchSocialPostJSONRequestBody defines body for LaunchSocialPost for application/json ContentType.
-type LaunchSocialPostJSONRequestBody = SocialLaunchPostRequest
-
-// ConnectSocialPlatformJSONRequestBody defines body for ConnectSocialPlatform for application/json ContentType.
-type ConnectSocialPlatformJSONRequestBody = SocialConnectPlatformRequest
-
-// ComposeSocialPostJSONRequestBody defines body for ComposeSocialPost for application/json ContentType.
-type ComposeSocialPostJSONRequestBody = SocialComposePostRequest
-
-// UpdateSocialPostJSONRequestBody defines body for UpdateSocialPost for application/json ContentType.
-type UpdateSocialPostJSONRequestBody = SocialComposePostRequest
-
-// ScheduleSocialPostJSONRequestBody defines body for ScheduleSocialPost for application/json ContentType.
-type ScheduleSocialPostJSONRequestBody = SocialSchedulePostRequest
-
-// RewriteSocialPostJSONRequestBody defines body for RewriteSocialPost for application/json ContentType.
-type RewriteSocialPostJSONRequestBody = SocialRewriteRequest
-
-// SaveSocialStyleJSONRequestBody defines body for SaveSocialStyle for application/json ContentType.
-type SaveSocialStyleJSONRequestBody = SocialSaveStyleRequest
-
-// PreviewSocialStyleJSONRequestBody defines body for PreviewSocialStyle for application/json ContentType.
-type PreviewSocialStyleJSONRequestBody = SocialStylePreviewRequest
-
-// SaveSocialStyleOverrideJSONRequestBody defines body for SaveSocialStyleOverride for application/json ContentType.
-type SaveSocialStyleOverrideJSONRequestBody = SocialSaveStyleRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -815,9 +591,6 @@ type ClientInterface interface {
 	// ListAppPlans request
 	ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// SocialOAuthCallback request
-	SocialOAuthCallback(ctx context.Context, platform string, params *SocialOAuthCallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// AppCancelSubscriptionWithBody request with any body
 	AppCancelSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -856,6 +629,9 @@ type ClientInterface interface {
 
 	UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetCustomerUsage request
+	GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListInvitations request
 	ListInvitations(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -864,86 +640,6 @@ type ClientInterface interface {
 
 	// RegenerateInvitation request
 	RegenerateInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetSocialAppContext request
-	GetSocialAppContext(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SaveSocialAppContextWithBody request with any body
-	SaveSocialAppContextWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	SaveSocialAppContext(ctx context.Context, tenantId string, appId string, body SaveSocialAppContextJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// LaunchSocialPostWithBody request with any body
-	LaunchSocialPostWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	LaunchSocialPost(ctx context.Context, tenantId string, appId string, body LaunchSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListSocialPlatforms request
-	ListSocialPlatforms(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ConnectSocialPlatformWithBody request with any body
-	ConnectSocialPlatformWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ConnectSocialPlatform(ctx context.Context, tenantId string, body ConnectSocialPlatformJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DisconnectSocialPlatform request
-	DisconnectSocialPlatform(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// StartSocialOAuth request
-	StartSocialOAuth(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListSocialPosts request
-	ListSocialPosts(ctx context.Context, tenantId string, params *ListSocialPostsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ComposeSocialPostWithBody request with any body
-	ComposeSocialPostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ComposeSocialPost(ctx context.Context, tenantId string, body ComposeSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetSocialPost request
-	GetSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateSocialPostWithBody request with any body
-	UpdateSocialPostWithBody(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	UpdateSocialPost(ctx context.Context, tenantId string, postId string, body UpdateSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ApproveSocialPost request
-	ApproveSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CancelSocialPost request
-	CancelSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ScheduleSocialPostWithBody request with any body
-	ScheduleSocialPostWithBody(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ScheduleSocialPost(ctx context.Context, tenantId string, postId string, body ScheduleSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RewriteSocialPostWithBody request with any body
-	RewriteSocialPostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	RewriteSocialPost(ctx context.Context, tenantId string, body RewriteSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetSocialStyle request
-	GetSocialStyle(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SaveSocialStyleWithBody request with any body
-	SaveSocialStyleWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	SaveSocialStyle(ctx context.Context, tenantId string, body SaveSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PreviewSocialStyleWithBody request with any body
-	PreviewSocialStyleWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PreviewSocialStyle(ctx context.Context, tenantId string, body PreviewSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteSocialStyleOverride request
-	DeleteSocialStyleOverride(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SaveSocialStyleOverrideWithBody request with any body
-	SaveSocialStyleOverrideWithBody(ctx context.Context, tenantId string, platform string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	SaveSocialStyleOverride(ctx context.Context, tenantId string, platform string, body SaveSocialStyleOverrideJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1160,18 +856,6 @@ func (c *Client) ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
-func (c *Client) SocialOAuthCallback(ctx context.Context, platform string, params *SocialOAuthCallbackParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSocialOAuthCallbackRequest(c.Server, platform, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) AppCancelSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppCancelSubscriptionRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1352,6 +1036,18 @@ func (c *Client) UpdateUsageUnit(ctx context.Context, tenantId string, appId str
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCustomerUsageRequest(c.Server, tenantId, customerId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListInvitations(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListInvitationsRequest(c.Server, tenantId)
 	if err != nil {
@@ -1378,366 +1074,6 @@ func (c *Client) RevokeInvitation(ctx context.Context, tenantId string, id strin
 
 func (c *Client) RegenerateInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRegenerateInvitationRequest(c.Server, tenantId, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetSocialAppContext(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSocialAppContextRequest(c.Server, tenantId, appId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialAppContextWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialAppContextRequestWithBody(c.Server, tenantId, appId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialAppContext(ctx context.Context, tenantId string, appId string, body SaveSocialAppContextJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialAppContextRequest(c.Server, tenantId, appId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) LaunchSocialPostWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLaunchSocialPostRequestWithBody(c.Server, tenantId, appId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) LaunchSocialPost(ctx context.Context, tenantId string, appId string, body LaunchSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLaunchSocialPostRequest(c.Server, tenantId, appId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListSocialPlatforms(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListSocialPlatformsRequest(c.Server, tenantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ConnectSocialPlatformWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewConnectSocialPlatformRequestWithBody(c.Server, tenantId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ConnectSocialPlatform(ctx context.Context, tenantId string, body ConnectSocialPlatformJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewConnectSocialPlatformRequest(c.Server, tenantId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DisconnectSocialPlatform(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDisconnectSocialPlatformRequest(c.Server, tenantId, platform)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) StartSocialOAuth(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewStartSocialOAuthRequest(c.Server, tenantId, platform)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListSocialPosts(ctx context.Context, tenantId string, params *ListSocialPostsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListSocialPostsRequest(c.Server, tenantId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ComposeSocialPostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewComposeSocialPostRequestWithBody(c.Server, tenantId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ComposeSocialPost(ctx context.Context, tenantId string, body ComposeSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewComposeSocialPostRequest(c.Server, tenantId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSocialPostRequest(c.Server, tenantId, postId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateSocialPostWithBody(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSocialPostRequestWithBody(c.Server, tenantId, postId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateSocialPost(ctx context.Context, tenantId string, postId string, body UpdateSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateSocialPostRequest(c.Server, tenantId, postId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ApproveSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewApproveSocialPostRequest(c.Server, tenantId, postId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CancelSocialPost(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCancelSocialPostRequest(c.Server, tenantId, postId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ScheduleSocialPostWithBody(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewScheduleSocialPostRequestWithBody(c.Server, tenantId, postId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ScheduleSocialPost(ctx context.Context, tenantId string, postId string, body ScheduleSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewScheduleSocialPostRequest(c.Server, tenantId, postId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RewriteSocialPostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRewriteSocialPostRequestWithBody(c.Server, tenantId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RewriteSocialPost(ctx context.Context, tenantId string, body RewriteSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRewriteSocialPostRequest(c.Server, tenantId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetSocialStyle(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetSocialStyleRequest(c.Server, tenantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialStyleWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialStyleRequestWithBody(c.Server, tenantId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialStyle(ctx context.Context, tenantId string, body SaveSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialStyleRequest(c.Server, tenantId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PreviewSocialStyleWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPreviewSocialStyleRequestWithBody(c.Server, tenantId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PreviewSocialStyle(ctx context.Context, tenantId string, body PreviewSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPreviewSocialStyleRequest(c.Server, tenantId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteSocialStyleOverride(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteSocialStyleOverrideRequest(c.Server, tenantId, platform)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialStyleOverrideWithBody(ctx context.Context, tenantId string, platform string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialStyleOverrideRequestWithBody(c.Server, tenantId, platform, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SaveSocialStyleOverride(ctx context.Context, tenantId string, platform string, body SaveSocialStyleOverrideJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSaveSocialStyleOverrideRequest(c.Server, tenantId, platform, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2291,74 +1627,6 @@ func NewListAppPlansRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewSocialOAuthCallbackRequest generates requests for SocialOAuthCallback
-func NewSocialOAuthCallbackRequest(server string, platform string, params *SocialOAuthCallbackParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "platform", runtime.ParamLocationPath, platform)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/social/oauth/%s/callback", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Code != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "code", runtime.ParamLocationQuery, *params.Code); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "state", runtime.ParamLocationQuery, params.State); err != nil {
-			return nil, err
-		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-			return nil, err
-		} else {
-			for k, v := range parsed {
-				for _, v2 := range v {
-					queryValues.Add(k, v2)
-				}
-			}
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewAppCancelSubscriptionRequest calls the generic AppCancelSubscription builder with application/json body
 func NewAppCancelSubscriptionRequest(server string, body AppCancelSubscriptionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2736,6 +2004,69 @@ func NewUpdateUsageUnitRequestWithBody(server string, tenantId string, appId str
 	return req, nil
 }
 
+// NewGetCustomerUsageRequest generates requests for GetCustomerUsage
+func NewGetCustomerUsageRequest(server string, tenantId string, customerId string, params *GetCustomerUsageParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "customer_id", runtime.ParamLocationPath, customerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/customers/%s/usage", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.AppId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app_id", runtime.ParamLocationQuery, *params.AppId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListInvitationsRequest generates requests for ListInvitations
 func NewListInvitationsRequest(server string, tenantId string) (*http.Request, error) {
 	var err error
@@ -2848,970 +2179,6 @@ func NewRegenerateInvitationRequest(server string, tenantId string, id string) (
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewGetSocialAppContextRequest generates requests for GetSocialAppContext
-func NewGetSocialAppContextRequest(server string, tenantId string, appId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/apps/%s/context", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSaveSocialAppContextRequest calls the generic SaveSocialAppContext builder with application/json body
-func NewSaveSocialAppContextRequest(server string, tenantId string, appId string, body SaveSocialAppContextJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewSaveSocialAppContextRequestWithBody(server, tenantId, appId, "application/json", bodyReader)
-}
-
-// NewSaveSocialAppContextRequestWithBody generates requests for SaveSocialAppContext with any type of body
-func NewSaveSocialAppContextRequestWithBody(server string, tenantId string, appId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/apps/%s/context", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewLaunchSocialPostRequest calls the generic LaunchSocialPost builder with application/json body
-func NewLaunchSocialPostRequest(server string, tenantId string, appId string, body LaunchSocialPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewLaunchSocialPostRequestWithBody(server, tenantId, appId, "application/json", bodyReader)
-}
-
-// NewLaunchSocialPostRequestWithBody generates requests for LaunchSocialPost with any type of body
-func NewLaunchSocialPostRequestWithBody(server string, tenantId string, appId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/apps/%s/launch", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewListSocialPlatformsRequest generates requests for ListSocialPlatforms
-func NewListSocialPlatformsRequest(server string, tenantId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/platforms", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewConnectSocialPlatformRequest calls the generic ConnectSocialPlatform builder with application/json body
-func NewConnectSocialPlatformRequest(server string, tenantId string, body ConnectSocialPlatformJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewConnectSocialPlatformRequestWithBody(server, tenantId, "application/json", bodyReader)
-}
-
-// NewConnectSocialPlatformRequestWithBody generates requests for ConnectSocialPlatform with any type of body
-func NewConnectSocialPlatformRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/platforms", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDisconnectSocialPlatformRequest generates requests for DisconnectSocialPlatform
-func NewDisconnectSocialPlatformRequest(server string, tenantId string, platform string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "platform", runtime.ParamLocationPath, platform)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/platforms/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewStartSocialOAuthRequest generates requests for StartSocialOAuth
-func NewStartSocialOAuthRequest(server string, tenantId string, platform string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "platform", runtime.ParamLocationPath, platform)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/platforms/%s/oauth/start", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewListSocialPostsRequest generates requests for ListSocialPosts
-func NewListSocialPostsRequest(server string, tenantId string, params *ListSocialPostsParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.Status != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.AppId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app_id", runtime.ParamLocationQuery, *params.AppId); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Limit != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.Offset != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "offset", runtime.ParamLocationQuery, *params.Offset); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewComposeSocialPostRequest calls the generic ComposeSocialPost builder with application/json body
-func NewComposeSocialPostRequest(server string, tenantId string, body ComposeSocialPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewComposeSocialPostRequestWithBody(server, tenantId, "application/json", bodyReader)
-}
-
-// NewComposeSocialPostRequestWithBody generates requests for ComposeSocialPost with any type of body
-func NewComposeSocialPostRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetSocialPostRequest generates requests for GetSocialPost
-func NewGetSocialPostRequest(server string, tenantId string, postId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "post_id", runtime.ParamLocationPath, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUpdateSocialPostRequest calls the generic UpdateSocialPost builder with application/json body
-func NewUpdateSocialPostRequest(server string, tenantId string, postId string, body UpdateSocialPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateSocialPostRequestWithBody(server, tenantId, postId, "application/json", bodyReader)
-}
-
-// NewUpdateSocialPostRequestWithBody generates requests for UpdateSocialPost with any type of body
-func NewUpdateSocialPostRequestWithBody(server string, tenantId string, postId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "post_id", runtime.ParamLocationPath, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PATCH", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewApproveSocialPostRequest generates requests for ApproveSocialPost
-func NewApproveSocialPostRequest(server string, tenantId string, postId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "post_id", runtime.ParamLocationPath, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts/%s/approve", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCancelSocialPostRequest generates requests for CancelSocialPost
-func NewCancelSocialPostRequest(server string, tenantId string, postId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "post_id", runtime.ParamLocationPath, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts/%s/cancel", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewScheduleSocialPostRequest calls the generic ScheduleSocialPost builder with application/json body
-func NewScheduleSocialPostRequest(server string, tenantId string, postId string, body ScheduleSocialPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewScheduleSocialPostRequestWithBody(server, tenantId, postId, "application/json", bodyReader)
-}
-
-// NewScheduleSocialPostRequestWithBody generates requests for ScheduleSocialPost with any type of body
-func NewScheduleSocialPostRequestWithBody(server string, tenantId string, postId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "post_id", runtime.ParamLocationPath, postId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/posts/%s/schedule", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewRewriteSocialPostRequest calls the generic RewriteSocialPost builder with application/json body
-func NewRewriteSocialPostRequest(server string, tenantId string, body RewriteSocialPostJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewRewriteSocialPostRequestWithBody(server, tenantId, "application/json", bodyReader)
-}
-
-// NewRewriteSocialPostRequestWithBody generates requests for RewriteSocialPost with any type of body
-func NewRewriteSocialPostRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/rewrite", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewGetSocialStyleRequest generates requests for GetSocialStyle
-func NewGetSocialStyleRequest(server string, tenantId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/style", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSaveSocialStyleRequest calls the generic SaveSocialStyle builder with application/json body
-func NewSaveSocialStyleRequest(server string, tenantId string, body SaveSocialStyleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewSaveSocialStyleRequestWithBody(server, tenantId, "application/json", bodyReader)
-}
-
-// NewSaveSocialStyleRequestWithBody generates requests for SaveSocialStyle with any type of body
-func NewSaveSocialStyleRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/style", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPreviewSocialStyleRequest calls the generic PreviewSocialStyle builder with application/json body
-func NewPreviewSocialStyleRequest(server string, tenantId string, body PreviewSocialStyleJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPreviewSocialStyleRequestWithBody(server, tenantId, "application/json", bodyReader)
-}
-
-// NewPreviewSocialStyleRequestWithBody generates requests for PreviewSocialStyle with any type of body
-func NewPreviewSocialStyleRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/style/preview", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteSocialStyleOverrideRequest generates requests for DeleteSocialStyleOverride
-func NewDeleteSocialStyleOverrideRequest(server string, tenantId string, platform string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "platform", runtime.ParamLocationPath, platform)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/style/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewSaveSocialStyleOverrideRequest calls the generic SaveSocialStyleOverride builder with application/json body
-func NewSaveSocialStyleOverrideRequest(server string, tenantId string, platform string, body SaveSocialStyleOverrideJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewSaveSocialStyleOverrideRequestWithBody(server, tenantId, platform, "application/json", bodyReader)
-}
-
-// NewSaveSocialStyleOverrideRequestWithBody generates requests for SaveSocialStyleOverride with any type of body
-func NewSaveSocialStyleOverrideRequestWithBody(server string, tenantId string, platform string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "platform", runtime.ParamLocationPath, platform)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/social/style/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PUT", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -4156,9 +2523,6 @@ type ClientWithResponsesInterface interface {
 	// ListAppPlansWithResponse request
 	ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error)
 
-	// SocialOAuthCallbackWithResponse request
-	SocialOAuthCallbackWithResponse(ctx context.Context, platform string, params *SocialOAuthCallbackParams, reqEditors ...RequestEditorFn) (*SocialOAuthCallbackResponse, error)
-
 	// AppCancelSubscriptionWithBodyWithResponse request with any body
 	AppCancelSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppCancelSubscriptionResponse, error)
 
@@ -4197,6 +2561,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
 
+	// GetCustomerUsageWithResponse request
+	GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error)
+
 	// ListInvitationsWithResponse request
 	ListInvitationsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListInvitationsResponse, error)
 
@@ -4205,86 +2572,6 @@ type ClientWithResponsesInterface interface {
 
 	// RegenerateInvitationWithResponse request
 	RegenerateInvitationWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*RegenerateInvitationResponse, error)
-
-	// GetSocialAppContextWithResponse request
-	GetSocialAppContextWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*GetSocialAppContextResponse, error)
-
-	// SaveSocialAppContextWithBodyWithResponse request with any body
-	SaveSocialAppContextWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialAppContextResponse, error)
-
-	SaveSocialAppContextWithResponse(ctx context.Context, tenantId string, appId string, body SaveSocialAppContextJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialAppContextResponse, error)
-
-	// LaunchSocialPostWithBodyWithResponse request with any body
-	LaunchSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*LaunchSocialPostResponse, error)
-
-	LaunchSocialPostWithResponse(ctx context.Context, tenantId string, appId string, body LaunchSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*LaunchSocialPostResponse, error)
-
-	// ListSocialPlatformsWithResponse request
-	ListSocialPlatformsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListSocialPlatformsResponse, error)
-
-	// ConnectSocialPlatformWithBodyWithResponse request with any body
-	ConnectSocialPlatformWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConnectSocialPlatformResponse, error)
-
-	ConnectSocialPlatformWithResponse(ctx context.Context, tenantId string, body ConnectSocialPlatformJSONRequestBody, reqEditors ...RequestEditorFn) (*ConnectSocialPlatformResponse, error)
-
-	// DisconnectSocialPlatformWithResponse request
-	DisconnectSocialPlatformWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*DisconnectSocialPlatformResponse, error)
-
-	// StartSocialOAuthWithResponse request
-	StartSocialOAuthWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*StartSocialOAuthResponse, error)
-
-	// ListSocialPostsWithResponse request
-	ListSocialPostsWithResponse(ctx context.Context, tenantId string, params *ListSocialPostsParams, reqEditors ...RequestEditorFn) (*ListSocialPostsResponse, error)
-
-	// ComposeSocialPostWithBodyWithResponse request with any body
-	ComposeSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ComposeSocialPostResponse, error)
-
-	ComposeSocialPostWithResponse(ctx context.Context, tenantId string, body ComposeSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*ComposeSocialPostResponse, error)
-
-	// GetSocialPostWithResponse request
-	GetSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*GetSocialPostResponse, error)
-
-	// UpdateSocialPostWithBodyWithResponse request with any body
-	UpdateSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSocialPostResponse, error)
-
-	UpdateSocialPostWithResponse(ctx context.Context, tenantId string, postId string, body UpdateSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSocialPostResponse, error)
-
-	// ApproveSocialPostWithResponse request
-	ApproveSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*ApproveSocialPostResponse, error)
-
-	// CancelSocialPostWithResponse request
-	CancelSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*CancelSocialPostResponse, error)
-
-	// ScheduleSocialPostWithBodyWithResponse request with any body
-	ScheduleSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ScheduleSocialPostResponse, error)
-
-	ScheduleSocialPostWithResponse(ctx context.Context, tenantId string, postId string, body ScheduleSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*ScheduleSocialPostResponse, error)
-
-	// RewriteSocialPostWithBodyWithResponse request with any body
-	RewriteSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RewriteSocialPostResponse, error)
-
-	RewriteSocialPostWithResponse(ctx context.Context, tenantId string, body RewriteSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*RewriteSocialPostResponse, error)
-
-	// GetSocialStyleWithResponse request
-	GetSocialStyleWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetSocialStyleResponse, error)
-
-	// SaveSocialStyleWithBodyWithResponse request with any body
-	SaveSocialStyleWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialStyleResponse, error)
-
-	SaveSocialStyleWithResponse(ctx context.Context, tenantId string, body SaveSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialStyleResponse, error)
-
-	// PreviewSocialStyleWithBodyWithResponse request with any body
-	PreviewSocialStyleWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewSocialStyleResponse, error)
-
-	PreviewSocialStyleWithResponse(ctx context.Context, tenantId string, body PreviewSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewSocialStyleResponse, error)
-
-	// DeleteSocialStyleOverrideWithResponse request
-	DeleteSocialStyleOverrideWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*DeleteSocialStyleOverrideResponse, error)
-
-	// SaveSocialStyleOverrideWithBodyWithResponse request with any body
-	SaveSocialStyleOverrideWithBodyWithResponse(ctx context.Context, tenantId string, platform string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialStyleOverrideResponse, error)
-
-	SaveSocialStyleOverrideWithResponse(ctx context.Context, tenantId string, platform string, body SaveSocialStyleOverrideJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialStyleOverrideResponse, error)
 
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
@@ -4573,27 +2860,6 @@ func (r ListAppPlansResponse) StatusCode() int {
 	return 0
 }
 
-type SocialOAuthCallbackResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r SocialOAuthCallbackResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SocialOAuthCallbackResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type AppCancelSubscriptionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4783,6 +3049,30 @@ func (r UpdateUsageUnitResponse) StatusCode() int {
 	return 0
 }
 
+type GetCustomerUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]MeteringCustomerUsageView
+	JSON400      *EchoHTTPError
+	JSON403      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCustomerUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCustomerUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListInvitationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4842,470 +3132,6 @@ func (r RegenerateInvitationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RegenerateInvitationResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetSocialAppContextResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialAppContextView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r GetSocialAppContextResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetSocialAppContextResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SaveSocialAppContextResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialAppContextView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r SaveSocialAppContextResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SaveSocialAppContextResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type LaunchSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialLaunchView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r LaunchSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r LaunchSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListSocialPlatformsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]SocialPlatformView
-	JSON500      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ListSocialPlatformsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListSocialPlatformsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ConnectSocialPlatformResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialCredentialView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ConnectSocialPlatformResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ConnectSocialPlatformResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DisconnectSocialPlatformResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r DisconnectSocialPlatformResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DisconnectSocialPlatformResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type StartSocialOAuthResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialOauthStartView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r StartSocialOAuthResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r StartSocialOAuthResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListSocialPostsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostListView
-	JSON500      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ListSocialPostsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListSocialPostsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ComposeSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ComposeSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ComposeSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r GetSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UpdateSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ApproveSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ApproveSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ApproveSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CancelSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r CancelSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CancelSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ScheduleSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialPostView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ScheduleSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ScheduleSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type RewriteSocialPostResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialRewriteView
-	JSON400      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r RewriteSocialPostResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RewriteSocialPostResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetSocialStyleResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialStyleSettingsView
-	JSON500      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r GetSocialStyleResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetSocialStyleResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SaveSocialStyleResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialStyleProfileView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r SaveSocialStyleResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SaveSocialStyleResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PreviewSocialStyleResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialStylePreviewView
-	JSON400      *EchoHTTPError
-	JSON402      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r PreviewSocialStyleResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PreviewSocialStyleResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteSocialStyleOverrideResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteSocialStyleOverrideResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteSocialStyleOverrideResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SaveSocialStyleOverrideResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *SocialStyleProfileView
-	JSON400      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r SaveSocialStyleOverrideResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SaveSocialStyleOverrideResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5594,15 +3420,6 @@ func (c *ClientWithResponses) ListAppPlansWithResponse(ctx context.Context, reqE
 	return ParseListAppPlansResponse(rsp)
 }
 
-// SocialOAuthCallbackWithResponse request returning *SocialOAuthCallbackResponse
-func (c *ClientWithResponses) SocialOAuthCallbackWithResponse(ctx context.Context, platform string, params *SocialOAuthCallbackParams, reqEditors ...RequestEditorFn) (*SocialOAuthCallbackResponse, error) {
-	rsp, err := c.SocialOAuthCallback(ctx, platform, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSocialOAuthCallbackResponse(rsp)
-}
-
 // AppCancelSubscriptionWithBodyWithResponse request with arbitrary body returning *AppCancelSubscriptionResponse
 func (c *ClientWithResponses) AppCancelSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppCancelSubscriptionResponse, error) {
 	rsp, err := c.AppCancelSubscriptionWithBody(ctx, contentType, body, reqEditors...)
@@ -5731,6 +3548,15 @@ func (c *ClientWithResponses) UpdateUsageUnitWithResponse(ctx context.Context, t
 	return ParseUpdateUsageUnitResponse(rsp)
 }
 
+// GetCustomerUsageWithResponse request returning *GetCustomerUsageResponse
+func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error) {
+	rsp, err := c.GetCustomerUsage(ctx, tenantId, customerId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCustomerUsageResponse(rsp)
+}
+
 // ListInvitationsWithResponse request returning *ListInvitationsResponse
 func (c *ClientWithResponses) ListInvitationsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListInvitationsResponse, error) {
 	rsp, err := c.ListInvitations(ctx, tenantId, reqEditors...)
@@ -5756,266 +3582,6 @@ func (c *ClientWithResponses) RegenerateInvitationWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseRegenerateInvitationResponse(rsp)
-}
-
-// GetSocialAppContextWithResponse request returning *GetSocialAppContextResponse
-func (c *ClientWithResponses) GetSocialAppContextWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*GetSocialAppContextResponse, error) {
-	rsp, err := c.GetSocialAppContext(ctx, tenantId, appId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetSocialAppContextResponse(rsp)
-}
-
-// SaveSocialAppContextWithBodyWithResponse request with arbitrary body returning *SaveSocialAppContextResponse
-func (c *ClientWithResponses) SaveSocialAppContextWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialAppContextResponse, error) {
-	rsp, err := c.SaveSocialAppContextWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialAppContextResponse(rsp)
-}
-
-func (c *ClientWithResponses) SaveSocialAppContextWithResponse(ctx context.Context, tenantId string, appId string, body SaveSocialAppContextJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialAppContextResponse, error) {
-	rsp, err := c.SaveSocialAppContext(ctx, tenantId, appId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialAppContextResponse(rsp)
-}
-
-// LaunchSocialPostWithBodyWithResponse request with arbitrary body returning *LaunchSocialPostResponse
-func (c *ClientWithResponses) LaunchSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*LaunchSocialPostResponse, error) {
-	rsp, err := c.LaunchSocialPostWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseLaunchSocialPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) LaunchSocialPostWithResponse(ctx context.Context, tenantId string, appId string, body LaunchSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*LaunchSocialPostResponse, error) {
-	rsp, err := c.LaunchSocialPost(ctx, tenantId, appId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseLaunchSocialPostResponse(rsp)
-}
-
-// ListSocialPlatformsWithResponse request returning *ListSocialPlatformsResponse
-func (c *ClientWithResponses) ListSocialPlatformsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListSocialPlatformsResponse, error) {
-	rsp, err := c.ListSocialPlatforms(ctx, tenantId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListSocialPlatformsResponse(rsp)
-}
-
-// ConnectSocialPlatformWithBodyWithResponse request with arbitrary body returning *ConnectSocialPlatformResponse
-func (c *ClientWithResponses) ConnectSocialPlatformWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConnectSocialPlatformResponse, error) {
-	rsp, err := c.ConnectSocialPlatformWithBody(ctx, tenantId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseConnectSocialPlatformResponse(rsp)
-}
-
-func (c *ClientWithResponses) ConnectSocialPlatformWithResponse(ctx context.Context, tenantId string, body ConnectSocialPlatformJSONRequestBody, reqEditors ...RequestEditorFn) (*ConnectSocialPlatformResponse, error) {
-	rsp, err := c.ConnectSocialPlatform(ctx, tenantId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseConnectSocialPlatformResponse(rsp)
-}
-
-// DisconnectSocialPlatformWithResponse request returning *DisconnectSocialPlatformResponse
-func (c *ClientWithResponses) DisconnectSocialPlatformWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*DisconnectSocialPlatformResponse, error) {
-	rsp, err := c.DisconnectSocialPlatform(ctx, tenantId, platform, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDisconnectSocialPlatformResponse(rsp)
-}
-
-// StartSocialOAuthWithResponse request returning *StartSocialOAuthResponse
-func (c *ClientWithResponses) StartSocialOAuthWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*StartSocialOAuthResponse, error) {
-	rsp, err := c.StartSocialOAuth(ctx, tenantId, platform, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseStartSocialOAuthResponse(rsp)
-}
-
-// ListSocialPostsWithResponse request returning *ListSocialPostsResponse
-func (c *ClientWithResponses) ListSocialPostsWithResponse(ctx context.Context, tenantId string, params *ListSocialPostsParams, reqEditors ...RequestEditorFn) (*ListSocialPostsResponse, error) {
-	rsp, err := c.ListSocialPosts(ctx, tenantId, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListSocialPostsResponse(rsp)
-}
-
-// ComposeSocialPostWithBodyWithResponse request with arbitrary body returning *ComposeSocialPostResponse
-func (c *ClientWithResponses) ComposeSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ComposeSocialPostResponse, error) {
-	rsp, err := c.ComposeSocialPostWithBody(ctx, tenantId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseComposeSocialPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) ComposeSocialPostWithResponse(ctx context.Context, tenantId string, body ComposeSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*ComposeSocialPostResponse, error) {
-	rsp, err := c.ComposeSocialPost(ctx, tenantId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseComposeSocialPostResponse(rsp)
-}
-
-// GetSocialPostWithResponse request returning *GetSocialPostResponse
-func (c *ClientWithResponses) GetSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*GetSocialPostResponse, error) {
-	rsp, err := c.GetSocialPost(ctx, tenantId, postId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetSocialPostResponse(rsp)
-}
-
-// UpdateSocialPostWithBodyWithResponse request with arbitrary body returning *UpdateSocialPostResponse
-func (c *ClientWithResponses) UpdateSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSocialPostResponse, error) {
-	rsp, err := c.UpdateSocialPostWithBody(ctx, tenantId, postId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSocialPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) UpdateSocialPostWithResponse(ctx context.Context, tenantId string, postId string, body UpdateSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSocialPostResponse, error) {
-	rsp, err := c.UpdateSocialPost(ctx, tenantId, postId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateSocialPostResponse(rsp)
-}
-
-// ApproveSocialPostWithResponse request returning *ApproveSocialPostResponse
-func (c *ClientWithResponses) ApproveSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*ApproveSocialPostResponse, error) {
-	rsp, err := c.ApproveSocialPost(ctx, tenantId, postId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseApproveSocialPostResponse(rsp)
-}
-
-// CancelSocialPostWithResponse request returning *CancelSocialPostResponse
-func (c *ClientWithResponses) CancelSocialPostWithResponse(ctx context.Context, tenantId string, postId string, reqEditors ...RequestEditorFn) (*CancelSocialPostResponse, error) {
-	rsp, err := c.CancelSocialPost(ctx, tenantId, postId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCancelSocialPostResponse(rsp)
-}
-
-// ScheduleSocialPostWithBodyWithResponse request with arbitrary body returning *ScheduleSocialPostResponse
-func (c *ClientWithResponses) ScheduleSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, postId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ScheduleSocialPostResponse, error) {
-	rsp, err := c.ScheduleSocialPostWithBody(ctx, tenantId, postId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseScheduleSocialPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) ScheduleSocialPostWithResponse(ctx context.Context, tenantId string, postId string, body ScheduleSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*ScheduleSocialPostResponse, error) {
-	rsp, err := c.ScheduleSocialPost(ctx, tenantId, postId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseScheduleSocialPostResponse(rsp)
-}
-
-// RewriteSocialPostWithBodyWithResponse request with arbitrary body returning *RewriteSocialPostResponse
-func (c *ClientWithResponses) RewriteSocialPostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RewriteSocialPostResponse, error) {
-	rsp, err := c.RewriteSocialPostWithBody(ctx, tenantId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRewriteSocialPostResponse(rsp)
-}
-
-func (c *ClientWithResponses) RewriteSocialPostWithResponse(ctx context.Context, tenantId string, body RewriteSocialPostJSONRequestBody, reqEditors ...RequestEditorFn) (*RewriteSocialPostResponse, error) {
-	rsp, err := c.RewriteSocialPost(ctx, tenantId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRewriteSocialPostResponse(rsp)
-}
-
-// GetSocialStyleWithResponse request returning *GetSocialStyleResponse
-func (c *ClientWithResponses) GetSocialStyleWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetSocialStyleResponse, error) {
-	rsp, err := c.GetSocialStyle(ctx, tenantId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetSocialStyleResponse(rsp)
-}
-
-// SaveSocialStyleWithBodyWithResponse request with arbitrary body returning *SaveSocialStyleResponse
-func (c *ClientWithResponses) SaveSocialStyleWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialStyleResponse, error) {
-	rsp, err := c.SaveSocialStyleWithBody(ctx, tenantId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialStyleResponse(rsp)
-}
-
-func (c *ClientWithResponses) SaveSocialStyleWithResponse(ctx context.Context, tenantId string, body SaveSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialStyleResponse, error) {
-	rsp, err := c.SaveSocialStyle(ctx, tenantId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialStyleResponse(rsp)
-}
-
-// PreviewSocialStyleWithBodyWithResponse request with arbitrary body returning *PreviewSocialStyleResponse
-func (c *ClientWithResponses) PreviewSocialStyleWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PreviewSocialStyleResponse, error) {
-	rsp, err := c.PreviewSocialStyleWithBody(ctx, tenantId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePreviewSocialStyleResponse(rsp)
-}
-
-func (c *ClientWithResponses) PreviewSocialStyleWithResponse(ctx context.Context, tenantId string, body PreviewSocialStyleJSONRequestBody, reqEditors ...RequestEditorFn) (*PreviewSocialStyleResponse, error) {
-	rsp, err := c.PreviewSocialStyle(ctx, tenantId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePreviewSocialStyleResponse(rsp)
-}
-
-// DeleteSocialStyleOverrideWithResponse request returning *DeleteSocialStyleOverrideResponse
-func (c *ClientWithResponses) DeleteSocialStyleOverrideWithResponse(ctx context.Context, tenantId string, platform string, reqEditors ...RequestEditorFn) (*DeleteSocialStyleOverrideResponse, error) {
-	rsp, err := c.DeleteSocialStyleOverride(ctx, tenantId, platform, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteSocialStyleOverrideResponse(rsp)
-}
-
-// SaveSocialStyleOverrideWithBodyWithResponse request with arbitrary body returning *SaveSocialStyleOverrideResponse
-func (c *ClientWithResponses) SaveSocialStyleOverrideWithBodyWithResponse(ctx context.Context, tenantId string, platform string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SaveSocialStyleOverrideResponse, error) {
-	rsp, err := c.SaveSocialStyleOverrideWithBody(ctx, tenantId, platform, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialStyleOverrideResponse(rsp)
-}
-
-func (c *ClientWithResponses) SaveSocialStyleOverrideWithResponse(ctx context.Context, tenantId string, platform string, body SaveSocialStyleOverrideJSONRequestBody, reqEditors ...RequestEditorFn) (*SaveSocialStyleOverrideResponse, error) {
-	rsp, err := c.SaveSocialStyleOverride(ctx, tenantId, platform, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSaveSocialStyleOverrideResponse(rsp)
 }
 
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
@@ -6525,22 +4091,6 @@ func ParseListAppPlansResponse(rsp *http.Response) (*ListAppPlansResponse, error
 	return response, nil
 }
 
-// ParseSocialOAuthCallbackResponse parses an HTTP response from a SocialOAuthCallbackWithResponse call
-func ParseSocialOAuthCallbackResponse(rsp *http.Response) (*SocialOAuthCallbackResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SocialOAuthCallbackResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
 // ParseAppCancelSubscriptionResponse parses an HTTP response from a AppCancelSubscriptionWithResponse call
 func ParseAppCancelSubscriptionResponse(rsp *http.Response) (*AppCancelSubscriptionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6840,6 +4390,46 @@ func ParseUpdateUsageUnitResponse(rsp *http.Response) (*UpdateUsageUnitResponse,
 	return response, nil
 }
 
+// ParseGetCustomerUsageResponse parses an HTTP response from a GetCustomerUsageWithResponse call
+func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCustomerUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []MeteringCustomerUsageView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListInvitationsResponse parses an HTTP response from a ListInvitationsWithResponse call
 func ParseListInvitationsResponse(rsp *http.Response) (*ListInvitationsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -6902,691 +4492,6 @@ func ParseRegenerateInvitationResponse(rsp *http.Response) (*RegenerateInvitatio
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetSocialAppContextResponse parses an HTTP response from a GetSocialAppContextWithResponse call
-func ParseGetSocialAppContextResponse(rsp *http.Response) (*GetSocialAppContextResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetSocialAppContextResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialAppContextView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSaveSocialAppContextResponse parses an HTTP response from a SaveSocialAppContextWithResponse call
-func ParseSaveSocialAppContextResponse(rsp *http.Response) (*SaveSocialAppContextResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SaveSocialAppContextResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialAppContextView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseLaunchSocialPostResponse parses an HTTP response from a LaunchSocialPostWithResponse call
-func ParseLaunchSocialPostResponse(rsp *http.Response) (*LaunchSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &LaunchSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialLaunchView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListSocialPlatformsResponse parses an HTTP response from a ListSocialPlatformsWithResponse call
-func ParseListSocialPlatformsResponse(rsp *http.Response) (*ListSocialPlatformsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListSocialPlatformsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []SocialPlatformView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseConnectSocialPlatformResponse parses an HTTP response from a ConnectSocialPlatformWithResponse call
-func ParseConnectSocialPlatformResponse(rsp *http.Response) (*ConnectSocialPlatformResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ConnectSocialPlatformResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialCredentialView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDisconnectSocialPlatformResponse parses an HTTP response from a DisconnectSocialPlatformWithResponse call
-func ParseDisconnectSocialPlatformResponse(rsp *http.Response) (*DisconnectSocialPlatformResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DisconnectSocialPlatformResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseStartSocialOAuthResponse parses an HTTP response from a StartSocialOAuthWithResponse call
-func ParseStartSocialOAuthResponse(rsp *http.Response) (*StartSocialOAuthResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &StartSocialOAuthResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialOauthStartView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListSocialPostsResponse parses an HTTP response from a ListSocialPostsWithResponse call
-func ParseListSocialPostsResponse(rsp *http.Response) (*ListSocialPostsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListSocialPostsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostListView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseComposeSocialPostResponse parses an HTTP response from a ComposeSocialPostWithResponse call
-func ParseComposeSocialPostResponse(rsp *http.Response) (*ComposeSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ComposeSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetSocialPostResponse parses an HTTP response from a GetSocialPostWithResponse call
-func ParseGetSocialPostResponse(rsp *http.Response) (*GetSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUpdateSocialPostResponse parses an HTTP response from a UpdateSocialPostWithResponse call
-func ParseUpdateSocialPostResponse(rsp *http.Response) (*UpdateSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseApproveSocialPostResponse parses an HTTP response from a ApproveSocialPostWithResponse call
-func ParseApproveSocialPostResponse(rsp *http.Response) (*ApproveSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ApproveSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCancelSocialPostResponse parses an HTTP response from a CancelSocialPostWithResponse call
-func ParseCancelSocialPostResponse(rsp *http.Response) (*CancelSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CancelSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseScheduleSocialPostResponse parses an HTTP response from a ScheduleSocialPostWithResponse call
-func ParseScheduleSocialPostResponse(rsp *http.Response) (*ScheduleSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ScheduleSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialPostView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRewriteSocialPostResponse parses an HTTP response from a RewriteSocialPostWithResponse call
-func ParseRewriteSocialPostResponse(rsp *http.Response) (*RewriteSocialPostResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RewriteSocialPostResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialRewriteView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetSocialStyleResponse parses an HTTP response from a GetSocialStyleWithResponse call
-func ParseGetSocialStyleResponse(rsp *http.Response) (*GetSocialStyleResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetSocialStyleResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialStyleSettingsView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseSaveSocialStyleResponse parses an HTTP response from a SaveSocialStyleWithResponse call
-func ParseSaveSocialStyleResponse(rsp *http.Response) (*SaveSocialStyleResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SaveSocialStyleResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialStyleProfileView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePreviewSocialStyleResponse parses an HTTP response from a PreviewSocialStyleWithResponse call
-func ParsePreviewSocialStyleResponse(rsp *http.Response) (*PreviewSocialStyleResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PreviewSocialStyleResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialStylePreviewView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 402:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON402 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteSocialStyleOverrideResponse parses an HTTP response from a DeleteSocialStyleOverrideWithResponse call
-func ParseDeleteSocialStyleOverrideResponse(rsp *http.Response) (*DeleteSocialStyleOverrideResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteSocialStyleOverrideResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseSaveSocialStyleOverrideResponse parses an HTTP response from a SaveSocialStyleOverrideWithResponse call
-func ParseSaveSocialStyleOverrideResponse(rsp *http.Response) (*SaveSocialStyleOverrideResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SaveSocialStyleOverrideResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest SocialStyleProfileView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
 
 	}
 
