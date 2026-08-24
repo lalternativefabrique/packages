@@ -26,6 +26,8 @@ export interface PlatformUser {
   role?: string | null
   /** From the admin() plugin. */
   banned?: boolean | null
+  /** From the twoFactor() plugin, when enabled. */
+  twoFactorEnabled?: boolean | null
 }
 
 export interface PlatformSessionData {
@@ -95,6 +97,54 @@ export interface MagicLinkConfig {
   render?: (url: string, email: string) => string
 }
 
+export interface PlatformRateLimitRule {
+  /** Length of the window, in seconds. */
+  window: number
+  /** Requests allowed per window, per client. */
+  max: number
+}
+
+export interface PlatformRateLimitConfig {
+  /**
+   * Off only when an app is certain something in front of it already limits
+   * the auth endpoints. Defaults to true, deliberately: Better Auth keys its
+   * own default on NODE_ENV, so a deployment missing the variable would serve
+   * sign-in with no brute-force protection and nothing would say so.
+   */
+  enabled?: boolean
+  /** Global window in seconds for paths without a rule. Defaults to 10. */
+  window?: number
+  /** Global max per window for paths without a rule. Defaults to 100. */
+  max?: number
+  /**
+   * Where counters live. "memory" (the default) is per-process, so it does not
+   * hold across replicas — an app running more than one must pass "database"
+   * or wire secondaryStorage.
+   */
+  storage?: "memory" | "database" | "secondary-storage"
+  /** Table name when storage is "database". */
+  modelName?: string
+  /**
+   * Per-path overrides, merged over the platform's. The platform already
+   * tightens sign-in, sign-up, OTP send/verify, password reset, magic link
+   * and two-factor verification; use this to go further, not to loosen.
+   */
+  customRules?: Record<string, PlatformRateLimitRule>
+}
+
+export interface PlatformTwoFactorConfig {
+  /** Mounts the two-factor endpoints. Off unless set. */
+  enabled: boolean
+  /** Label shown in the authenticator app. Defaults to appName. */
+  issuer?: string
+  /**
+   * Trust an enrolment before a first code is verified. Leave false: enabling
+   * on an unverified secret locks the account out when the authenticator was
+   * mis-scanned.
+   */
+  skipVerificationOnEnable?: boolean
+}
+
 export interface PlatformAuthConfig {
   /** PostgreSQL connection pool or connection string */
   database: BetterAuthOptions["database"]
@@ -156,6 +206,22 @@ export interface PlatformAuthConfig {
   betaMode?: boolean
   /** Check if an email+token pair has been invited (required when betaMode is true) */
   isInvited?: (email: string, inviteToken: string) => Promise<boolean>
+  /**
+   * Brute-force limits on the auth endpoints. The platform enables them with
+   * tightened per-path rules; pass this only to adjust.
+   */
+  rateLimit?: PlatformRateLimitConfig
+  /**
+   * TOTP second factor with backup codes. Requires the `twoFactor` table and
+   * the `user.twoFactorEnabled` column.
+   */
+  twoFactor?: PlatformTwoFactorConfig
+  /**
+   * Origins allowed to drive the auth endpoints, beyond baseURL. Better Auth
+   * checks Origin against this list, so it is what stands between a session
+   * cookie and a cross-site request that spends it.
+   */
+  trustedOrigins?: string[]
 }
 
 export interface PlatformAuthClientConfig {
@@ -370,6 +436,37 @@ export interface MagicLinkClientSurface {
       errorCallbackURL?: string
     }): Promise<AuthClientResult>
   }
+}
+
+/**
+ * The twoFactor() plugin's client half. Always mounted by
+ * createPlatformAuthClient — which methods exist client-side costs nothing;
+ * whether the routes answer is decided server-side by passing `twoFactor` to
+ * createPlatformAuth.
+ *
+ * A sign-in against an account with 2FA on returns `twoFactorRedirect: true`
+ * instead of a session, and the second factor is what completes it.
+ */
+export interface TwoFactorClientSurface {
+  enable(input: {
+    password: string
+    issuer?: string
+  }): Promise<AuthClientDataResult<{ totpURI: string; backupCodes: string[] }>>
+  disable(input: { password: string }): Promise<AuthClientResult>
+  getTotpUri(input: {
+    password: string
+  }): Promise<AuthClientDataResult<{ totpURI: string }>>
+  verifyTotp(input: {
+    code: string
+    trustDevice?: boolean
+  }): Promise<AuthClientResult>
+  verifyBackupCode(input: {
+    code: string
+    trustDevice?: boolean
+  }): Promise<AuthClientResult>
+  generateBackupCodes(input: {
+    password: string
+  }): Promise<AuthClientDataResult<{ backupCodes: string[] }>>
 }
 
 export interface AuthThemeProps {

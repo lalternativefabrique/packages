@@ -1,8 +1,9 @@
 import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-auth"
-import { emailOTP, admin, magicLink } from "better-auth/plugins"
+import { emailOTP, admin, magicLink, twoFactor } from "better-auth/plugins"
 import type { PlatformAuthConfig, PlatformAuthMailerType } from "./types"
 import { withGoogleDefaults } from "./google-defaults"
 import { withSignUpName } from "./signup-name"
+import { resolveRateLimit } from "./rate-limit"
 
 const DEFAULT_EMAIL_SUBJECTS: Record<string, string> = {
   "email-verification": "Verify your account",
@@ -57,6 +58,9 @@ export function createPlatformAuth(
     emailSubjects,
     renderOtpEmail,
     magicLink: magicLinkConfig,
+    rateLimit,
+    twoFactor: twoFactorConfig,
+    trustedOrigins,
   } = config
 
   const subjects = { ...DEFAULT_EMAIL_SUBJECTS, ...emailSubjects }
@@ -71,6 +75,8 @@ export function createPlatformAuth(
     database,
     baseURL,
     secret,
+    ...(trustedOrigins ? { trustedOrigins } : {}),
+    rateLimit: resolveRateLimit(rateLimit),
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
@@ -186,6 +192,15 @@ export function createPlatformAuth(
           ]
         : []),
       admin(),
+      ...(twoFactorConfig?.enabled
+        ? [
+            twoFactor({
+              issuer: twoFactorConfig.issuer ?? appName,
+              skipVerificationOnEnable:
+                twoFactorConfig.skipVerificationOnEnable ?? false,
+            }),
+          ]
+        : []),
       ...plugins, // app-specific plugins (e.g. tanstackStartCookies)
     ],
     socialProviders: {
@@ -213,6 +228,9 @@ export type {
   PlatformUser,
   PlatformSession,
   PlatformSessionData,
+  PlatformRateLimitConfig,
+  PlatformRateLimitRule,
+  PlatformTwoFactorConfig,
 } from "./types"
 
 // Invitation claiming runs on the auth callback, where the session is
