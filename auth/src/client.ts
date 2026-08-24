@@ -3,12 +3,14 @@ import {
   emailOTPClient,
   adminClient,
   magicLinkClient,
+  twoFactorClient,
 } from "better-auth/client/plugins"
 import type {
   AdminClientSurface,
   AuthClientSurface,
   MagicLinkClientSurface,
   PlatformAuthClientConfig,
+  TwoFactorClientSurface,
 } from "./types"
 
 /**
@@ -30,9 +32,12 @@ import type {
 export type PlatformAuthClient = Omit<AuthClientSurface, "signIn" | "admin"> & {
   signIn: AuthClientSurface["signIn"] & MagicLinkClientSurface["signIn"]
   admin: AdminClientSurface
+  twoFactor: TwoFactorClientSurface
 } & Omit<
     ReturnType<typeof createAuthClient>,
-    keyof AuthClientSurface | keyof MagicLinkClientSurface
+    | keyof AuthClientSurface
+    | keyof MagicLinkClientSurface
+    | "twoFactor"
   >
 
 /**
@@ -52,6 +57,7 @@ export function createPlatformAuthClient(
       emailOTPClient(),
       magicLinkClient(),
       adminClient(),
+      twoFactorClient(),
       ...(config?.plugins ?? []),
     ],
   }) as unknown as PlatformAuthClient
