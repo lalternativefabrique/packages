@@ -61,6 +61,8 @@ scopes:
     - "go/eda/**"
   composition:
     - "go/composition/**"
+  retrieval:
+    - "go/retrieval/**"
   webhooks:
     - "go/webhooks/**"
   lungor-core:
@@ -110,6 +112,15 @@ steps:
       cd go/composition
       go build ./... && go vet ./... && go test -count=1 ./...
       go vet -tags=integration ./...
+
+  - name: retrieval
+    scope: [retrieval]
+    tools: [go]
+    run: |
+      cd go/retrieval
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
 
   # Every published module is built, vetted and unit-tested. These modules are
   # consumed by three products, so a break here is a break there.
