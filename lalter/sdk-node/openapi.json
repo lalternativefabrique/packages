@@ -1,0 +1,506 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Stack application core REST API.",
+    "title": "Core API",
+    "contact": {},
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/chat/conversations": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chat"
+        ],
+        "summary": "List the caller's conversations, most recent first",
+        "operationId": "listConversations",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/chat.ConversationDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/conversations/{id}/messages": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chat"
+        ],
+        "summary": "Read a conversation's turns, oldest first",
+        "operationId": "getConversationMessages",
+        "parameters": [
+          {
+            "description": "Conversation ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/chat.MessageDTO"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/chat.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/send": {
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "chat"
+        ],
+        "summary": "Send a message and stream the reply",
+        "operationId": "sendChatMessage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/chat.SendRequest"
+              }
+            }
+          },
+          "description": "The message",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream of events",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/chat.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "List the caller's tasks, most recent first",
+        "operationId": "listTasks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/task.TaskDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Queue an agent run over a repository",
+        "operationId": "createTask",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/task.CreateTaskRequest"
+              }
+            }
+          },
+          "description": "What to run",
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/task.TaskDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/task.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Read one task",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "description": "Task ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/task.TaskDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/task.ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{id}/steps": {
+      "get": {
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Read what the agent did, one entry per tool call",
+        "operationId": "getTaskSteps",
+        "parameters": [
+          {
+            "description": "Task ID",
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/task.StepDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "description": "Pass `Bearer <token>`. JWT is verified by the gateway; the user id arrives as the X-User-Id header.",
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    },
+    "schemas": {
+      "chat.ConversationDTO": {
+        "type": "object",
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "has_repo": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "chat.ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "chat.MessageDTO": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "tool_args": {
+            "type": "string"
+          },
+          "tool_meta": {
+            "type": "string"
+          },
+          "tool_name": {
+            "type": "string"
+          }
+        }
+      },
+      "chat.SendRequest": {
+        "type": "object",
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "conversation_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "repo_url": {
+            "description": "RepoURL points a new conversation at a repository, credentials\nincluded. Ignored once the thread exists — a thread works on one\nrepository, and moving it mid-way would make its own history lie.",
+            "type": "string"
+          }
+        }
+      },
+      "task.CreateTaskRequest": {
+        "type": "object",
+        "properties": {
+          "base_ref": {
+            "type": "string",
+            "example": "main"
+          },
+          "kind": {
+            "type": "string",
+            "example": "fix"
+          },
+          "prompt": {
+            "type": "string",
+            "example": "the ledger double-credits a self-transfer"
+          },
+          "repo_url": {
+            "type": "string",
+            "example": "https://x-access-token:TOKEN@github.com/acme/app.git"
+          }
+        }
+      },
+      "task.ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "task.StepDTO": {
+        "type": "object",
+        "properties": {
+          "arguments": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "tool": {
+            "type": "string"
+          }
+        }
+      },
+      "task.TaskDTO": {
+        "type": "object",
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "diff": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "settled_at": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/task.UsageDTO"
+          }
+        }
+      },
+      "task.UsageDTO": {
+        "type": "object",
+        "properties": {
+          "cached_input_tokens": {
+            "type": "integer"
+          },
+          "input_tokens": {
+            "type": "integer"
+          },
+          "output_tokens": {
+            "type": "integer"
+          },
+          "steps": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  }
+}
