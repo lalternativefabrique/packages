@@ -86,6 +86,91 @@
                 }
             }
         },
+        "/api/v1/chat/conversations/{id}/messages/{messageId}/audio": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Read an assistant reply aloud",
+                "operationId": "getMessageAudio",
+                "parameters": [
+                    {
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Message ID",
+                        "name": "messageId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "1 streams the reading piece by piece",
+                        "name": "stream",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/chat/send": {
             "post": {
                 "security": [
@@ -2017,6 +2102,16 @@
                         "type": "string",
                         "example": "fix"
                     },
+                    "mcp_servers": {
+                        "description": "MCPServers names MCP servers this run may use, by name — never a\ncommand. Each name must already be registered on this deployment\n(LALTER_MCP_SERVERS); an unrecognized name refuses the whole request\nwith 400 rather than silently running with fewer tools than asked for.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "skalpai-logs"
+                        ]
+                    },
                     "prompt": {
                         "type": "string",
                         "example": "the ledger double-credits a self-transfer"
@@ -2081,6 +2176,12 @@
                     },
                     "kind": {
                         "type": "string"
+                    },
+                    "mcp_servers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "model": {
                         "type": "string"

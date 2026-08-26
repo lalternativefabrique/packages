@@ -20,13 +20,20 @@ from reading lalter's source.
 ## Configure
 
 ```ts
-import { configureLalterClient, listTasks, createTask } from "@lalternative/lalter-sdk";
+import { configureLalterClient, getCoreAPI } from "@lalternative/lalter-sdk";
 
 configureLalterClient({
   baseURL: process.env.LALTER_BASE_URL!, // no default — pass your deployment
   apiKey: process.env.LALTER_APP_KEY!,
 });
+
+const api = getCoreAPI();
 ```
+
+`getCoreAPI()` is orval's generated factory — every generated call
+(`createTask`, `listTasks`, `getTask`, `getTaskSteps`, `listConversations`,
+`getConversationMessages`, `getMessageAudio`) hangs off its return value,
+not off the package's top-level exports.
 
 `configureLalterClient(opts)` accepts:
 
@@ -41,7 +48,7 @@ configureLalterClient({
 ## Queuing a task
 
 ```ts
-const task = await createTask({
+const task = await api.createTask({
   kind: "fix",
   prompt: "the ledger double-credits a self-transfer",
   repo_url: `https://x-access-token:${pat}@github.com/acme/app.git`,
@@ -53,10 +60,28 @@ const task = await createTask({
 run takes minutes, and waiting here would time out on work that later
 succeeded.
 
+### Granting a task MCP tools
+
+```ts
+const task = await api.createTask({
+  kind: "fix", prompt: "...", repo_url: "...",
+  mcp_servers: ["skalpai-logs"],
+});
+```
+
+`mcp_servers` names servers by NAME — never a command. Each name must
+already be registered on the lalter deployment being called (its own
+`LALTER_MCP_SERVERS`); an unrecognized name fails the call with a 400 rather
+than queuing a task with fewer tools than asked for. This is deliberate: a
+caller supplying `{command, args, env}` directly could make lalter's own
+host execute an arbitrary subprocess, which is remote code execution wearing
+a config option's clothes. Ask whoever operates the deployment which names
+are registered — this SDK has no way to discover them.
+
 ## Polling a task
 
 ```ts
-const task = await getTask(taskId);
+const task = await api.getTask(taskId);
 
 switch (task.status) {
   case "done":
@@ -108,7 +133,8 @@ await sendChatMessage({ message: "what changed in the last release?" }, (event) 
 of Server-Sent Events, so this reads `POST /chat/send`'s `text/event-stream`
 body itself rather than decoding it as one JSON value — everything else
 (`createTask`, `listTasks`, `getTask`, `getTaskSteps`, `listConversations`,
-`getConversationMessages`) is generated straight from the contract.
+`getConversationMessages`) is generated straight from the contract, off
+`getCoreAPI()`, unlike `sendChatMessage` which is a top-level export.
 
 `event.kind === "evict"` and `"compact_start"`/`"compact_end"` report
 context-window housekeeping (a stale tool result dropped, or older turns
@@ -116,8 +142,8 @@ summarized) — surfaced so a caller showing the stream live can account for
 them instead of a gap the model appears to explain nothing for.
 
 `conversationId` is empty to open a new thread; the reply's first event
-carries the id lalter assigned it. `listConversations()` and
-`getConversationMessages(id)` read a thread's history back.
+carries the id lalter assigned it. `api.listConversations()` and
+`api.getConversationMessages(id)` read a thread's history back.
 
 Pass `signal` (an `AbortSignal`) to `sendChatMessage` if the caller needs a
 timeout — there is no fixed one, since a chat turn can run for as long as the

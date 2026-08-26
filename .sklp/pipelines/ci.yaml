@@ -77,6 +77,12 @@ scopes:
     - "spore/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
+  lalter-sdk-go:
+    - "lalter/sdk-go/**"
+  lalter-sdk-node:
+    - "lalter/sdk-node/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
 
 steps:
   # build, not just typecheck: the package hand-writes the types its consumers
@@ -204,6 +210,24 @@ steps:
       go build ./...
       go vet ./...
       go test -count=1 ./...
+
+  - name: lalter-sdk-go
+    scope: [lalter-sdk-go]
+    tools: [go]
+    run: |
+      cd lalter/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: lalter-sdk-node
+    scope: [lalter-sdk-node]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk test
+      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk build
 
   - name: spore-sdk
     scope: [spore-sdk]

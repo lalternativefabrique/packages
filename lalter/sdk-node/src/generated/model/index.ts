@@ -10,6 +10,7 @@ export * from './chatConversationDTO';
 export * from './chatErrorResponse';
 export * from './chatMessageDTO';
 export * from './chatSendRequest';
+export * from './getMessageAudioParams';
 export * from './taskCreateTaskRequest';
 export * from './taskErrorResponse';
 export * from './taskStepDTO';

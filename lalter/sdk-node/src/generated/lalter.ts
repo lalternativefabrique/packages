@@ -9,6 +9,7 @@ import type {
   ChatConversationDTO,
   ChatMessageDTO,
   ChatSendRequest,
+  GetMessageAudioParams,
   TaskCreateTaskRequest,
   TaskStepDTO,
   TaskTaskDTO
@@ -41,6 +42,22 @@ const getConversationMessages = (
  options?: SecondParameter<typeof lalterHttp<ChatMessageDTO[]>>,) => {
       return lalterHttp<ChatMessageDTO[]>(
       {url: `/api/v1/chat/conversations/${id}/messages`, method: 'GET'
+    },
+      options);
+    }
+  
+/**
+ * @summary Read an assistant reply aloud
+ */
+const getMessageAudio = (
+    id: string,
+    messageId: string,
+    params?: GetMessageAudioParams,
+ options?: SecondParameter<typeof lalterHttp<Blob>>,) => {
+      return lalterHttp<Blob>(
+      {url: `/api/v1/chat/conversations/${id}/messages/${messageId}/audio`, method: 'GET',
+        params,
+        responseType: 'blob'
     },
       options);
     }
@@ -109,9 +126,10 @@ const getTaskSteps = (
       options);
     }
   
-return {listConversations,getConversationMessages,sendChatMessage,listTasks,createTask,getTask,getTaskSteps}};
+return {listConversations,getConversationMessages,getMessageAudio,sendChatMessage,listTasks,createTask,getTask,getTaskSteps}};
 export type ListConversationsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['listConversations']>>>
 export type GetConversationMessagesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['getConversationMessages']>>>
+export type GetMessageAudioResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['getMessageAudio']>>>
 export type SendChatMessageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['sendChatMessage']>>>
 export type ListTasksResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['listTasks']>>>
 export type CreateTaskResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getCoreAPI>['createTask']>>>
