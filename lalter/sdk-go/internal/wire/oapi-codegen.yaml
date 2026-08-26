@@ -1,0 +1,20 @@
+# The transport: every path, method and parameter, generated from lalter's own
+# contract so none of them is typed by hand. A route renamed upstream becomes a
+# compile error here rather than a 404 in production.
+#
+# Internal because it is not the SDK's API. The generated methods return raw
+# *http.Response and generated pointer types; the hand-written client wraps
+# them to add typed errors and the pointer-to-value conversions that make
+# "task not found" distinguishable from "no answer" (see ../../client.go).
+package: wire
+output: wire.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  # Allow list, deliberately: only tasks and chat are app-key-reachable from
+  # outside lalter today. See lalter's own apps/core/docs/contract/README.md
+  # for why an allow list is the right choice here, unlike lungor/sdk-go's
+  # deny list — lungor's app-facing surface is "everything except the
+  # console", lalter's is "nothing except these two contexts".
+  include-tags: [tasks, chat]
