@@ -166,19 +166,23 @@ const (
 
 // Task is an agent run as an API consumer sees it.
 type Task struct {
-	ID        string
-	Kind      string
-	Prompt    string
-	BaseRef   string
-	Status    string
-	Model     string
-	Diff      string
-	Summary   string
-	Error     string
-	Usage     Usage
-	CreatedAt string
-	StartedAt string
-	SettledAt string
+	ID      string
+	Kind    string
+	Prompt  string
+	BaseRef string
+	// MCPServers names the MCP servers this run was granted, by name — the
+	// same names CreateTaskInput sent, echoed back once lalter has resolved
+	// and accepted them.
+	MCPServers []string
+	Status     string
+	Model      string
+	Diff       string
+	Summary    string
+	Error      string
+	Usage      Usage
+	CreatedAt  string
+	StartedAt  string
+	SettledAt  string
 }
 
 // CreateTaskInput asks for one agent run.
@@ -191,6 +195,15 @@ type CreateTaskInput struct {
 	Prompt  string
 	RepoURL string
 	BaseRef string
+	// MCPServers names MCP servers this run may use, by NAME — never a
+	// command. Each name must already be registered on the lalter deployment
+	// being called; an unrecognized name fails the whole call with
+	// ErrBadRequest rather than queuing a task with fewer tools than asked
+	// for. See lalter's own apps/core/pkg/mcpregistry for why a name, and
+	// never {command, args, env}, is the only thing this field accepts —
+	// letting a caller supply a command would let anyone who can call
+	// CreateTask make lalter's host execute it.
+	MCPServers []string
 }
 
 // CreateTask queues an agent run over a repository and returns as soon as it
@@ -212,6 +225,9 @@ func (c *Client) CreateTask(ctx context.Context, in CreateTaskInput) (Task, erro
 	}
 	if in.BaseRef != "" {
 		body.BaseRef = &in.BaseRef
+	}
+	if len(in.MCPServers) > 0 {
+		body.McpServers = &in.MCPServers
 	}
 
 	var out wire.TaskTaskDTO
@@ -312,6 +328,9 @@ func taskFrom(w wire.TaskTaskDTO) Task {
 	}
 	if w.BaseRef != nil {
 		out.BaseRef = *w.BaseRef
+	}
+	if w.McpServers != nil {
+		out.MCPServers = *w.McpServers
 	}
 	if w.Status != nil {
 		out.Status = *w.Status

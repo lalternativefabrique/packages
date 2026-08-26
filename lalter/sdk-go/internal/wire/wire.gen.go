@@ -62,8 +62,14 @@ type ChatSendRequest struct {
 type TaskCreateTaskRequest struct {
 	BaseRef *string `json:"base_ref,omitempty"`
 	Kind    *string `json:"kind,omitempty"`
-	Prompt  *string `json:"prompt,omitempty"`
-	RepoUrl *string `json:"repo_url,omitempty"`
+
+	// McpServers MCPServers names MCP servers this run may use, by name — never a
+	// command. Each name must already be registered on this deployment
+	// (LALTER_MCP_SERVERS); an unrecognized name refuses the whole request
+	// with 400 rather than silently running with fewer tools than asked for.
+	McpServers *[]string `json:"mcp_servers,omitempty"`
+	Prompt     *string   `json:"prompt,omitempty"`
+	RepoUrl    *string   `json:"repo_url,omitempty"`
 }
 
 // TaskErrorResponse defines model for task.ErrorResponse.
@@ -84,19 +90,20 @@ type TaskStepDTO struct {
 
 // TaskTaskDTO defines model for task.TaskDTO.
 type TaskTaskDTO struct {
-	BaseRef   *string       `json:"base_ref,omitempty"`
-	CreatedAt *string       `json:"created_at,omitempty"`
-	Diff      *string       `json:"diff,omitempty"`
-	Error     *string       `json:"error,omitempty"`
-	Id        *string       `json:"id,omitempty"`
-	Kind      *string       `json:"kind,omitempty"`
-	Model     *string       `json:"model,omitempty"`
-	Prompt    *string       `json:"prompt,omitempty"`
-	SettledAt *string       `json:"settled_at,omitempty"`
-	StartedAt *string       `json:"started_at,omitempty"`
-	Status    *string       `json:"status,omitempty"`
-	Summary   *string       `json:"summary,omitempty"`
-	Usage     *TaskUsageDTO `json:"usage,omitempty"`
+	BaseRef    *string       `json:"base_ref,omitempty"`
+	CreatedAt  *string       `json:"created_at,omitempty"`
+	Diff       *string       `json:"diff,omitempty"`
+	Error      *string       `json:"error,omitempty"`
+	Id         *string       `json:"id,omitempty"`
+	Kind       *string       `json:"kind,omitempty"`
+	McpServers *[]string     `json:"mcp_servers,omitempty"`
+	Model      *string       `json:"model,omitempty"`
+	Prompt     *string       `json:"prompt,omitempty"`
+	SettledAt  *string       `json:"settled_at,omitempty"`
+	StartedAt  *string       `json:"started_at,omitempty"`
+	Status     *string       `json:"status,omitempty"`
+	Summary    *string       `json:"summary,omitempty"`
+	Usage      *TaskUsageDTO `json:"usage,omitempty"`
 }
 
 // TaskUsageDTO defines model for task.UsageDTO.
@@ -105,6 +112,12 @@ type TaskUsageDTO struct {
 	InputTokens       *int `json:"input_tokens,omitempty"`
 	OutputTokens      *int `json:"output_tokens,omitempty"`
 	Steps             *int `json:"steps,omitempty"`
+}
+
+// GetMessageAudioParams defines parameters for GetMessageAudio.
+type GetMessageAudioParams struct {
+	// Stream 1 streams the reading piece by piece
+	Stream *string `form:"stream,omitempty" json:"stream,omitempty"`
 }
 
 // SendChatMessageJSONRequestBody defines body for SendChatMessage for application/json ContentType.
@@ -192,6 +205,9 @@ type ClientInterface interface {
 	// GetConversationMessages request
 	GetConversationMessages(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetMessageAudio request
+	GetMessageAudio(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// SendChatMessageWithBody request with any body
 	SendChatMessageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -226,6 +242,18 @@ func (c *Client) ListConversations(ctx context.Context, reqEditors ...RequestEdi
 
 func (c *Client) GetConversationMessages(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetConversationMessagesRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetMessageAudio(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMessageAudioRequest(c.Server, id, messageId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -371,6 +399,69 @@ func NewGetConversationMessagesRequest(server string, id string) (*http.Request,
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetMessageAudioRequest generates requests for GetMessageAudio
+func NewGetMessageAudioRequest(server string, id string, messageId string, params *GetMessageAudioParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "messageId", runtime.ParamLocationPath, messageId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/chat/conversations/%s/messages/%s/audio", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Stream != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "stream", runtime.ParamLocationQuery, *params.Stream); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -605,6 +696,9 @@ type ClientWithResponsesInterface interface {
 	// GetConversationMessagesWithResponse request
 	GetConversationMessagesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetConversationMessagesResponse, error)
 
+	// GetMessageAudioWithResponse request
+	GetMessageAudioWithResponse(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*GetMessageAudioResponse, error)
+
 	// SendChatMessageWithBodyWithResponse request with any body
 	SendChatMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SendChatMessageResponse, error)
 
@@ -664,6 +758,27 @@ func (r GetConversationMessagesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetConversationMessagesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetMessageAudioResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetMessageAudioResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetMessageAudioResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -799,6 +914,15 @@ func (c *ClientWithResponses) GetConversationMessagesWithResponse(ctx context.Co
 	return ParseGetConversationMessagesResponse(rsp)
 }
 
+// GetMessageAudioWithResponse request returning *GetMessageAudioResponse
+func (c *ClientWithResponses) GetMessageAudioWithResponse(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*GetMessageAudioResponse, error) {
+	rsp, err := c.GetMessageAudio(ctx, id, messageId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetMessageAudioResponse(rsp)
+}
+
 // SendChatMessageWithBodyWithResponse request with arbitrary body returning *SendChatMessageResponse
 func (c *ClientWithResponses) SendChatMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SendChatMessageResponse, error) {
 	rsp, err := c.SendChatMessageWithBody(ctx, contentType, body, reqEditors...)
@@ -914,6 +1038,22 @@ func ParseGetConversationMessagesResponse(rsp *http.Response) (*GetConversationM
 		}
 		response.JSON404 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseGetMessageAudioResponse parses an HTTP response from a GetMessageAudioWithResponse call
+func ParseGetMessageAudioResponse(rsp *http.Response) (*GetMessageAudioResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetMessageAudioResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

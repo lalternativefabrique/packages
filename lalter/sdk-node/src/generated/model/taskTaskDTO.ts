@@ -14,6 +14,7 @@ export interface TaskTaskDTO {
   error?: string;
   id?: string;
   kind?: string;
+  mcp_servers?: string[];
   model?: string;
   prompt?: string;
   settled_at?: string;

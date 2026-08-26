@@ -85,6 +85,24 @@ case err != nil:
 run takes minutes, and waiting here would time out on work that later
 succeeded.
 
+## Granting a task MCP tools
+
+```go
+task, err := client.CreateTask(ctx, sdk.CreateTaskInput{
+    Kind: "fix", Prompt: "...", RepoURL: "...",
+    MCPServers: []string{"skalpai-logs"},
+})
+```
+
+`MCPServers` names servers by NAME — never a command. Each name must already
+be registered on the lalter deployment being called (its own
+`LALTER_MCP_SERVERS`); an unrecognized name fails the call with
+`ErrBadRequest` rather than queuing a task with fewer tools than asked for.
+This is deliberate: a caller supplying `{command, args, env}` directly could
+make lalter's own host execute an arbitrary subprocess, which is remote code
+execution wearing a config option's clothes. Ask whoever operates the
+deployment which names are registered — this SDK has no way to discover them.
+
 ## Polling a task
 
 ```go

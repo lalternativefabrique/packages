@@ -9,6 +9,11 @@
 export interface TaskCreateTaskRequest {
   base_ref?: string;
   kind?: string;
+  /** MCPServers names MCP servers this run may use, by name — never a
+command. Each name must already be registered on this deployment
+(LALTER_MCP_SERVERS); an unrecognized name refuses the whole request
+with 400 rather than silently running with fewer tools than asked for. */
+  mcp_servers?: string[];
   prompt?: string;
   repo_url?: string;
 }

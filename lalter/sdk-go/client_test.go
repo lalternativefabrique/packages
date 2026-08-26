@@ -66,6 +66,74 @@ func TestCreateTask_SendsTheAppKeyAndTheBody(t *testing.T) {
 	}
 }
 
+func TestCreateTask_SendsMCPServerNames(t *testing.T) {
+	srv, rec := server(t, 202, map[string]any{"id": "t-1", "status": "queued"})
+	c := New(srv.URL, "k")
+
+	if _, err := c.CreateTask(ctx(), CreateTaskInput{
+		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+		MCPServers: []string{"skalpai-logs"},
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got, ok := rec.body["mcp_servers"].([]any)
+	if !ok || len(got) != 1 || got[0] != "skalpai-logs" {
+		t.Fatalf("mcp_servers sent = %v", rec.body["mcp_servers"])
+	}
+}
+
+// A request that names no MCP server must not send the field at all — an
+// omitted field and an explicit empty list read the same to lalter, but
+// omitting it is what every other zero-value optional field in this SDK
+// already does.
+func TestCreateTask_OmitsMCPServersWhenNoneRequested(t *testing.T) {
+	srv, rec := server(t, 202, map[string]any{"id": "t-1", "status": "queued"})
+	c := New(srv.URL, "k")
+
+	if _, err := c.CreateTask(ctx(), CreateTaskInput{
+		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if _, sent := rec.body["mcp_servers"]; sent {
+		t.Fatal("mcp_servers was sent despite none being requested")
+	}
+}
+
+// A registry that rejects the name reads back through the same error path as
+// any other 400 — a caller must not have to special-case this refusal.
+func TestCreateTask_RefusesAnUnregisteredMCPServerName(t *testing.T) {
+	srv, _ := server(t, http.StatusBadRequest, map[string]string{
+		"error": `unknown MCP server "not-registered"`,
+	})
+	c := New(srv.URL, "k")
+
+	_, err := c.CreateTask(ctx(), CreateTaskInput{
+		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+		MCPServers: []string{"not-registered"},
+	})
+	if !errors.Is(err, ErrBadRequest) {
+		t.Fatalf("err = %v, want ErrBadRequest", err)
+	}
+}
+
+func TestGetTask_ReportsTheMCPServersGranted(t *testing.T) {
+	srv, _ := server(t, 200, map[string]any{
+		"id": "t-1", "status": "running", "mcp_servers": []string{"skalpai-logs"},
+	})
+	c := New(srv.URL, "k")
+
+	got, err := c.GetTask(ctx(), "t-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(got.MCPServers) != 1 || got.MCPServers[0] != "skalpai-logs" {
+		t.Fatalf("mcp servers = %v", got.MCPServers)
+	}
+}
+
 func TestCreateTask_RefusesIncompleteInput(t *testing.T) {
 	c := New("http://x", "k")
 
