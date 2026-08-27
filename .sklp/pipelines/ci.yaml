@@ -63,6 +63,8 @@ scopes:
     - "go/composition/**"
   retrieval:
     - "go/retrieval/**"
+  search:
+    - "go/search/**"
   webhooks:
     - "go/webhooks/**"
   lungor-core:
@@ -124,6 +126,15 @@ steps:
     tools: [go]
     run: |
       cd go/retrieval
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: search
+    scope: [search]
+    tools: [go]
+    run: |
+      cd go/search
       go build ./...
       go vet ./...
       go test -count=1 ./...
