@@ -14,11 +14,20 @@ import (
 	"strings"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
+
+// ChatAttachmentDTO defines model for chat.AttachmentDTO.
+type ChatAttachmentDTO struct {
+	Filename  *string `json:"filename,omitempty"`
+	Id        *string `json:"id,omitempty"`
+	MimeType  *string `json:"mime_type,omitempty"`
+	SizeBytes *int    `json:"size_bytes,omitempty"`
+}
 
 // ChatConversationDTO defines model for chat.ConversationDTO.
 type ChatConversationDTO struct {
@@ -37,31 +46,46 @@ type ChatErrorResponse struct {
 
 // ChatMessageDTO defines model for chat.MessageDTO.
 type ChatMessageDTO struct {
-	At       *string `json:"at,omitempty"`
-	Content  *string `json:"content,omitempty"`
-	Id       *string `json:"id,omitempty"`
-	Role     *string `json:"role,omitempty"`
-	ToolArgs *string `json:"tool_args,omitempty"`
-	ToolMeta *string `json:"tool_meta,omitempty"`
-	ToolName *string `json:"tool_name,omitempty"`
+	At          *string              `json:"at,omitempty"`
+	Attachments *[]ChatAttachmentDTO `json:"attachments,omitempty"`
+	Content     *string              `json:"content,omitempty"`
+	Id          *string              `json:"id,omitempty"`
+	Role        *string              `json:"role,omitempty"`
+	ToolArgs    *string              `json:"tool_args,omitempty"`
+	ToolMeta    *string              `json:"tool_meta,omitempty"`
+	ToolName    *string              `json:"tool_name,omitempty"`
+	Vote        *int                 `json:"vote,omitempty"`
 }
 
 // ChatSendRequest defines model for chat.SendRequest.
 type ChatSendRequest struct {
-	BaseRef        *string `json:"base_ref,omitempty"`
-	ConversationId *string `json:"conversation_id,omitempty"`
-	Message        *string `json:"message,omitempty"`
+	// AttachmentIds AttachmentIDs names files uploaded ahead of this turn via
+	// POST /chat/attachments. Each must belong to the caller and, once the
+	// conversation exists, to this thread.
+	AttachmentIds  *[]string `json:"attachment_ids,omitempty"`
+	BaseRef        *string   `json:"base_ref,omitempty"`
+	ConversationId *string   `json:"conversation_id,omitempty"`
+	Message        *string   `json:"message,omitempty"`
 
 	// RepoUrl RepoURL points a new conversation at a repository, credentials
 	// included. Ignored once the thread exists — a thread works on one
 	// repository, and moving it mid-way would make its own history lie.
 	RepoUrl *string `json:"repo_url,omitempty"`
+
+	// Timezone Timezone is the caller's IANA zone (e.g. "Europe/Paris"), used to speak
+	// times in the person's own clock instead of UTC. Empty falls back to UTC.
+	Timezone *string `json:"timezone,omitempty"`
+}
+
+// ChatVoteRequest defines model for chat.VoteRequest.
+type ChatVoteRequest struct {
+	// Vote Vote is 1 (up), -1 (down), or 0 to clear a previous vote.
+	Vote *int `json:"vote,omitempty"`
 }
 
 // TaskCreateTaskRequest defines model for task.CreateTaskRequest.
 type TaskCreateTaskRequest struct {
 	BaseRef *string `json:"base_ref,omitempty"`
-	Kind    *string `json:"kind,omitempty"`
 
 	// McpServers MCPServers names MCP servers this run may use, by name — never a
 	// command. Each name must already be registered on this deployment
@@ -70,6 +94,18 @@ type TaskCreateTaskRequest struct {
 	McpServers *[]string `json:"mcp_servers,omitempty"`
 	Prompt     *string   `json:"prompt,omitempty"`
 	RepoUrl    *string   `json:"repo_url,omitempty"`
+
+	// ReportDiff ReportDiff asks the run to read back and return the working tree diff
+	// once the agent finishes. A caller giving the agent no write tools has
+	// nothing to read back.
+	ReportDiff *bool `json:"report_diff,omitempty"`
+
+	// SystemPrompt SystemPrompt is passed to the agent verbatim.
+	SystemPrompt *string `json:"system_prompt,omitempty"`
+
+	// Tools Tools names the local tools the agent may use: read, grep, glob, edit,
+	// write, bash. An unrecognized name is silently skipped, not refused.
+	Tools *[]string `json:"tools,omitempty"`
 }
 
 // TaskErrorResponse defines model for task.ErrorResponse.
@@ -90,20 +126,22 @@ type TaskStepDTO struct {
 
 // TaskTaskDTO defines model for task.TaskDTO.
 type TaskTaskDTO struct {
-	BaseRef    *string       `json:"base_ref,omitempty"`
-	CreatedAt  *string       `json:"created_at,omitempty"`
-	Diff       *string       `json:"diff,omitempty"`
-	Error      *string       `json:"error,omitempty"`
-	Id         *string       `json:"id,omitempty"`
-	Kind       *string       `json:"kind,omitempty"`
-	McpServers *[]string     `json:"mcp_servers,omitempty"`
-	Model      *string       `json:"model,omitempty"`
-	Prompt     *string       `json:"prompt,omitempty"`
-	SettledAt  *string       `json:"settled_at,omitempty"`
-	StartedAt  *string       `json:"started_at,omitempty"`
-	Status     *string       `json:"status,omitempty"`
-	Summary    *string       `json:"summary,omitempty"`
-	Usage      *TaskUsageDTO `json:"usage,omitempty"`
+	BaseRef      *string       `json:"base_ref,omitempty"`
+	CreatedAt    *string       `json:"created_at,omitempty"`
+	Diff         *string       `json:"diff,omitempty"`
+	Error        *string       `json:"error,omitempty"`
+	Id           *string       `json:"id,omitempty"`
+	McpServers   *[]string     `json:"mcp_servers,omitempty"`
+	Model        *string       `json:"model,omitempty"`
+	Prompt       *string       `json:"prompt,omitempty"`
+	ReportDiff   *bool         `json:"report_diff,omitempty"`
+	SettledAt    *string       `json:"settled_at,omitempty"`
+	StartedAt    *string       `json:"started_at,omitempty"`
+	Status       *string       `json:"status,omitempty"`
+	Summary      *string       `json:"summary,omitempty"`
+	SystemPrompt *string       `json:"system_prompt,omitempty"`
+	Tools        *[]string     `json:"tools,omitempty"`
+	Usage        *TaskUsageDTO `json:"usage,omitempty"`
 }
 
 // TaskUsageDTO defines model for task.UsageDTO.
@@ -114,11 +152,26 @@ type TaskUsageDTO struct {
 	Steps             *int `json:"steps,omitempty"`
 }
 
+// UploadChatAttachmentMultipartBody defines parameters for UploadChatAttachment.
+type UploadChatAttachmentMultipartBody struct {
+	// ConversationId Conversation the file belongs to
+	ConversationId string `json:"conversation_id"`
+
+	// File The file
+	File openapi_types.File `json:"file"`
+}
+
 // GetMessageAudioParams defines parameters for GetMessageAudio.
 type GetMessageAudioParams struct {
 	// Stream 1 streams the reading piece by piece
 	Stream *string `form:"stream,omitempty" json:"stream,omitempty"`
 }
+
+// UploadChatAttachmentMultipartRequestBody defines body for UploadChatAttachment for multipart/form-data ContentType.
+type UploadChatAttachmentMultipartRequestBody UploadChatAttachmentMultipartBody
+
+// VoteChatMessageJSONRequestBody defines body for VoteChatMessage for application/json ContentType.
+type VoteChatMessageJSONRequestBody = ChatVoteRequest
 
 // SendChatMessageJSONRequestBody defines body for SendChatMessage for application/json ContentType.
 type SendChatMessageJSONRequestBody = ChatSendRequest
@@ -199,14 +252,28 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// UploadChatAttachmentWithBody request with any body
+	UploadChatAttachmentWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetChatAttachment request
+	GetChatAttachment(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListConversations request
 	ListConversations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteConversation request
+	DeleteConversation(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetConversationMessages request
 	GetConversationMessages(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMessageAudio request
 	GetMessageAudio(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// VoteChatMessageWithBody request with any body
+	VoteChatMessageWithBody(ctx context.Context, id string, messageId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	VoteChatMessage(ctx context.Context, id string, messageId string, body VoteChatMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// SendChatMessageWithBody request with any body
 	SendChatMessageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -228,8 +295,44 @@ type ClientInterface interface {
 	GetTaskSteps(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
+func (c *Client) UploadChatAttachmentWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUploadChatAttachmentRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetChatAttachment(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetChatAttachmentRequest(c.Server, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListConversations(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListConversationsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteConversation(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteConversationRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -254,6 +357,30 @@ func (c *Client) GetConversationMessages(ctx context.Context, id string, reqEdit
 
 func (c *Client) GetMessageAudio(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetMessageAudioRequest(c.Server, id, messageId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VoteChatMessageWithBody(ctx context.Context, id string, messageId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoteChatMessageRequestWithBody(c.Server, id, messageId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) VoteChatMessage(ctx context.Context, id string, messageId string, body VoteChatMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewVoteChatMessageRequest(c.Server, id, messageId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -348,6 +475,69 @@ func (c *Client) GetTaskSteps(ctx context.Context, id string, reqEditors ...Requ
 	return c.Client.Do(req)
 }
 
+// NewUploadChatAttachmentRequestWithBody generates requests for UploadChatAttachment with any type of body
+func NewUploadChatAttachmentRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/chat/attachments")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetChatAttachmentRequest generates requests for GetChatAttachment
+func NewGetChatAttachmentRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/chat/attachments/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListConversationsRequest generates requests for ListConversations
 func NewListConversationsRequest(server string) (*http.Request, error) {
 	var err error
@@ -368,6 +558,40 @@ func NewListConversationsRequest(server string) (*http.Request, error) {
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDeleteConversationRequest generates requests for DeleteConversation
+func NewDeleteConversationRequest(server string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/chat/conversations/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -468,6 +692,60 @@ func NewGetMessageAudioRequest(server string, id string, messageId string, param
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewVoteChatMessageRequest calls the generic VoteChatMessage builder with application/json body
+func NewVoteChatMessageRequest(server string, id string, messageId string, body VoteChatMessageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewVoteChatMessageRequestWithBody(server, id, messageId, "application/json", bodyReader)
+}
+
+// NewVoteChatMessageRequestWithBody generates requests for VoteChatMessage with any type of body
+func NewVoteChatMessageRequestWithBody(server string, id string, messageId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "messageId", runtime.ParamLocationPath, messageId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/v1/chat/conversations/%s/messages/%s/vote", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -690,14 +968,28 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// UploadChatAttachmentWithBodyWithResponse request with any body
+	UploadChatAttachmentWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadChatAttachmentResponse, error)
+
+	// GetChatAttachmentWithResponse request
+	GetChatAttachmentWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetChatAttachmentResponse, error)
+
 	// ListConversationsWithResponse request
 	ListConversationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListConversationsResponse, error)
+
+	// DeleteConversationWithResponse request
+	DeleteConversationWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteConversationResponse, error)
 
 	// GetConversationMessagesWithResponse request
 	GetConversationMessagesWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetConversationMessagesResponse, error)
 
 	// GetMessageAudioWithResponse request
 	GetMessageAudioWithResponse(ctx context.Context, id string, messageId string, params *GetMessageAudioParams, reqEditors ...RequestEditorFn) (*GetMessageAudioResponse, error)
+
+	// VoteChatMessageWithBodyWithResponse request with any body
+	VoteChatMessageWithBodyWithResponse(ctx context.Context, id string, messageId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VoteChatMessageResponse, error)
+
+	VoteChatMessageWithResponse(ctx context.Context, id string, messageId string, body VoteChatMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*VoteChatMessageResponse, error)
 
 	// SendChatMessageWithBodyWithResponse request with any body
 	SendChatMessageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SendChatMessageResponse, error)
@@ -719,6 +1011,51 @@ type ClientWithResponsesInterface interface {
 	GetTaskStepsWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetTaskStepsResponse, error)
 }
 
+type UploadChatAttachmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ChatAttachmentDTO
+	JSON400      *ChatErrorResponse
+	JSON404      *ChatErrorResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r UploadChatAttachmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UploadChatAttachmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetChatAttachmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetChatAttachmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetChatAttachmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListConversationsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -735,6 +1072,27 @@ func (r ListConversationsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListConversationsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteConversationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteConversationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteConversationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -779,6 +1137,29 @@ func (r GetMessageAudioResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetMessageAudioResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type VoteChatMessageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON400      *ChatErrorResponse
+	JSON404      *ChatErrorResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r VoteChatMessageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r VoteChatMessageResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -896,6 +1277,24 @@ func (r GetTaskStepsResponse) StatusCode() int {
 	return 0
 }
 
+// UploadChatAttachmentWithBodyWithResponse request with arbitrary body returning *UploadChatAttachmentResponse
+func (c *ClientWithResponses) UploadChatAttachmentWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UploadChatAttachmentResponse, error) {
+	rsp, err := c.UploadChatAttachmentWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUploadChatAttachmentResponse(rsp)
+}
+
+// GetChatAttachmentWithResponse request returning *GetChatAttachmentResponse
+func (c *ClientWithResponses) GetChatAttachmentWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*GetChatAttachmentResponse, error) {
+	rsp, err := c.GetChatAttachment(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetChatAttachmentResponse(rsp)
+}
+
 // ListConversationsWithResponse request returning *ListConversationsResponse
 func (c *ClientWithResponses) ListConversationsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListConversationsResponse, error) {
 	rsp, err := c.ListConversations(ctx, reqEditors...)
@@ -903,6 +1302,15 @@ func (c *ClientWithResponses) ListConversationsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListConversationsResponse(rsp)
+}
+
+// DeleteConversationWithResponse request returning *DeleteConversationResponse
+func (c *ClientWithResponses) DeleteConversationWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*DeleteConversationResponse, error) {
+	rsp, err := c.DeleteConversation(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteConversationResponse(rsp)
 }
 
 // GetConversationMessagesWithResponse request returning *GetConversationMessagesResponse
@@ -921,6 +1329,23 @@ func (c *ClientWithResponses) GetMessageAudioWithResponse(ctx context.Context, i
 		return nil, err
 	}
 	return ParseGetMessageAudioResponse(rsp)
+}
+
+// VoteChatMessageWithBodyWithResponse request with arbitrary body returning *VoteChatMessageResponse
+func (c *ClientWithResponses) VoteChatMessageWithBodyWithResponse(ctx context.Context, id string, messageId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*VoteChatMessageResponse, error) {
+	rsp, err := c.VoteChatMessageWithBody(ctx, id, messageId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVoteChatMessageResponse(rsp)
+}
+
+func (c *ClientWithResponses) VoteChatMessageWithResponse(ctx context.Context, id string, messageId string, body VoteChatMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*VoteChatMessageResponse, error) {
+	rsp, err := c.VoteChatMessage(ctx, id, messageId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseVoteChatMessageResponse(rsp)
 }
 
 // SendChatMessageWithBodyWithResponse request with arbitrary body returning *SendChatMessageResponse
@@ -984,6 +1409,62 @@ func (c *ClientWithResponses) GetTaskStepsWithResponse(ctx context.Context, id s
 	return ParseGetTaskStepsResponse(rsp)
 }
 
+// ParseUploadChatAttachmentResponse parses an HTTP response from a UploadChatAttachmentWithResponse call
+func ParseUploadChatAttachmentResponse(rsp *http.Response) (*UploadChatAttachmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UploadChatAttachmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ChatAttachmentDTO
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ChatErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ChatErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetChatAttachmentResponse parses an HTTP response from a GetChatAttachmentWithResponse call
+func ParseGetChatAttachmentResponse(rsp *http.Response) (*GetChatAttachmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetChatAttachmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListConversationsResponse parses an HTTP response from a ListConversationsWithResponse call
 func ParseListConversationsResponse(rsp *http.Response) (*ListConversationsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1005,6 +1486,22 @@ func ParseListConversationsResponse(rsp *http.Response) (*ListConversationsRespo
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseDeleteConversationResponse parses an HTTP response from a DeleteConversationWithResponse call
+func ParseDeleteConversationResponse(rsp *http.Response) (*DeleteConversationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteConversationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -1054,6 +1551,39 @@ func ParseGetMessageAudioResponse(rsp *http.Response) (*GetMessageAudioResponse,
 	response := &GetMessageAudioResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseVoteChatMessageResponse parses an HTTP response from a VoteChatMessageWithResponse call
+func ParseVoteChatMessageResponse(rsp *http.Response) (*VoteChatMessageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &VoteChatMessageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest ChatErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest ChatErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
 	}
 
 	return response, nil
