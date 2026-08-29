@@ -40,13 +40,14 @@ func server(t *testing.T, status int, payload any) (*httptest.Server, *recorded)
 
 func TestCreateTask_SendsTheAppKeyAndTheBody(t *testing.T) {
 	srv, rec := server(t, 202, map[string]any{
-		"id": "t-1", "kind": "fix", "status": "queued",
+		"id": "t-1", "status": "queued",
 	})
 	c := New(srv.URL, "lalter_sk_x")
 
 	got, err := c.CreateTask(ctx(), CreateTaskInput{
-		Kind: "fix", Prompt: "the ledger double-credits a self-transfer",
+		Prompt:  "the ledger double-credits a self-transfer",
 		RepoURL: "https://x-access-token:pat@github.com/acme/app.git",
+		Tools:   []string{"read", "grep", "glob"},
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -71,7 +72,7 @@ func TestCreateTask_SendsMCPServerNames(t *testing.T) {
 	c := New(srv.URL, "k")
 
 	if _, err := c.CreateTask(ctx(), CreateTaskInput{
-		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+		Prompt: "p", RepoURL: "https://example.test/r.git", Tools: []string{"read"},
 		MCPServers: []string{"skalpai-logs"},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -92,7 +93,7 @@ func TestCreateTask_OmitsMCPServersWhenNoneRequested(t *testing.T) {
 	c := New(srv.URL, "k")
 
 	if _, err := c.CreateTask(ctx(), CreateTaskInput{
-		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+		Prompt: "p", RepoURL: "https://example.test/r.git", Tools: []string{"read"},
 	}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -111,7 +112,7 @@ func TestCreateTask_RefusesAnUnregisteredMCPServerName(t *testing.T) {
 	c := New(srv.URL, "k")
 
 	_, err := c.CreateTask(ctx(), CreateTaskInput{
-		Kind: "fix", Prompt: "p", RepoURL: "https://example.test/r.git",
+		Prompt: "p", RepoURL: "https://example.test/r.git", Tools: []string{"read"},
 		MCPServers: []string{"not-registered"},
 	})
 	if !errors.Is(err, ErrBadRequest) {
@@ -138,12 +139,12 @@ func TestCreateTask_RefusesIncompleteInput(t *testing.T) {
 	c := New("http://x", "k")
 
 	if _, err := c.CreateTask(ctx(), CreateTaskInput{Prompt: "p", RepoURL: "r"}); !errors.Is(err, ErrBadRequest) {
-		t.Fatalf("missing kind: err = %v", err)
+		t.Fatalf("missing tools: err = %v", err)
 	}
-	if _, err := c.CreateTask(ctx(), CreateTaskInput{Kind: "fix", RepoURL: "r"}); !errors.Is(err, ErrBadRequest) {
+	if _, err := c.CreateTask(ctx(), CreateTaskInput{Tools: []string{"read"}, RepoURL: "r"}); !errors.Is(err, ErrBadRequest) {
 		t.Fatalf("missing prompt: err = %v", err)
 	}
-	if _, err := c.CreateTask(ctx(), CreateTaskInput{Kind: "fix", Prompt: "p"}); !errors.Is(err, ErrBadRequest) {
+	if _, err := c.CreateTask(ctx(), CreateTaskInput{Tools: []string{"read"}, Prompt: "p"}); !errors.Is(err, ErrBadRequest) {
 		t.Fatalf("missing repo url: err = %v", err)
 	}
 }
@@ -375,7 +376,7 @@ func TestEveryOperationIsVersioned(t *testing.T) {
 	}{
 		{"list tasks", func() error { _, err := c.ListTasks(ctx()); return err }, "/api/v1/tasks"},
 		{"create task", func() error {
-			_, err := c.CreateTask(ctx(), CreateTaskInput{Kind: "fix", Prompt: "p", RepoURL: "r"})
+			_, err := c.CreateTask(ctx(), CreateTaskInput{Prompt: "p", RepoURL: "r", Tools: []string{"read"}})
 			return err
 		}, "/api/v1/tasks"},
 		{"get task", func() error { _, err := c.GetTask(ctx(), "t-1"); return err }, "/api/v1/tasks/t-1"},

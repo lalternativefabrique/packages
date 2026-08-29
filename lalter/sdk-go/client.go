@@ -167,13 +167,20 @@ const (
 // Task is an agent run as an API consumer sees it.
 type Task struct {
 	ID      string
-	Kind    string
 	Prompt  string
 	BaseRef string
 	// MCPServers names the MCP servers this run was granted, by name — the
 	// same names CreateTaskInput sent, echoed back once lalter has resolved
 	// and accepted them.
 	MCPServers []string
+	// Tools names the local tools the agent was granted: read, grep, glob,
+	// edit, write, bash.
+	Tools []string
+	// SystemPrompt is what was passed to the agent verbatim.
+	SystemPrompt string
+	// ReportDiff says whether lalter read back the working tree diff once the
+	// agent finished.
+	ReportDiff bool
 	Status     string
 	Model      string
 	Diff       string
@@ -191,7 +198,6 @@ type Task struct {
 // — which is how the caller grants access to a private repository without
 // lalter holding anyone's token. It is never echoed back by Task.
 type CreateTaskInput struct {
-	Kind    string
 	Prompt  string
 	RepoURL string
 	BaseRef string
@@ -204,6 +210,14 @@ type CreateTaskInput struct {
 	// letting a caller supply a command would let anyone who can call
 	// CreateTask make lalter's host execute it.
 	MCPServers []string
+	// Tools names the local tools the agent may use: read, grep, glob, edit,
+	// write, bash. An unrecognized name is silently skipped, not refused.
+	Tools []string
+	// SystemPrompt is passed to the agent verbatim.
+	SystemPrompt string
+	// ReportDiff asks lalter to read back and return the working tree diff
+	// once the agent finishes.
+	ReportDiff bool
 }
 
 // CreateTask queues an agent run over a repository and returns as soon as it
@@ -214,20 +228,26 @@ func (c *Client) CreateTask(ctx context.Context, in CreateTaskInput) (Task, erro
 	if c.baseURL == "" || c.appKey == "" {
 		return Task{}, ErrNotConfigured
 	}
-	if in.Kind == "" || in.Prompt == "" || in.RepoURL == "" {
-		return Task{}, fmt.Errorf("%w: kind, prompt and repo_url are required", ErrBadRequest)
+	if in.Prompt == "" || in.RepoURL == "" || len(in.Tools) == 0 {
+		return Task{}, fmt.Errorf("%w: prompt, repo_url and tools are required", ErrBadRequest)
 	}
 
 	body := wire.CreateTaskJSONRequestBody{
-		Kind:    &in.Kind,
 		Prompt:  &in.Prompt,
 		RepoUrl: &in.RepoURL,
+		Tools:   &in.Tools,
 	}
 	if in.BaseRef != "" {
 		body.BaseRef = &in.BaseRef
 	}
 	if len(in.MCPServers) > 0 {
 		body.McpServers = &in.MCPServers
+	}
+	if in.SystemPrompt != "" {
+		body.SystemPrompt = &in.SystemPrompt
+	}
+	if in.ReportDiff {
+		body.ReportDiff = &in.ReportDiff
 	}
 
 	var out wire.TaskTaskDTO
@@ -320,9 +340,6 @@ func taskFrom(w wire.TaskTaskDTO) Task {
 	if w.Id != nil {
 		out.ID = *w.Id
 	}
-	if w.Kind != nil {
-		out.Kind = *w.Kind
-	}
 	if w.Prompt != nil {
 		out.Prompt = *w.Prompt
 	}
@@ -331,6 +348,15 @@ func taskFrom(w wire.TaskTaskDTO) Task {
 	}
 	if w.McpServers != nil {
 		out.MCPServers = *w.McpServers
+	}
+	if w.Tools != nil {
+		out.Tools = *w.Tools
+	}
+	if w.SystemPrompt != nil {
+		out.SystemPrompt = *w.SystemPrompt
+	}
+	if w.ReportDiff != nil {
+		out.ReportDiff = *w.ReportDiff
 	}
 	if w.Status != nil {
 		out.Status = *w.Status

@@ -7,6 +7,125 @@
         "version": "0.1.0"
     },
     "paths": {
+        "/api/v1/chat/attachments": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Upload a file to attach to the next message sent",
+                "operationId": "uploadChatAttachment",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "conversation_id": {
+                                        "description": "Conversation the file belongs to",
+                                        "type": "string"
+                                    },
+                                    "file": {
+                                        "description": "The file",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "conversation_id",
+                                    "file"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.AttachmentDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/attachments/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Download an attached file",
+                "operationId": "getChatAttachment",
+                "parameters": [
+                    {
+                        "description": "Attachment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/chat/conversations": {
             "get": {
                 "security": [
@@ -29,6 +148,46 @@
                                     "items": {
                                         "$ref": "#/components/schemas/chat.ConversationDTO"
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/chat/conversations/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Delete a conversation and its messages",
+                "operationId": "deleteConversation",
+                "parameters": [
+                    {
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
                                 }
                             }
                         }
@@ -171,6 +330,76 @@
                 }
             }
         },
+        "/api/v1/chat/conversations/{id}/messages/{messageId}/vote": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Vote up or down on an assistant reply",
+                "operationId": "voteChatMessage",
+                "parameters": [
+                    {
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Message ID",
+                        "name": "messageId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/chat.VoteRequest"
+                            }
+                        }
+                    },
+                    "description": "1 up, -1 down, 0 to clear",
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/chat/send": {
             "post": {
                 "security": [
@@ -211,6 +440,198 @@
                             "text/event-stream": {
                                 "schema": {
                                     "$ref": "#/components/schemas/chat.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/converse/conversations": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "converse"
+                ],
+                "summary": "List the caller's conversations, most recent first",
+                "operationId": "listConverseConversations",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/converse.ConversationDTO"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "converse"
+                ],
+                "summary": "Open a conversation under a caller-supplied system prompt and MCP servers",
+                "operationId": "createConverseConversation",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/converse.CreateConversationRequest"
+                            }
+                        }
+                    },
+                    "description": "What this conversation is",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/converse.ConversationDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/converse.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/converse/conversations/{id}/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "converse"
+                ],
+                "summary": "Read a conversation's turns, oldest first",
+                "operationId": "getConverseMessages",
+                "parameters": [
+                    {
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/converse.MessageDTO"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/converse.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/converse/conversations/{id}/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "converse"
+                ],
+                "summary": "Send a message and stream the reply",
+                "operationId": "sendConverseMessage",
+                "parameters": [
+                    {
+                        "description": "Conversation ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/converse.SendRequest"
+                            }
+                        }
+                    },
+                    "description": "The message",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "SSE stream of events",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/converse.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/event-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/converse.ErrorResponse"
                                 }
                             }
                         }
@@ -340,6 +761,72 @@
                         }
                     }
                 }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "reminders"
+                ],
+                "summary": "Change what a pending reminder says or how it recurs",
+                "operationId": "updateReminder",
+                "parameters": [
+                    {
+                        "description": "Reminder ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/reminder.UpdateReminderRequest"
+                            }
+                        }
+                    },
+                    "description": "What to change",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/reminder.ReminderDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/reminder.ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/reminder.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/v1/reminders/{id}/done": {
@@ -382,6 +869,75 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/reminder.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/search": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "websearch"
+                ],
+                "summary": "Search the web",
+                "operationId": "webSearch",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/websearch.SearchRequest"
+                            }
+                        }
+                    },
+                    "description": "Query",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "$ref": "#/components/schemas/websearch.Result"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
@@ -1283,6 +1839,81 @@
                 }
             }
         },
+        "/llm-usage/cost": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "llm-usage"
+                ],
+                "summary": "The caller's LLM spend for the current billing period",
+                "operationId": "getLLMUsageCost",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/llm_usage.CostDTO"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/llm_usage.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/llm-usage/provision": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "llm-usage"
+                ],
+                "summary": "Grant the caller their default Lungor plan, if they don't have one yet",
+                "operationId": "provisionLLMUsage",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/llm_usage.ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/notes": {
             "get": {
                 "security": [
@@ -1694,6 +2325,23 @@
                     }
                 }
             },
+            "chat.AttachmentDTO": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "mime_type": {
+                        "type": "string"
+                    },
+                    "size_bytes": {
+                        "type": "integer"
+                    }
+                }
+            },
             "chat.ConversationDTO": {
                 "type": "object",
                 "properties": {
@@ -1731,6 +2379,128 @@
                     "at": {
                         "type": "string"
                     },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/chat.AttachmentDTO"
+                        }
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "tool_args": {
+                        "type": "string"
+                    },
+                    "tool_meta": {
+                        "type": "string"
+                    },
+                    "tool_name": {
+                        "type": "string"
+                    },
+                    "vote": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "chat.SendRequest": {
+                "type": "object",
+                "properties": {
+                    "attachment_ids": {
+                        "description": "AttachmentIDs names files uploaded ahead of this turn via\nPOST /chat/attachments. Each must belong to the caller and, once the\nconversation exists, to this thread.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "base_ref": {
+                        "type": "string"
+                    },
+                    "conversation_id": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "repo_url": {
+                        "description": "RepoURL points a new conversation at a repository, credentials\nincluded. Ignored once the thread exists — a thread works on one\nrepository, and moving it mid-way would make its own history lie.",
+                        "type": "string"
+                    },
+                    "timezone": {
+                        "description": "Timezone is the caller's IANA zone (e.g. \"Europe/Paris\"), used to speak\ntimes in the person's own clock instead of UTC. Empty falls back to UTC.",
+                        "type": "string"
+                    }
+                }
+            },
+            "chat.VoteRequest": {
+                "type": "object",
+                "properties": {
+                    "vote": {
+                        "description": "Vote is 1 (up), -1 (down), or 0 to clear a previous vote.",
+                        "type": "integer"
+                    }
+                }
+            },
+            "converse.ConversationDTO": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "mcp_servers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "system_prompt": {
+                        "type": "string"
+                    },
+                    "updated_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "converse.CreateConversationRequest": {
+                "type": "object",
+                "properties": {
+                    "mcp_servers": {
+                        "description": "MCPServers names MCP servers this conversation may use, by name —\nnever a command. Each name must already be registered on this\ndeployment (LALTER_MCP_SERVERS), the same registry task uses.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "skalpai-logs"
+                        ]
+                    },
+                    "system_prompt": {
+                        "type": "string"
+                    }
+                }
+            },
+            "converse.ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "converse.MessageDTO": {
+                "type": "object",
+                "properties": {
+                    "at": {
+                        "type": "string"
+                    },
                     "content": {
                         "type": "string"
                     },
@@ -1751,20 +2521,21 @@
                     }
                 }
             },
-            "chat.SendRequest": {
+            "converse.SendRequest": {
                 "type": "object",
                 "properties": {
-                    "base_ref": {
-                        "type": "string"
-                    },
-                    "conversation_id": {
-                        "type": "string"
-                    },
                     "message": {
                         "type": "string"
+                    }
+                }
+            },
+            "domain.ChannelConfig": {
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string"
                     },
-                    "repo_url": {
-                        "description": "RepoURL points a new conversation at a repository, credentials\nincluded. Ignored once the thread exists — a thread works on one\nrepository, and moving it mid-way would make its own history lie.",
+                    "type": {
                         "type": "string"
                     }
                 }
@@ -1957,6 +2728,23 @@
                     }
                 }
             },
+            "llm_usage.CostDTO": {
+                "type": "object",
+                "properties": {
+                    "cost_micros": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
+                    }
+                }
+            },
             "llm_usage.ErrorResponse": {
                 "type": "object",
                 "properties": {
@@ -2050,9 +2838,20 @@
                         "type": "string",
                         "example": "check whether the fix landed"
                     },
+                    "channels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/domain.ChannelConfig"
+                        }
+                    },
                     "due_at": {
                         "type": "string",
                         "example": "2026-08-24T09:00:00Z"
+                    },
+                    "every": {
+                        "description": "Every makes the reminder fire again after this delay instead of once,\nread the same way as In (\"24h\", \"7d\"). Omitted means one-shot.",
+                        "type": "string",
+                        "example": "24h"
                     },
                     "in": {
                         "type": "string",
@@ -2074,10 +2873,20 @@
                     "body": {
                         "type": "string"
                     },
+                    "channels": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/domain.ChannelConfig"
+                        }
+                    },
                     "created_at": {
                         "type": "string"
                     },
                     "due_at": {
+                        "type": "string"
+                    },
+                    "every": {
+                        "description": "Every is the recurrence interval as it was given (\"24h\"). Absent means\none-shot.",
                         "type": "string"
                     },
                     "fired_at": {
@@ -2091,16 +2900,29 @@
                     }
                 }
             },
+            "reminder.UpdateReminderRequest": {
+                "type": "object",
+                "properties": {
+                    "body": {
+                        "type": "string"
+                    },
+                    "due_at": {
+                        "type": "string",
+                        "example": "2026-08-24T09:00:00Z"
+                    },
+                    "every": {
+                        "description": "Every, when present, replaces the recurrence: \"\" clears it back to a\none-shot reminder, anything else sets the new interval.",
+                        "type": "string",
+                        "example": "24h"
+                    }
+                }
+            },
             "task.CreateTaskRequest": {
                 "type": "object",
                 "properties": {
                     "base_ref": {
                         "type": "string",
                         "example": "main"
-                    },
-                    "kind": {
-                        "type": "string",
-                        "example": "fix"
                     },
                     "mcp_servers": {
                         "description": "MCPServers names MCP servers this run may use, by name — never a\ncommand. Each name must already be registered on this deployment\n(LALTER_MCP_SERVERS); an unrecognized name refuses the whole request\nwith 400 rather than silently running with fewer tools than asked for.",
@@ -2119,6 +2941,27 @@
                     "repo_url": {
                         "type": "string",
                         "example": "https://x-access-token:TOKEN@github.com/acme/app.git"
+                    },
+                    "report_diff": {
+                        "description": "ReportDiff asks the run to read back and return the working tree diff\nonce the agent finishes. A caller giving the agent no write tools has\nnothing to read back.",
+                        "type": "boolean"
+                    },
+                    "system_prompt": {
+                        "description": "SystemPrompt is passed to the agent verbatim.",
+                        "type": "string",
+                        "example": "You are diagnosing. Explain what is wrong and why."
+                    },
+                    "tools": {
+                        "description": "Tools names the local tools the agent may use: read, grep, glob, edit,\nwrite, bash. An unrecognized name is silently skipped, not refused.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "example": [
+                            "read",
+                            "grep",
+                            "glob"
+                        ]
                     }
                 }
             },
@@ -2174,9 +3017,6 @@
                     "id": {
                         "type": "string"
                     },
-                    "kind": {
-                        "type": "string"
-                    },
                     "mcp_servers": {
                         "type": "array",
                         "items": {
@@ -2189,6 +3029,9 @@
                     "prompt": {
                         "type": "string"
                     },
+                    "report_diff": {
+                        "type": "boolean"
+                    },
                     "settled_at": {
                         "type": "string"
                     },
@@ -2200,6 +3043,15 @@
                     },
                     "summary": {
                         "type": "string"
+                    },
+                    "system_prompt": {
+                        "type": "string"
+                    },
+                    "tools": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "usage": {
                         "$ref": "#/components/schemas/task.UsageDTO"
@@ -2227,6 +3079,43 @@
                 "type": "object",
                 "properties": {
                     "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "websearch.Result": {
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string"
+                    },
+                    "engine": {
+                        "type": "string"
+                    },
+                    "favicon": {
+                        "type": "string"
+                    },
+                    "og_image": {
+                        "type": "string"
+                    },
+                    "og_site_name": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "websearch.SearchRequest": {
+                "type": "object",
+                "properties": {
+                    "max_results": {
+                        "type": "integer"
+                    },
+                    "query": {
                         "type": "string"
                     }
                 }
