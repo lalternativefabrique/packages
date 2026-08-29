@@ -445,6 +445,128 @@
                 }
             }
         },
+        "/metering/llm-cost/me": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Reports what one of the app's own end users has cost the tenant over [from, to). App-key scoped: the caller identifies the user by external_user_id, the same id it already sends to /metering/llm-usage. This is internal expense accounting — the figure is never billed to the user and appears on no invoice.\n\nDefaults to the current calendar month, UTC, matching the reset period /metering/balance uses.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "LLM cost for one end user over a period",
+                "operationId": "getMyLLMCostReport",
+                "parameters": [
+                    {
+                        "description": "The app's own user id",
+                        "name": "external_user_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the 1st of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.myCostReportResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "no customer resolved yet for this external_user_id",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/llm-usage": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Records what an app spent on LLM providers, aggregated per (user, model, window). This is the app's OWN expense, not something billed to the user: nothing is capped, nothing is ever refused, and no customer sees it.\n\nThe caller prices its own calls and sends `cost_micros` in micro-cents (1 EUR = 1 000 000): the app that chooses the model is the one place that cannot hold a stale price. Token counts are stored beside the amount so a figure stays checkable.\n\nSend batches aggregated over a 15-minute window rather than one call per LLM request. `bucket_start` is floored server-side, and a window is identified by (app, user, model, bucket) — so a retried POST records nothing twice. A batch resent with higher counts completes the window rather than duplicating it, which is what makes it safe to flush a window that is still open.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "Report LLM spend for a period",
+                "operationId": "recordLLMUsage",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.ingestRequest"
+                            }
+                        }
+                    },
+                    "description": "Usage batches",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.ingestResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/usage": {
             "post": {
                 "security": [
@@ -3849,6 +3971,168 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/llm-cost": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reports what each customer's LLM consumption COST THE TENANT over [from, to). This is internal expense accounting — the figure is never billed to the customer and appears on no invoice.\n\nThe amount is the one the emitting app computed when it made the call: it prices from the grid that changes at the same time as its model, so no price is copied here to go stale. Token counts are reported beside it, which is what makes an amount checkable.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "LLM cost per customer over a period",
+                "operationId": "getLLMCostReport",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to 30 days ago.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costReportResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/llm-tariffs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists every declared model price, newest effective date first. Prices are in micro-cents per MILLION tokens: a per-token price would round to zero in integer arithmetic.\n\nTariffs are OPTIONAL and unused by the cost report, which shows what the emitting app priced. They exist to re-derive a cost from the stored tokens — auditing an amount, or repricing history after a provider drop.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "List LLM model tariffs",
+                "operationId": "listLLMTariffs",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.tariffResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records a model's price from `effective_from` onwards. Prices are micro-cents per MILLION tokens.\n\nThis does NOT change what /llm-cost reports: that figure is the one the emitting app computed. A tariff only lets a cost be re-derived from the stored tokens.\n\nA new `effective_from` adds a VERSION rather than replacing the previous one: consumption is always priced with the tariff in force when it happened, so correcting today's price cannot rewrite last month's cost. Re-sending the same date overwrites that version — which is how a wrong price gets fixed retroactively.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "Declare or update an LLM model tariff",
+                "operationId": "upsertLLMTariff",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.upsertTariffRequest"
+                            }
+                        }
+                    },
+                    "description": "Tariff",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.tariffResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/payouts": {
             "get": {
                 "tags": [
@@ -4906,6 +5190,259 @@
             }
         },
         "schemas": {
+            "costtracking.costReportResponse": {
+                "type": "object",
+                "properties": {
+                    "customers": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.customerCostResponse"
+                        }
+                    },
+                    "from": {
+                        "type": "string"
+                    },
+                    "to": {
+                        "type": "string"
+                    },
+                    "total_calls": {
+                        "type": "integer",
+                        "example": 1204
+                    },
+                    "total_cost_micros": {
+                        "type": "integer",
+                        "example": 1893400
+                    }
+                }
+            },
+            "costtracking.customerCostResponse": {
+                "type": "object",
+                "properties": {
+                    "by_model": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.modelCostResponse"
+                        }
+                    },
+                    "calls": {
+                        "type": "integer",
+                        "example": 318
+                    },
+                    "cost_micros": {
+                        "description": "CostMicros is what this customer cost US over the period, in micro-cents.",
+                        "type": "integer",
+                        "example": 432100
+                    },
+                    "customer_email": {
+                        "type": "string",
+                        "example": "billing@acme.test"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    },
+                    "customer_name": {
+                        "type": "string",
+                        "example": "Acme Corp"
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "example": 1204000
+                    }
+                }
+            },
+            "costtracking.ingestRequest": {
+                "type": "object",
+                "properties": {
+                    "batches": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.llmUsageBatch"
+                        }
+                    }
+                }
+            },
+            "costtracking.ingestResponse": {
+                "type": "object",
+                "properties": {
+                    "accepted": {
+                        "description": "Accepted counts the batches recorded. A replay of an already-recorded\nwindow counts as accepted: it changed nothing, and it is not an error.",
+                        "type": "integer",
+                        "example": 37
+                    },
+                    "unknown_users": {
+                        "description": "UnknownUsers lists external_user_ids that match no customer. They are\nskipped rather than failing the whole flush: one user Lungor has never\nseen must not cost the caller every other batch in the same call, which\nit would then have to retry forever.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "costtracking.llmUsageBatch": {
+                "type": "object",
+                "properties": {
+                    "bucket_start": {
+                        "description": "BucketStart is the window's start, floored server-side to the aggregation\nsize — so the caller's clock cannot shift a bucket.",
+                        "type": "string",
+                        "example": "2026-08-21T14:30:00Z"
+                    },
+                    "cache_read_tokens": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "cache_write_tokens": {
+                        "type": "integer",
+                        "example": 0
+                    },
+                    "calls": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "cost_micros": {
+                        "description": "CostMicros is micro-cents (1 EUR = 1_000_000), priced by the caller from\nits own grid. This is the figure reported; the tokens make it checkable.",
+                        "type": "integer",
+                        "example": 42500
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "external_user_id": {
+                        "type": "string",
+                        "example": "user-42"
+                    },
+                    "input_tokens": {
+                        "type": "integer",
+                        "example": 4200
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "claude-opus-5"
+                    },
+                    "output_tokens": {
+                        "type": "integer",
+                        "example": 890
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "anthropic"
+                    }
+                }
+            },
+            "costtracking.modelCostResponse": {
+                "type": "object",
+                "properties": {
+                    "calls": {
+                        "type": "integer",
+                        "example": 318
+                    },
+                    "cost_micros": {
+                        "type": "integer",
+                        "example": 432100
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "claude-opus-5"
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "example": 1204000
+                    }
+                }
+            },
+            "costtracking.myCostReportResponse": {
+                "type": "object",
+                "properties": {
+                    "cost_micros": {
+                        "type": "integer",
+                        "example": 42500
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
+                    }
+                }
+            },
+            "costtracking.tariffResponse": {
+                "type": "object",
+                "properties": {
+                    "cache_read_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 150000
+                    },
+                    "cache_write_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 1875000
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "effective_from": {
+                        "type": "string"
+                    },
+                    "input_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 1500000
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "claude-opus-5"
+                    },
+                    "output_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 7500000
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "anthropic"
+                    }
+                }
+            },
+            "costtracking.upsertTariffRequest": {
+                "type": "object",
+                "properties": {
+                    "cache_read_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 150000
+                    },
+                    "cache_write_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 1875000
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "effective_from": {
+                        "description": "EffectiveFrom dates the price. Omit for now. A new date creates a new\nversion rather than overwriting: past consumption keeps its own price.",
+                        "type": "string"
+                    },
+                    "input_micros_per_mtok": {
+                        "description": "Prices are micro-cents per MILLION tokens.",
+                        "type": "integer",
+                        "example": 1500000
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "claude-opus-5"
+                    },
+                    "output_micros_per_mtok": {
+                        "type": "integer",
+                        "example": 7500000
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "anthropic"
+                    }
+                }
+            },
             "create_endpoint.CreateEndpointRequest": {
                 "type": "object",
                 "properties": {

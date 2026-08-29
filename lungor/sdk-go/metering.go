@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
@@ -172,6 +173,71 @@ func (c *Client) Balance(ctx context.Context, externalUserID, unit string) (Bala
 		return Balance{}, err
 	}
 	return balanceFrom(unit, out), nil
+}
+
+// LLMCost is what one end user's LLM consumption has cost the tenant over a
+// period. It is internal expense accounting: never billed to the user, never
+// on an invoice — Lungor reports it so the app can show it to the user anyway.
+type LLMCost struct {
+	// CostMicros is micro-cents (1 EUR = 1_000_000).
+	CostMicros  int64
+	Currency    string
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+}
+
+// MyLLMCost reports what externalUserID's LLM consumption has cost the tenant
+// over [from, to). Both bounds are optional; omitted, Lungor defaults to the
+// current calendar month (UTC) — the same reset window Balance's Periodic
+// regime uses.
+//
+// ErrNotFound means externalUserID has never resolved to a customer — no
+// first call recorded yet, not a zero-cost customer. Do not read it as
+// "spent nothing": show nothing, or fall back the way a fresh Balance would.
+func (c *Client) MyLLMCost(ctx context.Context, externalUserID string, from, to *time.Time) (LLMCost, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return LLMCost{}, ErrNotConfigured
+	}
+	if externalUserID == "" {
+		return LLMCost{}, fmt.Errorf("%w: empty external user id", ErrBadRequest)
+	}
+	params := &wire.GetMyLLMCostReportParams{ExternalUserId: externalUserID}
+	if from != nil {
+		s := from.UTC().Format(time.RFC3339)
+		params.From = &s
+	}
+	if to != nil {
+		s := to.UTC().Format(time.RFC3339)
+		params.To = &s
+	}
+	var out wire.CosttrackingMyCostReportResponse
+	if err := c.send(ctx, &out, func() (*http.Response, error) {
+		return c.wire.GetMyLLMCostReport(ctx, params)
+	}); err != nil {
+		return LLMCost{}, err
+	}
+	return llmCostFrom(out), nil
+}
+
+func llmCostFrom(w wire.CosttrackingMyCostReportResponse) LLMCost {
+	c := LLMCost{Currency: "EUR"}
+	if w.CostMicros != nil {
+		c.CostMicros = int64(*w.CostMicros)
+	}
+	if w.Currency != nil {
+		c.Currency = *w.Currency
+	}
+	if w.PeriodStart != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodStart); err == nil {
+			c.PeriodStart = t
+		}
+	}
+	if w.PeriodEnd != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodEnd); err == nil {
+			c.PeriodEnd = t
+		}
+	}
+	return c
 }
 
 func balanceFrom(unit string, w wire.MeteringBalanceResponse) Balance {

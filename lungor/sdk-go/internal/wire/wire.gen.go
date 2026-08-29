@@ -21,6 +21,52 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// CosttrackingIngestRequest defines model for costtracking.ingestRequest.
+type CosttrackingIngestRequest struct {
+	Batches *[]CosttrackingLlmUsageBatch `json:"batches,omitempty"`
+}
+
+// CosttrackingIngestResponse defines model for costtracking.ingestResponse.
+type CosttrackingIngestResponse struct {
+	// Accepted Accepted counts the batches recorded. A replay of an already-recorded
+	// window counts as accepted: it changed nothing, and it is not an error.
+	Accepted *int `json:"accepted,omitempty"`
+
+	// UnknownUsers UnknownUsers lists external_user_ids that match no customer. They are
+	// skipped rather than failing the whole flush: one user Lungor has never
+	// seen must not cost the caller every other batch in the same call, which
+	// it would then have to retry forever.
+	UnknownUsers *[]string `json:"unknown_users,omitempty"`
+}
+
+// CosttrackingLlmUsageBatch defines model for costtracking.llmUsageBatch.
+type CosttrackingLlmUsageBatch struct {
+	// BucketStart BucketStart is the window's start, floored server-side to the aggregation
+	// size — so the caller's clock cannot shift a bucket.
+	BucketStart      *string `json:"bucket_start,omitempty"`
+	CacheReadTokens  *int    `json:"cache_read_tokens,omitempty"`
+	CacheWriteTokens *int    `json:"cache_write_tokens,omitempty"`
+	Calls            *int    `json:"calls,omitempty"`
+
+	// CostMicros CostMicros is micro-cents (1 EUR = 1_000_000), priced by the caller from
+	// its own grid. This is the figure reported; the tokens make it checkable.
+	CostMicros     *int    `json:"cost_micros,omitempty"`
+	Currency       *string `json:"currency,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	InputTokens    *int    `json:"input_tokens,omitempty"`
+	Model          *string `json:"model,omitempty"`
+	OutputTokens   *int    `json:"output_tokens,omitempty"`
+	Provider       *string `json:"provider,omitempty"`
+}
+
+// CosttrackingMyCostReportResponse defines model for costtracking.myCostReportResponse.
+type CosttrackingMyCostReportResponse struct {
+	CostMicros  *int    `json:"cost_micros,omitempty"`
+	Currency    *string `json:"currency,omitempty"`
+	PeriodEnd   *string `json:"period_end,omitempty"`
+	PeriodStart *string `json:"period_start,omitempty"`
+}
+
 // CreateEndpointCreateEndpointRequest defines model for create_endpoint.CreateEndpointRequest.
 type CreateEndpointCreateEndpointRequest struct {
 	Description *string   `json:"description,omitempty"`
@@ -409,6 +455,18 @@ type GetEntitlementParams struct {
 	Units *string `form:"units,omitempty" json:"units,omitempty"`
 }
 
+// GetMyLLMCostReportParams defines parameters for GetMyLLMCostReport.
+type GetMyLLMCostReportParams struct {
+	// ExternalUserId The app's own user id
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+
+	// From Start (RFC3339). Defaults to the 1st of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // GetUsageBalanceParams defines parameters for GetUsageBalance.
 type GetUsageBalanceParams struct {
 	// ExternalUserId External user id
@@ -441,6 +499,9 @@ type CheckoutJSONRequestBody = FinanceCheckoutRequest
 
 // ClaimInvitationJSONRequestBody defines body for ClaimInvitation for application/json ContentType.
 type ClaimInvitationJSONRequestBody = FinanceClaimReq
+
+// RecordLLMUsageJSONRequestBody defines body for RecordLLMUsage for application/json ContentType.
+type RecordLLMUsageJSONRequestBody = CosttrackingIngestRequest
 
 // ConsumeUsageJSONRequestBody defines body for ConsumeUsage for application/json ContentType.
 type ConsumeUsageJSONRequestBody = MeteringConsumeRequest
@@ -574,6 +635,14 @@ type ClientInterface interface {
 
 	// LookupInvitation request
 	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetMyLLMCostReport request
+	GetMyLLMCostReport(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RecordLLMUsageWithBody request with any body
+	RecordLLMUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RecordLLMUsage(ctx context.Context, body RecordLLMUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ConsumeUsageWithBody request with any body
 	ConsumeUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -774,6 +843,42 @@ func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRe
 
 func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupInvitationRequest(c.Server, token)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetMyLLMCostReport(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetMyLLMCostReportRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordLLMUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordLLMUsageRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordLLMUsage(ctx context.Context, body RecordLLMUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordLLMUsageRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1459,6 +1564,123 @@ func NewLookupInvitationRequest(server string, token string) (*http.Request, err
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewGetMyLLMCostReportRequest generates requests for GetMyLLMCostReport
+func NewGetMyLLMCostReportRequest(server string, params *GetMyLLMCostReportParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/llm-cost/me")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRecordLLMUsageRequest calls the generic RecordLLMUsage builder with application/json body
+func NewRecordLLMUsageRequest(server string, body RecordLLMUsageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRecordLLMUsageRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewRecordLLMUsageRequestWithBody generates requests for RecordLLMUsage with any type of body
+func NewRecordLLMUsageRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/llm-usage")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2507,6 +2729,14 @@ type ClientWithResponsesInterface interface {
 	// LookupInvitationWithResponse request
 	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
 
+	// GetMyLLMCostReportWithResponse request
+	GetMyLLMCostReportWithResponse(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*GetMyLLMCostReportResponse, error)
+
+	// RecordLLMUsageWithBodyWithResponse request with any body
+	RecordLLMUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error)
+
+	RecordLLMUsageWithResponse(ctx context.Context, body RecordLLMUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error)
+
 	// ConsumeUsageWithBodyWithResponse request with any body
 	ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error)
 
@@ -2755,6 +2985,53 @@ func (r LookupInvitationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r LookupInvitationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetMyLLMCostReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingMyCostReportResponse
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetMyLLMCostReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetMyLLMCostReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RecordLLMUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingIngestResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r RecordLLMUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RecordLLMUsageResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3368,6 +3645,32 @@ func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, 
 	return ParseLookupInvitationResponse(rsp)
 }
 
+// GetMyLLMCostReportWithResponse request returning *GetMyLLMCostReportResponse
+func (c *ClientWithResponses) GetMyLLMCostReportWithResponse(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*GetMyLLMCostReportResponse, error) {
+	rsp, err := c.GetMyLLMCostReport(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetMyLLMCostReportResponse(rsp)
+}
+
+// RecordLLMUsageWithBodyWithResponse request with arbitrary body returning *RecordLLMUsageResponse
+func (c *ClientWithResponses) RecordLLMUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error) {
+	rsp, err := c.RecordLLMUsageWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordLLMUsageResponse(rsp)
+}
+
+func (c *ClientWithResponses) RecordLLMUsageWithResponse(ctx context.Context, body RecordLLMUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error) {
+	rsp, err := c.RecordLLMUsage(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordLLMUsageResponse(rsp)
+}
+
 // ConsumeUsageWithBodyWithResponse request with arbitrary body returning *ConsumeUsageResponse
 func (c *ClientWithResponses) ConsumeUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConsumeUsageResponse, error) {
 	rsp, err := c.ConsumeUsageWithBody(ctx, contentType, body, reqEditors...)
@@ -3904,6 +4207,79 @@ func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationRespons
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetMyLLMCostReportResponse parses an HTTP response from a GetMyLLMCostReportWithResponse call
+func ParseGetMyLLMCostReportResponse(rsp *http.Response) (*GetMyLLMCostReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetMyLLMCostReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingMyCostReportResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRecordLLMUsageResponse parses an HTTP response from a RecordLLMUsageWithResponse call
+func ParseRecordLLMUsageResponse(rsp *http.Response) (*RecordLLMUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RecordLLMUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingIngestResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	}
 
