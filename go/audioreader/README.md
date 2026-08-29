@@ -59,10 +59,16 @@ plain `<audio src>` can use. `NewReader` returns `nil` when `provider` is
 half-present: check for `nil` and answer that audio isn't configured instead
 of failing on the first request.
 
-A frontend drives the stream with MediaSource — fetch as a `ReadableStream`,
-append each chunk to a `SourceBuffer`, start `play()` once the first chunk
-lands. That side isn't in this package; it's the browser API this streaming
-shape exists to feed.
+A streamed response carries `Content-Type: audioreader.FramesContentType`,
+not `audio/mpeg`: each piece is a complete, independently decodable mp3, and
+concatenating their bytes on the wire gives a listener no way to find where
+one ends and the next begins. Each piece is instead sent length-prefixed — a
+big-endian uint32 byte count followed by that many bytes — so a frontend can
+split the stream back into the same pieces and decode them one by one (e.g.
+with Web Audio's `decodeAudioData`, queuing an `AudioBufferSourceNode` per
+piece), starting playback on the first one without waiting for the rest.
+MediaSource is not the fit here: mp3 support in a `SourceBuffer` is
+inconsistent across browsers and absent on iOS Safari.
 
 ## Priming an opening
 

@@ -3,6 +3,7 @@ package audioreader
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -242,6 +243,26 @@ func (r *Reader) cached(ctx context.Context, key string, fields map[string]any) 
 	return audio, true
 }
 
+// FramesContentType is what a streamed response carries instead of
+// "audio/mpeg": each piece is a complete, independently decodable mp3, and a
+// player has no way to find where one ends and the next begins in a plain
+// concatenation of their bytes. This type is the signal to expect frames.
+const FramesContentType = "application/x-lalter-audio-frames"
+
+// writeFrame sends one piece length-prefixed: a big-endian uint32 byte count
+// followed by that many bytes. The prefix is what lets a listener split the
+// stream back into the same independently-decodable pieces it was built
+// from, since concatenated mp3 frames carry no boundary of their own.
+func writeFrame(w io.Writer, piece []byte) error {
+	var length [4]byte
+	binary.BigEndian.PutUint32(length[:], uint32(len(piece)))
+	if _, err := w.Write(length[:]); err != nil {
+		return err
+	}
+	_, err := w.Write(piece)
+	return err
+}
+
 // stream reads the text aloud and sends each piece as it arrives, so playback
 // can start on the first one.
 //
@@ -270,11 +291,11 @@ func (r *Reader) stream(w http.ResponseWriter, req *http.Request, ar Request, ke
 	opening, rest := r.openingFor(req.Context(), ar)
 	if len(opening) > 0 {
 		firstPieceAt = time.Since(startedAt)
-		w.Header().Set("Content-Type", "audio/mpeg")
+		w.Header().Set("Content-Type", FramesContentType)
 		w.WriteHeader(http.StatusOK)
 		wroteHeader = true
 		whole.Write(opening)
-		if _, err := w.Write(opening); err != nil {
+		if err := writeFrame(w, opening); err != nil {
 			r.log.Warn("audio: listener left before the opening landed", attrs(fields)...)
 			return
 		}
@@ -294,12 +315,12 @@ func (r *Reader) stream(w http.ResponseWriter, req *http.Request, ar Request, ke
 			// Written on the first piece rather than up front: until one
 			// arrives the reading may still fail, and a 200 already sent
 			// cannot be taken back.
-			w.Header().Set("Content-Type", "audio/mpeg")
+			w.Header().Set("Content-Type", FramesContentType)
 			w.WriteHeader(http.StatusOK)
 			wroteHeader = true
 		}
 		whole.Write(piece)
-		if _, err := w.Write(piece); err != nil {
+		if err := writeFrame(w, piece); err != nil {
 			return err
 		}
 		if canFlush {
