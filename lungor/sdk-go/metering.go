@@ -219,6 +219,99 @@ func (c *Client) MyLLMCost(ctx context.Context, externalUserID string, from, to 
 	return llmCostFrom(out), nil
 }
 
+// AppModelCost is one (provider, model)'s share of an app's LLM spend.
+type AppModelCost struct {
+	Provider   string
+	Model      string
+	CostMicros int64
+	Tokens     int64
+	Calls      int
+}
+
+// AppLLMCostSummary is what the calling app's own LLM consumption has cost
+// the tenant over a period, broken down by (provider, model) — the app-key
+// counterpart of the tenant-wide report, which requires a console JWT.
+type AppLLMCostSummary struct {
+	// CostMicros is micro-cents (1 EUR = 1_000_000).
+	CostMicros  int64
+	Currency    string
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	ByModel     []AppModelCost
+}
+
+// AppLLMCostSummary reports what the calling app's LLM consumption has cost
+// the tenant over [from, to), across every one of its end users, broken down
+// by (provider, model). Both bounds are optional; omitted, Lungor defaults to
+// the current calendar month (UTC).
+//
+// Unlike MyLLMCost, there is no per-app ErrNotFound: an app with no usage yet
+// gets a zero summary, since the app itself is what the API key identifies.
+func (c *Client) AppLLMCostSummary(ctx context.Context, from, to *time.Time) (AppLLMCostSummary, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return AppLLMCostSummary{}, ErrNotConfigured
+	}
+	params := &wire.GetAppLLMCostSummaryParams{}
+	if from != nil {
+		s := from.UTC().Format(time.RFC3339)
+		params.From = &s
+	}
+	if to != nil {
+		s := to.UTC().Format(time.RFC3339)
+		params.To = &s
+	}
+	var out wire.CosttrackingCostSummaryResponse
+	if err := c.send(ctx, &out, func() (*http.Response, error) {
+		return c.wire.GetAppLLMCostSummary(ctx, params)
+	}); err != nil {
+		return AppLLMCostSummary{}, err
+	}
+	return appLLMCostSummaryFrom(out), nil
+}
+
+func appLLMCostSummaryFrom(w wire.CosttrackingCostSummaryResponse) AppLLMCostSummary {
+	s := AppLLMCostSummary{Currency: "EUR"}
+	if w.CostMicros != nil {
+		s.CostMicros = int64(*w.CostMicros)
+	}
+	if w.Currency != nil {
+		s.Currency = *w.Currency
+	}
+	if w.PeriodStart != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodStart); err == nil {
+			s.PeriodStart = t
+		}
+	}
+	if w.PeriodEnd != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodEnd); err == nil {
+			s.PeriodEnd = t
+		}
+	}
+	if w.ByModel != nil {
+		s.ByModel = make([]AppModelCost, 0, len(*w.ByModel))
+		for _, m := range *w.ByModel {
+			mc := AppModelCost{}
+			if m.Provider != nil {
+				mc.Provider = *m.Provider
+			}
+			if m.Model != nil {
+				mc.Model = *m.Model
+			}
+			if m.CostMicros != nil {
+				mc.CostMicros = int64(*m.CostMicros)
+			}
+			if m.Tokens != nil {
+				mc.Tokens = int64(*m.Tokens)
+			}
+			if m.Calls != nil {
+				mc.Calls = *m.Calls
+			}
+			s.ByModel = append(s.ByModel, mc)
+		}
+	}
+	return s
+}
+
 func llmCostFrom(w wire.CosttrackingMyCostReportResponse) LLMCost {
 	c := LLMCost{Currency: "EUR"}
 	if w.CostMicros != nil {

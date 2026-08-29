@@ -223,3 +223,36 @@ func TestMyLLMCost_UnconfiguredClientIsRefused(t *testing.T) {
 		t.Fatalf("got %v, want ErrNotConfigured", err)
 	}
 }
+
+func TestAppLLMCostSummary_BreaksDownByProviderAndModel(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"cost_micros": 42500, "currency": "EUR",
+		"period_start": "2026-08-01T00:00:00Z", "period_end": "2026-08-29T00:00:00Z",
+		"by_model": []map[string]any{
+			{"provider": "scaleway", "model": "deepseek-v4-flash-0731", "cost_micros": 30000, "tokens": 100000, "calls": 5},
+			{"provider": "anthropic", "model": "claude-opus-5", "cost_micros": 12500, "tokens": 4000, "calls": 2},
+		},
+	})
+	defer srv.Close()
+
+	got, err := New(srv.URL, "k").AppLLMCostSummary(ctx(), nil, nil)
+	if err != nil {
+		t.Fatalf("app llm cost summary: %v", err)
+	}
+	if got.CostMicros != 42_500 || got.Currency != "EUR" {
+		t.Fatalf("got %+v", got)
+	}
+	if rec.method != http.MethodGet || rec.path != "/api/v1/metering/llm-cost/summary" {
+		t.Fatalf("%s %s", rec.method, rec.path)
+	}
+	if len(got.ByModel) != 2 || got.ByModel[0].Provider != "scaleway" || got.ByModel[0].Model != "deepseek-v4-flash-0731" {
+		t.Fatalf("by_model = %+v", got.ByModel)
+	}
+}
+
+func TestAppLLMCostSummary_UnconfiguredClientIsRefused(t *testing.T) {
+	c := New("", "")
+	if _, err := c.AppLLMCostSummary(ctx(), nil, nil); !errors.Is(err, ErrNotConfigured) {
+		t.Fatalf("got %v, want ErrNotConfigured", err)
+	}
+}

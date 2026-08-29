@@ -519,6 +519,61 @@
                 }
             }
         },
+        "/metering/llm-cost/summary": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Reports what the app's LLM consumption has cost the tenant over [from, to), across every one of its end users, grouped by (provider, model). App-key scoped: this is the app-key counterpart of the tenant-wide report, which requires a console JWT. Internal expense accounting — never billed to a customer, never on an invoice.\n\nDefaults to the current calendar month, UTC, matching the reset period /metering/balance uses.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "LLM cost for the whole app over a period, broken down by model",
+                "operationId": "getAppLLMCostSummary",
+                "parameters": [
+                    {
+                        "description": "Start (RFC3339). Defaults to the 1st of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costSummaryResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/llm-usage": {
             "post": {
                 "security": [
@@ -5190,6 +5245,31 @@
             }
         },
         "schemas": {
+            "costtracking.appModelCostResponse": {
+                "type": "object",
+                "properties": {
+                    "calls": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "cost_micros": {
+                        "type": "integer",
+                        "example": 42500
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "deepseek-v4-flash-0731"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "scaleway"
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "example": 128000
+                    }
+                }
+            },
             "costtracking.costReportResponse": {
                 "type": "object",
                 "properties": {
@@ -5212,6 +5292,31 @@
                     "total_cost_micros": {
                         "type": "integer",
                         "example": 1893400
+                    }
+                }
+            },
+            "costtracking.costSummaryResponse": {
+                "type": "object",
+                "properties": {
+                    "by_model": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.appModelCostResponse"
+                        }
+                    },
+                    "cost_micros": {
+                        "type": "integer",
+                        "example": 42500
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "period_start": {
+                        "type": "string"
                     }
                 }
             },
