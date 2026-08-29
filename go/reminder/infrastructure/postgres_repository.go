@@ -22,7 +22,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
-const columns = `id, user_id, body, due_at, status, created_at, fired_at, channels`
+const columns = `id, user_id, body, due_at, status, created_at, fired_at, channels, run_every_seconds`
 
 func (r *PostgresRepository) Save(ctx context.Context, rem *domain.Reminder) error {
 	channels, err := json.Marshal(rem.Channels)
@@ -30,9 +30,9 @@ func (r *PostgresRepository) Save(ctx context.Context, rem *domain.Reminder) err
 		return fmt.Errorf("encode channels: %w", err)
 	}
 	_, err = r.pool.Exec(ctx, `
-		INSERT INTO reminders (id, user_id, body, due_at, status, created_at, channels)
-		VALUES ($1, NULLIF($2,''), $3, $4, $5, $6, $7)`,
-		rem.ID, rem.UserID, rem.Body, rem.DueAt, string(rem.Status), rem.CreatedAt, channels)
+		INSERT INTO reminders (id, user_id, body, due_at, status, created_at, channels, run_every_seconds)
+		VALUES ($1, NULLIF($2,''), $3, $4, $5, $6, $7, $8)`,
+		rem.ID, rem.UserID, rem.Body, rem.DueAt, string(rem.Status), rem.CreatedAt, channels, runEverySeconds(rem.RunEvery))
 	if err != nil {
 		return fmt.Errorf("save reminder: %w", err)
 	}
@@ -41,8 +41,8 @@ func (r *PostgresRepository) Save(ctx context.Context, rem *domain.Reminder) err
 
 func (r *PostgresRepository) Update(ctx context.Context, rem *domain.Reminder) error {
 	_, err := r.pool.Exec(ctx, `
-		UPDATE reminders SET body=$2, due_at=$3, status=$4, fired_at=$5 WHERE id=$1`,
-		rem.ID, rem.Body, rem.DueAt, string(rem.Status), rem.FiredAt)
+		UPDATE reminders SET body=$2, due_at=$3, status=$4, fired_at=$5, run_every_seconds=$6 WHERE id=$1`,
+		rem.ID, rem.Body, rem.DueAt, string(rem.Status), rem.FiredAt, runEverySeconds(rem.RunEvery))
 	if err != nil {
 		return fmt.Errorf("update reminder: %w", err)
 	}
@@ -80,14 +80,26 @@ func (r *PostgresRepository) List(ctx context.Context, userID string, includeSet
 	return out, rows.Err()
 }
 
-// ClaimDue takes what is due and marks it fired in the same statement.
-// SKIP LOCKED is what stops two pollers delivering the same reminder twice.
+// ClaimDue takes what is due and settles the occurrence in the same
+// statement. SKIP LOCKED is what stops two pollers delivering the same
+// reminder twice. A one-shot reminder is marked fired; a recurring one is
+// pushed to its next due date and stays pending, so the next tick can still
+// find it.
+//
+// The next date is computed from NOW() rather than from the elapsed due_at:
+// a poller that was down for a while must resume the cadence, not replay
+// every occurrence it missed.
 func (r *PostgresRepository) ClaimDue(ctx context.Context, limit int) ([]*domain.Reminder, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 	rows, err := r.pool.Query(ctx, `
-		UPDATE reminders SET status='fired', fired_at=NOW()
+		UPDATE reminders SET
+			fired_at = NOW(),
+			status = CASE WHEN run_every_seconds IS NOT NULL THEN status ELSE 'fired' END,
+			due_at = CASE WHEN run_every_seconds IS NOT NULL
+				THEN NOW() + (run_every_seconds || ' seconds')::interval
+				ELSE due_at END
 		WHERE id IN (
 			SELECT id FROM reminders
 			WHERE status='pending' AND due_at <= NOW()
@@ -116,14 +128,15 @@ type scanner interface {
 
 func scan(s scanner) (*domain.Reminder, error) {
 	var (
-		rem      domain.Reminder
-		userID   *string
-		status   string
-		firedAt  *time.Time
-		channels []byte
+		rem             domain.Reminder
+		userID          *string
+		status          string
+		firedAt         *time.Time
+		channels        []byte
+		runEverySeconds *int64
 	)
 	if err := s.Scan(&rem.ID, &userID, &rem.Body, &rem.DueAt, &status,
-		&rem.CreatedAt, &firedAt, &channels); err != nil {
+		&rem.CreatedAt, &firedAt, &channels, &runEverySeconds); err != nil {
 		return nil, err
 	}
 	if userID != nil {
@@ -131,10 +144,24 @@ func scan(s scanner) (*domain.Reminder, error) {
 	}
 	rem.Status = domain.Status(status)
 	rem.FiredAt = firedAt
+	if runEverySeconds != nil {
+		d := time.Duration(*runEverySeconds) * time.Second
+		rem.RunEvery = &d
+	}
 	if len(channels) > 0 {
 		if err := json.Unmarshal(channels, &rem.Channels); err != nil {
 			return nil, fmt.Errorf("decode channels: %w", err)
 		}
 	}
 	return &rem, nil
+}
+
+// runEverySeconds converts a recurrence interval to what the run_every_seconds
+// column stores. Nil means one-shot.
+func runEverySeconds(every *time.Duration) *int64 {
+	if every == nil {
+		return nil
+	}
+	s := int64(*every / time.Second)
+	return &s
 }

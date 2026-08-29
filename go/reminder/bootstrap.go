@@ -68,6 +68,7 @@ func NewService(ctx context.Context, deps ServiceDeps) (*Service, error) {
 func (s *Service) RegisterRoutes(g *echo.Group) {
 	g.POST("/reminders", s.CreateReminder)
 	g.GET("/reminders", s.ListReminders)
+	g.PATCH("/reminders/:id", s.UpdateReminder)
 	g.DELETE("/reminders/:id", s.CancelReminder)
 	g.POST("/reminders/:id/done", s.MarkReminderDone)
 }
