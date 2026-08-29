@@ -25,7 +25,10 @@ output-options:
   # authenticated by a human's JWT, not by an app key, so an app has nothing to
   # call there.
   exclude-tags: [apps, plans, credentials, billing, console-webhooks, auth]
-  # The two console routes whose tag it shares with app-facing ones: `metering`
-  # covers both /metering/usage (app key) and /tenants/…/usage-units (console),
-  # so the tag alone cannot separate them.
-  exclude-operation-ids: [declareUsageUnit, listUsageUnits]
+  # Console routes whose tag they share with app-facing ones. `metering` covers
+  # both /metering/usage (app key) and /tenants/…/usage-units (console);
+  # `costtracking` covers both /metering/llm-cost/me (app key) and the tenant
+  # report + tariff admin under /tenants/…/llm-cost, /tenants/…/llm-tariffs
+  # (console, JWT) — the tag alone cannot separate either pair.
+  exclude-operation-ids:
+    [declareUsageUnit, listUsageUnits, getLLMCostReport, listLLMTariffs, upsertLLMTariff]

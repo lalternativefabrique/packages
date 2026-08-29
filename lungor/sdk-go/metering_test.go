@@ -176,3 +176,50 @@ func TestMetering_UnconfiguredClientIsRefused(t *testing.T) {
 		t.Fatalf("balance: got %v, want ErrNotConfigured", err)
 	}
 }
+
+func TestMyLLMCost_ReadsTheReportedTotal(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"cost_micros": 42500, "currency": "EUR",
+		"period_start": "2026-08-01T00:00:00Z", "period_end": "2026-08-29T00:00:00Z",
+	})
+	defer srv.Close()
+
+	got, err := New(srv.URL, "k").MyLLMCost(ctx(), "user-42", nil, nil)
+	if err != nil {
+		t.Fatalf("my llm cost: %v", err)
+	}
+	if got.CostMicros != 42_500 || got.Currency != "EUR" {
+		t.Fatalf("got %+v", got)
+	}
+	if rec.method != http.MethodGet || rec.path != "/api/v1/metering/llm-cost/me?external_user_id=user-42" {
+		t.Fatalf("%s %s", rec.method, rec.path)
+	}
+	if got.PeriodStart.IsZero() || got.PeriodEnd.IsZero() {
+		t.Fatalf("period travels with the total: got %+v", got)
+	}
+}
+
+// A user with no customer yet is not a zero-cost customer — the two must not
+// collapse into the same answer, exactly like Balance vs an unknown unit.
+func TestMyLLMCost_UnresolvedUserIsNotFound(t *testing.T) {
+	srv, _ := server(t, http.StatusNotFound, map[string]any{"message": "no customer resolved yet"})
+	defer srv.Close()
+
+	if _, err := New(srv.URL, "k").MyLLMCost(ctx(), "ghost", nil, nil); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+}
+
+func TestMyLLMCost_RequiresAUser(t *testing.T) {
+	c := New("https://lungor.test", "k")
+	if _, err := c.MyLLMCost(ctx(), "", nil, nil); !errors.Is(err, ErrBadRequest) {
+		t.Fatalf("got %v, want ErrBadRequest", err)
+	}
+}
+
+func TestMyLLMCost_UnconfiguredClientIsRefused(t *testing.T) {
+	c := New("", "")
+	if _, err := c.MyLLMCost(ctx(), "user-1", nil, nil); !errors.Is(err, ErrNotConfigured) {
+		t.Fatalf("got %v, want ErrNotConfigured", err)
+	}
+}
