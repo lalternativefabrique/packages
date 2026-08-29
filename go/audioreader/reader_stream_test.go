@@ -2,6 +2,7 @@ package audioreader
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,26 @@ import (
 	"testing"
 	"time"
 )
+
+// readFrames splits a length-prefixed stream body back into the pieces it was
+// built from, the same way a listener would.
+func readFrames(t *testing.T, body []byte) [][]byte {
+	t.Helper()
+	var pieces [][]byte
+	for len(body) > 0 {
+		if len(body) < 4 {
+			t.Fatalf("truncated frame length, %d bytes left", len(body))
+		}
+		n := binary.BigEndian.Uint32(body[:4])
+		body = body[4:]
+		if uint32(len(body)) < n {
+			t.Fatalf("truncated frame body: want %d bytes, have %d", n, len(body))
+		}
+		pieces = append(pieces, body[:n])
+		body = body[n:]
+	}
+	return pieces
+}
 
 // A stream carries no Content-Length, so a client that cannot drive
 // MediaSource must never be handed one: it would play the opening seconds and
@@ -93,11 +114,18 @@ func testRequest() Request {
 func TestAStreamSendsEveryPieceInOrder(t *testing.T) {
 	rec := streamOnce(t, stubStreamer{pieces: [][]byte{[]byte("one-"), []byte("two-"), []byte("three")}})
 
-	if got := rec.Body.String(); got != "one-two-three" {
-		t.Errorf("body is %q, want the pieces in order", got)
+	got := readFrames(t, rec.Body.Bytes())
+	want := []string{"one-", "two-", "three"}
+	if len(got) != len(want) {
+		t.Fatalf("got %d pieces, want %d", len(got), len(want))
 	}
-	if got := rec.Header().Get("Content-Type"); got != "audio/mpeg" {
-		t.Errorf("Content-Type is %q", got)
+	for i, w := range want {
+		if string(got[i]) != w {
+			t.Errorf("piece %d is %q, want %q", i, got[i], w)
+		}
+	}
+	if got := rec.Header().Get("Content-Type"); got != FramesContentType {
+		t.Errorf("Content-Type is %q, want %q", got, FramesContentType)
 	}
 	// A stream is the one response that must not be cached: it is what a
 	// listener gets while the reading is still being paid for, and the next
@@ -143,8 +171,9 @@ func TestAStreamCutShortIsNotCached(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200 — a stream already under way cannot report an error status", rec.Code)
 	}
-	if got := rec.Body.String(); got != "first-" {
-		t.Errorf("body is %q, want what was sent before the failure", got)
+	got := readFrames(t, rec.Body.Bytes())
+	if len(got) != 1 || string(got[0]) != "first-" {
+		t.Errorf("frames are %q, want just what was sent before the failure", got)
 	}
 	// storage is nil here, so nothing could be cached anyway; the point is
 	// that the handler returns without asking for it.
