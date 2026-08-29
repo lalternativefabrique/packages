@@ -56,6 +56,18 @@ func TestAnAbsoluteTimeIsKeptAsGiven(t *testing.T) {
 	}
 }
 
+func TestFormatDelayRoundTripsThroughParseDelay(t *testing.T) {
+	for _, d := range []time.Duration{time.Hour, 45 * time.Minute, 24 * time.Hour, 3 * 24 * time.Hour} {
+		got, err := parseDelay(formatDelay(d))
+		if err != nil {
+			t.Fatalf("formatDelay(%v) = %q, which parseDelay rejected: %v", d, formatDelay(d), err)
+		}
+		if got != d {
+			t.Errorf("round trip of %v produced %v", d, got)
+		}
+	}
+}
+
 func TestADelayIsCountedFromNow(t *testing.T) {
 	before := time.Now().UTC()
 	got, err := resolveDue("", "2h")

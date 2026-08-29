@@ -23,10 +23,24 @@ type UserIDFunc func(c echo.Context) string
 // and an assistant that only took RFC 3339 would make its caller compute what
 // it can compute itself.
 type CreateReminderRequest struct {
-	Body     string                 `json:"body" example:"check whether the fix landed"`
-	DueAt    string                 `json:"due_at,omitempty" example:"2026-08-24T09:00:00Z"`
-	In       string                 `json:"in,omitempty" example:"2h"`
+	Body  string `json:"body" example:"check whether the fix landed"`
+	DueAt string `json:"due_at,omitempty" example:"2026-08-24T09:00:00Z"`
+	In    string `json:"in,omitempty" example:"2h"`
+	// Every makes the reminder fire again after this delay instead of once,
+	// read the same way as In ("24h", "7d"). Omitted means one-shot.
+	Every    string                 `json:"every,omitempty" example:"24h"`
 	Channels []domain.ChannelConfig `json:"channels,omitempty"`
+}
+
+// UpdateReminderRequest changes what a pending reminder says or how it
+// recurs. Fields are omitted rather than nulled: a client sends only what it
+// means to change.
+type UpdateReminderRequest struct {
+	Body  *string `json:"body,omitempty"`
+	DueAt *string `json:"due_at,omitempty" example:"2026-08-24T09:00:00Z"`
+	// Every, when present, replaces the recurrence: "" clears it back to a
+	// one-shot reminder, anything else sets the new interval.
+	Every *string `json:"every,omitempty" example:"24h"`
 }
 
 // ReminderDTO is a reminder as an API client sees it.
@@ -38,6 +52,9 @@ type ReminderDTO struct {
 	CreatedAt string                 `json:"created_at"`
 	FiredAt   string                 `json:"fired_at,omitempty"`
 	Channels  []domain.ChannelConfig `json:"channels,omitempty"`
+	// Every is the recurrence interval as it was given ("24h"). Absent means
+	// one-shot.
+	Every string `json:"every,omitempty"`
 }
 
 // ErrorResponse is what a refused request returns.
@@ -60,10 +77,85 @@ func (s *Service) CreateReminder(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 	}
+
+	if req.Every != "" {
+		every, err := parseDelay(req.Every)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		}
+		if err := rem.SetRunEvery(&every); err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		}
+	}
+
 	if err := s.reminders.Save(c.Request().Context(), rem); err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 	}
 	return c.JSON(http.StatusCreated, toDTO(rem))
+}
+
+// UpdateReminder godoc
+// @Summary  Change what a pending reminder says or how it recurs
+// @Tags     reminders
+// @Accept   json
+// @Produce  json
+// @Param    id    path      string                 true  "Reminder ID"
+// @Param    body  body      UpdateReminderRequest  true  "What to change"
+// @Success  200   {object}  ReminderDTO
+// @Failure  400   {object}  ErrorResponse
+// @Failure  404   {object}  ErrorResponse
+// @Security BearerAuth
+// @Router   /api/v1/reminders/{id} [patch]
+// @ID       updateReminder
+func (s *Service) UpdateReminder(c echo.Context) error {
+	ctx := c.Request().Context()
+	rem, err := s.reminders.FindByID(ctx, c.Param("id"))
+	if errors.Is(err, domain.ErrNotFound) {
+		return c.JSON(http.StatusNotFound, ErrorResponse{Error: "reminder not found"})
+	}
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+	if rem.UserID != "" && rem.UserID != s.userID(c) {
+		return c.JSON(http.StatusNotFound, ErrorResponse{Error: "reminder not found"})
+	}
+
+	var req UpdateReminderRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+	}
+
+	if req.Body != nil {
+		if strings.TrimSpace(*req.Body) == "" {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: domain.ErrBodyMissing.Error()})
+		}
+		rem.Body = strings.TrimSpace(*req.Body)
+	}
+	if req.DueAt != nil {
+		due, err := resolveDue(*req.DueAt, "")
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		}
+		rem.DueAt = due
+	}
+	if req.Every != nil {
+		var every *time.Duration
+		if *req.Every != "" {
+			d, err := parseDelay(*req.Every)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+			}
+			every = &d
+		}
+		if err := rem.SetRunEvery(every); err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		}
+	}
+
+	if err := s.reminders.Update(ctx, rem); err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+	return c.JSON(http.StatusOK, toDTO(rem))
 }
 
 func (s *Service) ListReminders(c echo.Context) error {
@@ -180,7 +272,19 @@ func toDTO(r *domain.Reminder) ReminderDTO {
 	if r.FiredAt != nil {
 		dto.FiredAt = r.FiredAt.Format(timeLayout)
 	}
+	if r.RunEvery != nil {
+		dto.Every = formatDelay(*r.RunEvery)
+	}
 	return dto
+}
+
+// formatDelay renders a duration the way parseDelay reads it back: whole
+// days as "Nd", otherwise Go's own compact form ("24h", "45m").
+func formatDelay(d time.Duration) string {
+	if d > 0 && d%(24*time.Hour) == 0 {
+		return fmt.Sprintf("%dd", d/(24*time.Hour))
+	}
+	return d.String()
 }
 
 func (s *Service) userID(c echo.Context) string {
