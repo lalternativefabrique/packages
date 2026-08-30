@@ -246,3 +246,11 @@ export {
   releaseInviteTokenCookie,
 } from "./invitation"
 export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
+
+export { bootstrapFirstAdmin } from "./bootstrap-admin"
+export type {
+  BootstrapAdminPool,
+  BootstrapAdminClient,
+  BootstrapFirstAdminInput,
+  BootstrapFirstAdminResult,
+} from "./bootstrap-admin"
