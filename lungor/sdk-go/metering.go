@@ -312,6 +312,134 @@ func appLLMCostSummaryFrom(w wire.CosttrackingCostSummaryResponse) AppLLMCostSum
 	return s
 }
 
+// AppCustomerModelCost is one (provider, model)'s share of a customer's
+// spend within the calling app.
+type AppCustomerModelCost struct {
+	Provider   string
+	Model      string
+	CostMicros int64
+	Tokens     int64
+	Calls      int
+}
+
+// AppCustomerCost is one of the calling app's end users, and what that user
+// cost the tenant over the period.
+type AppCustomerCost struct {
+	CustomerID    string
+	CustomerName  string
+	CustomerEmail string
+	CostMicros    int64
+	Tokens        int64
+	Calls         int
+	ByModel       []AppCustomerModelCost
+}
+
+// AppLLMCostByCustomer is AppLLMCostSummary broken down by end user instead
+// of by (provider, model) — the app-key counterpart of the tenant-wide
+// per-customer report, which requires a console JWT.
+type AppLLMCostByCustomer struct {
+	// CostMicros is micro-cents (1 EUR = 1_000_000).
+	CostMicros  int64
+	Currency    string
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	Customers   []AppCustomerCost
+}
+
+// AppLLMCostByCustomer reports what each of the calling app's end users has
+// cost the tenant over [from, to). Both bounds are optional; omitted, Lungor
+// defaults to the current calendar month (UTC). See AppLLMCostSummary for
+// the (provider, model) breakdown of the same spend.
+func (c *Client) AppLLMCostByCustomer(ctx context.Context, from, to *time.Time) (AppLLMCostByCustomer, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return AppLLMCostByCustomer{}, ErrNotConfigured
+	}
+	params := &wire.GetAppLLMCostSummaryByCustomerParams{}
+	if from != nil {
+		s := from.UTC().Format(time.RFC3339)
+		params.From = &s
+	}
+	if to != nil {
+		s := to.UTC().Format(time.RFC3339)
+		params.To = &s
+	}
+	var out wire.CosttrackingCostSummaryByCustomerResponse
+	if err := c.send(ctx, &out, func() (*http.Response, error) {
+		return c.wire.GetAppLLMCostSummaryByCustomer(ctx, params)
+	}); err != nil {
+		return AppLLMCostByCustomer{}, err
+	}
+	return appLLMCostByCustomerFrom(out), nil
+}
+
+func appLLMCostByCustomerFrom(w wire.CosttrackingCostSummaryByCustomerResponse) AppLLMCostByCustomer {
+	s := AppLLMCostByCustomer{Currency: "EUR"}
+	if w.CostMicros != nil {
+		s.CostMicros = int64(*w.CostMicros)
+	}
+	if w.Currency != nil {
+		s.Currency = *w.Currency
+	}
+	if w.PeriodStart != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodStart); err == nil {
+			s.PeriodStart = t
+		}
+	}
+	if w.PeriodEnd != nil {
+		if t, err := time.Parse(time.RFC3339, *w.PeriodEnd); err == nil {
+			s.PeriodEnd = t
+		}
+	}
+	if w.Customers != nil {
+		s.Customers = make([]AppCustomerCost, 0, len(*w.Customers))
+		for _, cu := range *w.Customers {
+			ac := AppCustomerCost{}
+			if cu.CustomerId != nil {
+				ac.CustomerID = *cu.CustomerId
+			}
+			if cu.CustomerName != nil {
+				ac.CustomerName = *cu.CustomerName
+			}
+			if cu.CustomerEmail != nil {
+				ac.CustomerEmail = *cu.CustomerEmail
+			}
+			if cu.CostMicros != nil {
+				ac.CostMicros = int64(*cu.CostMicros)
+			}
+			if cu.Tokens != nil {
+				ac.Tokens = int64(*cu.Tokens)
+			}
+			if cu.Calls != nil {
+				ac.Calls = *cu.Calls
+			}
+			if cu.ByModel != nil {
+				ac.ByModel = make([]AppCustomerModelCost, 0, len(*cu.ByModel))
+				for _, m := range *cu.ByModel {
+					mc := AppCustomerModelCost{}
+					if m.Provider != nil {
+						mc.Provider = *m.Provider
+					}
+					if m.Model != nil {
+						mc.Model = *m.Model
+					}
+					if m.CostMicros != nil {
+						mc.CostMicros = int64(*m.CostMicros)
+					}
+					if m.Tokens != nil {
+						mc.Tokens = int64(*m.Tokens)
+					}
+					if m.Calls != nil {
+						mc.Calls = *m.Calls
+					}
+					ac.ByModel = append(ac.ByModel, mc)
+				}
+			}
+			s.Customers = append(s.Customers, ac)
+		}
+	}
+	return s
+}
+
 func llmCostFrom(w wire.CosttrackingMyCostReportResponse) LLMCost {
 	c := LLMCost{Currency: "EUR"}
 	if w.CostMicros != nil {

@@ -21,6 +21,26 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// CosttrackingAppCustomerCostResponse defines model for costtracking.appCustomerCostResponse.
+type CosttrackingAppCustomerCostResponse struct {
+	ByModel       *[]CosttrackingAppCustomerModelCostResponse `json:"by_model,omitempty"`
+	Calls         *int                                        `json:"calls,omitempty"`
+	CostMicros    *int                                        `json:"cost_micros,omitempty"`
+	CustomerEmail *string                                     `json:"customer_email,omitempty"`
+	CustomerId    *string                                     `json:"customer_id,omitempty"`
+	CustomerName  *string                                     `json:"customer_name,omitempty"`
+	Tokens        *int                                        `json:"tokens,omitempty"`
+}
+
+// CosttrackingAppCustomerModelCostResponse defines model for costtracking.appCustomerModelCostResponse.
+type CosttrackingAppCustomerModelCostResponse struct {
+	Calls      *int    `json:"calls,omitempty"`
+	CostMicros *int    `json:"cost_micros,omitempty"`
+	Model      *string `json:"model,omitempty"`
+	Provider   *string `json:"provider,omitempty"`
+	Tokens     *int    `json:"tokens,omitempty"`
+}
+
 // CosttrackingAppModelCostResponse defines model for costtracking.appModelCostResponse.
 type CosttrackingAppModelCostResponse struct {
 	Calls      *int    `json:"calls,omitempty"`
@@ -28,6 +48,15 @@ type CosttrackingAppModelCostResponse struct {
 	Model      *string `json:"model,omitempty"`
 	Provider   *string `json:"provider,omitempty"`
 	Tokens     *int    `json:"tokens,omitempty"`
+}
+
+// CosttrackingCostSummaryByCustomerResponse defines model for costtracking.costSummaryByCustomerResponse.
+type CosttrackingCostSummaryByCustomerResponse struct {
+	CostMicros  *int                                   `json:"cost_micros,omitempty"`
+	Currency    *string                                `json:"currency,omitempty"`
+	Customers   *[]CosttrackingAppCustomerCostResponse `json:"customers,omitempty"`
+	PeriodEnd   *string                                `json:"period_end,omitempty"`
+	PeriodStart *string                                `json:"period_start,omitempty"`
 }
 
 // CosttrackingCostSummaryResponse defines model for costtracking.costSummaryResponse.
@@ -473,6 +502,15 @@ type GetEntitlementParams struct {
 	Units *string `form:"units,omitempty" json:"units,omitempty"`
 }
 
+// GetAppLLMCostSummaryByCustomerParams defines parameters for GetAppLLMCostSummaryByCustomer.
+type GetAppLLMCostSummaryByCustomerParams struct {
+	// From Start (RFC3339). Defaults to the 1st of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // GetMyLLMCostReportParams defines parameters for GetMyLLMCostReport.
 type GetMyLLMCostReportParams struct {
 	// ExternalUserId The app's own user id
@@ -662,6 +700,9 @@ type ClientInterface interface {
 
 	// LookupInvitation request
 	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAppLLMCostSummaryByCustomer request
+	GetAppLLMCostSummaryByCustomer(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetMyLLMCostReport request
 	GetMyLLMCostReport(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -873,6 +914,18 @@ func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRe
 
 func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewLookupInvitationRequest(c.Server, token)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetAppLLMCostSummaryByCustomer(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppLLMCostSummaryByCustomerRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1600,6 +1653,71 @@ func NewLookupInvitationRequest(server string, token string) (*http.Request, err
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetAppLLMCostSummaryByCustomerRequest generates requests for GetAppLLMCostSummaryByCustomer
+func NewGetAppLLMCostSummaryByCustomerRequest(server string, params *GetAppLLMCostSummaryByCustomerParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/llm-cost/by-customer")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -2836,6 +2954,9 @@ type ClientWithResponsesInterface interface {
 	// LookupInvitationWithResponse request
 	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
 
+	// GetAppLLMCostSummaryByCustomerWithResponse request
+	GetAppLLMCostSummaryByCustomerWithResponse(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*GetAppLLMCostSummaryByCustomerResponse, error)
+
 	// GetMyLLMCostReportWithResponse request
 	GetMyLLMCostReportWithResponse(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*GetMyLLMCostReportResponse, error)
 
@@ -3095,6 +3216,29 @@ func (r LookupInvitationResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r LookupInvitationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAppLLMCostSummaryByCustomerResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostSummaryByCustomerResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAppLLMCostSummaryByCustomerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAppLLMCostSummaryByCustomerResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3778,6 +3922,15 @@ func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, 
 	return ParseLookupInvitationResponse(rsp)
 }
 
+// GetAppLLMCostSummaryByCustomerWithResponse request returning *GetAppLLMCostSummaryByCustomerResponse
+func (c *ClientWithResponses) GetAppLLMCostSummaryByCustomerWithResponse(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*GetAppLLMCostSummaryByCustomerResponse, error) {
+	rsp, err := c.GetAppLLMCostSummaryByCustomer(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAppLLMCostSummaryByCustomerResponse(rsp)
+}
+
 // GetMyLLMCostReportWithResponse request returning *GetMyLLMCostReportResponse
 func (c *ClientWithResponses) GetMyLLMCostReportWithResponse(ctx context.Context, params *GetMyLLMCostReportParams, reqEditors ...RequestEditorFn) (*GetMyLLMCostReportResponse, error) {
 	rsp, err := c.GetMyLLMCostReport(ctx, params, reqEditors...)
@@ -4349,6 +4502,39 @@ func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationRespons
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAppLLMCostSummaryByCustomerResponse parses an HTTP response from a GetAppLLMCostSummaryByCustomerWithResponse call
+func ParseGetAppLLMCostSummaryByCustomerResponse(rsp *http.Response) (*GetAppLLMCostSummaryByCustomerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAppLLMCostSummaryByCustomerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostSummaryByCustomerResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	}
 
