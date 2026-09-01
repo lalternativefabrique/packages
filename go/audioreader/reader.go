@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	sharedtts "github.com/lalternative/packages/go/tts"
@@ -42,6 +43,26 @@ type Reader struct {
 	storage     Store
 	openingSize int
 	log         *slog.Logger
+
+	// inflight collapses concurrent readings of the same text into one. Nil
+	// until first use so a Reader built as a literal still works.
+	inflightOnce sync.Once
+	inflight     *inflight
+}
+
+// readOnce synthesizes text, or waits for the identical reading already
+// running and shares its result.
+//
+// The synthesis runs on a background context rather than the caller's: it is
+// shared, so cancelling it with the request that happened to start it would
+// abort a reading other listeners are waiting on. The reading finishes and is
+// cached either way, which is what the listener who leaves would have wanted
+// on their next visit anyway.
+func (r *Reader) readOnce(key string, ar Request) (audio []byte, mime string, err error, shared bool) {
+	r.inflightOnce.Do(func() { r.inflight = newInflight() })
+	return r.inflight.do(key, func() ([]byte, string, error) {
+		return r.tts.Synthesize(context.Background(), ar.Text, ar.BillTo)
+	})
 }
 
 // Request is one thing to read aloud.
@@ -127,7 +148,7 @@ func (r *Reader) Serve(w http.ResponseWriter, req *http.Request, ar Request, fie
 		return
 	}
 
-	audio, mime, err := r.tts.Synthesize(ctx, ar.Text, ar.BillTo)
+	audio, mime, err, shared := r.readOnce(key, ar)
 	if err != nil {
 		r.log.Error("audio: synthesize failed", errAttrs(err, fields)...)
 		http.Error(w, fmt.Sprintf("TTS error: %s", err.Error()), http.StatusBadGateway)
@@ -139,6 +160,11 @@ func (r *Reader) Serve(w http.ResponseWriter, req *http.Request, ar Request, fie
 	r.Cache(key, audio, mime)
 
 	fields["cache"] = "miss"
+	if shared {
+		// This listener paid for nothing: they arrived while the same text was
+		// already being read and were handed that reading.
+		fields["cache"] = "shared"
+	}
 	fields["duration_ms"] = time.Since(startedAt).Milliseconds()
 	r.write(w, req, audio, mime, fields)
 }
@@ -194,7 +220,7 @@ func (r *Reader) Pregenerate(ctx context.Context, ar Request) error {
 	if _, ok := r.cached(ctx, key, map[string]any{}); ok {
 		return nil
 	}
-	audio, mime, err := r.tts.Synthesize(ctx, ar.Text, ar.BillTo)
+	audio, mime, err, _ := r.readOnce(key, ar)
 	if err != nil {
 		return fmt.Errorf("pregenerate: %w", err)
 	}

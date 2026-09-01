@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -21,6 +22,9 @@ func readerWith(store *primedStore) *Reader {
 }
 
 type primedStore struct {
+	// Guarded: Reader.Cache uploads from a goroutine of its own, so a store
+	// standing in for a bucket is written to while the test reads it.
+	mu    sync.Mutex
 	saved map[string][]byte
 	fail  bool
 }
@@ -32,11 +36,15 @@ func (p *primedStore) Upload(_ context.Context, key string, body io.Reader, _ st
 		return errors.New("bucket unavailable")
 	}
 	b, _ := io.ReadAll(body)
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.saved[key] = b
 	return nil
 }
 
 func (p *primedStore) Download(_ context.Context, key string) (io.ReadCloser, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	b, ok := p.saved[key]
 	if !ok {
 		return nil, ErrNotFound
