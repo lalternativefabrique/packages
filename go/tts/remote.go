@@ -136,6 +136,60 @@ func (v *RemoteVoice) Pregenerate(ctx context.Context, id, text string) error {
 	return nil
 }
 
+// PrimeOpening asks tornade to read only the start of text and keep it,
+// ahead of any listener.
+//
+// It is what makes pressing play feel immediate: the opening comes out of the
+// store at once and the rest is read while it plays, so the listener hears
+// one recording. Pregenerate reads the whole text instead — that is the trade
+// between them, and it is a question of how many listens are expected, not of
+// which caller is asking. A text heard once or not at all wants this one:
+// reading all of it ahead pays for every text on the chance that someone
+// listens to one.
+//
+// Tornade acknowledges before the reading starts, so a nil return means
+// scheduled, not stored. id is required — an opening nobody can name again is
+// one no listener will ever be served.
+func (v *RemoteVoice) PrimeOpening(ctx context.Context, id, text string) error {
+	resp, err := v.post(ctx, "/speak/prime", map[string]any{
+		"text":  text,
+		"scope": v.cfg.Scope,
+		"id":    id,
+	})
+	if err != nil {
+		return err
+	}
+	resp.Body.Close()
+	return nil
+}
+
+// SpeakNamed reads text under a name, so a reading primed or pregenerated
+// earlier under that same name is the one served.
+//
+// Speak leaves the name out, which has tornade key the reading on the text
+// alone: the cache still works, but nothing read ahead of time is ever found,
+// because it was stored under an id this call never mentions. A caller that
+// primes must ask by the same id it primed with.
+func (v *RemoteVoice) SpeakNamed(ctx context.Context, id, text string) ([]byte, string, error) {
+	resp, err := v.post(ctx, "/speak", map[string]any{
+		"text":  text,
+		"scope": v.cfg.Scope,
+		"id":    id,
+	})
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+	audio, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("tts: read body: %w", err)
+	}
+	if len(audio) == 0 {
+		return nil, "", fmt.Errorf("tts: no audio for a %d-rune text", len([]rune(text)))
+	}
+	return audio, respMIME(resp), nil
+}
+
 func (v *RemoteVoice) speak(ctx context.Context, text string, stream bool) (*http.Response, error) {
 	return v.post(ctx, "/speak", map[string]any{
 		"text":   text,
