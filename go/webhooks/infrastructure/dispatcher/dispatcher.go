@@ -70,42 +70,105 @@ type Dispatcher struct {
 	lookup repository.EndpointActiveLookup
 	outbox providers.OutboxPublisher
 	source Source
+
+	// subscribe opens the pull subscription. It is a field so the reconnect
+	// loop can be exercised without a broker; nil means js.PullSubscribe.
+	subscribe func() (puller, error)
+	// minBackoff and maxBackoff bound the wait between two subscription
+	// attempts; zero values take the defaults.
+	minBackoff, maxBackoff time.Duration
 }
+
+// puller is the slice of *nats.Subscription the loop relies on.
+type puller interface {
+	Fetch(batch int, opts ...nats.PullOpt) ([]*nats.Msg, error)
+	Unsubscribe() error
+}
+
+const (
+	defaultMinBackoff = time.Second
+	defaultMaxBackoff = 30 * time.Second
+)
 
 func NewDispatcher(js nats.JetStreamContext, lookup repository.EndpointActiveLookup, outbox providers.OutboxPublisher, source Source) *Dispatcher {
 	return &Dispatcher{js: js, lookup: lookup, outbox: outbox, source: source}
 }
 
+// Run pulls the source stream until ctx is done.
+//
+// A pull subscription does not survive its server: when NATS restarts, Fetch
+// answers "subscription closed" for good, and refetching it would leave this
+// instance deaf until the process restarts. So the loop is two levels: an
+// outer one that (re)subscribes with a capped exponential backoff, and an
+// inner one that pumps the subscription until it fails. The durable consumer
+// resumes at the last ack on re-subscription, so nothing is lost or replayed
+// beyond what at-least-once already allows.
 func (d *Dispatcher) Run(ctx context.Context) error {
 	if d.source.StreamName == "" || d.source.SubjectFilter == "" || d.source.PublicType == nil {
 		return fmt.Errorf("dispatcher: incomplete source (stream, subject filter and PublicType are required)")
 	}
-	sub, err := d.js.PullSubscribe(d.source.SubjectFilter, durableName,
-		nats.BindStream(d.source.StreamName),
-		nats.DeliverAll(),
-		nats.AckExplicit(),
-		nats.AckWait(30*time.Second),
-	)
-	if err != nil {
-		return fmt.Errorf("subscribe %s: %w", d.source.StreamName, err)
+	subscribe := d.subscribe
+	if subscribe == nil {
+		subscribe = func() (puller, error) {
+			return d.js.PullSubscribe(d.source.SubjectFilter, durableName,
+				nats.BindStream(d.source.StreamName),
+				nats.DeliverAll(),
+				nats.AckExplicit(),
+				nats.AckWait(30*time.Second),
+			)
+		}
 	}
-	go func() {
-		<-ctx.Done()
-		_ = sub.Unsubscribe()
-	}()
+	minBackoff, maxBackoff := d.minBackoff, d.maxBackoff
+	if minBackoff <= 0 {
+		minBackoff = defaultMinBackoff
+	}
+	if maxBackoff < minBackoff {
+		maxBackoff = defaultMaxBackoff
+	}
 
+	backoff := minBackoff
+	for {
+		if ctx.Err() != nil {
+			return nil
+		}
+		sub, err := subscribe()
+		if err != nil {
+			log.Printf("webhooks dispatcher: subscribe %s: %v (retry in %s)", d.source.StreamName, err, backoff)
+			if !sleepCtx(ctx, backoff) {
+				return nil
+			}
+			backoff = nextBackoff(backoff, maxBackoff)
+			continue
+		}
+		backoff = minBackoff
+
+		err = d.pump(ctx, sub)
+		_ = sub.Unsubscribe()
+		if ctx.Err() != nil {
+			return nil
+		}
+		log.Printf("webhooks dispatcher: subscription lost: %v (resubscribe in %s)", err, backoff)
+		if !sleepCtx(ctx, backoff) {
+			return nil
+		}
+		backoff = nextBackoff(backoff, maxBackoff)
+	}
+}
+
+// pump fetches and handles until ctx is done (nil) or the subscription can no
+// longer serve (the error). Timeouts are the idle heartbeat of a pull
+// subscription, not a failure.
+func (d *Dispatcher) pump(ctx context.Context, sub puller) error {
 	for {
 		if ctx.Err() != nil {
 			return nil
 		}
 		msgs, err := sub.Fetch(50, nats.MaxWait(2*time.Second))
 		if err != nil {
-			if errors.Is(err, nats.ErrTimeout) || errors.Is(err, context.Canceled) {
+			if errors.Is(err, nats.ErrTimeout) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				continue
 			}
-			log.Printf("webhooks dispatcher: fetch: %v", err)
-			time.Sleep(time.Second)
-			continue
+			return err
 		}
 		for _, m := range msgs {
 			if err := d.handle(ctx, m); err != nil {
@@ -115,6 +178,25 @@ func (d *Dispatcher) Run(ctx context.Context) error {
 			}
 			_ = m.Ack()
 		}
+	}
+}
+
+func nextBackoff(cur, max time.Duration) time.Duration {
+	if cur*2 > max {
+		return max
+	}
+	return cur * 2
+}
+
+// sleepCtx waits d or until ctx is done, and reports whether ctx is still live.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
 	}
 }
 
