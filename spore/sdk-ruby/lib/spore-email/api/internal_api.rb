@@ -19,6 +19,74 @@ module SporeEmail
     def initialize(api_client = ApiClient.default)
       @api_client = api_client
     end
+    # Redeem an invitation onto a tenant (service-to-service)
+    # Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+    # @param claim_invitation_claim_invitation_request [ClaimInvitationClaimInvitationRequest] Tenant + invitation token
+    # @param [Hash] opts the optional parameters
+    # @return [ClaimInvitationClaimInvitationResponse]
+    def claim_tenant_invitation(claim_invitation_claim_invitation_request, opts = {})
+      data, _status_code, _headers = claim_tenant_invitation_with_http_info(claim_invitation_claim_invitation_request, opts)
+      data
+    end
+
+    # Redeem an invitation onto a tenant (service-to-service)
+    # Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed&#x3D;false: the account exists either way.
+    # @param claim_invitation_claim_invitation_request [ClaimInvitationClaimInvitationRequest] Tenant + invitation token
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(ClaimInvitationClaimInvitationResponse, Integer, Hash)>] ClaimInvitationClaimInvitationResponse data, response status code and response headers
+    def claim_tenant_invitation_with_http_info(claim_invitation_claim_invitation_request, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: InternalApi.claim_tenant_invitation ...'
+      end
+      # verify the required parameter 'claim_invitation_claim_invitation_request' is set
+      if @api_client.config.client_side_validation && claim_invitation_claim_invitation_request.nil?
+        fail ArgumentError, "Missing the required parameter 'claim_invitation_claim_invitation_request' when calling InternalApi.claim_tenant_invitation"
+      end
+      # resource path
+      local_var_path = '/internal/tenant/invitation/claim'
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+      # HTTP header 'Content-Type'
+      content_type = @api_client.select_header_content_type(['application/json'])
+      if !content_type.nil?
+          header_params['Content-Type'] = content_type
+      end
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(claim_invitation_claim_invitation_request)
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'ClaimInvitationClaimInvitationResponse'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['InternalToken']
+
+      new_options = opts.merge(
+        :operation => :"InternalApi.claim_tenant_invitation",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:POST, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: InternalApi#claim_tenant_invitation\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
     # Payment provider webhook
     # Receives payment notifications from Mollie. The body is unsigned and carries only a payment id, so the payment is re-fetched with the API key before anything is applied — the authenticated read is the security boundary. Idempotent: replayed notifications are acknowledged without being re-applied.
     # @param [Hash] opts the optional parameters
@@ -77,27 +145,23 @@ module SporeEmail
     end
 
     # Ingest a raw RFC 3464 bounce DSN
-    # @param x_tenant_id [String] Resolved tenant id
     # @param body [String] Raw DSN payload
     # @param [Hash] opts the optional parameters
+    # @option opts [String] :x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id
     # @return [IngestBounceResponse]
-    def ingest_bounce(x_tenant_id, body, opts = {})
-      data, _status_code, _headers = ingest_bounce_with_http_info(x_tenant_id, body, opts)
+    def ingest_bounce(body, opts = {})
+      data, _status_code, _headers = ingest_bounce_with_http_info(body, opts)
       data
     end
 
     # Ingest a raw RFC 3464 bounce DSN
-    # @param x_tenant_id [String] Resolved tenant id
     # @param body [String] Raw DSN payload
     # @param [Hash] opts the optional parameters
+    # @option opts [String] :x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id
     # @return [Array<(IngestBounceResponse, Integer, Hash)>] IngestBounceResponse data, response status code and response headers
-    def ingest_bounce_with_http_info(x_tenant_id, body, opts = {})
+    def ingest_bounce_with_http_info(body, opts = {})
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: InternalApi.ingest_bounce ...'
-      end
-      # verify the required parameter 'x_tenant_id' is set
-      if @api_client.config.client_side_validation && x_tenant_id.nil?
-        fail ArgumentError, "Missing the required parameter 'x_tenant_id' when calling InternalApi.ingest_bounce"
       end
       # verify the required parameter 'body' is set
       if @api_client.config.client_side_validation && body.nil?
@@ -118,7 +182,7 @@ module SporeEmail
       if !content_type.nil?
           header_params['Content-Type'] = content_type
       end
-      header_params[:'X-Tenant-ID'] = x_tenant_id
+      header_params[:'X-Tenant-ID'] = opts[:'x_tenant_id'] if !opts[:'x_tenant_id'].nil?
 
       # form parameters
       form_params = opts[:form_params] || {}
@@ -145,6 +209,206 @@ module SporeEmail
       data, status_code, headers = @api_client.call_api(:POST, local_var_path, new_options)
       if @api_client.config.debugging
         @api_client.config.logger.debug "API called: InternalApi#ingest_bounce\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
+    # Ingest a raw RFC 5322 inbound message
+    # @param body [String] Raw RFC 5322 message
+    # @param [Hash] opts the optional parameters
+    # @option opts [String] :x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it
+    # @return [IngestInboundMessageResponse]
+    def ingest_inbound_message(body, opts = {})
+      data, _status_code, _headers = ingest_inbound_message_with_http_info(body, opts)
+      data
+    end
+
+    # Ingest a raw RFC 5322 inbound message
+    # @param body [String] Raw RFC 5322 message
+    # @param [Hash] opts the optional parameters
+    # @option opts [String] :x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it
+    # @return [Array<(IngestInboundMessageResponse, Integer, Hash)>] IngestInboundMessageResponse data, response status code and response headers
+    def ingest_inbound_message_with_http_info(body, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: InternalApi.ingest_inbound_message ...'
+      end
+      # verify the required parameter 'body' is set
+      if @api_client.config.client_side_validation && body.nil?
+        fail ArgumentError, "Missing the required parameter 'body' when calling InternalApi.ingest_inbound_message"
+      end
+      # resource path
+      local_var_path = '/internal/inbound'
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+      # HTTP header 'Content-Type'
+      content_type = @api_client.select_header_content_type(['text/plain'])
+      if !content_type.nil?
+          header_params['Content-Type'] = content_type
+      end
+      header_params[:'X-Tenant-ID'] = opts[:'x_tenant_id'] if !opts[:'x_tenant_id'].nil?
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(body)
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'IngestInboundMessageResponse'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['InternalToken']
+
+      new_options = opts.merge(
+        :operation => :"InternalApi.ingest_inbound_message",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:POST, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: InternalApi#ingest_inbound_message\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
+    # Read an invitation without consuming it (service-to-service)
+    # Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+    # @param token [String] Invitation token
+    # @param [Hash] opts the optional parameters
+    # @return [ClaimInvitationLookupInvitationResponse]
+    def lookup_tenant_invitation(token, opts = {})
+      data, _status_code, _headers = lookup_tenant_invitation_with_http_info(token, opts)
+      data
+    end
+
+    # Read an invitation without consuming it (service-to-service)
+    # Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+    # @param token [String] Invitation token
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(ClaimInvitationLookupInvitationResponse, Integer, Hash)>] ClaimInvitationLookupInvitationResponse data, response status code and response headers
+    def lookup_tenant_invitation_with_http_info(token, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: InternalApi.lookup_tenant_invitation ...'
+      end
+      # verify the required parameter 'token' is set
+      if @api_client.config.client_side_validation && token.nil?
+        fail ArgumentError, "Missing the required parameter 'token' when calling InternalApi.lookup_tenant_invitation"
+      end
+      # resource path
+      local_var_path = '/internal/tenant/invitation/{token}'.sub('{token}', CGI.escape(token.to_s))
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body]
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'ClaimInvitationLookupInvitationResponse'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['InternalToken']
+
+      new_options = opts.merge(
+        :operation => :"InternalApi.lookup_tenant_invitation",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:GET, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: InternalApi#lookup_tenant_invitation\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
+    # Declare a tenant to the billing service (service-to-service)
+    # Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+    # @param claim_invitation_register_customer_request [ClaimInvitationRegisterCustomerRequest] Tenant + address
+    # @param [Hash] opts the optional parameters
+    # @return [ClaimInvitationRegisterCustomerResponse]
+    def register_billing_customer(claim_invitation_register_customer_request, opts = {})
+      data, _status_code, _headers = register_billing_customer_with_http_info(claim_invitation_register_customer_request, opts)
+      data
+    end
+
+    # Declare a tenant to the billing service (service-to-service)
+    # Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+    # @param claim_invitation_register_customer_request [ClaimInvitationRegisterCustomerRequest] Tenant + address
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(ClaimInvitationRegisterCustomerResponse, Integer, Hash)>] ClaimInvitationRegisterCustomerResponse data, response status code and response headers
+    def register_billing_customer_with_http_info(claim_invitation_register_customer_request, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: InternalApi.register_billing_customer ...'
+      end
+      # verify the required parameter 'claim_invitation_register_customer_request' is set
+      if @api_client.config.client_side_validation && claim_invitation_register_customer_request.nil?
+        fail ArgumentError, "Missing the required parameter 'claim_invitation_register_customer_request' when calling InternalApi.register_billing_customer"
+      end
+      # resource path
+      local_var_path = '/internal/tenant/billing-customer'
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+      # HTTP header 'Content-Type'
+      content_type = @api_client.select_header_content_type(['application/json'])
+      if !content_type.nil?
+          header_params['Content-Type'] = content_type
+      end
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body] || @api_client.object_to_http_body(claim_invitation_register_customer_request)
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'ClaimInvitationRegisterCustomerResponse'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['InternalToken']
+
+      new_options = opts.merge(
+        :operation => :"InternalApi.register_billing_customer",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:POST, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: InternalApi#register_billing_customer\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
       end
       return data, status_code, headers
     end

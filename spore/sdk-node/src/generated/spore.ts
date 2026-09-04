@@ -14,6 +14,11 @@ import type {
   ApikeysCreatedKey,
   ApikeysListAPIKeysResponse,
   CancelSubscriptionResult,
+  ClaimInvitationClaimInvitationRequest,
+  ClaimInvitationClaimInvitationResponse,
+  ClaimInvitationLookupInvitationResponse,
+  ClaimInvitationRegisterCustomerRequest,
+  ClaimInvitationRegisterCustomerResponse,
   ConfirmUnsubscribeConfirmUnsubscribeRequest,
   ConfirmUnsubscribeParams,
   ConfirmUnsubscribeResponse,
@@ -31,10 +36,13 @@ import type {
   GetBillingStateState,
   GetUsageUsageResponse,
   IngestBounceResponse,
+  IngestInboundMessageResponse,
   ListEmailsParams,
   ListEndpointsResult,
   ListIdentitiesParams,
   ListIdentitiesResponse,
+  ListInboundMessagesParams,
+  ListInboundMessagesResponse,
   ListMessagesResult,
   ListSuppressionsParams,
   ListSuppressionsResponse,
@@ -47,6 +55,7 @@ import type {
   RepositoryBrandView,
   RepositoryEndpointView,
   RepositoryIdentityView,
+  RepositoryInboundMessageView,
   RepositoryMessageView,
   RepositoryStateView,
   RotateSecretResult,
@@ -444,6 +453,31 @@ const verifyIdentity = (
     }
 
 /**
+ * @summary List inbound messages
+ */
+const listInboundMessages = (
+    params?: ListInboundMessagesParams,
+ options?: SecondParameter<typeof sporeHttp<ListInboundMessagesResponse>>,) => {
+      return sporeHttp<ListInboundMessagesResponse>(
+      {url: `/inbound/messages`, method: 'GET',
+        params
+    },
+      options);
+    }
+
+/**
+ * @summary Get one inbound message
+ */
+const getInboundMessage = (
+    id: string,
+ options?: SecondParameter<typeof sporeHttp<RepositoryInboundMessageView>>,) => {
+      return sporeHttp<RepositoryInboundMessageView>(
+      {url: `/inbound/messages/${id}`, method: 'GET'
+    },
+      options);
+    }
+
+/**
  * @summary Ingest a raw RFC 3464 bounce DSN
  */
 const ingestBounce = (
@@ -453,6 +487,20 @@ const ingestBounce = (
       {url: `/internal/bounces`, method: 'POST',
       headers: {'Content-Type': 'text/plain', },
       data: ingestBounceBody
+    },
+      options);
+    }
+
+/**
+ * @summary Ingest a raw RFC 5322 inbound message
+ */
+const ingestInboundMessage = (
+    ingestInboundMessageBody: string,
+ options?: SecondParameter<typeof sporeHttp<IngestInboundMessageResponse>>,) => {
+      return sporeHttp<IngestInboundMessageResponse>(
+      {url: `/internal/inbound`, method: 'POST',
+      headers: {'Content-Type': 'text/plain', },
+      data: ingestInboundMessageBody
     },
       options);
     }
@@ -469,6 +517,51 @@ const unfreezeTenantReputation = (
       {url: `/internal/reputation/${tenantId}/unfreeze`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: unfreezeUnfreezeRequest
+    },
+      options);
+    }
+
+/**
+ * Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.
+
+Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+ * @summary Declare a tenant to the billing service (service-to-service)
+ */
+const registerBillingCustomer = (
+    claimInvitationRegisterCustomerRequest: ClaimInvitationRegisterCustomerRequest,
+ options?: SecondParameter<typeof sporeHttp<ClaimInvitationRegisterCustomerResponse>>,) => {
+      return sporeHttp<ClaimInvitationRegisterCustomerResponse>(
+      {url: `/internal/tenant/billing-customer`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: claimInvitationRegisterCustomerRequest
+    },
+      options);
+    }
+
+/**
+ * Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+ * @summary Redeem an invitation onto a tenant (service-to-service)
+ */
+const claimTenantInvitation = (
+    claimInvitationClaimInvitationRequest: ClaimInvitationClaimInvitationRequest,
+ options?: SecondParameter<typeof sporeHttp<ClaimInvitationClaimInvitationResponse>>,) => {
+      return sporeHttp<ClaimInvitationClaimInvitationResponse>(
+      {url: `/internal/tenant/invitation/claim`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: claimInvitationClaimInvitationRequest
+    },
+      options);
+    }
+
+/**
+ * Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+ * @summary Read an invitation without consuming it (service-to-service)
+ */
+const lookupTenantInvitation = (
+    token: string,
+ options?: SecondParameter<typeof sporeHttp<ClaimInvitationLookupInvitationResponse>>,) => {
+      return sporeHttp<ClaimInvitationLookupInvitationResponse>(
+      {url: `/internal/tenant/invitation/${token}`, method: 'GET'
     },
       options);
     }
@@ -720,7 +813,7 @@ const rotateWebhookSecret = (
       options);
     }
 
-return {listApiKeys,createApiKey,revokeApiKey,startBillingCheckout,downgradeBillingSubscription,cancelBillingPendingChange,getBillingState,cancelBillingSubscription,upgradeBillingSubscription,quoteBillingUpgrade,lungorWebhook,handleMollieWebhook,listEmails,sendEmail,sendTestEmail,getEmail,listIdentities,createIdentity,getIdentity,deleteIdentity,addIdentityAddress,removeIdentityAddress,disableIdentityAddress,getBrand,setBrand,extractBrand,verifyIdentity,ingestBounce,unfreezeTenantReputation,setTenantPlan,getReputation,listSuppressions,addSuppression,removeSuppression,listTemplates,previewTemplate,getTenantPlan,viewUnsubscribe,confirmUnsubscribe,listUnsubscribes,getUsage,listWebhookEndpoints,createWebhookEndpoint,getWebhookEndpoint,deleteWebhookEndpoint,updateWebhookEndpoint,rotateWebhookSecret}};
+return {listApiKeys,createApiKey,revokeApiKey,startBillingCheckout,downgradeBillingSubscription,cancelBillingPendingChange,getBillingState,cancelBillingSubscription,upgradeBillingSubscription,quoteBillingUpgrade,lungorWebhook,handleMollieWebhook,listEmails,sendEmail,sendTestEmail,getEmail,listIdentities,createIdentity,getIdentity,deleteIdentity,addIdentityAddress,removeIdentityAddress,disableIdentityAddress,getBrand,setBrand,extractBrand,verifyIdentity,listInboundMessages,getInboundMessage,ingestBounce,ingestInboundMessage,unfreezeTenantReputation,registerBillingCustomer,claimTenantInvitation,lookupTenantInvitation,setTenantPlan,getReputation,listSuppressions,addSuppression,removeSuppression,listTemplates,previewTemplate,getTenantPlan,viewUnsubscribe,confirmUnsubscribe,listUnsubscribes,getUsage,listWebhookEndpoints,createWebhookEndpoint,getWebhookEndpoint,deleteWebhookEndpoint,updateWebhookEndpoint,rotateWebhookSecret}};
 export type ListApiKeysResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listApiKeys']>>>
 export type CreateApiKeyResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['createApiKey']>>>
 export type RevokeApiKeyResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['revokeApiKey']>>>
@@ -748,8 +841,14 @@ export type GetBrandResult = NonNullable<Awaited<ReturnType<ReturnType<typeof ge
 export type SetBrandResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['setBrand']>>>
 export type ExtractBrandResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['extractBrand']>>>
 export type VerifyIdentityResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['verifyIdentity']>>>
+export type ListInboundMessagesResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listInboundMessages']>>>
+export type GetInboundMessageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getInboundMessage']>>>
 export type IngestBounceResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['ingestBounce']>>>
+export type IngestInboundMessageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['ingestInboundMessage']>>>
 export type UnfreezeTenantReputationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['unfreezeTenantReputation']>>>
+export type RegisterBillingCustomerResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['registerBillingCustomer']>>>
+export type ClaimTenantInvitationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['claimTenantInvitation']>>>
+export type LookupTenantInvitationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['lookupTenantInvitation']>>>
 export type SetTenantPlanResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['setTenantPlan']>>>
 export type GetReputationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getReputation']>>>
 export type ListSuppressionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listSuppressions']>>>

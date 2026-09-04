@@ -60,6 +60,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static $openAPITypes = [
         'created_at' => 'string',
         'id' => 'string',
+        'identity_id' => 'string',
         'last_used_at' => 'string',
         'name' => 'string',
         'plaintext' => 'string',
@@ -78,6 +79,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static $openAPIFormats = [
         'created_at' => null,
         'id' => null,
+        'identity_id' => null,
         'last_used_at' => null,
         'name' => null,
         'plaintext' => null,
@@ -94,6 +96,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static array $openAPINullables = [
         'created_at' => false,
         'id' => false,
+        'identity_id' => false,
         'last_used_at' => false,
         'name' => false,
         'plaintext' => false,
@@ -190,6 +193,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static $attributeMap = [
         'created_at' => 'createdAt',
         'id' => 'id',
+        'identity_id' => 'identityId',
         'last_used_at' => 'lastUsedAt',
         'name' => 'name',
         'plaintext' => 'plaintext',
@@ -206,6 +210,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static $setters = [
         'created_at' => 'setCreatedAt',
         'id' => 'setId',
+        'identity_id' => 'setIdentityId',
         'last_used_at' => 'setLastUsedAt',
         'name' => 'setName',
         'plaintext' => 'setPlaintext',
@@ -222,6 +227,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     protected static $getters = [
         'created_at' => 'getCreatedAt',
         'id' => 'getId',
+        'identity_id' => 'getIdentityId',
         'last_used_at' => 'getLastUsedAt',
         'name' => 'getName',
         'plaintext' => 'getPlaintext',
@@ -289,6 +295,7 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
     {
         $this->setIfExists('created_at', $data ?? [], null);
         $this->setIfExists('id', $data ?? [], null);
+        $this->setIfExists('identity_id', $data ?? [], null);
         $this->setIfExists('last_used_at', $data ?? [], null);
         $this->setIfExists('name', $data ?? [], null);
         $this->setIfExists('plaintext', $data ?? [], null);
@@ -389,6 +396,33 @@ class ApikeysCreatedKey implements ModelInterface, ArrayAccess, \JsonSerializabl
             throw new \InvalidArgumentException('non-nullable id cannot be null');
         }
         $this->container['id'] = $id;
+
+        return $this;
+    }
+
+    /**
+     * Gets identity_id
+     *
+     * @return string|null
+     */
+    public function getIdentityId()
+    {
+        return $this->container['identity_id'];
+    }
+
+    /**
+     * Sets identity_id
+     *
+     * @param string|null $identity_id IdentityID restricts the key to a single sending identity. Empty means the key may send from any verified identity of its tenant, which is how every key created before scoping existed behaves.
+     *
+     * @return self
+     */
+    public function setIdentityId($identity_id)
+    {
+        if (is_null($identity_id)) {
+            throw new \InvalidArgumentException('non-nullable identity_id cannot be null');
+        }
+        $this->container['identity_id'] = $identity_id;
 
         return $this;
     }

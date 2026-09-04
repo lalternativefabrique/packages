@@ -75,11 +75,23 @@ class InternalApi
 
     /** @var string[] $contentTypes **/
     public const contentTypes = [
+        'claimTenantInvitation' => [
+            'application/json',
+        ],
         'handleMollieWebhook' => [
             'application/json',
         ],
         'ingestBounce' => [
             'text/plain',
+        ],
+        'ingestInboundMessage' => [
+            'text/plain',
+        ],
+        'lookupTenantInvitation' => [
+            'application/json',
+        ],
+        'registerBillingCustomer' => [
+            'application/json',
         ],
         'setTenantPlan' => [
             'application/json',
@@ -130,6 +142,334 @@ class InternalApi
     public function getConfig()
     {
         return $this->config;
+    }
+
+    /**
+     * Operation claimTenantInvitation
+     *
+     * Redeem an invitation onto a tenant (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationClaimInvitationRequest $claim_invitation_claim_invitation_request Tenant + invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['claimTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function claimTenantInvitation($claim_invitation_claim_invitation_request, string $contentType = self::contentTypes['claimTenantInvitation'][0])
+    {
+        list($response) = $this->claimTenantInvitationWithHttpInfo($claim_invitation_claim_invitation_request, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation claimTenantInvitationWithHttpInfo
+     *
+     * Redeem an invitation onto a tenant (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationClaimInvitationRequest $claim_invitation_claim_invitation_request Tenant + invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['claimTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function claimTenantInvitationWithHttpInfo($claim_invitation_claim_invitation_request, string $contentType = self::contentTypes['claimTenantInvitation'][0])
+    {
+        $request = $this->claimTenantInvitationRequest($claim_invitation_claim_invitation_request, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse',
+                        $request,
+                        $response,
+                    );
+                case 400:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 502:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 400:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 502:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation claimTenantInvitationAsync
+     *
+     * Redeem an invitation onto a tenant (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationClaimInvitationRequest $claim_invitation_claim_invitation_request Tenant + invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['claimTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function claimTenantInvitationAsync($claim_invitation_claim_invitation_request, string $contentType = self::contentTypes['claimTenantInvitation'][0])
+    {
+        return $this->claimTenantInvitationAsyncWithHttpInfo($claim_invitation_claim_invitation_request, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation claimTenantInvitationAsyncWithHttpInfo
+     *
+     * Redeem an invitation onto a tenant (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationClaimInvitationRequest $claim_invitation_claim_invitation_request Tenant + invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['claimTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function claimTenantInvitationAsyncWithHttpInfo($claim_invitation_claim_invitation_request, string $contentType = self::contentTypes['claimTenantInvitation'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\ClaimInvitationClaimInvitationResponse';
+        $request = $this->claimTenantInvitationRequest($claim_invitation_claim_invitation_request, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'claimTenantInvitation'
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationClaimInvitationRequest $claim_invitation_claim_invitation_request Tenant + invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['claimTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function claimTenantInvitationRequest($claim_invitation_claim_invitation_request, string $contentType = self::contentTypes['claimTenantInvitation'][0])
+    {
+
+        // verify the required parameter 'claim_invitation_claim_invitation_request' is set
+        if ($claim_invitation_claim_invitation_request === null || (is_array($claim_invitation_claim_invitation_request) && count($claim_invitation_claim_invitation_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $claim_invitation_claim_invitation_request when calling claimTenantInvitation'
+            );
+        }
+
+
+        $resourcePath = '/internal/tenant/invitation/claim';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($claim_invitation_claim_invitation_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($claim_invitation_claim_invitation_request));
+            } else {
+                $httpBody = $claim_invitation_claim_invitation_request;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('X-Internal-Token');
+        if ($apiKey !== null) {
+            $headers['X-Internal-Token'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'POST',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
     }
 
     /**
@@ -359,17 +699,17 @@ class InternalApi
      *
      * Ingest a raw RFC 3464 bounce DSN
      *
-     * @param  string $x_tenant_id Resolved tenant id (required)
      * @param  string $body Raw DSN payload (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestBounce'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return \Lalternative\Spore\Model\IngestBounceResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
-    public function ingestBounce($x_tenant_id, $body, string $contentType = self::contentTypes['ingestBounce'][0])
+    public function ingestBounce($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestBounce'][0])
     {
-        list($response) = $this->ingestBounceWithHttpInfo($x_tenant_id, $body, $contentType);
+        list($response) = $this->ingestBounceWithHttpInfo($body, $x_tenant_id, $contentType);
         return $response;
     }
 
@@ -378,17 +718,17 @@ class InternalApi
      *
      * Ingest a raw RFC 3464 bounce DSN
      *
-     * @param  string $x_tenant_id Resolved tenant id (required)
      * @param  string $body Raw DSN payload (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestBounce'] to see the possible values for this operation
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
      * @return array of \Lalternative\Spore\Model\IngestBounceResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
-    public function ingestBounceWithHttpInfo($x_tenant_id, $body, string $contentType = self::contentTypes['ingestBounce'][0])
+    public function ingestBounceWithHttpInfo($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestBounce'][0])
     {
-        $request = $this->ingestBounceRequest($x_tenant_id, $body, $contentType);
+        $request = $this->ingestBounceRequest($body, $x_tenant_id, $contentType);
 
         try {
             $options = $this->createHttpClientOption();
@@ -506,16 +846,16 @@ class InternalApi
      *
      * Ingest a raw RFC 3464 bounce DSN
      *
-     * @param  string $x_tenant_id Resolved tenant id (required)
      * @param  string $body Raw DSN payload (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestBounce'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function ingestBounceAsync($x_tenant_id, $body, string $contentType = self::contentTypes['ingestBounce'][0])
+    public function ingestBounceAsync($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestBounce'][0])
     {
-        return $this->ingestBounceAsyncWithHttpInfo($x_tenant_id, $body, $contentType)
+        return $this->ingestBounceAsyncWithHttpInfo($body, $x_tenant_id, $contentType)
             ->then(
                 function ($response) {
                     return $response[0];
@@ -528,17 +868,17 @@ class InternalApi
      *
      * Ingest a raw RFC 3464 bounce DSN
      *
-     * @param  string $x_tenant_id Resolved tenant id (required)
      * @param  string $body Raw DSN payload (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestBounce'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Promise\PromiseInterface
      */
-    public function ingestBounceAsyncWithHttpInfo($x_tenant_id, $body, string $contentType = self::contentTypes['ingestBounce'][0])
+    public function ingestBounceAsyncWithHttpInfo($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestBounce'][0])
     {
         $returnType = '\Lalternative\Spore\Model\IngestBounceResponse';
-        $request = $this->ingestBounceRequest($x_tenant_id, $body, $contentType);
+        $request = $this->ingestBounceRequest($body, $x_tenant_id, $contentType);
 
         return $this->client
             ->sendAsync($request, $this->createHttpClientOption())
@@ -579,22 +919,15 @@ class InternalApi
     /**
      * Create request for operation 'ingestBounce'
      *
-     * @param  string $x_tenant_id Resolved tenant id (required)
      * @param  string $body Raw DSN payload (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the DSN carries an envelope id (optional)
      * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestBounce'] to see the possible values for this operation
      *
      * @throws \InvalidArgumentException
      * @return \GuzzleHttp\Psr7\Request
      */
-    public function ingestBounceRequest($x_tenant_id, $body, string $contentType = self::contentTypes['ingestBounce'][0])
+    public function ingestBounceRequest($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestBounce'][0])
     {
-
-        // verify the required parameter 'x_tenant_id' is set
-        if ($x_tenant_id === null || (is_array($x_tenant_id) && count($x_tenant_id) === 0)) {
-            throw new \InvalidArgumentException(
-                'Missing the required parameter $x_tenant_id when calling ingestBounce'
-            );
-        }
 
         // verify the required parameter 'body' is set
         if ($body === null || (is_array($body) && count($body) === 0)) {
@@ -602,6 +935,7 @@ class InternalApi
                 'Missing the required parameter $body when calling ingestBounce'
             );
         }
+
 
 
         $resourcePath = '/internal/bounces';
@@ -632,6 +966,1001 @@ class InternalApi
                 $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($body));
             } else {
                 $httpBody = $body;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('X-Internal-Token');
+        if ($apiKey !== null) {
+            $headers['X-Internal-Token'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'POST',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation ingestInboundMessage
+     *
+     * Ingest a raw RFC 5322 inbound message
+     *
+     * @param  string $body Raw RFC 5322 message (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it (optional)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestInboundMessage'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\IngestInboundMessageResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function ingestInboundMessage($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestInboundMessage'][0])
+    {
+        list($response) = $this->ingestInboundMessageWithHttpInfo($body, $x_tenant_id, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation ingestInboundMessageWithHttpInfo
+     *
+     * Ingest a raw RFC 5322 inbound message
+     *
+     * @param  string $body Raw RFC 5322 message (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it (optional)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestInboundMessage'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\IngestInboundMessageResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function ingestInboundMessageWithHttpInfo($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestInboundMessage'][0])
+    {
+        $request = $this->ingestInboundMessageRequest($body, $x_tenant_id, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\IngestInboundMessageResponse',
+                        $request,
+                        $response,
+                    );
+                case 400:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 413:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\IngestInboundMessageResponse',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\IngestInboundMessageResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 400:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 413:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation ingestInboundMessageAsync
+     *
+     * Ingest a raw RFC 5322 inbound message
+     *
+     * @param  string $body Raw RFC 5322 message (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it (optional)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestInboundMessage'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function ingestInboundMessageAsync($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestInboundMessage'][0])
+    {
+        return $this->ingestInboundMessageAsyncWithHttpInfo($body, $x_tenant_id, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation ingestInboundMessageAsyncWithHttpInfo
+     *
+     * Ingest a raw RFC 5322 inbound message
+     *
+     * @param  string $body Raw RFC 5322 message (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it (optional)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestInboundMessage'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function ingestInboundMessageAsyncWithHttpInfo($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestInboundMessage'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\IngestInboundMessageResponse';
+        $request = $this->ingestInboundMessageRequest($body, $x_tenant_id, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'ingestInboundMessage'
+     *
+     * @param  string $body Raw RFC 5322 message (required)
+     * @param  string|null $x_tenant_id Resolved tenant id; omitted when the recipient domain identifies it (optional)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['ingestInboundMessage'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function ingestInboundMessageRequest($body, $x_tenant_id = null, string $contentType = self::contentTypes['ingestInboundMessage'][0])
+    {
+
+        // verify the required parameter 'body' is set
+        if ($body === null || (is_array($body) && count($body) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $body when calling ingestInboundMessage'
+            );
+        }
+
+
+
+        $resourcePath = '/internal/inbound';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+        // header params
+        if ($x_tenant_id !== null) {
+            $headerParams['X-Tenant-ID'] = ObjectSerializer::toHeaderValue($x_tenant_id);
+        }
+
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($body)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($body));
+            } else {
+                $httpBody = $body;
+            }
+        } elseif (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('X-Internal-Token');
+        if ($apiKey !== null) {
+            $headers['X-Internal-Token'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'POST',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation lookupTenantInvitation
+     *
+     * Read an invitation without consuming it (service-to-service)
+     *
+     * @param  string $token Invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['lookupTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function lookupTenantInvitation($token, string $contentType = self::contentTypes['lookupTenantInvitation'][0])
+    {
+        list($response) = $this->lookupTenantInvitationWithHttpInfo($token, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation lookupTenantInvitationWithHttpInfo
+     *
+     * Read an invitation without consuming it (service-to-service)
+     *
+     * @param  string $token Invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['lookupTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function lookupTenantInvitationWithHttpInfo($token, string $contentType = self::contentTypes['lookupTenantInvitation'][0])
+    {
+        $request = $this->lookupTenantInvitationRequest($token, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 502:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 502:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation lookupTenantInvitationAsync
+     *
+     * Read an invitation without consuming it (service-to-service)
+     *
+     * @param  string $token Invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['lookupTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function lookupTenantInvitationAsync($token, string $contentType = self::contentTypes['lookupTenantInvitation'][0])
+    {
+        return $this->lookupTenantInvitationAsyncWithHttpInfo($token, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation lookupTenantInvitationAsyncWithHttpInfo
+     *
+     * Read an invitation without consuming it (service-to-service)
+     *
+     * @param  string $token Invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['lookupTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function lookupTenantInvitationAsyncWithHttpInfo($token, string $contentType = self::contentTypes['lookupTenantInvitation'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\ClaimInvitationLookupInvitationResponse';
+        $request = $this->lookupTenantInvitationRequest($token, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'lookupTenantInvitation'
+     *
+     * @param  string $token Invitation token (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['lookupTenantInvitation'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function lookupTenantInvitationRequest($token, string $contentType = self::contentTypes['lookupTenantInvitation'][0])
+    {
+
+        // verify the required parameter 'token' is set
+        if ($token === null || (is_array($token) && count($token) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $token when calling lookupTenantInvitation'
+            );
+        }
+
+
+        $resourcePath = '/internal/tenant/invitation/{token}';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+
+        // path params
+        if ($token !== null) {
+            $resourcePath = str_replace(
+                '{token}',
+                ObjectSerializer::toPathValue($token),
+                $resourcePath
+            );
+        }
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('X-Internal-Token');
+        if ($apiKey !== null) {
+            $headers['X-Internal-Token'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'GET',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation registerBillingCustomer
+     *
+     * Declare a tenant to the billing service (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerRequest $claim_invitation_register_customer_request Tenant + address (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerBillingCustomer'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function registerBillingCustomer($claim_invitation_register_customer_request, string $contentType = self::contentTypes['registerBillingCustomer'][0])
+    {
+        list($response) = $this->registerBillingCustomerWithHttpInfo($claim_invitation_register_customer_request, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation registerBillingCustomerWithHttpInfo
+     *
+     * Declare a tenant to the billing service (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerRequest $claim_invitation_register_customer_request Tenant + address (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerBillingCustomer'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function registerBillingCustomerWithHttpInfo($claim_invitation_register_customer_request, string $contentType = self::contentTypes['registerBillingCustomer'][0])
+    {
+        $request = $this->registerBillingCustomerRequest($claim_invitation_register_customer_request, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse',
+                        $request,
+                        $response,
+                    );
+                case 400:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 502:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 400:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 502:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation registerBillingCustomerAsync
+     *
+     * Declare a tenant to the billing service (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerRequest $claim_invitation_register_customer_request Tenant + address (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerBillingCustomer'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function registerBillingCustomerAsync($claim_invitation_register_customer_request, string $contentType = self::contentTypes['registerBillingCustomer'][0])
+    {
+        return $this->registerBillingCustomerAsyncWithHttpInfo($claim_invitation_register_customer_request, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation registerBillingCustomerAsyncWithHttpInfo
+     *
+     * Declare a tenant to the billing service (service-to-service)
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerRequest $claim_invitation_register_customer_request Tenant + address (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerBillingCustomer'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function registerBillingCustomerAsyncWithHttpInfo($claim_invitation_register_customer_request, string $contentType = self::contentTypes['registerBillingCustomer'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\ClaimInvitationRegisterCustomerResponse';
+        $request = $this->registerBillingCustomerRequest($claim_invitation_register_customer_request, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'registerBillingCustomer'
+     *
+     * @param  \Lalternative\Spore\Model\ClaimInvitationRegisterCustomerRequest $claim_invitation_register_customer_request Tenant + address (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['registerBillingCustomer'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function registerBillingCustomerRequest($claim_invitation_register_customer_request, string $contentType = self::contentTypes['registerBillingCustomer'][0])
+    {
+
+        // verify the required parameter 'claim_invitation_register_customer_request' is set
+        if ($claim_invitation_register_customer_request === null || (is_array($claim_invitation_register_customer_request) && count($claim_invitation_register_customer_request) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $claim_invitation_register_customer_request when calling registerBillingCustomer'
+            );
+        }
+
+
+        $resourcePath = '/internal/tenant/billing-customer';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (isset($claim_invitation_register_customer_request)) {
+            if (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the body
+                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($claim_invitation_register_customer_request));
+            } else {
+                $httpBody = $claim_invitation_register_customer_request;
             }
         } elseif (count($formParams) > 0) {
             if ($multipart) {

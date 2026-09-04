@@ -28,9 +28,10 @@ class SetTenantPlanSetTenantPlanRequest(BaseModel):
     """
     SetTenantPlanSetTenantPlanRequest
     """ # noqa: E501
+    email: Optional[StrictStr] = None
     plan: Optional[StrictStr] = None
     tenant_id: Optional[StrictStr] = Field(default=None, alias="tenantId")
-    __properties: ClassVar[List[str]] = ["plan", "tenantId"]
+    __properties: ClassVar[List[str]] = ["email", "plan", "tenantId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,6 +84,7 @@ class SetTenantPlanSetTenantPlanRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "email": obj.get("email"),
             "plan": obj.get("plan"),
             "tenantId": obj.get("tenantId")
         })

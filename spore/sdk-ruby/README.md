@@ -109,8 +109,14 @@ Class | Method | HTTP request | Description
 *SporeEmail::IdentitiesApi* | [**list_identities**](docs/IdentitiesApi.md#list_identities) | **GET** /identities | List sending identities
 *SporeEmail::IdentitiesApi* | [**remove_identity_address**](docs/IdentitiesApi.md#remove_identity_address) | **DELETE** /identities/{id}/addresses/{localPart} | Remove an allowed From address
 *SporeEmail::IdentitiesApi* | [**verify_identity**](docs/IdentitiesApi.md#verify_identity) | **POST** /identities/{id}/verify | Verify a sending identity's DNS records
+*SporeEmail::InboundApi* | [**get_inbound_message**](docs/InboundApi.md#get_inbound_message) | **GET** /inbound/messages/{id} | Get one inbound message
+*SporeEmail::InboundApi* | [**list_inbound_messages**](docs/InboundApi.md#list_inbound_messages) | **GET** /inbound/messages | List inbound messages
+*SporeEmail::InternalApi* | [**claim_tenant_invitation**](docs/InternalApi.md#claim_tenant_invitation) | **POST** /internal/tenant/invitation/claim | Redeem an invitation onto a tenant (service-to-service)
 *SporeEmail::InternalApi* | [**handle_mollie_webhook**](docs/InternalApi.md#handle_mollie_webhook) | **POST** /billing/webhook/mollie | Payment provider webhook
 *SporeEmail::InternalApi* | [**ingest_bounce**](docs/InternalApi.md#ingest_bounce) | **POST** /internal/bounces | Ingest a raw RFC 3464 bounce DSN
+*SporeEmail::InternalApi* | [**ingest_inbound_message**](docs/InternalApi.md#ingest_inbound_message) | **POST** /internal/inbound | Ingest a raw RFC 5322 inbound message
+*SporeEmail::InternalApi* | [**lookup_tenant_invitation**](docs/InternalApi.md#lookup_tenant_invitation) | **GET** /internal/tenant/invitation/{token} | Read an invitation without consuming it (service-to-service)
+*SporeEmail::InternalApi* | [**register_billing_customer**](docs/InternalApi.md#register_billing_customer) | **POST** /internal/tenant/billing-customer | Declare a tenant to the billing service (service-to-service)
 *SporeEmail::InternalApi* | [**set_tenant_plan**](docs/InternalApi.md#set_tenant_plan) | **POST** /internal/tenant/plan | Assign a plan to a tenant (service-to-service)
 *SporeEmail::MessagingApi* | [**get_email**](docs/MessagingApi.md#get_email) | **GET** /emails/{id} | Get a message
 *SporeEmail::MessagingApi* | [**list_emails**](docs/MessagingApi.md#list_emails) | **GET** /emails | List enqueued/sent messages
@@ -147,6 +153,11 @@ Class | Method | HTTP request | Description
  - [SporeEmail::ApikeysListAPIKeysResponse](docs/ApikeysListAPIKeysResponse.md)
  - [SporeEmail::ApikeysView](docs/ApikeysView.md)
  - [SporeEmail::CancelSubscriptionResult](docs/CancelSubscriptionResult.md)
+ - [SporeEmail::ClaimInvitationClaimInvitationRequest](docs/ClaimInvitationClaimInvitationRequest.md)
+ - [SporeEmail::ClaimInvitationClaimInvitationResponse](docs/ClaimInvitationClaimInvitationResponse.md)
+ - [SporeEmail::ClaimInvitationLookupInvitationResponse](docs/ClaimInvitationLookupInvitationResponse.md)
+ - [SporeEmail::ClaimInvitationRegisterCustomerRequest](docs/ClaimInvitationRegisterCustomerRequest.md)
+ - [SporeEmail::ClaimInvitationRegisterCustomerResponse](docs/ClaimInvitationRegisterCustomerResponse.md)
  - [SporeEmail::ConfirmUnsubscribeConfirmUnsubscribeRequest](docs/ConfirmUnsubscribeConfirmUnsubscribeRequest.md)
  - [SporeEmail::ConfirmUnsubscribeResponse](docs/ConfirmUnsubscribeResponse.md)
  - [SporeEmail::CreateEndpointCreateEndpointRequest](docs/CreateEndpointCreateEndpointRequest.md)
@@ -162,6 +173,7 @@ Class | Method | HTTP request | Description
  - [SporeEmail::DowngradeSubscriptionDowngradeRequest](docs/DowngradeSubscriptionDowngradeRequest.md)
  - [SporeEmail::DowngradeSubscriptionResult](docs/DowngradeSubscriptionResult.md)
  - [SporeEmail::EchoHTTPError](docs/EchoHTTPError.md)
+ - [SporeEmail::EventsAttachment](docs/EventsAttachment.md)
  - [SporeEmail::EventsRecordCheck](docs/EventsRecordCheck.md)
  - [SporeEmail::ExtractBrandExtractBrandRequest](docs/ExtractBrandExtractBrandRequest.md)
  - [SporeEmail::ExtractBrandResponse](docs/ExtractBrandResponse.md)
@@ -171,8 +183,10 @@ Class | Method | HTTP request | Description
  - [SporeEmail::GetUsageIdentityBreakdown](docs/GetUsageIdentityBreakdown.md)
  - [SporeEmail::GetUsageUsageResponse](docs/GetUsageUsageResponse.md)
  - [SporeEmail::IngestBounceResponse](docs/IngestBounceResponse.md)
+ - [SporeEmail::IngestInboundMessageResponse](docs/IngestInboundMessageResponse.md)
  - [SporeEmail::ListEndpointsResult](docs/ListEndpointsResult.md)
  - [SporeEmail::ListIdentitiesResponse](docs/ListIdentitiesResponse.md)
+ - [SporeEmail::ListInboundMessagesResponse](docs/ListInboundMessagesResponse.md)
  - [SporeEmail::ListMessagesResult](docs/ListMessagesResult.md)
  - [SporeEmail::ListSuppressionsResponse](docs/ListSuppressionsResponse.md)
  - [SporeEmail::ListTemplatesResponse](docs/ListTemplatesResponse.md)
@@ -186,6 +200,7 @@ Class | Method | HTTP request | Description
  - [SporeEmail::RepositoryBrandView](docs/RepositoryBrandView.md)
  - [SporeEmail::RepositoryEndpointView](docs/RepositoryEndpointView.md)
  - [SporeEmail::RepositoryIdentityView](docs/RepositoryIdentityView.md)
+ - [SporeEmail::RepositoryInboundMessageView](docs/RepositoryInboundMessageView.md)
  - [SporeEmail::RepositoryMessageView](docs/RepositoryMessageView.md)
  - [SporeEmail::RepositoryStateView](docs/RepositoryStateView.md)
  - [SporeEmail::RepositorySuppressionView](docs/RepositorySuppressionView.md)

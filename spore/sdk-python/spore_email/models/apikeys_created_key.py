@@ -30,13 +30,14 @@ class ApikeysCreatedKey(BaseModel):
     """ # noqa: E501
     created_at: Optional[StrictStr] = Field(default=None, alias="createdAt")
     id: Optional[StrictStr] = None
+    identity_id: Optional[StrictStr] = Field(default=None, description="IdentityID restricts the key to a single sending identity. Empty means the key may send from any verified identity of its tenant, which is how every key created before scoping existed behaves.", alias="identityId")
     last_used_at: Optional[StrictStr] = Field(default=None, alias="lastUsedAt")
     name: Optional[StrictStr] = None
     plaintext: Optional[StrictStr] = None
     prefix: Optional[StrictStr] = Field(default=None, description="\"sk_live_aB3x\" (first 12 chars), safe to display")
     revoked_at: Optional[StrictStr] = Field(default=None, alias="revokedAt")
     tenant_id: Optional[StrictStr] = Field(default=None, alias="tenantId")
-    __properties: ClassVar[List[str]] = ["createdAt", "id", "lastUsedAt", "name", "plaintext", "prefix", "revokedAt", "tenantId"]
+    __properties: ClassVar[List[str]] = ["createdAt", "id", "identityId", "lastUsedAt", "name", "plaintext", "prefix", "revokedAt", "tenantId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -91,6 +92,7 @@ class ApikeysCreatedKey(BaseModel):
         _obj = cls.model_validate({
             "createdAt": obj.get("createdAt"),
             "id": obj.get("id"),
+            "identityId": obj.get("identityId"),
             "lastUsedAt": obj.get("lastUsedAt"),
             "name": obj.get("name"),
             "plaintext": obj.get("plaintext"),

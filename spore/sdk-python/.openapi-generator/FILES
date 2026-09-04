@@ -15,6 +15,7 @@ spore_email/api/api_keys_api.py
 spore_email/api/billing_api.py
 spore_email/api/branding_api.py
 spore_email/api/identities_api.py
+spore_email/api/inbound_api.py
 spore_email/api/internal_api.py
 spore_email/api/messaging_api.py
 spore_email/api/plans_api.py
@@ -39,6 +40,11 @@ spore_email/models/apikeys_created_key.py
 spore_email/models/apikeys_list_api_keys_response.py
 spore_email/models/apikeys_view.py
 spore_email/models/cancel_subscription_result.py
+spore_email/models/claim_invitation_claim_invitation_request.py
+spore_email/models/claim_invitation_claim_invitation_response.py
+spore_email/models/claim_invitation_lookup_invitation_response.py
+spore_email/models/claim_invitation_register_customer_request.py
+spore_email/models/claim_invitation_register_customer_response.py
 spore_email/models/confirm_unsubscribe_confirm_unsubscribe_request.py
 spore_email/models/confirm_unsubscribe_response.py
 spore_email/models/create_endpoint_create_endpoint_request.py
@@ -54,6 +60,7 @@ spore_email/models/domain_variable.py
 spore_email/models/downgrade_subscription_downgrade_request.py
 spore_email/models/downgrade_subscription_result.py
 spore_email/models/echo_http_error.py
+spore_email/models/events_attachment.py
 spore_email/models/events_record_check.py
 spore_email/models/extract_brand_extract_brand_request.py
 spore_email/models/extract_brand_response.py
@@ -63,8 +70,10 @@ spore_email/models/get_usage_history_entry.py
 spore_email/models/get_usage_identity_breakdown.py
 spore_email/models/get_usage_usage_response.py
 spore_email/models/ingest_bounce_response.py
+spore_email/models/ingest_inbound_message_response.py
 spore_email/models/list_endpoints_result.py
 spore_email/models/list_identities_response.py
+spore_email/models/list_inbound_messages_response.py
 spore_email/models/list_messages_result.py
 spore_email/models/list_suppressions_response.py
 spore_email/models/list_templates_response.py
@@ -78,6 +87,7 @@ spore_email/models/repository_attempt_view.py
 spore_email/models/repository_brand_view.py
 spore_email/models/repository_endpoint_view.py
 spore_email/models/repository_identity_view.py
+spore_email/models/repository_inbound_message_view.py
 spore_email/models/repository_message_view.py
 spore_email/models/repository_state_view.py
 spore_email/models/repository_suppression_view.py

@@ -49,8 +49,14 @@ Class | Method | HTTP request | Description
 *IdentitiesApi* | [**list_identities**](docs/IdentitiesApi.md#list_identities) | **GET** /identities | List sending identities
 *IdentitiesApi* | [**remove_identity_address**](docs/IdentitiesApi.md#remove_identity_address) | **DELETE** /identities/{id}/addresses/{localPart} | Remove an allowed From address
 *IdentitiesApi* | [**verify_identity**](docs/IdentitiesApi.md#verify_identity) | **POST** /identities/{id}/verify | Verify a sending identity's DNS records
+*InboundApi* | [**get_inbound_message**](docs/InboundApi.md#get_inbound_message) | **GET** /inbound/messages/{id} | Get one inbound message
+*InboundApi* | [**list_inbound_messages**](docs/InboundApi.md#list_inbound_messages) | **GET** /inbound/messages | List inbound messages
+*InternalApi* | [**claim_tenant_invitation**](docs/InternalApi.md#claim_tenant_invitation) | **POST** /internal/tenant/invitation/claim | Redeem an invitation onto a tenant (service-to-service)
 *InternalApi* | [**handle_mollie_webhook**](docs/InternalApi.md#handle_mollie_webhook) | **POST** /billing/webhook/mollie | Payment provider webhook
 *InternalApi* | [**ingest_bounce**](docs/InternalApi.md#ingest_bounce) | **POST** /internal/bounces | Ingest a raw RFC 3464 bounce DSN
+*InternalApi* | [**ingest_inbound_message**](docs/InternalApi.md#ingest_inbound_message) | **POST** /internal/inbound | Ingest a raw RFC 5322 inbound message
+*InternalApi* | [**lookup_tenant_invitation**](docs/InternalApi.md#lookup_tenant_invitation) | **GET** /internal/tenant/invitation/{token} | Read an invitation without consuming it (service-to-service)
+*InternalApi* | [**register_billing_customer**](docs/InternalApi.md#register_billing_customer) | **POST** /internal/tenant/billing-customer | Declare a tenant to the billing service (service-to-service)
 *InternalApi* | [**set_tenant_plan**](docs/InternalApi.md#set_tenant_plan) | **POST** /internal/tenant/plan | Assign a plan to a tenant (service-to-service)
 *MessagingApi* | [**get_email**](docs/MessagingApi.md#get_email) | **GET** /emails/{id} | Get a message
 *MessagingApi* | [**list_emails**](docs/MessagingApi.md#list_emails) | **GET** /emails | List enqueued/sent messages
@@ -87,6 +93,11 @@ Class | Method | HTTP request | Description
  - [ApikeysListApiKeysResponse](docs/ApikeysListApiKeysResponse.md)
  - [ApikeysView](docs/ApikeysView.md)
  - [CancelSubscriptionResult](docs/CancelSubscriptionResult.md)
+ - [ClaimInvitationClaimInvitationRequest](docs/ClaimInvitationClaimInvitationRequest.md)
+ - [ClaimInvitationClaimInvitationResponse](docs/ClaimInvitationClaimInvitationResponse.md)
+ - [ClaimInvitationLookupInvitationResponse](docs/ClaimInvitationLookupInvitationResponse.md)
+ - [ClaimInvitationRegisterCustomerRequest](docs/ClaimInvitationRegisterCustomerRequest.md)
+ - [ClaimInvitationRegisterCustomerResponse](docs/ClaimInvitationRegisterCustomerResponse.md)
  - [ConfirmUnsubscribeConfirmUnsubscribeRequest](docs/ConfirmUnsubscribeConfirmUnsubscribeRequest.md)
  - [ConfirmUnsubscribeResponse](docs/ConfirmUnsubscribeResponse.md)
  - [CreateEndpointCreateEndpointRequest](docs/CreateEndpointCreateEndpointRequest.md)
@@ -102,6 +113,7 @@ Class | Method | HTTP request | Description
  - [DowngradeSubscriptionDowngradeRequest](docs/DowngradeSubscriptionDowngradeRequest.md)
  - [DowngradeSubscriptionResult](docs/DowngradeSubscriptionResult.md)
  - [EchoHttpError](docs/EchoHttpError.md)
+ - [EventsAttachment](docs/EventsAttachment.md)
  - [EventsRecordCheck](docs/EventsRecordCheck.md)
  - [ExtractBrandExtractBrandRequest](docs/ExtractBrandExtractBrandRequest.md)
  - [ExtractBrandResponse](docs/ExtractBrandResponse.md)
@@ -111,8 +123,10 @@ Class | Method | HTTP request | Description
  - [GetUsageIdentityBreakdown](docs/GetUsageIdentityBreakdown.md)
  - [GetUsageUsageResponse](docs/GetUsageUsageResponse.md)
  - [IngestBounceResponse](docs/IngestBounceResponse.md)
+ - [IngestInboundMessageResponse](docs/IngestInboundMessageResponse.md)
  - [ListEndpointsResult](docs/ListEndpointsResult.md)
  - [ListIdentitiesResponse](docs/ListIdentitiesResponse.md)
+ - [ListInboundMessagesResponse](docs/ListInboundMessagesResponse.md)
  - [ListMessagesResult](docs/ListMessagesResult.md)
  - [ListSuppressionsResponse](docs/ListSuppressionsResponse.md)
  - [ListTemplatesResponse](docs/ListTemplatesResponse.md)
@@ -126,6 +140,7 @@ Class | Method | HTTP request | Description
  - [RepositoryBrandView](docs/RepositoryBrandView.md)
  - [RepositoryEndpointView](docs/RepositoryEndpointView.md)
  - [RepositoryIdentityView](docs/RepositoryIdentityView.md)
+ - [RepositoryInboundMessageView](docs/RepositoryInboundMessageView.md)
  - [RepositoryMessageView](docs/RepositoryMessageView.md)
  - [RepositoryStateView](docs/RepositoryStateView.md)
  - [RepositorySuppressionView](docs/RepositorySuppressionView.md)

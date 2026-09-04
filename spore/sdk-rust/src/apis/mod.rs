@@ -115,6 +115,7 @@ pub mod api_keys_api;
 pub mod billing_api;
 pub mod branding_api;
 pub mod identities_api;
+pub mod inbound_api;
 pub mod internal_api;
 pub mod messaging_api;
 pub mod plans_api;

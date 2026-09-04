@@ -16,7 +16,7 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import Field, StrictInt, StrictStr
+from pydantic import Field, StrictInt, StrictStr, field_validator
 from typing import Optional
 from typing_extensions import Annotated
 from spore_email.models.list_messages_result import ListMessagesResult
@@ -739,6 +739,7 @@ class MessagingApi:
             '202': "SendEmailSendEmailResult",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '403': "EchoHTTPError",
             '422': "SendEmailQuotaErrorBody",
             '429': "EchoHTTPError",
         }
@@ -813,6 +814,7 @@ class MessagingApi:
             '202': "SendEmailSendEmailResult",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '403': "EchoHTTPError",
             '422': "SendEmailQuotaErrorBody",
             '429': "EchoHTTPError",
         }
@@ -887,6 +889,7 @@ class MessagingApi:
             '202': "SendEmailSendEmailResult",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '403': "EchoHTTPError",
             '422': "SendEmailQuotaErrorBody",
             '429': "EchoHTTPError",
         }

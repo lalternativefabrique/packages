@@ -7,5 +7,8 @@
  */
 
 export interface ApikeysCreateAPIKeyRequest {
+  /** IdentityID restricts the key to one sending identity. Omit for a
+tenant-wide key, which is the behaviour of every pre-existing key. */
+  identityId?: string;
   name?: string;
 }

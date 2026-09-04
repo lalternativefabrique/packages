@@ -5,6 +5,7 @@
  * Control plane for the Spore transactional email platform.
  * OpenAPI spec version: 0.1.0
  */
+import type { ListEmailsStatus } from './listEmailsStatus';
 
 export type ListEmailsParams = {
 /**
@@ -14,7 +15,7 @@ identityId?: string;
 /**
  * Filter by status
  */
-status?: string;
+status?: ListEmailsStatus;
 /**
  * Search subject or recipient
  */

@@ -13,6 +13,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ApikeysCreateApiKeyRequest {
+    /// IdentityID restricts the key to one sending identity. Omit for a tenant-wide key, which is the behaviour of every pre-existing key.
+    #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
+    pub identity_id: Option<String>,
     #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 }
@@ -20,6 +23,7 @@ pub struct ApikeysCreateApiKeyRequest {
 impl ApikeysCreateApiKeyRequest {
     pub fn new() -> ApikeysCreateApiKeyRequest {
         ApikeysCreateApiKeyRequest {
+            identity_id: None,
             name: None,
         }
     }

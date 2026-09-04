@@ -15,6 +15,8 @@ require 'time'
 
 module SporeEmail
   class SetTenantPlanSetTenantPlanRequest < ApiModelBase
+    attr_accessor :email
+
     attr_accessor :plan
 
     attr_accessor :tenant_id
@@ -22,6 +24,7 @@ module SporeEmail
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'email' => :'email',
         :'plan' => :'plan',
         :'tenant_id' => :'tenantId'
       }
@@ -40,6 +43,7 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'email' => :'String',
         :'plan' => :'String',
         :'tenant_id' => :'String'
       }
@@ -66,6 +70,10 @@ module SporeEmail
         end
         h[k.to_sym] = v
       }
+
+      if attributes.key?(:'email')
+        self.email = attributes[:'email']
+      end
 
       if attributes.key?(:'plan')
         self.plan = attributes[:'plan']
@@ -96,6 +104,7 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          email == o.email &&
           plan == o.plan &&
           tenant_id == o.tenant_id
     end
@@ -109,7 +118,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [plan, tenant_id].hash
+      [email, plan, tenant_id].hash
     end
 
     # Builds the object from hash

@@ -19,6 +19,9 @@ module SporeEmail
 
     attr_accessor :id
 
+    # IdentityID restricts the key to a single sending identity. Empty means the key may send from any verified identity of its tenant, which is how every key created before scoping existed behaves.
+    attr_accessor :identity_id
+
     attr_accessor :last_used_at
 
     attr_accessor :name
@@ -35,6 +38,7 @@ module SporeEmail
       {
         :'created_at' => :'createdAt',
         :'id' => :'id',
+        :'identity_id' => :'identityId',
         :'last_used_at' => :'lastUsedAt',
         :'name' => :'name',
         :'prefix' => :'prefix',
@@ -58,6 +62,7 @@ module SporeEmail
       {
         :'created_at' => :'String',
         :'id' => :'String',
+        :'identity_id' => :'String',
         :'last_used_at' => :'String',
         :'name' => :'String',
         :'prefix' => :'String',
@@ -94,6 +99,10 @@ module SporeEmail
 
       if attributes.key?(:'id')
         self.id = attributes[:'id']
+      end
+
+      if attributes.key?(:'identity_id')
+        self.identity_id = attributes[:'identity_id']
       end
 
       if attributes.key?(:'last_used_at')
@@ -139,6 +148,7 @@ module SporeEmail
       self.class == o.class &&
           created_at == o.created_at &&
           id == o.id &&
+          identity_id == o.identity_id &&
           last_used_at == o.last_used_at &&
           name == o.name &&
           prefix == o.prefix &&
@@ -155,7 +165,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [created_at, id, last_used_at, name, prefix, revoked_at, tenant_id].hash
+      [created_at, id, identity_id, last_used_at, name, prefix, revoked_at, tenant_id].hash
     end
 
     # Builds the object from hash

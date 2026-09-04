@@ -18,7 +18,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
@@ -28,8 +28,9 @@ class ApikeysCreateAPIKeyRequest(BaseModel):
     """
     ApikeysCreateAPIKeyRequest
     """ # noqa: E501
+    identity_id: Optional[StrictStr] = Field(default=None, description="IdentityID restricts the key to one sending identity. Omit for a tenant-wide key, which is the behaviour of every pre-existing key.", alias="identityId")
     name: Optional[StrictStr] = None
-    __properties: ClassVar[List[str]] = ["name"]
+    __properties: ClassVar[List[str]] = ["identityId", "name"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -82,6 +83,7 @@ class ApikeysCreateAPIKeyRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "identityId": obj.get("identityId"),
             "name": obj.get("name")
         })
         return _obj

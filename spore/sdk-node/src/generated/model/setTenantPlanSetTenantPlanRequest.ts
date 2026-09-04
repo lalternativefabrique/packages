@@ -7,6 +7,7 @@
  */
 
 export interface SetTenantPlanSetTenantPlanRequest {
+  email?: string;
   plan?: string;
   tenantId?: string;
 }
