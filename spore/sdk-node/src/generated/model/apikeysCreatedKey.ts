@@ -9,6 +9,10 @@
 export interface ApikeysCreatedKey {
   createdAt?: string;
   id?: string;
+  /** IdentityID restricts the key to a single sending identity. Empty means
+the key may send from any verified identity of its tenant, which is how
+every key created before scoping existed behaves. */
+  identityId?: string;
   lastUsedAt?: string;
   name?: string;
   plaintext?: string;

@@ -18,7 +18,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from spore_email.models.repository_attempt_view import RepositoryAttemptView
 from typing import Optional, Set
@@ -30,7 +30,11 @@ class RepositoryMessageView(BaseModel):
     RepositoryMessageView
     """ # noqa: E501
     attempts: Optional[StrictInt] = None
+    bounced_at: Optional[StrictStr] = Field(default=None, alias="bouncedAt")
     created_at: Optional[StrictStr] = Field(default=None, alias="createdAt")
+    delivered_at: Optional[StrictStr] = Field(default=None, alias="deliveredAt")
+    delivery_diagnostic: Optional[StrictStr] = Field(default=None, alias="deliveryDiagnostic")
+    delivery_status: Optional[StrictStr] = Field(default=None, description="DeliveryStatus is the RFC 3464 status of the last DSN received.", alias="deliveryStatus")
     failed_at: Optional[StrictStr] = Field(default=None, alias="failedAt")
     var_from: Optional[StrictStr] = Field(default=None, alias="from")
     history: Optional[List[RepositoryAttemptView]] = None
@@ -45,7 +49,17 @@ class RepositoryMessageView(BaseModel):
     tenant_id: Optional[StrictStr] = Field(default=None, alias="tenantId")
     to: Optional[List[StrictStr]] = None
     updated_at: Optional[StrictStr] = Field(default=None, alias="updatedAt")
-    __properties: ClassVar[List[str]] = ["attempts", "createdAt", "failedAt", "from", "history", "id", "identityId", "lastError", "mtaResponse", "rfc5322Id", "sentAt", "status", "subject", "tenantId", "to", "updatedAt"]
+    __properties: ClassVar[List[str]] = ["attempts", "bouncedAt", "createdAt", "deliveredAt", "deliveryDiagnostic", "deliveryStatus", "failedAt", "from", "history", "id", "identityId", "lastError", "mtaResponse", "rfc5322Id", "sentAt", "status", "subject", "tenantId", "to", "updatedAt"]
+
+    @field_validator('status')
+    def status_validate_enum(cls, value):
+        """Validates the enum"""
+        if value is None:
+            return value
+
+        if value not in set(['accepted', 'queued', 'sent', 'delivered', 'deferred', 'bounced', 'failed']):
+            raise ValueError("must be one of enum values ('accepted', 'queued', 'sent', 'delivered', 'deferred', 'bounced', 'failed')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -106,7 +120,11 @@ class RepositoryMessageView(BaseModel):
 
         _obj = cls.model_validate({
             "attempts": obj.get("attempts"),
+            "bouncedAt": obj.get("bouncedAt"),
             "createdAt": obj.get("createdAt"),
+            "deliveredAt": obj.get("deliveredAt"),
+            "deliveryDiagnostic": obj.get("deliveryDiagnostic"),
+            "deliveryStatus": obj.get("deliveryStatus"),
             "failedAt": obj.get("failedAt"),
             "from": obj.get("from"),
             "history": [RepositoryAttemptView.from_dict(_item) for _item in obj["history"]] if obj.get("history") is not None else None,

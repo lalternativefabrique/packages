@@ -847,7 +847,7 @@ class MessagingApi
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError
+     * @return \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError
      */
     public function sendEmail($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
@@ -866,7 +866,7 @@ class MessagingApi
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     * @return array of \Lalternative\Spore\Model\SendEmailSendEmailResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\SendEmailQuotaErrorBody|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
     public function sendEmailWithHttpInfo($send_email_send_email_request, $idempotency_key = null, string $contentType = self::contentTypes['sendEmail'][0])
     {
@@ -909,6 +909,12 @@ class MessagingApi
                         $response,
                     );
                 case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 403:
                     return $this->handleResponseWithDataType(
                         '\Lalternative\Spore\Model\EchoHTTPError',
                         $request,
@@ -967,6 +973,14 @@ class MessagingApi
                     $e->setResponseObject($data);
                     throw $e;
                 case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 403:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
                         '\Lalternative\Spore\Model\EchoHTTPError',

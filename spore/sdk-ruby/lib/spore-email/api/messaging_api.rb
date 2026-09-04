@@ -109,6 +109,10 @@ module SporeEmail
       if @api_client.config.debugging
         @api_client.config.logger.debug 'Calling API: MessagingApi.list_emails ...'
       end
+      allowable_values = ["accepted", "queued", "sent", "delivered", "deferred", "bounced", "failed"]
+      if @api_client.config.client_side_validation && opts[:'status'] && !allowable_values.include?(opts[:'status'])
+        fail ArgumentError, "invalid value for \"status\", must be one of #{allowable_values}"
+      end
       # resource path
       local_var_path = '/emails'
 

@@ -17,7 +17,16 @@ module SporeEmail
   class RepositoryMessageView < ApiModelBase
     attr_accessor :attempts
 
+    attr_accessor :bounced_at
+
     attr_accessor :created_at
+
+    attr_accessor :delivered_at
+
+    attr_accessor :delivery_diagnostic
+
+    # DeliveryStatus is the RFC 3464 status of the last DSN received.
+    attr_accessor :delivery_status
 
     attr_accessor :failed_at
 
@@ -47,11 +56,37 @@ module SporeEmail
 
     attr_accessor :updated_at
 
+    class EnumAttributeValidator
+      attr_reader :datatype
+      attr_reader :allowable_values
+
+      def initialize(datatype, allowable_values)
+        @allowable_values = allowable_values.map do |value|
+          case datatype.to_s
+          when /Integer/i
+            value.to_i
+          when /Float/i
+            value.to_f
+          else
+            value
+          end
+        end
+      end
+
+      def valid?(value)
+        !value || allowable_values.include?(value)
+      end
+    end
+
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
         :'attempts' => :'attempts',
+        :'bounced_at' => :'bouncedAt',
         :'created_at' => :'createdAt',
+        :'delivered_at' => :'deliveredAt',
+        :'delivery_diagnostic' => :'deliveryDiagnostic',
+        :'delivery_status' => :'deliveryStatus',
         :'failed_at' => :'failedAt',
         :'from' => :'from',
         :'history' => :'history',
@@ -83,7 +118,11 @@ module SporeEmail
     def self.openapi_types
       {
         :'attempts' => :'Integer',
+        :'bounced_at' => :'String',
         :'created_at' => :'String',
+        :'delivered_at' => :'String',
+        :'delivery_diagnostic' => :'String',
+        :'delivery_status' => :'String',
         :'failed_at' => :'String',
         :'from' => :'String',
         :'history' => :'Array<RepositoryAttemptView>',
@@ -127,8 +166,24 @@ module SporeEmail
         self.attempts = attributes[:'attempts']
       end
 
+      if attributes.key?(:'bounced_at')
+        self.bounced_at = attributes[:'bounced_at']
+      end
+
       if attributes.key?(:'created_at')
         self.created_at = attributes[:'created_at']
+      end
+
+      if attributes.key?(:'delivered_at')
+        self.delivered_at = attributes[:'delivered_at']
+      end
+
+      if attributes.key?(:'delivery_diagnostic')
+        self.delivery_diagnostic = attributes[:'delivery_diagnostic']
+      end
+
+      if attributes.key?(:'delivery_status')
+        self.delivery_status = attributes[:'delivery_status']
       end
 
       if attributes.key?(:'failed_at')
@@ -204,7 +259,19 @@ module SporeEmail
     # @return true if the model is valid
     def valid?
       warn '[DEPRECATED] the `valid?` method is obsolete'
+      status_validator = EnumAttributeValidator.new('String', ["accepted", "queued", "sent", "delivered", "deferred", "bounced", "failed"])
+      return false unless status_validator.valid?(@status)
       true
+    end
+
+    # Custom attribute writer method checking allowed values (enum).
+    # @param [Object] status Object to be assigned
+    def status=(status)
+      validator = EnumAttributeValidator.new('String', ["accepted", "queued", "sent", "delivered", "deferred", "bounced", "failed"])
+      unless validator.valid?(status)
+        fail ArgumentError, "invalid value for \"status\", must be one of #{validator.allowable_values}."
+      end
+      @status = status
     end
 
     # Checks equality by comparing each attribute.
@@ -213,7 +280,11 @@ module SporeEmail
       return true if self.equal?(o)
       self.class == o.class &&
           attempts == o.attempts &&
+          bounced_at == o.bounced_at &&
           created_at == o.created_at &&
+          delivered_at == o.delivered_at &&
+          delivery_diagnostic == o.delivery_diagnostic &&
+          delivery_status == o.delivery_status &&
           failed_at == o.failed_at &&
           from == o.from &&
           history == o.history &&
@@ -239,7 +310,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [attempts, created_at, failed_at, from, history, id, identity_id, last_error, mta_response, rfc5322_id, sent_at, status, subject, tenant_id, to, updated_at].hash
+      [attempts, bounced_at, created_at, delivered_at, delivery_diagnostic, delivery_status, failed_at, from, history, id, identity_id, last_error, mta_response, rfc5322_id, sent_at, status, subject, tenant_id, to, updated_at].hash
     end
 
     # Builds the object from hash

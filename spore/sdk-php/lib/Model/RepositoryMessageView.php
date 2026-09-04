@@ -59,7 +59,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $openAPITypes = [
         'attempts' => 'int',
+        'bounced_at' => 'string',
         'created_at' => 'string',
+        'delivered_at' => 'string',
+        'delivery_diagnostic' => 'string',
+        'delivery_status' => 'string',
         'failed_at' => 'string',
         'from' => 'string',
         'history' => '\Lalternative\Spore\Model\RepositoryAttemptView[]',
@@ -85,7 +89,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $openAPIFormats = [
         'attempts' => null,
+        'bounced_at' => null,
         'created_at' => null,
+        'delivered_at' => null,
+        'delivery_diagnostic' => null,
+        'delivery_status' => null,
         'failed_at' => null,
         'from' => null,
         'history' => null,
@@ -109,7 +117,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static array $openAPINullables = [
         'attempts' => false,
+        'bounced_at' => false,
         'created_at' => false,
+        'delivered_at' => false,
+        'delivery_diagnostic' => false,
+        'delivery_status' => false,
         'failed_at' => false,
         'from' => false,
         'history' => false,
@@ -213,7 +225,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $attributeMap = [
         'attempts' => 'attempts',
+        'bounced_at' => 'bouncedAt',
         'created_at' => 'createdAt',
+        'delivered_at' => 'deliveredAt',
+        'delivery_diagnostic' => 'deliveryDiagnostic',
+        'delivery_status' => 'deliveryStatus',
         'failed_at' => 'failedAt',
         'from' => 'from',
         'history' => 'history',
@@ -237,7 +253,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $setters = [
         'attempts' => 'setAttempts',
+        'bounced_at' => 'setBouncedAt',
         'created_at' => 'setCreatedAt',
+        'delivered_at' => 'setDeliveredAt',
+        'delivery_diagnostic' => 'setDeliveryDiagnostic',
+        'delivery_status' => 'setDeliveryStatus',
         'failed_at' => 'setFailedAt',
         'from' => 'setFrom',
         'history' => 'setHistory',
@@ -261,7 +281,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
      */
     protected static $getters = [
         'attempts' => 'getAttempts',
+        'bounced_at' => 'getBouncedAt',
         'created_at' => 'getCreatedAt',
+        'delivered_at' => 'getDeliveredAt',
+        'delivery_diagnostic' => 'getDeliveryDiagnostic',
+        'delivery_status' => 'getDeliveryStatus',
         'failed_at' => 'getFailedAt',
         'from' => 'getFrom',
         'history' => 'getHistory',
@@ -319,6 +343,31 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
         return self::$openAPIModelName;
     }
 
+    public const STATUS_ACCEPTED = 'accepted';
+    public const STATUS_QUEUED = 'queued';
+    public const STATUS_SENT = 'sent';
+    public const STATUS_DELIVERED = 'delivered';
+    public const STATUS_DEFERRED = 'deferred';
+    public const STATUS_BOUNCED = 'bounced';
+    public const STATUS_FAILED = 'failed';
+
+    /**
+     * Gets allowable values of the enum
+     *
+     * @return string[]
+     */
+    public function getStatusAllowableValues()
+    {
+        return [
+            self::STATUS_ACCEPTED,
+            self::STATUS_QUEUED,
+            self::STATUS_SENT,
+            self::STATUS_DELIVERED,
+            self::STATUS_DEFERRED,
+            self::STATUS_BOUNCED,
+            self::STATUS_FAILED,
+        ];
+    }
 
     /**
      * Associative array for storing property values
@@ -336,7 +385,11 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
     public function __construct(?array $data = null)
     {
         $this->setIfExists('attempts', $data ?? [], null);
+        $this->setIfExists('bounced_at', $data ?? [], null);
         $this->setIfExists('created_at', $data ?? [], null);
+        $this->setIfExists('delivered_at', $data ?? [], null);
+        $this->setIfExists('delivery_diagnostic', $data ?? [], null);
+        $this->setIfExists('delivery_status', $data ?? [], null);
         $this->setIfExists('failed_at', $data ?? [], null);
         $this->setIfExists('from', $data ?? [], null);
         $this->setIfExists('history', $data ?? [], null);
@@ -379,6 +432,15 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
     public function listInvalidProperties()
     {
         $invalidProperties = [];
+
+        $allowedValues = $this->getStatusAllowableValues();
+        if (!is_null($this->container['status']) && !in_array($this->container['status'], $allowedValues, true)) {
+            $invalidProperties[] = sprintf(
+                "invalid value '%s' for 'status', must be one of '%s'",
+                $this->container['status'],
+                implode("', '", $allowedValues)
+            );
+        }
 
         return $invalidProperties;
     }
@@ -423,6 +485,33 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
     }
 
     /**
+     * Gets bounced_at
+     *
+     * @return string|null
+     */
+    public function getBouncedAt()
+    {
+        return $this->container['bounced_at'];
+    }
+
+    /**
+     * Sets bounced_at
+     *
+     * @param string|null $bounced_at bounced_at
+     *
+     * @return self
+     */
+    public function setBouncedAt($bounced_at)
+    {
+        if (is_null($bounced_at)) {
+            throw new \InvalidArgumentException('non-nullable bounced_at cannot be null');
+        }
+        $this->container['bounced_at'] = $bounced_at;
+
+        return $this;
+    }
+
+    /**
      * Gets created_at
      *
      * @return string|null
@@ -445,6 +534,87 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
             throw new \InvalidArgumentException('non-nullable created_at cannot be null');
         }
         $this->container['created_at'] = $created_at;
+
+        return $this;
+    }
+
+    /**
+     * Gets delivered_at
+     *
+     * @return string|null
+     */
+    public function getDeliveredAt()
+    {
+        return $this->container['delivered_at'];
+    }
+
+    /**
+     * Sets delivered_at
+     *
+     * @param string|null $delivered_at delivered_at
+     *
+     * @return self
+     */
+    public function setDeliveredAt($delivered_at)
+    {
+        if (is_null($delivered_at)) {
+            throw new \InvalidArgumentException('non-nullable delivered_at cannot be null');
+        }
+        $this->container['delivered_at'] = $delivered_at;
+
+        return $this;
+    }
+
+    /**
+     * Gets delivery_diagnostic
+     *
+     * @return string|null
+     */
+    public function getDeliveryDiagnostic()
+    {
+        return $this->container['delivery_diagnostic'];
+    }
+
+    /**
+     * Sets delivery_diagnostic
+     *
+     * @param string|null $delivery_diagnostic delivery_diagnostic
+     *
+     * @return self
+     */
+    public function setDeliveryDiagnostic($delivery_diagnostic)
+    {
+        if (is_null($delivery_diagnostic)) {
+            throw new \InvalidArgumentException('non-nullable delivery_diagnostic cannot be null');
+        }
+        $this->container['delivery_diagnostic'] = $delivery_diagnostic;
+
+        return $this;
+    }
+
+    /**
+     * Gets delivery_status
+     *
+     * @return string|null
+     */
+    public function getDeliveryStatus()
+    {
+        return $this->container['delivery_status'];
+    }
+
+    /**
+     * Sets delivery_status
+     *
+     * @param string|null $delivery_status DeliveryStatus is the RFC 3464 status of the last DSN received.
+     *
+     * @return self
+     */
+    public function setDeliveryStatus($delivery_status)
+    {
+        if (is_null($delivery_status)) {
+            throw new \InvalidArgumentException('non-nullable delivery_status cannot be null');
+        }
+        $this->container['delivery_status'] = $delivery_status;
 
         return $this;
     }
@@ -713,6 +883,16 @@ class RepositoryMessageView implements ModelInterface, ArrayAccess, \JsonSeriali
     {
         if (is_null($status)) {
             throw new \InvalidArgumentException('non-nullable status cannot be null');
+        }
+        $allowedValues = $this->getStatusAllowableValues();
+        if (!in_array($status, $allowedValues, true)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    "Invalid value '%s' for 'status', must be one of '%s'",
+                    $status,
+                    implode("', '", $allowedValues)
+                )
+            );
         }
         $this->container['status'] = $status;
 

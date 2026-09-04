@@ -9,6 +9,7 @@ lib/Api/ApiKeysApi.php
 lib/Api/BillingApi.php
 lib/Api/BrandingApi.php
 lib/Api/IdentitiesApi.php
+lib/Api/InboundApi.php
 lib/Api/InternalApi.php
 lib/Api/MessagingApi.php
 lib/Api/PlansApi.php
@@ -32,6 +33,11 @@ lib/Model/ApikeysCreatedKey.php
 lib/Model/ApikeysListAPIKeysResponse.php
 lib/Model/ApikeysView.php
 lib/Model/CancelSubscriptionResult.php
+lib/Model/ClaimInvitationClaimInvitationRequest.php
+lib/Model/ClaimInvitationClaimInvitationResponse.php
+lib/Model/ClaimInvitationLookupInvitationResponse.php
+lib/Model/ClaimInvitationRegisterCustomerRequest.php
+lib/Model/ClaimInvitationRegisterCustomerResponse.php
 lib/Model/ConfirmUnsubscribeConfirmUnsubscribeRequest.php
 lib/Model/ConfirmUnsubscribeResponse.php
 lib/Model/CreateEndpointCreateEndpointRequest.php
@@ -47,6 +53,7 @@ lib/Model/DomainVariable.php
 lib/Model/DowngradeSubscriptionDowngradeRequest.php
 lib/Model/DowngradeSubscriptionResult.php
 lib/Model/EchoHTTPError.php
+lib/Model/EventsAttachment.php
 lib/Model/EventsRecordCheck.php
 lib/Model/ExtractBrandExtractBrandRequest.php
 lib/Model/ExtractBrandResponse.php
@@ -56,8 +63,10 @@ lib/Model/GetUsageHistoryEntry.php
 lib/Model/GetUsageIdentityBreakdown.php
 lib/Model/GetUsageUsageResponse.php
 lib/Model/IngestBounceResponse.php
+lib/Model/IngestInboundMessageResponse.php
 lib/Model/ListEndpointsResult.php
 lib/Model/ListIdentitiesResponse.php
+lib/Model/ListInboundMessagesResponse.php
 lib/Model/ListMessagesResult.php
 lib/Model/ListSuppressionsResponse.php
 lib/Model/ListTemplatesResponse.php
@@ -72,6 +81,7 @@ lib/Model/RepositoryAttemptView.php
 lib/Model/RepositoryBrandView.php
 lib/Model/RepositoryEndpointView.php
 lib/Model/RepositoryIdentityView.php
+lib/Model/RepositoryInboundMessageView.php
 lib/Model/RepositoryMessageView.php
 lib/Model/RepositoryStateView.php
 lib/Model/RepositorySuppressionView.php

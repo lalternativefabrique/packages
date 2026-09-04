@@ -23,6 +23,7 @@ __all__ = [
     "BillingApi",
     "BrandingApi",
     "IdentitiesApi",
+    "InboundApi",
     "InternalApi",
     "MessagingApi",
     "PlansApi",
@@ -51,6 +52,11 @@ __all__ = [
     "ApikeysListAPIKeysResponse",
     "ApikeysView",
     "CancelSubscriptionResult",
+    "ClaimInvitationClaimInvitationRequest",
+    "ClaimInvitationClaimInvitationResponse",
+    "ClaimInvitationLookupInvitationResponse",
+    "ClaimInvitationRegisterCustomerRequest",
+    "ClaimInvitationRegisterCustomerResponse",
     "ConfirmUnsubscribeConfirmUnsubscribeRequest",
     "ConfirmUnsubscribeResponse",
     "CreateEndpointCreateEndpointRequest",
@@ -66,6 +72,7 @@ __all__ = [
     "DowngradeSubscriptionDowngradeRequest",
     "DowngradeSubscriptionResult",
     "EchoHTTPError",
+    "EventsAttachment",
     "EventsRecordCheck",
     "ExtractBrandExtractBrandRequest",
     "ExtractBrandResponse",
@@ -75,8 +82,10 @@ __all__ = [
     "GetUsageIdentityBreakdown",
     "GetUsageUsageResponse",
     "IngestBounceResponse",
+    "IngestInboundMessageResponse",
     "ListEndpointsResult",
     "ListIdentitiesResponse",
+    "ListInboundMessagesResponse",
     "ListMessagesResult",
     "ListSuppressionsResponse",
     "ListTemplatesResponse",
@@ -90,6 +99,7 @@ __all__ = [
     "RepositoryBrandView",
     "RepositoryEndpointView",
     "RepositoryIdentityView",
+    "RepositoryInboundMessageView",
     "RepositoryMessageView",
     "RepositoryStateView",
     "RepositorySuppressionView",
@@ -122,6 +132,7 @@ from spore_email.api.api_keys_api import ApiKeysApi as ApiKeysApi
 from spore_email.api.billing_api import BillingApi as BillingApi
 from spore_email.api.branding_api import BrandingApi as BrandingApi
 from spore_email.api.identities_api import IdentitiesApi as IdentitiesApi
+from spore_email.api.inbound_api import InboundApi as InboundApi
 from spore_email.api.internal_api import InternalApi as InternalApi
 from spore_email.api.messaging_api import MessagingApi as MessagingApi
 from spore_email.api.plans_api import PlansApi as PlansApi
@@ -154,6 +165,11 @@ from spore_email.models.apikeys_created_key import ApikeysCreatedKey as ApikeysC
 from spore_email.models.apikeys_list_api_keys_response import ApikeysListAPIKeysResponse as ApikeysListAPIKeysResponse
 from spore_email.models.apikeys_view import ApikeysView as ApikeysView
 from spore_email.models.cancel_subscription_result import CancelSubscriptionResult as CancelSubscriptionResult
+from spore_email.models.claim_invitation_claim_invitation_request import ClaimInvitationClaimInvitationRequest as ClaimInvitationClaimInvitationRequest
+from spore_email.models.claim_invitation_claim_invitation_response import ClaimInvitationClaimInvitationResponse as ClaimInvitationClaimInvitationResponse
+from spore_email.models.claim_invitation_lookup_invitation_response import ClaimInvitationLookupInvitationResponse as ClaimInvitationLookupInvitationResponse
+from spore_email.models.claim_invitation_register_customer_request import ClaimInvitationRegisterCustomerRequest as ClaimInvitationRegisterCustomerRequest
+from spore_email.models.claim_invitation_register_customer_response import ClaimInvitationRegisterCustomerResponse as ClaimInvitationRegisterCustomerResponse
 from spore_email.models.confirm_unsubscribe_confirm_unsubscribe_request import ConfirmUnsubscribeConfirmUnsubscribeRequest as ConfirmUnsubscribeConfirmUnsubscribeRequest
 from spore_email.models.confirm_unsubscribe_response import ConfirmUnsubscribeResponse as ConfirmUnsubscribeResponse
 from spore_email.models.create_endpoint_create_endpoint_request import CreateEndpointCreateEndpointRequest as CreateEndpointCreateEndpointRequest
@@ -169,6 +185,7 @@ from spore_email.models.domain_variable import DomainVariable as DomainVariable
 from spore_email.models.downgrade_subscription_downgrade_request import DowngradeSubscriptionDowngradeRequest as DowngradeSubscriptionDowngradeRequest
 from spore_email.models.downgrade_subscription_result import DowngradeSubscriptionResult as DowngradeSubscriptionResult
 from spore_email.models.echo_http_error import EchoHTTPError as EchoHTTPError
+from spore_email.models.events_attachment import EventsAttachment as EventsAttachment
 from spore_email.models.events_record_check import EventsRecordCheck as EventsRecordCheck
 from spore_email.models.extract_brand_extract_brand_request import ExtractBrandExtractBrandRequest as ExtractBrandExtractBrandRequest
 from spore_email.models.extract_brand_response import ExtractBrandResponse as ExtractBrandResponse
@@ -178,8 +195,10 @@ from spore_email.models.get_usage_history_entry import GetUsageHistoryEntry as G
 from spore_email.models.get_usage_identity_breakdown import GetUsageIdentityBreakdown as GetUsageIdentityBreakdown
 from spore_email.models.get_usage_usage_response import GetUsageUsageResponse as GetUsageUsageResponse
 from spore_email.models.ingest_bounce_response import IngestBounceResponse as IngestBounceResponse
+from spore_email.models.ingest_inbound_message_response import IngestInboundMessageResponse as IngestInboundMessageResponse
 from spore_email.models.list_endpoints_result import ListEndpointsResult as ListEndpointsResult
 from spore_email.models.list_identities_response import ListIdentitiesResponse as ListIdentitiesResponse
+from spore_email.models.list_inbound_messages_response import ListInboundMessagesResponse as ListInboundMessagesResponse
 from spore_email.models.list_messages_result import ListMessagesResult as ListMessagesResult
 from spore_email.models.list_suppressions_response import ListSuppressionsResponse as ListSuppressionsResponse
 from spore_email.models.list_templates_response import ListTemplatesResponse as ListTemplatesResponse
@@ -193,6 +212,7 @@ from spore_email.models.repository_attempt_view import RepositoryAttemptView as 
 from spore_email.models.repository_brand_view import RepositoryBrandView as RepositoryBrandView
 from spore_email.models.repository_endpoint_view import RepositoryEndpointView as RepositoryEndpointView
 from spore_email.models.repository_identity_view import RepositoryIdentityView as RepositoryIdentityView
+from spore_email.models.repository_inbound_message_view import RepositoryInboundMessageView as RepositoryInboundMessageView
 from spore_email.models.repository_message_view import RepositoryMessageView as RepositoryMessageView
 from spore_email.models.repository_state_view import RepositoryStateView as RepositoryStateView
 from spore_email.models.repository_suppression_view import RepositorySuppressionView as RepositorySuppressionView

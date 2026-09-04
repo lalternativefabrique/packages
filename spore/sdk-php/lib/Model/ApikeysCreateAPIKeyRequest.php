@@ -58,6 +58,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @var string[]
      */
     protected static $openAPITypes = [
+        'identity_id' => 'string',
         'name' => 'string'
     ];
 
@@ -69,6 +70,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
+        'identity_id' => null,
         'name' => null
     ];
 
@@ -78,6 +80,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @var boolean[]
      */
     protected static array $openAPINullables = [
+        'identity_id' => false,
         'name' => false
     ];
 
@@ -167,6 +170,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @var string[]
      */
     protected static $attributeMap = [
+        'identity_id' => 'identityId',
         'name' => 'name'
     ];
 
@@ -176,6 +180,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @var string[]
      */
     protected static $setters = [
+        'identity_id' => 'setIdentityId',
         'name' => 'setName'
     ];
 
@@ -185,6 +190,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      * @var string[]
      */
     protected static $getters = [
+        'identity_id' => 'getIdentityId',
         'name' => 'getName'
     ];
 
@@ -245,6 +251,7 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
      */
     public function __construct(?array $data = null)
     {
+        $this->setIfExists('identity_id', $data ?? [], null);
         $this->setIfExists('name', $data ?? [], null);
     }
 
@@ -289,6 +296,33 @@ class ApikeysCreateAPIKeyRequest implements ModelInterface, ArrayAccess, \JsonSe
         return count($this->listInvalidProperties()) === 0;
     }
 
+
+    /**
+     * Gets identity_id
+     *
+     * @return string|null
+     */
+    public function getIdentityId()
+    {
+        return $this->container['identity_id'];
+    }
+
+    /**
+     * Sets identity_id
+     *
+     * @param string|null $identity_id IdentityID restricts the key to one sending identity. Omit for a tenant-wide key, which is the behaviour of every pre-existing key.
+     *
+     * @return self
+     */
+    public function setIdentityId($identity_id)
+    {
+        if (is_null($identity_id)) {
+            throw new \InvalidArgumentException('non-nullable identity_id cannot be null');
+        }
+        $this->container['identity_id'] = $identity_id;
+
+        return $this;
+    }
 
     /**
      * Gets name

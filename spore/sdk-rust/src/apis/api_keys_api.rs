@@ -35,6 +35,7 @@ pub struct RevokeApiKeyParams {
 pub enum CreateApiKeyError {
     Status400(models::EchoHttpError),
     Status401(models::EchoHttpError),
+    Status404(models::EchoHttpError),
     UnknownValue(serde_json::Value),
 }
 

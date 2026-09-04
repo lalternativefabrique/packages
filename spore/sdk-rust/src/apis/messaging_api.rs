@@ -82,6 +82,7 @@ pub enum ListEmailsError {
 pub enum SendEmailError {
     Status400(models::EchoHttpError),
     Status401(models::EchoHttpError),
+    Status403(models::EchoHttpError),
     Status422(models::SendEmailQuotaErrorBody),
     Status429(models::EchoHttpError),
     UnknownValue(serde_json::Value),

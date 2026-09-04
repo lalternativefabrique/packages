@@ -58,6 +58,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @var string[]
      */
     protected static $openAPITypes = [
+        'email' => 'string',
         'plan' => 'string',
         'tenant_id' => 'string'
     ];
@@ -70,6 +71,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
+        'email' => null,
         'plan' => null,
         'tenant_id' => null
     ];
@@ -80,6 +82,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @var boolean[]
      */
     protected static array $openAPINullables = [
+        'email' => false,
         'plan' => false,
         'tenant_id' => false
     ];
@@ -170,6 +173,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @var string[]
      */
     protected static $attributeMap = [
+        'email' => 'email',
         'plan' => 'plan',
         'tenant_id' => 'tenantId'
     ];
@@ -180,6 +184,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @var string[]
      */
     protected static $setters = [
+        'email' => 'setEmail',
         'plan' => 'setPlan',
         'tenant_id' => 'setTenantId'
     ];
@@ -190,6 +195,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      * @var string[]
      */
     protected static $getters = [
+        'email' => 'getEmail',
         'plan' => 'getPlan',
         'tenant_id' => 'getTenantId'
     ];
@@ -251,6 +257,7 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
      */
     public function __construct(?array $data = null)
     {
+        $this->setIfExists('email', $data ?? [], null);
         $this->setIfExists('plan', $data ?? [], null);
         $this->setIfExists('tenant_id', $data ?? [], null);
     }
@@ -296,6 +303,33 @@ class SetTenantPlanSetTenantPlanRequest implements ModelInterface, ArrayAccess, 
         return count($this->listInvalidProperties()) === 0;
     }
 
+
+    /**
+     * Gets email
+     *
+     * @return string|null
+     */
+    public function getEmail()
+    {
+        return $this->container['email'];
+    }
+
+    /**
+     * Sets email
+     *
+     * @param string|null $email email
+     *
+     * @return self
+     */
+    public function setEmail($email)
+    {
+        if (is_null($email)) {
+            throw new \InvalidArgumentException('non-nullable email cannot be null');
+        }
+        $this->container['email'] = $email;
+
+        return $this;
+    }
 
     /**
      * Gets plan

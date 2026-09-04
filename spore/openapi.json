@@ -111,6 +111,16 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -804,7 +814,16 @@
                         "name": "status",
                         "in": "query",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                                "accepted",
+                                "queued",
+                                "sent",
+                                "delivered",
+                                "deferred",
+                                "bounced",
+                                "failed"
+                            ]
                         }
                     },
                     {
@@ -936,6 +955,16 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "api key is scoped to another identity",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1797,6 +1826,117 @@
                 }
             }
         },
+        "/inbound/messages": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "inbound"
+                ],
+                "summary": "List inbound messages",
+                "operationId": "listInboundMessages",
+                "parameters": [
+                    {
+                        "description": "Max messages to return (default 50, max 200)",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "description": "Offset into the result set",
+                        "name": "offset",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/list_inbound_messages.Response"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/inbound/messages/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "inbound"
+                ],
+                "summary": "Get one inbound message",
+                "operationId": "getInboundMessage",
+                "parameters": [
+                    {
+                        "description": "Inbound message id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/repository.InboundMessageView"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/internal/bounces": {
             "post": {
                 "security": [
@@ -1811,10 +1951,9 @@
                 "operationId": "ingestBounce",
                 "parameters": [
                     {
-                        "description": "Resolved tenant id",
+                        "description": "Resolved tenant id; omitted when the DSN carries an envelope id",
                         "name": "X-Tenant-ID",
                         "in": "header",
-                        "required": true,
                         "schema": {
                             "type": "string"
                         }
@@ -1854,6 +1993,93 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/inbound": {
+            "post": {
+                "security": [
+                    {
+                        "InternalToken": []
+                    }
+                ],
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Ingest a raw RFC 5322 inbound message",
+                "operationId": "ingestInboundMessage",
+                "parameters": [
+                    {
+                        "description": "Resolved tenant id; omitted when the recipient domain identifies it",
+                        "name": "X-Tenant-ID",
+                        "in": "header",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "text/plain": {
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "description": "Raw RFC 5322 message",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ingest_inbound_message.Response"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1933,6 +2159,240 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/tenant/billing-customer": {
+            "post": {
+                "security": [
+                    {
+                        "InternalToken": []
+                    }
+                ],
+                "description": "Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.\n\nDistinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.",
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Declare a tenant to the billing service (service-to-service)",
+                "operationId": "registerBillingCustomer",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/claim_invitation.RegisterCustomerRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant + address",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/claim_invitation.RegisterCustomerResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/tenant/invitation/claim": {
+            "post": {
+                "security": [
+                    {
+                        "InternalToken": []
+                    }
+                ],
+                "description": "Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.",
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Redeem an invitation onto a tenant (service-to-service)",
+                "operationId": "claimTenantInvitation",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/claim_invitation.ClaimInvitationRequest"
+                            }
+                        }
+                    },
+                    "description": "Tenant + invitation token",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/claim_invitation.ClaimInvitationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/tenant/invitation/{token}": {
+            "get": {
+                "security": [
+                    {
+                        "InternalToken": []
+                    }
+                ],
+                "description": "Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.",
+                "tags": [
+                    "internal"
+                ],
+                "summary": "Read an invitation without consuming it (service-to-service)",
+                "operationId": "lookupTenantInvitation",
+                "parameters": [
+                    {
+                        "description": "Invitation token",
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/claim_invitation.LookupInvitationResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3066,6 +3526,10 @@
             "apikeys.CreateAPIKeyRequest": {
                 "type": "object",
                 "properties": {
+                    "identityId": {
+                        "description": "IdentityID restricts the key to one sending identity. Omit for a\ntenant-wide key, which is the behaviour of every pre-existing key.",
+                        "type": "string"
+                    },
                     "name": {
                         "type": "string"
                     }
@@ -3078,6 +3542,10 @@
                         "type": "string"
                     },
                     "id": {
+                        "type": "string"
+                    },
+                    "identityId": {
+                        "description": "IdentityID restricts the key to a single sending identity. Empty means\nthe key may send from any verified identity of its tenant, which is how\nevery key created before scoping existed behaves.",
                         "type": "string"
                     },
                     "lastUsedAt": {
@@ -3121,6 +3589,10 @@
                     "id": {
                         "type": "string"
                     },
+                    "identityId": {
+                        "description": "IdentityID restricts the key to a single sending identity. Empty means\nthe key may send from any verified identity of its tenant, which is how\nevery key created before scoping existed behaves.",
+                        "type": "string"
+                    },
                     "lastUsedAt": {
                         "type": "string"
                     },
@@ -3144,6 +3616,73 @@
                 "properties": {
                     "entitledUntil": {
                         "type": "string"
+                    }
+                }
+            },
+            "claim_invitation.ClaimInvitationRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "tenantId": {
+                        "type": "string"
+                    },
+                    "token": {
+                        "type": "string"
+                    }
+                }
+            },
+            "claim_invitation.ClaimInvitationResponse": {
+                "type": "object",
+                "properties": {
+                    "claimed": {
+                        "description": "Claimed is false when the offer no longer holds — unknown, expired or\nalready taken. The account is fine; it stays on the default plan.",
+                        "type": "boolean"
+                    },
+                    "plan": {
+                        "description": "Plan is what the invitation conferred, empty when it was refused.",
+                        "type": "string"
+                    }
+                }
+            },
+            "claim_invitation.LookupInvitationResponse": {
+                "type": "object",
+                "properties": {
+                    "claimable": {
+                        "type": "boolean"
+                    },
+                    "email": {
+                        "description": "Email is the address the offer was issued to, so the form can pre-fill it.",
+                        "type": "string"
+                    },
+                    "plan": {
+                        "description": "Plan is the tier it confers, for telling the invitee what is on the table.",
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "Status is claimable, claimed or expired. Only the last two say the offer\nwas real, which is what tells someone whether asking for a new link is\nworth it rather than doubting the address they were invited at.",
+                        "type": "string"
+                    }
+                }
+            },
+            "claim_invitation.RegisterCustomerRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "tenantId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "claim_invitation.RegisterCustomerResponse": {
+                "type": "object",
+                "properties": {
+                    "created": {
+                        "description": "Created is false when the billing service already knew the address, so a\nre-run of an import reports what it actually added rather than what it\nsent.",
+                        "type": "boolean"
                     }
                 }
             },
@@ -3357,6 +3896,20 @@
                     "message": {}
                 }
             },
+            "events.Attachment": {
+                "type": "object",
+                "properties": {
+                    "contentType": {
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "size": {
+                        "type": "integer"
+                    }
+                }
+            },
             "events.RecordCheck": {
                 "type": "object",
                 "properties": {
@@ -3539,6 +4092,26 @@
                     }
                 }
             },
+            "ingest_inbound_message.Response": {
+                "type": "object",
+                "properties": {
+                    "from": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "recipient": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "tenantId": {
+                        "type": "string"
+                    }
+                }
+            },
             "list_endpoints.Result": {
                 "type": "object",
                 "properties": {
@@ -3557,6 +4130,17 @@
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/repository.IdentityView"
+                        }
+                    }
+                }
+            },
+            "list_inbound_messages.Response": {
+                "type": "object",
+                "properties": {
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/repository.InboundMessageView"
                         }
                     }
                 }
@@ -3854,13 +4438,70 @@
                     }
                 }
             },
+            "repository.InboundMessageView": {
+                "type": "object",
+                "properties": {
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/events.Attachment"
+                        }
+                    },
+                    "from": {
+                        "type": "string"
+                    },
+                    "html": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "identityId": {
+                        "type": "string"
+                    },
+                    "inReplyTo": {
+                        "type": "string"
+                    },
+                    "messageId": {
+                        "type": "string"
+                    },
+                    "receivedAt": {
+                        "type": "string"
+                    },
+                    "recipient": {
+                        "type": "string"
+                    },
+                    "subject": {
+                        "type": "string"
+                    },
+                    "tenantId": {
+                        "type": "string"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
             "repository.MessageView": {
                 "type": "object",
                 "properties": {
                     "attempts": {
                         "type": "integer"
                     },
+                    "bouncedAt": {
+                        "type": "string"
+                    },
                     "createdAt": {
+                        "type": "string"
+                    },
+                    "deliveredAt": {
+                        "type": "string"
+                    },
+                    "deliveryDiagnostic": {
+                        "type": "string"
+                    },
+                    "deliveryStatus": {
+                        "description": "DeliveryStatus is the RFC 3464 status of the last DSN received.",
                         "type": "string"
                     },
                     "failedAt": {
@@ -3894,7 +4535,16 @@
                         "type": "string"
                     },
                     "status": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                            "accepted",
+                            "queued",
+                            "sent",
+                            "delivered",
+                            "deferred",
+                            "bounced",
+                            "failed"
+                        ]
                     },
                     "subject": {
                         "type": "string"
@@ -4209,6 +4859,9 @@
             "set_tenant_plan.SetTenantPlanRequest": {
                 "type": "object",
                 "properties": {
+                    "email": {
+                        "type": "string"
+                    },
                     "plan": {
                         "type": "string"
                     },

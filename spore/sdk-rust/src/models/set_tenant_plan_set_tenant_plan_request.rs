@@ -13,6 +13,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SetTenantPlanSetTenantPlanRequest {
+    #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
     #[serde(rename = "plan", skip_serializing_if = "Option::is_none")]
     pub plan: Option<String>,
     #[serde(rename = "tenantId", skip_serializing_if = "Option::is_none")]
@@ -22,6 +24,7 @@ pub struct SetTenantPlanSetTenantPlanRequest {
 impl SetTenantPlanSetTenantPlanRequest {
     pub fn new() -> SetTenantPlanSetTenantPlanRequest {
         SetTenantPlanSetTenantPlanRequest {
+            email: None,
             plan: None,
             tenant_id: None,
         }

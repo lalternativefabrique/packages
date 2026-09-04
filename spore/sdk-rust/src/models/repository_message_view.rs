@@ -15,8 +15,17 @@ use serde::{Deserialize, Serialize};
 pub struct RepositoryMessageView {
     #[serde(rename = "attempts", skip_serializing_if = "Option::is_none")]
     pub attempts: Option<i32>,
+    #[serde(rename = "bouncedAt", skip_serializing_if = "Option::is_none")]
+    pub bounced_at: Option<String>,
     #[serde(rename = "createdAt", skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    #[serde(rename = "deliveredAt", skip_serializing_if = "Option::is_none")]
+    pub delivered_at: Option<String>,
+    #[serde(rename = "deliveryDiagnostic", skip_serializing_if = "Option::is_none")]
+    pub delivery_diagnostic: Option<String>,
+    /// DeliveryStatus is the RFC 3464 status of the last DSN received.
+    #[serde(rename = "deliveryStatus", skip_serializing_if = "Option::is_none")]
+    pub delivery_status: Option<String>,
     #[serde(rename = "failedAt", skip_serializing_if = "Option::is_none")]
     pub failed_at: Option<String>,
     #[serde(rename = "from", skip_serializing_if = "Option::is_none")]
@@ -36,7 +45,7 @@ pub struct RepositoryMessageView {
     #[serde(rename = "sentAt", skip_serializing_if = "Option::is_none")]
     pub sent_at: Option<String>,
     #[serde(rename = "status", skip_serializing_if = "Option::is_none")]
-    pub status: Option<String>,
+    pub status: Option<Status>,
     #[serde(rename = "subject", skip_serializing_if = "Option::is_none")]
     pub subject: Option<String>,
     #[serde(rename = "tenantId", skip_serializing_if = "Option::is_none")]
@@ -51,7 +60,11 @@ impl RepositoryMessageView {
     pub fn new() -> RepositoryMessageView {
         RepositoryMessageView {
             attempts: None,
+            bounced_at: None,
             created_at: None,
+            delivered_at: None,
+            delivery_diagnostic: None,
+            delivery_status: None,
             failed_at: None,
             from: None,
             history: None,
@@ -67,5 +80,29 @@ impl RepositoryMessageView {
             to: None,
             updated_at: None,
         }
+    }
+}
+///
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
+pub enum Status {
+    #[serde(rename = "accepted")]
+    Accepted,
+    #[serde(rename = "queued")]
+    Queued,
+    #[serde(rename = "sent")]
+    Sent,
+    #[serde(rename = "delivered")]
+    Delivered,
+    #[serde(rename = "deferred")]
+    Deferred,
+    #[serde(rename = "bounced")]
+    Bounced,
+    #[serde(rename = "failed")]
+    Failed,
+}
+
+impl Default for Status {
+    fn default() -> Status {
+        Self::Accepted
     }
 }

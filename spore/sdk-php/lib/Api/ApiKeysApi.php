@@ -142,7 +142,7 @@ class ApiKeysApi
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     * @return \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
      */
     public function createApiKey($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
@@ -160,7 +160,7 @@ class ApiKeysApi
      *
      * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
      * @throws \InvalidArgumentException
-     * @return array of \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     * @return array of \Lalternative\Spore\Model\ApikeysCreatedKey|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
      */
     public function createApiKeyWithHttpInfo($apikeys_create_api_key_request, string $contentType = self::contentTypes['createApiKey'][0])
     {
@@ -208,6 +208,12 @@ class ApiKeysApi
                         $request,
                         $response,
                     );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
             }
 
 
@@ -249,6 +255,14 @@ class ApiKeysApi
                     $e->setResponseObject($data);
                     throw $e;
                 case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
                     $data = ObjectSerializer::deserialize(
                         $e->getResponseBody(),
                         '\Lalternative\Spore\Model\EchoHTTPError',

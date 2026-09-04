@@ -96,6 +96,7 @@ class ApiKeysApi:
             '201': "ApikeysCreatedKey",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -164,6 +165,7 @@ class ApiKeysApi:
             '201': "ApikeysCreatedKey",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -232,6 +234,7 @@ class ApiKeysApi:
             '201': "ApikeysCreatedKey",
             '400': "EchoHTTPError",
             '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
         }
         response_data = self.api_client.call_api(
             *_param,

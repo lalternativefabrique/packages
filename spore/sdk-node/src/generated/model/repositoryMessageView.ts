@@ -6,10 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RepositoryAttemptView } from './repositoryAttemptView';
+import type { RepositoryMessageViewStatus } from './repositoryMessageViewStatus';
 
 export interface RepositoryMessageView {
   attempts?: number;
+  bouncedAt?: string;
   createdAt?: string;
+  deliveredAt?: string;
+  deliveryDiagnostic?: string;
+  /** DeliveryStatus is the RFC 3464 status of the last DSN received. */
+  deliveryStatus?: string;
   failedAt?: string;
   from?: string;
   history?: RepositoryAttemptView[];
@@ -19,7 +25,7 @@ export interface RepositoryMessageView {
   mtaResponse?: string;
   rfc5322Id?: string;
   sentAt?: string;
-  status?: string;
+  status?: RepositoryMessageViewStatus;
   subject?: string;
   tenantId?: string;
   to?: string[];

@@ -17,9 +17,16 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import Field, StrictStr
+from typing import Optional
 from typing_extensions import Annotated
+from spore_email.models.claim_invitation_claim_invitation_request import ClaimInvitationClaimInvitationRequest
+from spore_email.models.claim_invitation_claim_invitation_response import ClaimInvitationClaimInvitationResponse
+from spore_email.models.claim_invitation_lookup_invitation_response import ClaimInvitationLookupInvitationResponse
+from spore_email.models.claim_invitation_register_customer_request import ClaimInvitationRegisterCustomerRequest
+from spore_email.models.claim_invitation_register_customer_response import ClaimInvitationRegisterCustomerResponse
 from spore_email.models.domain_tenant_plan import DomainTenantPlan
 from spore_email.models.ingest_bounce_response import IngestBounceResponse
+from spore_email.models.ingest_inbound_message_response import IngestInboundMessageResponse
 from spore_email.models.set_tenant_plan_set_tenant_plan_request import SetTenantPlanSetTenantPlanRequest
 
 from spore_email.api_client import ApiClient, RequestSerialized
@@ -38,6 +45,292 @@ class InternalApi:
         if api_client is None:
             api_client = ApiClient.get_default()
         self.api_client = api_client
+
+
+    @validate_call
+    def claim_tenant_invitation(
+        self,
+        claim_invitation_claim_invitation_request: Annotated[ClaimInvitationClaimInvitationRequest, Field(description="Tenant + invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ClaimInvitationClaimInvitationResponse:
+        """Redeem an invitation onto a tenant (service-to-service)
+
+        Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+
+        :param claim_invitation_claim_invitation_request: Tenant + invitation token (required)
+        :type claim_invitation_claim_invitation_request: ClaimInvitationClaimInvitationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._claim_tenant_invitation_serialize(
+            claim_invitation_claim_invitation_request=claim_invitation_claim_invitation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationClaimInvitationResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def claim_tenant_invitation_with_http_info(
+        self,
+        claim_invitation_claim_invitation_request: Annotated[ClaimInvitationClaimInvitationRequest, Field(description="Tenant + invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ClaimInvitationClaimInvitationResponse]:
+        """Redeem an invitation onto a tenant (service-to-service)
+
+        Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+
+        :param claim_invitation_claim_invitation_request: Tenant + invitation token (required)
+        :type claim_invitation_claim_invitation_request: ClaimInvitationClaimInvitationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._claim_tenant_invitation_serialize(
+            claim_invitation_claim_invitation_request=claim_invitation_claim_invitation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationClaimInvitationResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def claim_tenant_invitation_without_preload_content(
+        self,
+        claim_invitation_claim_invitation_request: Annotated[ClaimInvitationClaimInvitationRequest, Field(description="Tenant + invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Redeem an invitation onto a tenant (service-to-service)
+
+        Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+
+        :param claim_invitation_claim_invitation_request: Tenant + invitation token (required)
+        :type claim_invitation_claim_invitation_request: ClaimInvitationClaimInvitationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._claim_tenant_invitation_serialize(
+            claim_invitation_claim_invitation_request=claim_invitation_claim_invitation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationClaimInvitationResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _claim_tenant_invitation_serialize(
+        self,
+        claim_invitation_claim_invitation_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if claim_invitation_claim_invitation_request is not None:
+            _body_params = claim_invitation_claim_invitation_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'InternalToken'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/internal/tenant/invitation/claim',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
 
 
     @validate_call
@@ -297,8 +590,8 @@ class InternalApi:
     @validate_call
     def ingest_bounce(
         self,
-        x_tenant_id: Annotated[StrictStr, Field(description="Resolved tenant id")],
         body: Annotated[StrictStr, Field(description="Raw DSN payload")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the DSN carries an envelope id")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -315,10 +608,10 @@ class InternalApi:
         """Ingest a raw RFC 3464 bounce DSN
 
 
-        :param x_tenant_id: Resolved tenant id (required)
-        :type x_tenant_id: str
         :param body: Raw DSN payload (required)
         :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the DSN carries an envelope id
+        :type x_tenant_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -342,8 +635,8 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._ingest_bounce_serialize(
-            x_tenant_id=x_tenant_id,
             body=body,
+            x_tenant_id=x_tenant_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -370,8 +663,8 @@ class InternalApi:
     @validate_call
     def ingest_bounce_with_http_info(
         self,
-        x_tenant_id: Annotated[StrictStr, Field(description="Resolved tenant id")],
         body: Annotated[StrictStr, Field(description="Raw DSN payload")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the DSN carries an envelope id")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -388,10 +681,10 @@ class InternalApi:
         """Ingest a raw RFC 3464 bounce DSN
 
 
-        :param x_tenant_id: Resolved tenant id (required)
-        :type x_tenant_id: str
         :param body: Raw DSN payload (required)
         :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the DSN carries an envelope id
+        :type x_tenant_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -415,8 +708,8 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._ingest_bounce_serialize(
-            x_tenant_id=x_tenant_id,
             body=body,
+            x_tenant_id=x_tenant_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -443,8 +736,8 @@ class InternalApi:
     @validate_call
     def ingest_bounce_without_preload_content(
         self,
-        x_tenant_id: Annotated[StrictStr, Field(description="Resolved tenant id")],
         body: Annotated[StrictStr, Field(description="Raw DSN payload")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the DSN carries an envelope id")] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -461,10 +754,10 @@ class InternalApi:
         """Ingest a raw RFC 3464 bounce DSN
 
 
-        :param x_tenant_id: Resolved tenant id (required)
-        :type x_tenant_id: str
         :param body: Raw DSN payload (required)
         :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the DSN carries an envelope id
+        :type x_tenant_id: str
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -488,8 +781,8 @@ class InternalApi:
         """ # noqa: E501
 
         _param = self._ingest_bounce_serialize(
-            x_tenant_id=x_tenant_id,
             body=body,
+            x_tenant_id=x_tenant_id,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -511,8 +804,8 @@ class InternalApi:
 
     def _ingest_bounce_serialize(
         self,
-        x_tenant_id,
         body,
+        x_tenant_id,
         _request_auth,
         _content_type,
         _headers,
@@ -574,6 +867,863 @@ class InternalApi:
         return self.api_client.param_serialize(
             method='POST',
             resource_path='/internal/bounces',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def ingest_inbound_message(
+        self,
+        body: Annotated[StrictStr, Field(description="Raw RFC 5322 message")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the recipient domain identifies it")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> IngestInboundMessageResponse:
+        """Ingest a raw RFC 5322 inbound message
+
+
+        :param body: Raw RFC 5322 message (required)
+        :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the recipient domain identifies it
+        :type x_tenant_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ingest_inbound_message_serialize(
+            body=body,
+            x_tenant_id=x_tenant_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "IngestInboundMessageResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '413': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def ingest_inbound_message_with_http_info(
+        self,
+        body: Annotated[StrictStr, Field(description="Raw RFC 5322 message")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the recipient domain identifies it")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[IngestInboundMessageResponse]:
+        """Ingest a raw RFC 5322 inbound message
+
+
+        :param body: Raw RFC 5322 message (required)
+        :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the recipient domain identifies it
+        :type x_tenant_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ingest_inbound_message_serialize(
+            body=body,
+            x_tenant_id=x_tenant_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "IngestInboundMessageResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '413': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def ingest_inbound_message_without_preload_content(
+        self,
+        body: Annotated[StrictStr, Field(description="Raw RFC 5322 message")],
+        x_tenant_id: Annotated[Optional[StrictStr], Field(description="Resolved tenant id; omitted when the recipient domain identifies it")] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Ingest a raw RFC 5322 inbound message
+
+
+        :param body: Raw RFC 5322 message (required)
+        :type body: str
+        :param x_tenant_id: Resolved tenant id; omitted when the recipient domain identifies it
+        :type x_tenant_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._ingest_inbound_message_serialize(
+            body=body,
+            x_tenant_id=x_tenant_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "IngestInboundMessageResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '413': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _ingest_inbound_message_serialize(
+        self,
+        body,
+        x_tenant_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        if x_tenant_id is not None:
+            _header_params['X-Tenant-ID'] = x_tenant_id
+        # process the form parameters
+        # process the body parameter
+        if body is not None:
+            _body_params = body
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'text/plain'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'InternalToken'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/internal/inbound',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def lookup_tenant_invitation(
+        self,
+        token: Annotated[StrictStr, Field(description="Invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ClaimInvitationLookupInvitationResponse:
+        """Read an invitation without consuming it (service-to-service)
+
+        Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+
+        :param token: Invitation token (required)
+        :type token: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._lookup_tenant_invitation_serialize(
+            token=token,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationLookupInvitationResponse",
+            '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def lookup_tenant_invitation_with_http_info(
+        self,
+        token: Annotated[StrictStr, Field(description="Invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ClaimInvitationLookupInvitationResponse]:
+        """Read an invitation without consuming it (service-to-service)
+
+        Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+
+        :param token: Invitation token (required)
+        :type token: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._lookup_tenant_invitation_serialize(
+            token=token,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationLookupInvitationResponse",
+            '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def lookup_tenant_invitation_without_preload_content(
+        self,
+        token: Annotated[StrictStr, Field(description="Invitation token")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Read an invitation without consuming it (service-to-service)
+
+        Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+
+        :param token: Invitation token (required)
+        :type token: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._lookup_tenant_invitation_serialize(
+            token=token,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationLookupInvitationResponse",
+            '401': "EchoHTTPError",
+            '404': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _lookup_tenant_invitation_serialize(
+        self,
+        token,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if token is not None:
+            _path_params['token'] = token
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'InternalToken'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/internal/tenant/invitation/{token}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def register_billing_customer(
+        self,
+        claim_invitation_register_customer_request: Annotated[ClaimInvitationRegisterCustomerRequest, Field(description="Tenant + address")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ClaimInvitationRegisterCustomerResponse:
+        """Declare a tenant to the billing service (service-to-service)
+
+        Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+
+        :param claim_invitation_register_customer_request: Tenant + address (required)
+        :type claim_invitation_register_customer_request: ClaimInvitationRegisterCustomerRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_billing_customer_serialize(
+            claim_invitation_register_customer_request=claim_invitation_register_customer_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationRegisterCustomerResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def register_billing_customer_with_http_info(
+        self,
+        claim_invitation_register_customer_request: Annotated[ClaimInvitationRegisterCustomerRequest, Field(description="Tenant + address")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ClaimInvitationRegisterCustomerResponse]:
+        """Declare a tenant to the billing service (service-to-service)
+
+        Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+
+        :param claim_invitation_register_customer_request: Tenant + address (required)
+        :type claim_invitation_register_customer_request: ClaimInvitationRegisterCustomerRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_billing_customer_serialize(
+            claim_invitation_register_customer_request=claim_invitation_register_customer_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationRegisterCustomerResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def register_billing_customer_without_preload_content(
+        self,
+        claim_invitation_register_customer_request: Annotated[ClaimInvitationRegisterCustomerRequest, Field(description="Tenant + address")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Declare a tenant to the billing service (service-to-service)
+
+        Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+
+        :param claim_invitation_register_customer_request: Tenant + address (required)
+        :type claim_invitation_register_customer_request: ClaimInvitationRegisterCustomerRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._register_billing_customer_serialize(
+            claim_invitation_register_customer_request=claim_invitation_register_customer_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ClaimInvitationRegisterCustomerResponse",
+            '400': "EchoHTTPError",
+            '401': "EchoHTTPError",
+            '502': "EchoHTTPError",
+            '503': "EchoHTTPError",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _register_billing_customer_serialize(
+        self,
+        claim_invitation_register_customer_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if claim_invitation_register_customer_request is not None:
+            _body_params = claim_invitation_register_customer_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'InternalToken'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/internal/tenant/billing-customer',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

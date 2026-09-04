@@ -14,13 +14,43 @@ use serde::{Deserialize, Serialize, de::Error as _};
 use crate::{apis::ResponseContent, models};
 use super::{Error, configuration, ContentType};
 
+/// struct for passing parameters to the method [`claim_tenant_invitation`]
+#[derive(Clone, Debug)]
+pub struct ClaimTenantInvitationParams {
+    /// Tenant + invitation token
+    pub claim_invitation_claim_invitation_request: models::ClaimInvitationClaimInvitationRequest
+}
+
 /// struct for passing parameters to the method [`ingest_bounce`]
 #[derive(Clone, Debug)]
 pub struct IngestBounceParams {
-    /// Resolved tenant id
-    pub x_tenant_id: String,
     /// Raw DSN payload
-    pub body: String
+    pub body: String,
+    /// Resolved tenant id; omitted when the DSN carries an envelope id
+    pub x_tenant_id: Option<String>
+}
+
+/// struct for passing parameters to the method [`ingest_inbound_message`]
+#[derive(Clone, Debug)]
+pub struct IngestInboundMessageParams {
+    /// Raw RFC 5322 message
+    pub body: String,
+    /// Resolved tenant id; omitted when the recipient domain identifies it
+    pub x_tenant_id: Option<String>
+}
+
+/// struct for passing parameters to the method [`lookup_tenant_invitation`]
+#[derive(Clone, Debug)]
+pub struct LookupTenantInvitationParams {
+    /// Invitation token
+    pub token: String
+}
+
+/// struct for passing parameters to the method [`register_billing_customer`]
+#[derive(Clone, Debug)]
+pub struct RegisterBillingCustomerParams {
+    /// Tenant + address
+    pub claim_invitation_register_customer_request: models::ClaimInvitationRegisterCustomerRequest
 }
 
 /// struct for passing parameters to the method [`set_tenant_plan`]
@@ -30,6 +60,17 @@ pub struct SetTenantPlanParams {
     pub set_tenant_plan_set_tenant_plan_request: models::SetTenantPlanSetTenantPlanRequest
 }
 
+
+/// struct for typed errors of method [`claim_tenant_invitation`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ClaimTenantInvitationError {
+    Status400(models::EchoHttpError),
+    Status401(models::EchoHttpError),
+    Status502(models::EchoHttpError),
+    Status503(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
 
 /// struct for typed errors of method [`handle_mollie_webhook`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +92,39 @@ pub enum IngestBounceError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`ingest_inbound_message`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IngestInboundMessageError {
+    Status400(models::EchoHttpError),
+    Status401(models::EchoHttpError),
+    Status413(models::EchoHttpError),
+    Status503(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`lookup_tenant_invitation`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum LookupTenantInvitationError {
+    Status401(models::EchoHttpError),
+    Status404(models::EchoHttpError),
+    Status502(models::EchoHttpError),
+    Status503(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`register_billing_customer`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum RegisterBillingCustomerError {
+    Status400(models::EchoHttpError),
+    Status401(models::EchoHttpError),
+    Status502(models::EchoHttpError),
+    Status503(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`set_tenant_plan`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -61,6 +135,50 @@ pub enum SetTenantPlanError {
     UnknownValue(serde_json::Value),
 }
 
+
+/// Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
+pub async fn claim_tenant_invitation(configuration: &configuration::Configuration, params: ClaimTenantInvitationParams) -> Result<models::ClaimInvitationClaimInvitationResponse, Error<ClaimTenantInvitationError>> {
+
+    let uri_str = format!("{}/internal/tenant/invitation/claim", configuration.base_path);
+    let mut req_builder = configuration.client.request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("X-Internal-Token", value);
+    };
+    req_builder = req_builder.json(&params.claim_invitation_claim_invitation_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::ClaimInvitationClaimInvitationResponse`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::ClaimInvitationClaimInvitationResponse`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<ClaimTenantInvitationError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
 
 /// Receives payment notifications from Mollie. The body is unsigned and carries only a payment id, so the payment is re-fetched with the API key before anything is applied — the authenticated read is the security boundary. Idempotent: replayed notifications are acknowledged without being re-applied.
 pub async fn handle_mollie_webhook(configuration: &configuration::Configuration) -> Result<(), Error<HandleMollieWebhookError>> {
@@ -94,7 +212,9 @@ pub async fn ingest_bounce(configuration: &configuration::Configuration, params:
     if let Some(ref user_agent) = configuration.user_agent {
         req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
     }
-    req_builder = req_builder.header("X-Tenant-ID", params.x_tenant_id.to_string());
+    if let Some(param_value) = params.x_tenant_id {
+        req_builder = req_builder.header("X-Tenant-ID", param_value.to_string());
+    }
     if let Some(ref apikey) = configuration.api_key {
         let key = apikey.key.clone();
         let value = match apikey.prefix {
@@ -126,6 +246,139 @@ pub async fn ingest_bounce(configuration: &configuration::Configuration, params:
     } else {
         let content = resp.text().await?;
         let entity: Option<IngestBounceError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
+pub async fn ingest_inbound_message(configuration: &configuration::Configuration, params: IngestInboundMessageParams) -> Result<models::IngestInboundMessageResponse, Error<IngestInboundMessageError>> {
+
+    let uri_str = format!("{}/internal/inbound", configuration.base_path);
+    let mut req_builder = configuration.client.request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(param_value) = params.x_tenant_id {
+        req_builder = req_builder.header("X-Tenant-ID", param_value.to_string());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("X-Internal-Token", value);
+    };
+    req_builder = req_builder.json(&params.body);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::IngestInboundMessageResponse`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::IngestInboundMessageResponse`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<IngestInboundMessageError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
+/// Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
+pub async fn lookup_tenant_invitation(configuration: &configuration::Configuration, params: LookupTenantInvitationParams) -> Result<models::ClaimInvitationLookupInvitationResponse, Error<LookupTenantInvitationError>> {
+
+    let uri_str = format!("{}/internal/tenant/invitation/{token}", configuration.base_path, token=crate::apis::urlencode(params.token));
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("X-Internal-Token", value);
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::ClaimInvitationLookupInvitationResponse`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::ClaimInvitationLookupInvitationResponse`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<LookupTenantInvitationError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
+/// Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.  Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
+pub async fn register_billing_customer(configuration: &configuration::Configuration, params: RegisterBillingCustomerParams) -> Result<models::ClaimInvitationRegisterCustomerResponse, Error<RegisterBillingCustomerError>> {
+
+    let uri_str = format!("{}/internal/tenant/billing-customer", configuration.base_path);
+    let mut req_builder = configuration.client.request(reqwest::Method::POST, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("X-Internal-Token", value);
+    };
+    req_builder = req_builder.json(&params.claim_invitation_register_customer_request);
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::ClaimInvitationRegisterCustomerResponse`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::ClaimInvitationRegisterCustomerResponse`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<RegisterBillingCustomerError> = serde_json::from_str(&content).ok();
         Err(Error::ResponseError(ResponseContent { status, content, entity }))
     }
 }

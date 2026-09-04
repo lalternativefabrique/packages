@@ -15,11 +15,15 @@ require 'time'
 
 module SporeEmail
   class ApikeysCreateAPIKeyRequest < ApiModelBase
+    # IdentityID restricts the key to one sending identity. Omit for a tenant-wide key, which is the behaviour of every pre-existing key.
+    attr_accessor :identity_id
+
     attr_accessor :name
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
+        :'identity_id' => :'identityId',
         :'name' => :'name'
       }
     end
@@ -37,6 +41,7 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
+        :'identity_id' => :'String',
         :'name' => :'String'
       }
     end
@@ -63,6 +68,10 @@ module SporeEmail
         h[k.to_sym] = v
       }
 
+      if attributes.key?(:'identity_id')
+        self.identity_id = attributes[:'identity_id']
+      end
+
       if attributes.key?(:'name')
         self.name = attributes[:'name']
       end
@@ -88,6 +97,7 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
+          identity_id == o.identity_id &&
           name == o.name
     end
 
@@ -100,7 +110,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [name].hash
+      [identity_id, name].hash
     end
 
     # Builds the object from hash

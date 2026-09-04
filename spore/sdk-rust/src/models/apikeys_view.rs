@@ -17,6 +17,9 @@ pub struct ApikeysView {
     pub created_at: Option<String>,
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    /// IdentityID restricts the key to a single sending identity. Empty means the key may send from any verified identity of its tenant, which is how every key created before scoping existed behaves.
+    #[serde(rename = "identityId", skip_serializing_if = "Option::is_none")]
+    pub identity_id: Option<String>,
     #[serde(rename = "lastUsedAt", skip_serializing_if = "Option::is_none")]
     pub last_used_at: Option<String>,
     #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
@@ -35,6 +38,7 @@ impl ApikeysView {
         ApikeysView {
             created_at: None,
             id: None,
+            identity_id: None,
             last_used_at: None,
             name: None,
             prefix: None,
