@@ -30,6 +30,7 @@
     "filter-openapi": "node scripts/filter-openapi.mjs openapi.full.json openapi.json",
     "generate": "pnpm run filter-openapi && orval --config orval.config.ts",
     "build": "tsup",
+    "prepublishOnly": "pnpm build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },
