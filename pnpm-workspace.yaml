@@ -2,6 +2,7 @@ packages:
   - "skalpai/*"
   - "spore/*"
   - "lalter/*"
+  - "lungor/*"
   - "auth"
   - "admin"
   - "editor"

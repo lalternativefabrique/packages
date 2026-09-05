@@ -130,6 +130,21 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@26.2.0)(jiti@2.7.0)(lightningcss@1.32.0)(yaml@2.9.0)
 
+  lungor/sdk-react:
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.18
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.26)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   skalpai/sdk-browser:
     dependencies:
       '@opentelemetry/api':
