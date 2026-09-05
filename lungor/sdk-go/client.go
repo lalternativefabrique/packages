@@ -343,6 +343,15 @@ type CheckoutInput struct {
 	// falls back to Lungor's own page.
 	SuccessURL string
 	CancelURL  string
+	// PaymentMethod preselects how the payer pays, from what CheckoutMethods
+	// listed for this plan. Naming one sends the payer straight to it; empty
+	// leaves the provider's own selection screen in place, which is what every
+	// caller got before this field existed.
+	//
+	// Lungor revalidates it: a method it did not list is refused rather than
+	// obeyed, so a stale page cannot sell a plan on a method that would never
+	// renew.
+	PaymentMethod string
 }
 
 // Checkout is the session Lungor opened.
@@ -378,6 +387,9 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 		SuccessUrl:     &in.SuccessURL,
 		CancelUrl:      &in.CancelURL,
 	}
+	if in.PaymentMethod != "" {
+		req.PaymentMethod = &in.PaymentMethod
+	}
 
 	var body wire.FinanceCheckoutResponse
 	if err := c.send(ctx, &body, func() (*http.Response, error) {
@@ -386,6 +398,59 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 		return Checkout{}, err
 	}
 	return checkoutFrom(body), nil
+}
+
+// CheckoutMethod is one way a plan may be paid for.
+type CheckoutMethod struct {
+	// ID travels back verbatim as CheckoutInput.PaymentMethod.
+	ID string
+	// Label names the method for the payer, in French.
+	Label string
+}
+
+// CheckoutMethods lists what a plan can be paid with, in the order to offer
+// them.
+//
+// The same rule answers here and enforces at checkout, so a method this omits
+// is one Checkout refuses. Ask before showing a chooser rather than hardcoding
+// a list: what a plan accepts follows from what it sells, and a recurring plan
+// drops every method that leaves no mandate behind.
+//
+// An empty result is a plan that charges nothing — there is nothing to pay.
+func (c *Client) CheckoutMethods(ctx context.Context, planID string) ([]CheckoutMethod, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return nil, ErrNotConfigured
+	}
+	if planID == "" {
+		return nil, fmt.Errorf("%w: plan id is required", ErrBadRequest)
+	}
+
+	var body wire.FinanceCheckoutMethodsResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.ListCheckoutMethods(ctx, &wire.ListCheckoutMethodsParams{PlanId: planID})
+	}); err != nil {
+		return nil, err
+	}
+	if body.Methods == nil {
+		return nil, nil
+	}
+	out := make([]CheckoutMethod, 0, len(*body.Methods))
+	for _, m := range *body.Methods {
+		method := CheckoutMethod{}
+		if m.Id != nil {
+			method.ID = *m.Id
+		}
+		if m.Label != nil {
+			method.Label = *m.Label
+		}
+		// A method with no id cannot be sent back, so it would render as a row
+		// the payer can select and nothing can act on.
+		if method.ID == "" {
+			continue
+		}
+		out = append(out, method)
+	}
+	return out, nil
 }
 
 // checkoutFrom converts the generated wire type into the one callers use. Same

@@ -244,6 +244,74 @@
                 }
             }
         },
+        "/finance/checkout/methods": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Answers what POST /finance/checkout will accept for this plan, so an app can offer the choice instead of guessing. The same rule decides both, and the checkout revalidates: a method absent here is refused there.",
+                "tags": [
+                    "checkout"
+                ],
+                "summary": "List the payment methods a plan can be checked out with",
+                "operationId": "listCheckoutMethods",
+                "parameters": [
+                    {
+                        "description": "Plan ID",
+                        "name": "plan_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.checkoutMethodsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/finance/webhooks/payplug/{cred_id}": {
             "post": {
                 "tags": [
@@ -636,7 +704,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Records what an app spent on LLM providers, aggregated per (user, model, window). This is the app's OWN expense, not something billed to the user: nothing is capped, nothing is ever refused, and no customer sees it.\n\nThe caller prices its own calls and sends `cost_micros` in micro-cents (1 EUR = 1 000 000): the app that chooses the model is the one place that cannot hold a stale price. Token counts are stored beside the amount so a figure stays checkable.\n\nSend batches aggregated over a 15-minute window rather than one call per LLM request. `bucket_start` is floored server-side, and a window is identified by (app, user, model, bucket) — so a retried POST records nothing twice. A batch resent with higher counts completes the window rather than duplicating it, which is what makes it safe to flush a window that is still open.",
+                "description": "Records what an app spent on LLM providers, aggregated per (user, model, window). This is the app's OWN expense, not something billed to the user: nothing is capped, nothing is ever refused, and no customer sees it.\n\nThe caller prices its own calls and sends `cost_micros` in micro-cents (1 EUR = 1 000 000): the app that chooses the model is the one place that cannot hold a stale price. Token counts are stored beside the amount so a figure stays checkable.\n\nSend batches aggregated over a 15-minute window rather than one call per LLM request. Batches are SUMMED, so each one must carry a stable `idempotency_key` identifying it: a retry reusing that key records nothing twice, while a second batch on the same model in the same window is counted beside the first. `bucket_start` is floored server-side and only groups the read paths — it no longer identifies a batch.",
                 "tags": [
                     "costtracking"
                 ],
@@ -5553,6 +5621,11 @@
                         "type": "string",
                         "example": "user-42"
                     },
+                    "idempotency_key": {
+                        "description": "IdempotencyKey identifies this batch, and is required. Batches are summed,\nso it is the only thing telling a retry apart from a second batch on the\nsame model in the same window.",
+                        "type": "string",
+                        "example": "turn-9f2c1e40"
+                    },
                     "input_tokens": {
                         "type": "integer",
                         "example": 4200
@@ -6114,9 +6187,36 @@
                     }
                 }
             },
+            "finance.checkoutMethodView": {
+                "description": "Reports whether the payment behind a checkout landed, computed from the database at call time. It is the fallback when the subscription webhook is late or missed: call it on the success page, and open access on paid rather than on the redirect alone. A session of another app reads as not found.",
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.checkoutMethodsResponse": {
+                "type": "object",
+                "properties": {
+                    "methods": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.checkoutMethodView"
+                        }
+                    }
+                }
+            },
             "finance.checkoutRequest": {
                 "type": "object",
                 "properties": {
+                    "amount_cents": {
+                        "description": "AmountCents is what the payer chose, for a plan that lets them choose.\nOmitted on a fixed-price plan; stating one there is refused, never\nignored. The plan's own bounds are what this is checked against —\nthe figure is a request, not an instruction.",
+                        "type": "integer"
+                    },
                     "app_id": {
                         "type": "string"
                     },
@@ -6134,6 +6234,10 @@
                     },
                     "name": {
                         "description": "Name is the customer's legal name, as it must appear on the invoice.\nOptional: an omitted name never clears one already on record, and the\ngateway's own checkout collects a cardholder when none is known.",
+                        "type": "string"
+                    },
+                    "payment_method": {
+                        "description": "PaymentMethod preselects how the payer pays (\"card\", \"bank_transfer\").\nOmitted, the provider's own selection screen decides, which is what every\ncaller got before the field existed.",
                         "type": "string"
                     },
                     "price_id": {
@@ -7112,6 +7216,10 @@
             "finance.replaceCredsReq": {
                 "type": "object",
                 "properties": {
+                    "client_id": {
+                        "description": "ClientID is bridge-only. Omitted, the rotation keeps the client_id the\ncredential already carries: only the secret changes.",
+                        "type": "string"
+                    },
                     "secret_key": {
                         "type": "string"
                     }
@@ -7252,6 +7360,9 @@
                     },
                     "status": {
                         "type": "string"
+                    },
+                    "vat_franchise": {
+                        "type": "boolean"
                     },
                     "vat_number": {
                         "type": "string"
@@ -7442,6 +7553,9 @@
                     },
                     "recovery_indemnity_cents": {
                         "type": "integer"
+                    },
+                    "vat_franchise": {
+                        "type": "boolean"
                     },
                     "vat_number": {
                         "type": "string"

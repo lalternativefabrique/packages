@@ -100,6 +100,11 @@ type CosttrackingLlmUsageBatch struct {
 	CostMicros     *int    `json:"cost_micros,omitempty"`
 	Currency       *string `json:"currency,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// IdempotencyKey IdempotencyKey identifies this batch, and is required. Batches are summed,
+	// so it is the only thing telling a retry apart from a second batch on the
+	// same model in the same window.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 	InputTokens    *int    `json:"input_tokens,omitempty"`
 	Model          *string `json:"model,omitempty"`
 	OutputTokens   *int    `json:"output_tokens,omitempty"`
@@ -213,8 +218,24 @@ type FinanceAppWithdrawPendingResponse struct {
 	Withdrawn *bool   `json:"withdrawn,omitempty"`
 }
 
+// FinanceCheckoutMethodView Reports whether the payment behind a checkout landed, computed from the database at call time. It is the fallback when the subscription webhook is late or missed: call it on the success page, and open access on paid rather than on the redirect alone. A session of another app reads as not found.
+type FinanceCheckoutMethodView struct {
+	Id    *string `json:"id,omitempty"`
+	Label *string `json:"label,omitempty"`
+}
+
+// FinanceCheckoutMethodsResponse defines model for finance.checkoutMethodsResponse.
+type FinanceCheckoutMethodsResponse struct {
+	Methods *[]FinanceCheckoutMethodView `json:"methods,omitempty"`
+}
+
 // FinanceCheckoutRequest defines model for finance.checkoutRequest.
 type FinanceCheckoutRequest struct {
+	// AmountCents AmountCents is what the payer chose, for a plan that lets them choose.
+	// Omitted on a fixed-price plan; stating one there is refused, never
+	// ignored. The plan's own bounds are what this is checked against —
+	// the figure is a request, not an instruction.
+	AmountCents    *int    `json:"amount_cents,omitempty"`
 	AppId          *string `json:"app_id,omitempty"`
 	CancelUrl      *string `json:"cancel_url,omitempty"`
 	Country        *string `json:"country,omitempty"`
@@ -224,10 +245,15 @@ type FinanceCheckoutRequest struct {
 	// Name Name is the customer's legal name, as it must appear on the invoice.
 	// Optional: an omitted name never clears one already on record, and the
 	// gateway's own checkout collects a cardholder when none is known.
-	Name       *string `json:"name,omitempty"`
-	PriceId    *string `json:"price_id,omitempty"`
-	SuccessUrl *string `json:"success_url,omitempty"`
-	TenantId   *string `json:"tenant_id,omitempty"`
+	Name *string `json:"name,omitempty"`
+
+	// PaymentMethod PaymentMethod preselects how the payer pays ("card", "bank_transfer").
+	// Omitted, the provider's own selection screen decides, which is what every
+	// caller got before the field existed.
+	PaymentMethod *string `json:"payment_method,omitempty"`
+	PriceId       *string `json:"price_id,omitempty"`
+	SuccessUrl    *string `json:"success_url,omitempty"`
+	TenantId      *string `json:"tenant_id,omitempty"`
 }
 
 // FinanceCheckoutResponse defines model for finance.checkoutResponse.
@@ -502,6 +528,12 @@ type GetEntitlementParams struct {
 	Units *string `form:"units,omitempty" json:"units,omitempty"`
 }
 
+// ListCheckoutMethodsParams defines parameters for ListCheckoutMethods.
+type ListCheckoutMethodsParams struct {
+	// PlanId Plan ID
+	PlanId string `form:"plan_id" json:"plan_id"`
+}
+
 // GetAppLLMCostSummaryByCustomerParams defines parameters for GetAppLLMCostSummaryByCustomer.
 type GetAppLLMCostSummaryByCustomerParams struct {
 	// From Start (RFC3339). Defaults to the 1st of the current month.
@@ -690,6 +722,9 @@ type ClientInterface interface {
 
 	Checkout(ctx context.Context, body CheckoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListCheckoutMethods request
+	ListCheckoutMethods(ctx context.Context, params *ListCheckoutMethodsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// PayplugWebhook request
 	PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -866,6 +901,18 @@ func (c *Client) CheckoutWithBody(ctx context.Context, contentType string, body 
 
 func (c *Client) Checkout(ctx context.Context, body CheckoutJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCheckoutRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCheckoutMethods(ctx context.Context, params *ListCheckoutMethodsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCheckoutMethodsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1551,6 +1598,51 @@ func NewCheckoutRequestWithBody(server string, contentType string, body io.Reade
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCheckoutMethodsRequest generates requests for ListCheckoutMethods
+func NewListCheckoutMethodsRequest(server string, params *ListCheckoutMethodsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/finance/checkout/methods")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "plan_id", runtime.ParamLocationQuery, params.PlanId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -2943,6 +3035,9 @@ type ClientWithResponsesInterface interface {
 
 	CheckoutWithResponse(ctx context.Context, body CheckoutJSONRequestBody, reqEditors ...RequestEditorFn) (*CheckoutResponse, error)
 
+	// ListCheckoutMethodsWithResponse request
+	ListCheckoutMethodsWithResponse(ctx context.Context, params *ListCheckoutMethodsParams, reqEditors ...RequestEditorFn) (*ListCheckoutMethodsResponse, error)
+
 	// PayplugWebhookWithResponse request
 	PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error)
 
@@ -3146,6 +3241,31 @@ func (r CheckoutResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CheckoutResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCheckoutMethodsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceCheckoutMethodsResponse
+	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCheckoutMethodsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCheckoutMethodsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3887,6 +4007,15 @@ func (c *ClientWithResponses) CheckoutWithResponse(ctx context.Context, body Che
 	return ParseCheckoutResponse(rsp)
 }
 
+// ListCheckoutMethodsWithResponse request returning *ListCheckoutMethodsResponse
+func (c *ClientWithResponses) ListCheckoutMethodsWithResponse(ctx context.Context, params *ListCheckoutMethodsParams, reqEditors ...RequestEditorFn) (*ListCheckoutMethodsResponse, error) {
+	rsp, err := c.ListCheckoutMethods(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCheckoutMethodsResponse(rsp)
+}
+
 // PayplugWebhookWithResponse request returning *PayplugWebhookResponse
 func (c *ClientWithResponses) PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error) {
 	rsp, err := c.PayplugWebhook(ctx, credId, reqEditors...)
@@ -4399,6 +4528,53 @@ func ParseCheckoutResponse(rsp *http.Response) (*CheckoutResponse, error) {
 			return nil, err
 		}
 		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCheckoutMethodsResponse parses an HTTP response from a ListCheckoutMethodsWithResponse call
+func ParseListCheckoutMethodsResponse(rsp *http.Response) (*ListCheckoutMethodsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCheckoutMethodsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceCheckoutMethodsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
