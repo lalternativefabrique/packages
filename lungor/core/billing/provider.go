@@ -77,6 +77,15 @@ type Provider interface {
 	// click, a webhook replay or a network retry must never charge twice, and
 	// leaving that to each adapter is how it eventually does.
 	Charge(ctx context.Context, in ChargeInput) (string, error)
+
+	// CheckoutMethods lists how a tier may be paid for, in the order to offer
+	// them. Asked rather than assumed: what a tier accepts follows from what it
+	// sells, and the provider refuses at checkout what it omits here — so a
+	// hardcoded list is a 400 the buyer sees after committing.
+	//
+	// A provider that cannot answer returns nil, which reads as "do not ask":
+	// the caller checks out with no preselection, exactly as before.
+	CheckoutMethods(ctx context.Context, tier Tier) ([]CheckoutMethod, error)
 }
 
 // CheckoutInput is what opening a first payment needs. Grouped into a struct
@@ -88,6 +97,18 @@ type CheckoutInput struct {
 	Email      string
 	Name       string
 	SuccessURL string
+	// PaymentMethod is one of the ids CheckoutMethods returned for this tier.
+	// Empty leaves the choice to the provider's own selection screen, which is
+	// what every caller got before the field existed.
+	PaymentMethod string
+}
+
+// CheckoutMethod is one way a tier may be paid for.
+type CheckoutMethod struct {
+	// ID travels back as CheckoutInput.PaymentMethod.
+	ID string
+	// Label names the method for the buyer.
+	Label string
 }
 
 // ChargeInput is a one-off charge on an existing mandate.
