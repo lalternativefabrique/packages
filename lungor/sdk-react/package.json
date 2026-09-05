@@ -1,7 +1,7 @@
 {
   "name": "@lalternative/lungor-sdk-react",
-  "version": "0.1.0",
-  "description": "React components for Lungor checkout",
+  "version": "0.2.0",
+  "description": "React components for Lungor checkout and pricing",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -33,6 +33,7 @@
     "lungor",
     "checkout",
     "payment",
+    "pricing",
     "react"
   ],
   "license": "MIT",
