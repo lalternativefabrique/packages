@@ -29,6 +29,7 @@
   "scripts": {
     "generate": "orval --config orval.config.ts",
     "build": "tsup",
+    "prepublishOnly": "pnpm build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
