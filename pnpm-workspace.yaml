@@ -4,6 +4,7 @@ packages:
   - "lalter/*"
   - "lungor/*"
   - "auth"
+  - "legal"
   - "admin"
   - "editor"
 allowBuilds:

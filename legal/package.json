@@ -1,0 +1,49 @@
+{
+  "name": "@lalternative/legal",
+  "version": "0.1.0",
+  "description": "Shared legal pages for L'Alternative apps (legal notice, cookie policy), publisher identity passed in by the host site",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "legal",
+    "rgpd",
+    "gdpr",
+    "cookies",
+    "mentions-legales"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lalternative/packages.git",
+    "directory": "legal"
+  }
+}
