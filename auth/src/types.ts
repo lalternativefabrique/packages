@@ -160,11 +160,11 @@ export interface PlatformSsoConfig {
 
 export interface SsoClientSurface {
   signIn: {
-    oauth2(args: {
-      providerId: string
+    social(args: {
+      provider: string
       callbackURL?: string
       errorCallbackURL?: string
-    }): Promise<AuthClientResult>
+    }): Promise<unknown>
   }
 }
 

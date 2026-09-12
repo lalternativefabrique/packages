@@ -8,6 +8,7 @@ export interface SsoProfile {
 }
 
 export interface SsoMappedUser {
+  [key: string]: unknown
   email: string
   emailVerified: boolean
   name: string
