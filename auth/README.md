@@ -54,8 +54,9 @@ export const auth = createPlatformAuth({
 })
 ```
 
-The callback is `/api/auth/oauth2/callback/urbangate`; register it on the
-Hydra client. On the client, `startSso(authClient, { callbackURL: "/admin" })`
+The callback is `/api/auth/callback/urbangate`; register it on the
+Hydra client, with `token_endpoint_auth_method: client_secret_post`, which is
+how Better Auth presents the client secret. On the client, `startSso(authClient, { callbackURL: "/admin" })`
 starts the redirect (Better Auth 1.7 serves generic providers through
 `signIn.social`, so no client plugin is needed).
 
