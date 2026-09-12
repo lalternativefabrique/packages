@@ -1,8 +1,8 @@
 import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-auth"
 import { emailOTP, admin, magicLink, twoFactor, genericOAuth } from "better-auth/plugins"
-import type { PlatformAuthConfig, PlatformAuthMailerType } from "./types"
+import type { PlatformAuthConfig, PlatformAuthMailerType, PlatformSsoConfig } from "./types"
 import { withGoogleDefaults } from "./google-defaults"
-import { mapSsoProfile, type SsoProfile } from "./sso-profile"
+import { mapSsoProfile, roleFromIdToken, type SsoProfile } from "./sso-profile"
 import { withSignUpName } from "./signup-name"
 import { resolveRateLimit } from "./rate-limit"
 
@@ -102,6 +102,7 @@ export function createPlatformAuth(
     // and calls createUser straight, with `name: name || ""`.
     databaseHooks: {
       ...databaseHooks,
+      account: withSsoRoleSync(databaseHooks?.account, sso, ssoProviderId),
       user: {
         ...databaseHooks?.user,
         create: {
@@ -244,6 +245,38 @@ export function createPlatformAuth(
       ...(github ? { github } : {}),
     },
   }) as unknown as Auth<BetterAuthOptions>
+}
+
+type AccountHooks = NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["account"]>
+type AccountAfterHook = NonNullable<NonNullable<AccountHooks["create"]>["after"]>
+
+// The admin plugin declares `role` as not settable from input, so the role
+// mapProfileToUser returns is dropped when the OAuth path creates the user.
+// The account row, created then refreshed on every sign-in, carries the ID
+// token: its roles claim is what sets the local role, each time.
+function withSsoRoleSync(
+  hooks: AccountHooks | undefined,
+  sso: PlatformSsoConfig | undefined,
+  providerId: string,
+): AccountHooks | undefined {
+  if (!sso) return hooks
+  const sync: AccountAfterHook = async (account, ctx) => {
+    if (account.providerId !== providerId || !ctx) return
+    const role = roleFromIdToken(account.idToken, sso.adminRole)
+    if (!role) return
+    await ctx.context.internalAdapter.updateUser(account.userId, { role })
+  }
+  const chain =
+    (own: AccountAfterHook | undefined): AccountAfterHook =>
+    async (account, ctx) => {
+      await own?.(account, ctx)
+      await sync(account, ctx)
+    }
+  return {
+    ...hooks,
+    create: { ...hooks?.create, after: chain(hooks?.create?.after) },
+    update: { ...hooks?.update, after: chain(hooks?.update?.after) },
+  }
 }
 
 export type PlatformAuth = ReturnType<typeof createPlatformAuth>

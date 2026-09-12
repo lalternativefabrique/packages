@@ -40,7 +40,9 @@ import { LoginForm, RegisterForm, SocialButtons, VerifyEmailForm, ForgotPassword
 
 Passing `sso` mounts an OIDC client of the suite's identity provider. A person
 whose `roles` claim carries `adminRole` signs in as admin, anyone else as a
-plain user, and the role is recomputed on every sign-in.
+plain user. The role is read from the ID token stored on the account, at
+creation and again on every sign-in, so a role removed at the provider is
+removed here the next time the person signs in.
 
 ```ts
 export const auth = createPlatformAuth({
