@@ -65,6 +65,8 @@ scopes:
     - "go/retrieval/**"
   search:
     - "go/search/**"
+  fileguard:
+    - "go/fileguard/**"
   svcauth:
     - "go/svcauth/**"
   webhooks:
@@ -137,6 +139,15 @@ steps:
     tools: [go]
     run: |
       cd go/search
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: fileguard
+    scope: [fileguard]
+    tools: [go]
+    run: |
+      cd go/fileguard
       go build ./...
       go vet ./...
       go test -count=1 ./...

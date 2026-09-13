@@ -23,6 +23,7 @@ workspace), each versioned with a path-prefixed tag (e.g. `go/eda/v0.1.1`).
 | Package | Description |
 | --- | --- |
 | `eda` | Event-Driven Architecture toolkit — durable JetStream consumer, outbox, projection, process-manager, CQRS/DDD building blocks. `go get github.com/lalternative/packages/go/eda@go/eda/v0.1.1` |
+| `fileguard` | Admission checks on bytes and URLs a service did not choose — SSRF guard that dials the address it validated, magic-byte sniffing that rejects rather than guesses, size limits that fail rather than truncate. Standard library only. `go get github.com/lalternative/packages/go/fileguard@go/fileguard/v0.1.0` |
 
 Submodules `go/eda/pkg/obs/{otelobs,prom}` carry their own `go.mod` (optional
 observability adapters) and are tagged independently if needed.
