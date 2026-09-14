@@ -83,3 +83,30 @@ r := fileguard.LimitedReader(body, maxBytes)  // fails past the ceiling
 truncated and believed whole. This returns `ErrTooLarge` instead — the
 difference between a limit and a trim. The ceiling applies to bytes that
 arrive, never to a declared `Content-Length`, which is the sender's claim.
+
+## Deposit
+
+```go
+dep, err := fileguard.DepositFromURL(ctx, bucket, key, sourceURL, fileguard.DepositOptions{
+    MaxBytes: 500 << 20, RequireMedia: true,
+})
+// or, for bytes you already hold:
+dep, err := fileguard.DepositReader(ctx, bucket, key, body, opts)
+```
+
+Fetches a source and writes it somewhere a separate process can read it by key.
+
+This is what lets a worker that opens untrusted files run with no network of its
+own. The fetch happens here, in Go, behind `SafeHTTPClient`; the worker is then
+handed a key into one bucket it did not choose, and never resolves a hostname.
+A worker that fetches the URL itself re-resolves the name, and no amount of
+up-front validation covers that.
+
+The bytes are sniffed *before* they are stored, so a source whose content
+contradicts what the pipeline handles never comes to rest at all. `RequireMedia`
+is what separates a media pipeline from a document one — `Sniff` recognises
+both.
+
+`ObjectWriter` is the one-method port it needs (`Upload(ctx, key, body,
+contentType)`), declared here rather than imported so this package keeps no
+dependencies. Any S3 wrapper satisfies it as it stands.
