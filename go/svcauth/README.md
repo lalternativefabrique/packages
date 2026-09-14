@@ -43,3 +43,21 @@ if err := cc.Authorize(req); err != nil { /* the issuer refused or is unreachabl
 
 `Token` fetches on first use and reuses the token until thirty seconds before
 it expires; `Authorize` sets the `Authorization: Bearer` header.
+
+When the call is made by a library that takes an `*http.Client` rather than
+handing you the request, `HTTPClient` wires the same credentials into one:
+
+```go
+fetcher := rendersvc.NewClient(vvavesURL, cc.HTTPClient())
+```
+
+`Transport` is the same thing over an existing round tripper, for a client that
+already has one:
+
+```go
+client := &http.Client{Transport: svcauth.Transport(cc, base)}
+```
+
+Each request is cloned before its header is set, so the caller's own request is
+never modified. A token the issuer refuses fails the request rather than
+sending it without one.
