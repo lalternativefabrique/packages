@@ -98,7 +98,7 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 
 	var page *Page
 	if isPDF(contentType, final) {
-		page = extractPDF(body, final)
+		page = extractPDF(ctx, body, final)
 	} else {
 		page = extract(body, final)
 	}

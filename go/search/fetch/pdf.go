@@ -2,18 +2,27 @@ package fetch
 
 import (
 	"bytes"
+	"context"
 	"io"
+	"log"
 	"mime"
 	"net/url"
+	"os"
+	"os/exec"
 	"path"
 	"strings"
-
-	"github.com/dslipak/pdf"
+	"sync"
+	"time"
 )
 
-// maxPDFBytes bounds a PDF read into memory: the reader needs random
-// access, and a paper is a few megabytes where a scanned book is not.
-const maxPDFBytes = 32 << 20
+const (
+	// maxPDFBytes bounds a PDF written to disk for extraction: a paper is a
+	// few megabytes where a scanned book is not.
+	maxPDFBytes = 32 << 20
+	pdfTimeout  = 30 * time.Second
+)
+
+var warnNoPoppler sync.Once
 
 func isPDF(contentType string, page *url.URL) bool {
 	mediaType, _, _ := mime.ParseMediaType(contentType)
@@ -24,44 +33,53 @@ func isPDF(contentType string, page *url.URL) bool {
 	return byName && (mediaType == "" || mediaType == "application/octet-stream")
 }
 
-// extractPDF reads the document's text page by page. Markdown carries the
-// same text: a PDF's layout does not survive extraction, and a caller
-// asking for markdown still wants the content rather than nothing.
-func extractPDF(body io.Reader, page *url.URL) (out *Page) {
-	out = &Page{URL: page.String(), Title: strings.TrimSuffix(path.Base(page.Path), ".pdf")}
-	defer func() {
-		if recover() != nil {
-			out.Text, out.Markdown = "", ""
-		}
-	}()
+// extractPDF reads the document with poppler's pdftotext and pdfinfo. A
+// pure-Go reader was tried first and took minutes on an ordinary arXiv
+// paper; poppler takes a tenth of a second and gets reading order right.
+// Without the binaries the page comes back empty, and the log says why.
+//
+// Markdown carries the same text: a PDF's layout does not survive
+// extraction, and a caller asking for markdown still wants the content.
+func extractPDF(ctx context.Context, body io.Reader, page *url.URL) *Page {
+	out := &Page{URL: page.String(), Title: strings.TrimSuffix(path.Base(page.Path), ".pdf")}
 
-	data, err := io.ReadAll(io.LimitReader(body, maxPDFBytes))
+	if _, err := exec.LookPath("pdftotext"); err != nil {
+		warnNoPoppler.Do(func() { log.Print("fetch: pdftotext not installed, PDFs read as empty pages") })
+		return out
+	}
+	file, err := os.CreateTemp("", "fetch-*.pdf")
 	if err != nil {
 		return out
 	}
-	r, err := pdf.NewReader(bytes.NewReader(data), int64(len(data)))
+	defer os.Remove(file.Name())
+	_, err = io.Copy(file, io.LimitReader(body, maxPDFBytes))
+	file.Close()
 	if err != nil {
 		return out
 	}
-	if title := strings.TrimSpace(r.Trailer().Key("Info").Key("Title").Text()); title != "" {
-		out.Title = title
-	}
 
-	var pages []string
-	for i := 1; i <= r.NumPage(); i++ {
-		p := r.Page(i)
-		if p.V.IsNull() {
-			continue
-		}
-		text, err := p.GetPlainText(nil)
-		if err != nil {
-			continue
-		}
-		if text = strings.TrimSpace(text); text != "" {
-			pages = append(pages, text)
+	ctx, cancel := context.WithTimeout(ctx, pdfTimeout)
+	defer cancel()
+
+	if info, err := exec.CommandContext(ctx, "pdfinfo", file.Name()).Output(); err == nil {
+		if title := pdfInfoTitle(info); title != "" {
+			out.Title = title
 		}
 	}
-	out.Text = strings.Join(pages, "\n\n")
+	text, err := exec.CommandContext(ctx, "pdftotext", "-enc", "UTF-8", file.Name(), "-").Output()
+	if err != nil {
+		return out
+	}
+	out.Text = strings.TrimSpace(strings.ReplaceAll(string(text), "\f", "\n\n"))
 	out.Markdown = out.Text
 	return out
+}
+
+func pdfInfoTitle(info []byte) string {
+	for _, line := range bytes.Split(info, []byte("\n")) {
+		if rest, ok := bytes.CutPrefix(line, []byte("Title:")); ok {
+			return strings.TrimSpace(string(rest))
+		}
+	}
+	return ""
 }
