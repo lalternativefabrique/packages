@@ -128,6 +128,26 @@ func TestBetterAuthEdDSATokenIsAccepted(t *testing.T) {
 	}
 }
 
+func TestOwnerClaimIsRead(t *testing.T) {
+	f := newFakeIssuer(t)
+	v := verifier(t, svcauth.Hydra(f.url()))
+	top := f.token(t, "rsa-1", jwt.MapClaims{"sub": "ak_1", "client_id": "ak_1", "owner": "id-42"})
+	c, err := v.Verify(context.Background(), top)
+	if err != nil || c.Owner != "id-42" {
+		t.Fatalf("claims = %+v, err = %v", c, err)
+	}
+	ext := f.token(t, "rsa-1", jwt.MapClaims{"sub": "ak_1", "ext": map[string]any{"owner": "id-43"}})
+	c, err = v.Verify(context.Background(), ext)
+	if err != nil || c.Owner != "id-43" {
+		t.Fatalf("claims = %+v, err = %v", c, err)
+	}
+	none := f.token(t, "rsa-1", jwt.MapClaims{"sub": "lalter-core"})
+	c, err = v.Verify(context.Background(), none)
+	if err != nil || c.Owner != "" {
+		t.Fatalf("claims = %+v, err = %v", c, err)
+	}
+}
+
 func TestRolesInHydraExtClaimAreRead(t *testing.T) {
 	f := newFakeIssuer(t)
 	v := verifier(t, svcauth.Hydra(f.url()))
