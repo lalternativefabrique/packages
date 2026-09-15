@@ -69,6 +69,8 @@ scopes:
     - "go/fileguard/**"
   svcauth:
     - "go/svcauth/**"
+  authz:
+    - "go/authz/**"
   webhooks:
     - "go/webhooks/**"
   lungor-core:
@@ -157,6 +159,15 @@ steps:
     tools: [go]
     run: |
       cd go/svcauth
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: authz
+    scope: [authz]
+    tools: [go]
+    run: |
+      cd go/authz
       go build ./...
       go vet ./...
       go test -count=1 ./...
