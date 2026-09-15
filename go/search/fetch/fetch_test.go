@@ -109,7 +109,7 @@ func TestFetchStaticRendersMarkdownWithTablesAndLinks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("FetchStatic: %v", err)
 	}
-	for _, want := range []string{"## Tarifs", "| Plan | Prix | Requêtes |", "| Pro  | 49 € | 50 000   |", "[grille complète](" + srv.URL + "/pricing)"} {
+	for _, want := range []string{"## Tarifs", "| Plan | Prix | Requêtes |", "| Pro | 49 € | 50 000 |", "[grille complète](" + srv.URL + "/pricing)"} {
 		if !strings.Contains(page.Markdown, want) {
 			t.Errorf("Markdown lacks %q:\n%s", want, page.Markdown)
 		}
