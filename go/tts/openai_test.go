@@ -2,6 +2,7 @@ package tts
 
 import (
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -308,5 +309,134 @@ func TestSmallerPiecesAreWhatMakesReadingParallel(t *testing.T) {
 	}
 	if peak < 2 {
 		t.Errorf("cut at 800 chars, only %d request(s) overlapped — nothing was parallel", peak)
+	}
+}
+
+// framed writes pieces the way a streaming server does: each one
+// length-prefixed, flushed as soon as it exists, with a pause between them.
+func framed(w http.ResponseWriter, pause time.Duration, pieces ...string) {
+	w.Header().Set("Content-Type", FramesContentType)
+	w.WriteHeader(http.StatusOK)
+	f, _ := w.(http.Flusher)
+	for i, p := range pieces {
+		if i > 0 {
+			time.Sleep(pause)
+		}
+		var head [4]byte
+		binary.BigEndian.PutUint32(head[:], uint32(len(p)))
+		_, _ = w.Write(head[:])
+		_, _ = w.Write([]byte(p))
+		if f != nil {
+			f.Flush()
+		}
+	}
+}
+
+func TestSpeakStreamRelaysFramedPiecesAsTheyLand(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept"), FramesContentType) {
+			t.Errorf("Accept is %q, want it to offer %s", r.Header.Get("Accept"), FramesContentType)
+		}
+		framed(w, 400*time.Millisecond, "<one>", "<two>")
+	}))
+	t.Cleanup(srv.Close)
+
+	v := NewOpenAIVoice(Config{BaseURL: srv.URL})
+	var mu sync.Mutex
+	var got []string
+	var at []time.Time
+	start := time.Now()
+	mime, err := v.SpeakStream(context.Background(), "une phrase. une autre.", func(audio []byte) error {
+		mu.Lock()
+		defer mu.Unlock()
+		got = append(got, string(audio))
+		at = append(at, time.Now())
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("SpeakStream: %v", err)
+	}
+	if mime != "audio/mpeg" {
+		t.Errorf("mime is %q, want audio/mpeg", mime)
+	}
+	if strings.Join(got, "|") != "<one>|<two>" {
+		t.Fatalf("emitted %q, want the two frames in order", got)
+	}
+	if at[0].Sub(start) > 300*time.Millisecond {
+		t.Errorf("first frame emitted after %v, want it before the second was written", at[0].Sub(start))
+	}
+}
+
+func TestSpeakJoinsFramedPieces(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		framed(w, 0, "<a>", "<b>", "<c>")
+	}))
+	t.Cleanup(srv.Close)
+
+	audio, _, err := NewOpenAIVoice(Config{BaseURL: srv.URL}).Speak(context.Background(), "abc.")
+	if err != nil {
+		t.Fatalf("Speak: %v", err)
+	}
+	if string(audio) != "<a><b><c>" {
+		t.Fatalf("audio is %q, want the frames joined", audio)
+	}
+}
+
+func TestFramedPiecesKeepReadingOrderAcrossRequests(t *testing.T) {
+	markers := []string{"piece0", "piece1", "piece2"}
+	text := strings.Join(markers, " mot mot.\n\n") + " mot mot."
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		input := inputOf(string(body))
+		for i, m := range markers {
+			if strings.HasPrefix(input, m) {
+				// The last piece answers first and in two frames, so a relay
+				// that emitted on arrival would put its frames ahead of the
+				// first piece.
+				time.Sleep(time.Duration(len(markers)-i) * 30 * time.Millisecond)
+				framed(w, 0, "<"+m+".1>", "<"+m+".2>")
+				return
+			}
+		}
+		http.Error(w, "unknown piece", http.StatusBadRequest)
+	}))
+	t.Cleanup(srv.Close)
+
+	audio, _, err := NewOpenAIVoice(Config{BaseURL: srv.URL, MaxChars: 20}).Speak(context.Background(), text)
+	if err != nil {
+		t.Fatalf("Speak: %v", err)
+	}
+	want := "<piece0.1><piece0.2><piece1.1><piece1.2><piece2.1><piece2.2>"
+	if string(audio) != want {
+		t.Fatalf("audio is %q, want %q", audio, want)
+	}
+}
+
+func TestATruncatedFrameIsAFailure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", FramesContentType)
+		var head [4]byte
+		binary.BigEndian.PutUint32(head[:], 10)
+		_, _ = w.Write(head[:])
+		_, _ = w.Write([]byte("short"))
+	}))
+	t.Cleanup(srv.Close)
+
+	_, _, err := NewOpenAIVoice(Config{BaseURL: srv.URL}).Speak(context.Background(), "coupé.")
+	if err == nil {
+		t.Fatal("Speak accepted a reading cut inside a frame")
+	}
+}
+
+func TestAnEmptyFramedAnswerIsAFailure(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", FramesContentType)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	_, _, err := NewOpenAIVoice(Config{BaseURL: srv.URL}).Speak(context.Background(), "rien.")
+	if err == nil {
+		t.Fatal("Speak accepted a 200 with no frames as audio")
 	}
 }

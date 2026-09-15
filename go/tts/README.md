@@ -57,6 +57,16 @@ request. Where a cut lands is not cosmetic: each piece is read as a complete
 utterance, so cutting mid-sentence gives the first half a falling intonation and
 the second half a fresh opening one, and the seam is plainly audible.
 
+**Streaming servers.** Every request offers `Accept:
+application/x-lalter-audio-frames`. A server that synthesizes as it goes can
+answer with the reading as length-prefixed pieces — a big-endian `uint32` byte
+count then that many bytes, each piece a complete audio file — and
+`SpeakStream` hands each one over the moment it is whole, so a long request
+still starts playing on its first sentence. A server that answers a plain
+audio body is read whole, as before; nothing changes for a hosted endpoint.
+With such a server, `MaxChars` no longer buys latency: a request can carry the
+whole text, and the cut only decides what a cache stores.
+
 **Order.** Pieces are read in parallel, four at a time by default, and joined
 in reading order. A piece that finishes early waits for those before it: audio
 arriving out of order is text read out of order.
