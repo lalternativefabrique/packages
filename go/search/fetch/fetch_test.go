@@ -134,3 +134,48 @@ func TestFetchStaticTruncatesMarkdownOnALineBreak(t *testing.T) {
 		t.Errorf("Markdown should end on a whole line then an ellipsis, got %q", page.Markdown)
 	}
 }
+
+const linkedHTML = `<html><head><title>Hub</title></head><body>
+<nav><a href="/">Home</a> <a href="/docs/">Docs</a> <a href="/docs/#intro">Docs intro</a></nav>
+<article><h1>Hub</h1><p>` + longParagraph + ` See <a href="https://other.example/x">elsewhere</a>,
+<a href="mailto:hi@example.com">mail</a>, <a href="javascript:void(0)">nothing</a> and <a href="/docs/">docs again</a>.</p></article>
+</body></html>`
+
+const longParagraph = `Nos offres sont pensées pour accompagner chaque équipe, de la première expérimentation
+au déploiement en production sur des volumes importants, avec un support adapté à chaque étape.`
+
+func TestFetchStaticListsEveryHTTPLinkOnce(t *testing.T) {
+	srv := serveHTML(t, linkedHTML)
+	defer srv.Close()
+
+	page, err := FetchStatic(context.Background(), srv.URL+"/hub", 6000, nil)
+	if err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	want := []string{srv.URL + "/", srv.URL + "/docs/", "https://other.example/x"}
+	if strings.Join(page.Links, " ") != strings.Join(want, " ") {
+		t.Errorf("Links = %v, want %v", page.Links, want)
+	}
+}
+
+func TestFetchStaticReportsTheURLAfterRedirect(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/old" {
+			http.Redirect(w, r, "/new", http.StatusMovedPermanently)
+			return
+		}
+		w.Write([]byte(`<html><head><title>New</title></head><body><article><p>` + longParagraph + ` <a href="#top">top</a></p></article></body></html>`))
+	}))
+	defer srv.Close()
+
+	page, err := FetchStatic(context.Background(), srv.URL+"/old", 6000, nil)
+	if err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	if page.URL != srv.URL+"/new" {
+		t.Errorf("URL = %q, want the redirect target", page.URL)
+	}
+	if !strings.Contains(page.Markdown, "[top]("+srv.URL+"/new#top)") {
+		t.Errorf("anchors should resolve against the final URL, got %s", page.Markdown)
+	}
+}

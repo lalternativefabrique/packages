@@ -118,6 +118,10 @@ package should have to bundle. Deploy it separately and point `rendersvc`'s
 `baseURL` at it; a caller with no such service simply never wires a
 `Renderer` in.
 
+`Page.URL` is the address actually read, after redirects, and `Page.Links`
+lists every http(s) link of the whole document, absolute and without
+fragments — the navigation readability strips is what a crawler needs.
+
 ```go
 pages := page.Paginate(4000)
 ```
