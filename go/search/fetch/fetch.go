@@ -14,6 +14,7 @@ import (
 	"time"
 
 	readability "codeberg.org/readeck/go-readability/v2"
+	"golang.org/x/net/html"
 
 	"github.com/lalternative/packages/go/search"
 )
@@ -32,10 +33,16 @@ const (
 // Page is the extracted content of one fetched URL. Text is the main
 // content flattened for reading aloud or matching; Markdown is the same
 // content with its headings, lists, tables and links kept, for a model.
+//
+// URL is the address actually read, which a redirect can make differ from
+// the one asked for. Links are every http(s) link of the whole document,
+// absolute, for a caller that walks a site.
 type Page struct {
+	URL      string
 	Title    string
 	Text     string
 	Markdown string
+	Links    []string
 
 	OpenGraph *search.OpenGraph
 	Favicon   string
@@ -83,60 +90,67 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 		}
 	}
 
-	body, err := httpGet(ctx, rawURL)
+	body, final, err := httpGet(ctx, rawURL)
 	if err != nil {
 		return nil, err
 	}
 	defer body.Close()
 
-	page := extract(body, parsed)
+	page := extract(body, final)
 	if cache != nil {
 		cache.Set(rawURL, page)
 	}
 	return page, nil
 }
 
-func httpGet(ctx context.Context, rawURL string) (io.ReadCloser, error) {
+func httpGet(ctx context.Context, rawURL string) (io.ReadCloser, *url.URL, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("build request: %w", err)
+		return nil, nil, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", fetchUserAgent)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
 
 	resp, err := httpClient(fetchTimeout).Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetch page: %w", err)
+		return nil, nil, fmt.Errorf("fetch page: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		resp.Body.Close()
-		return nil, fmt.Errorf("fetch page: status %d", resp.StatusCode)
+		return nil, nil, fmt.Errorf("fetch page: status %d", resp.StatusCode)
 	}
-	return resp.Body, nil
+	return resp.Body, resp.Request.URL, nil
 }
 
 // extract isolates the readability call: the library panics on malformed
-// DOMs and would otherwise take the whole caller down with it.
-func extract(body io.Reader, parsed *url.URL) (page *Page) {
+// DOMs and would otherwise take the whole caller down with it. Links are
+// read off the document before readability prunes it.
+func extract(body io.Reader, page *url.URL) (out *Page) {
+	out = &Page{URL: page.String()}
 	defer func() {
 		if recover() != nil {
-			page = &Page{}
+			out = &Page{URL: page.String()}
 		}
 	}()
 
-	article, err := readability.FromReader(body, parsed)
+	doc, err := html.Parse(body)
 	if err != nil {
-		return &Page{}
+		return out
+	}
+	out.Links = collectLinks(doc, page)
+
+	article, err := readability.FromDocument(doc, page)
+	if err != nil {
+		return out
 	}
 	var buf strings.Builder
 	if err := article.RenderText(&buf); err != nil {
-		return &Page{}
+		return out
 	}
-	return &Page{
-		Title:    strings.TrimSpace(article.Title()),
-		Text:     strings.TrimSpace(buf.String()),
-		Markdown: renderMarkdown(article.Node, parsed),
-	}
+	out.Title = strings.TrimSpace(article.Title())
+	out.Text = strings.TrimSpace(buf.String())
+	out.Markdown = renderMarkdown(article.Node, page)
+	return out
 }
 
 func truncateRunes(s string, max int) string {
