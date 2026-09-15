@@ -5,8 +5,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	readability "codeberg.org/readeck/go-readability/v2"
 )
 
 // minUsableRunes is the floor below which FetchWithFallback treats a static
@@ -54,7 +52,7 @@ func FetchWithFallback(ctx context.Context, rawURL string, r Renderer, maxRunes 
 	renderedKey := rawURL + "#rendered"
 	if cache != nil {
 		if cached, ok := cache.Get(renderedKey); ok {
-			return &Page{Title: cached.Title, Text: truncateRunes(cached.Text, maxRunes)}, nil
+			return cached.truncated(maxRunes), nil
 		}
 	}
 
@@ -66,35 +64,16 @@ func FetchWithFallback(ctx context.Context, rawURL string, r Renderer, maxRunes 
 		return page, nil
 	}
 
-	title, text := extractHTML(html, parsed)
-	if strings.TrimSpace(text) == "" {
+	full := extract(strings.NewReader(html), parsed)
+	if full.Text == "" {
 		if err != nil {
 			return nil, err
 		}
 		return page, nil
 	}
 
-	full := &Page{Title: title, Text: text}
 	if cache != nil {
 		cache.Set(renderedKey, full)
 	}
-	return &Page{Title: title, Text: truncateRunes(text, maxRunes)}, nil
-}
-
-func extractHTML(html string, parsed *url.URL) (title, text string) {
-	defer func() {
-		if recover() != nil {
-			title, text = "", ""
-		}
-	}()
-
-	article, err := readability.FromReader(strings.NewReader(html), parsed)
-	if err != nil {
-		return "", ""
-	}
-	var buf strings.Builder
-	if err := article.RenderText(&buf); err != nil {
-		return "", ""
-	}
-	return strings.TrimSpace(article.Title()), strings.TrimSpace(buf.String())
+	return full.truncated(maxRunes), nil
 }

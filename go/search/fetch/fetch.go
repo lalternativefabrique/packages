@@ -1,4 +1,5 @@
-// Package fetch downloads one page and extracts its main text.
+// Package fetch downloads one page and extracts its main content, as plain
+// text and as markdown.
 //
 // Forked from Synthiz's apps/core/cerveau/infrastructure/fetch_url_tool.go.
 package fetch
@@ -28,10 +29,13 @@ const (
 	fetchTimeout = 20 * time.Second
 )
 
-// Page is the extracted content of one fetched URL.
+// Page is the extracted content of one fetched URL. Text is the main
+// content flattened for reading aloud or matching; Markdown is the same
+// content with its headings, lists, tables and links kept, for a model.
 type Page struct {
-	Title string
-	Text  string
+	Title    string
+	Text     string
+	Markdown string
 
 	OpenGraph *search.OpenGraph
 	Favicon   string
@@ -59,12 +63,15 @@ func FetchStatic(ctx context.Context, rawURL string, maxRunes int, cache Cache) 
 	if err != nil {
 		return nil, err
 	}
-	return &Page{
-		Title:     full.Title,
-		Text:      truncateRunes(full.Text, maxRunes),
-		OpenGraph: full.OpenGraph,
-		Favicon:   full.Favicon,
-	}, nil
+	return full.truncated(maxRunes), nil
+}
+
+// truncated applies maxRunes to both renderings of the page.
+func (p *Page) truncated(maxRunes int) *Page {
+	out := *p
+	out.Text = truncateRunes(p.Text, maxRunes)
+	out.Markdown = truncateMarkdown(p.Markdown, maxRunes)
+	return &out
 }
 
 // fetchFull returns the page's full, untruncated content, consulting and
@@ -82,8 +89,7 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 	}
 	defer body.Close()
 
-	title, text := extract(body, parsed)
-	page := &Page{Title: title, Text: text}
+	page := extract(body, parsed)
 	if cache != nil {
 		cache.Set(rawURL, page)
 	}
@@ -111,22 +117,26 @@ func httpGet(ctx context.Context, rawURL string) (io.ReadCloser, error) {
 
 // extract isolates the readability call: the library panics on malformed
 // DOMs and would otherwise take the whole caller down with it.
-func extract(body io.Reader, parsed *url.URL) (title, text string) {
+func extract(body io.Reader, parsed *url.URL) (page *Page) {
 	defer func() {
 		if recover() != nil {
-			title, text = "", ""
+			page = &Page{}
 		}
 	}()
 
 	article, err := readability.FromReader(body, parsed)
 	if err != nil {
-		return "", ""
+		return &Page{}
 	}
 	var buf strings.Builder
 	if err := article.RenderText(&buf); err != nil {
-		return "", ""
+		return &Page{}
 	}
-	return strings.TrimSpace(article.Title()), strings.TrimSpace(buf.String())
+	return &Page{
+		Title:    strings.TrimSpace(article.Title()),
+		Text:     strings.TrimSpace(buf.String()),
+		Markdown: renderMarkdown(article.Node, parsed.Scheme+"://"+parsed.Host),
+	}
 }
 
 func truncateRunes(s string, max int) string {
