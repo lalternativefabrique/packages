@@ -107,8 +107,13 @@ Publishers behind bot management refuse a datacenter address whatever headers
 it carries: a browser User-Agent from inside a cloud network is refused
 exactly like an honest one, and no header, cookie or delay lifts a verdict
 that was reached on the IP. A residential proxy is the only thing that
-changes the answer, which is why this is deployment-wide state rather than a
-per-call option — every caller wants it once it is configured.
+changes the answer. Most of the web is not like that, and a residential exit
+is slow and metered, so a fetch goes direct first and through the proxy only
+once its host refused the direct egress — a 401, 403, 429 or 503, or a
+connection the origin would not hold. The refusal is remembered per host for
+an hour. A caller that recognises a bot-management interstitial on a 200
+tells the package with `fetch.PreferProxy(host)` and fetches again; a
+renderer asks `fetch.ProxyPreferred(host)` to pick the browser that matches.
 
 An empty value clears it and fetches direct; an unparseable one is refused, so
 a typo is loud at startup rather than a silent return to being blocked.

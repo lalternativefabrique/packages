@@ -9,20 +9,22 @@ import (
 	"time"
 )
 
-// UseProxy sends every page fetch through proxyURL, a "scheme://user:pass@host:port"
-// residential endpoint.
+// UseProxy makes proxyURL, a "scheme://user:pass@host:port" residential
+// endpoint, the fallback exit for page fetches.
 //
 // Publishers behind bot management refuse a datacenter address whatever
 // headers it carries — a browser User-Agent from a cloud IP is refused
 // exactly like an honest one — so the exit IP is the only thing that decides
-// whether the page can be read at all. That makes the proxy a property of the
-// deployment, not of a call: every caller of this package wants it once it is
-// configured, and none should have to opt in.
+// whether such a page can be read at all. Most of the web is not like that,
+// and a residential exit is slow and metered, so a fetch goes direct first
+// and through the proxy only once its host has refused the direct egress;
+// the refusal is remembered per host for proxyMemory.
 //
 // An empty proxyURL clears it. An unparseable one is refused, so a typo in a
 // deployment's configuration is loud at boot rather than silently direct.
 func UseProxy(proxyURL string) error {
 	raw := strings.TrimSpace(proxyURL)
+	refused.reset()
 	if raw == "" {
 		proxy.set(nil)
 		return nil
@@ -101,11 +103,11 @@ func (p *proxyConfig) get() *url.URL {
 	return p.url
 }
 
-// httpClient returns the client one fetch runs on, sending through the proxy
-// when one is configured.
-func httpClient(timeout time.Duration) *http.Client {
+// httpClient returns the client one fetch runs on: direct, or through the
+// proxy when viaProxy asks for it and one is configured.
+func httpClient(timeout time.Duration, viaProxy bool) *http.Client {
 	client := &http.Client{Timeout: timeout}
-	if u := proxy.get(); u != nil {
+	if u := proxy.get(); u != nil && viaProxy {
 		client.Transport = &http.Transport{Proxy: http.ProxyURL(u)}
 	}
 	return client

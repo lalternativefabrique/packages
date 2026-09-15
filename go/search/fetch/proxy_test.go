@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,34 +17,121 @@ func resetProxy(t *testing.T) {
 	t.Cleanup(func() { UseProxy("") })
 }
 
-func TestFetchGoesThroughTheProxy(t *testing.T) {
-	resetProxy(t)
+const proxiedArticle = `<html><body><article><p>Le corps de l'article, assez long pour que readability le garde comme contenu principal de la page.</p></article></body></html>`
 
-	var proxied atomic.Int32
-	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// An HTTP proxy is addressed with an absolute-URI request line, which
-		// is what tells a proxied call from a direct one.
+// refusingOrigin answers 403 to a direct request and serves the article to
+// a proxied one, the way a publisher behind bot management treats a
+// datacenter address and a residential one.
+func refusingOrigin(t *testing.T) (origin, proxy *httptest.Server, direct, proxied *atomic.Int32) {
+	t.Helper()
+	direct, proxied = &atomic.Int32{}, &atomic.Int32{}
+	origin = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Via-Proxy") == "" {
+			direct.Add(1)
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		proxied.Add(1)
+		w.Write([]byte(proxiedArticle))
+	}))
+	t.Cleanup(origin.Close)
+	proxy = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !r.URL.IsAbs() {
 			t.Errorf("proxy got %q, want an absolute-URI request", r.URL)
 		}
-		proxied.Add(1)
-		w.Write([]byte(`<html><body><article><p>Le corps de l'article, assez long pour que readability le garde comme contenu principal de la page.</p></article></body></html>`))
+		req, _ := http.NewRequest(http.MethodGet, r.URL.String(), nil)
+		req.Header.Set("X-Via-Proxy", "1")
+		resp, err := http.DefaultTransport.RoundTrip(req)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		defer resp.Body.Close()
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
 	}))
-	defer proxy.Close()
+	t.Cleanup(proxy.Close)
+	return origin, proxy, direct, proxied
+}
 
+func TestFetchEscalatesToTheProxyWhenDirectIsRefused(t *testing.T) {
+	resetProxy(t)
+	origin, proxy, direct, proxied := refusingOrigin(t)
 	if err := UseProxy(proxy.URL); err != nil {
 		t.Fatalf("UseProxy: %v", err)
 	}
 
-	page, err := FetchStatic(context.Background(), "http://example.com/a", 6000, nil)
+	page, err := FetchStatic(context.Background(), origin.URL+"/a", 6000, nil)
 	if err != nil {
 		t.Fatalf("FetchStatic: %v", err)
 	}
-	if proxied.Load() != 1 {
-		t.Fatalf("proxy hits = %d, want 1", proxied.Load())
+	if direct.Load() != 1 || proxied.Load() != 1 {
+		t.Fatalf("direct %d proxied %d, want one try each", direct.Load(), proxied.Load())
 	}
 	if !strings.Contains(page.Text, "Le corps de l'article") {
 		t.Errorf("got text %q, want the proxied content", page.Text)
+	}
+
+	if _, err := FetchStatic(context.Background(), origin.URL+"/b", 6000, nil); err != nil {
+		t.Fatalf("second FetchStatic: %v", err)
+	}
+	if direct.Load() != 1 || proxied.Load() != 2 {
+		t.Errorf("direct %d proxied %d, want the host remembered as refusing", direct.Load(), proxied.Load())
+	}
+}
+
+func TestFetchStaysDirectOnAnOpenHost(t *testing.T) {
+	resetProxy(t)
+	var proxied atomic.Int32
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proxied.Add(1)
+		http.Error(w, "should not be used", http.StatusBadGateway)
+	}))
+	defer proxy.Close()
+	origin := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(proxiedArticle))
+	}))
+	defer origin.Close()
+	if err := UseProxy(proxy.URL); err != nil {
+		t.Fatalf("UseProxy: %v", err)
+	}
+
+	page, err := FetchStatic(context.Background(), origin.URL+"/open", 6000, nil)
+	if err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	if proxied.Load() != 0 || !strings.Contains(page.Text, "Le corps") {
+		t.Errorf("proxy hits = %d, text %q; an open host must be read direct", proxied.Load(), page.Text)
+	}
+}
+
+func TestPreferProxySendsTheNextFetchThroughTheProxy(t *testing.T) {
+	resetProxy(t)
+	origin, proxy, direct, proxied := refusingOrigin(t)
+	if err := UseProxy(proxy.URL); err != nil {
+		t.Fatalf("UseProxy: %v", err)
+	}
+	host := strings.TrimPrefix(origin.URL, "http://")
+	if ProxyPreferred(host) {
+		t.Fatal("a fresh host should not be marked")
+	}
+	PreferProxy(host)
+	if !ProxyPreferred(host) {
+		t.Fatal("PreferProxy should mark the host")
+	}
+	if _, err := FetchStatic(context.Background(), origin.URL+"/c", 6000, nil); err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	if direct.Load() != 0 || proxied.Load() != 1 {
+		t.Errorf("direct %d proxied %d, want the proxy at once", direct.Load(), proxied.Load())
+	}
+}
+
+func TestARefusalWithoutAProxyIsAnError(t *testing.T) {
+	resetProxy(t)
+	origin, _, _, _ := refusingOrigin(t)
+	if _, err := FetchStatic(context.Background(), origin.URL+"/a", 6000, nil); err == nil || !strings.Contains(err.Error(), "403") {
+		t.Errorf("err = %v, want the 403 surfaced", err)
 	}
 }
 

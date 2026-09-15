@@ -114,15 +114,24 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 	return page, nil
 }
 
+// httpGet fetches rawURL direct, and again through the proxy when the host
+// refused the direct egress: a status a bot policy answers with, or a
+// connection the origin would not hold. The refusal is remembered, so the
+// host's next fetch pays no direct try.
 func httpGet(ctx context.Context, rawURL string) (body io.ReadCloser, final *url.URL, contentType string, err error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
-	if err != nil {
-		return nil, nil, "", fmt.Errorf("build request: %w", err)
+	host := ""
+	if u, perr := url.Parse(rawURL); perr == nil {
+		host = strings.ToLower(u.Host)
 	}
-	req.Header.Set("User-Agent", fetchUserAgent)
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.9,*/*;q=0.8")
-
-	resp, err := httpClient(fetchTimeout).Do(req)
+	viaProxy := ProxyPreferred(host)
+	resp, err := doGet(ctx, rawURL, viaProxy)
+	if !viaProxy && proxy.get() != nil && refusedDirect(resp, err) {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		PreferProxy(host)
+		resp, err = doGet(ctx, rawURL, true)
+	}
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("fetch page: %w", err)
 	}
@@ -131,6 +140,16 @@ func httpGet(ctx context.Context, rawURL string) (body io.ReadCloser, final *url
 		return nil, nil, "", fmt.Errorf("fetch page: status %d", resp.StatusCode)
 	}
 	return resp.Body, resp.Request.URL, resp.Header.Get("Content-Type"), nil
+}
+
+func doGet(ctx context.Context, rawURL string, viaProxy bool) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+	req.Header.Set("User-Agent", fetchUserAgent)
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.9,*/*;q=0.8")
+	return httpClient(fetchTimeout, viaProxy).Do(req)
 }
 
 // maxHTMLBytes bounds a page read into memory: it is parsed twice, once
