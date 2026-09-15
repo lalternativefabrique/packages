@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -84,5 +85,52 @@ func TestFetchStaticTruncatesToMaxRunes(t *testing.T) {
 	}
 	if len([]rune(page.Text)) > 11 { // 10 runes + the ellipsis
 		t.Errorf("Text has %d runes, want at most 11 (10 + ellipsis)", len([]rune(page.Text)))
+	}
+}
+
+const tableHTML = `<html><head><title>Exemple — offres</title></head><body><article>
+<h2>Tarifs</h2>
+<p>Nos offres sont pensées pour accompagner chaque équipe, de la première expérimentation
+au déploiement en production sur des volumes importants, avec un support adapté.</p>
+<table>
+<tr><th>Plan</th><th>Prix</th><th>Requêtes</th></tr>
+<tr><td>Free</td><td>0 €</td><td>500</td></tr>
+<tr><td>Pro</td><td>49 €</td><td>50 000</td></tr>
+</table>
+<p>Voir la <a href="/pricing">grille complète</a> pour le détail des options et des
+engagements de disponibilité qui accompagnent chacun des plans proposés ici.</p>
+</article></body></html>`
+
+func TestFetchStaticRendersMarkdownWithTablesAndLinks(t *testing.T) {
+	srv := serveHTML(t, tableHTML)
+	defer srv.Close()
+
+	page, err := FetchStatic(context.Background(), srv.URL, 6000, nil)
+	if err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	for _, want := range []string{"## Tarifs", "| Plan | Prix | Requêtes |", "| Pro  | 49 € | 50 000   |", "[grille complète](" + srv.URL + "/pricing)"} {
+		if !strings.Contains(page.Markdown, want) {
+			t.Errorf("Markdown lacks %q:\n%s", want, page.Markdown)
+		}
+	}
+	if strings.Contains(page.Text, "|") {
+		t.Errorf("Text should stay plain, got %q", page.Text)
+	}
+}
+
+func TestFetchStaticTruncatesMarkdownOnALineBreak(t *testing.T) {
+	srv := serveHTML(t, tableHTML)
+	defer srv.Close()
+
+	page, err := FetchStatic(context.Background(), srv.URL, 120, nil)
+	if err != nil {
+		t.Fatalf("FetchStatic: %v", err)
+	}
+	if len([]rune(page.Markdown)) > 122 {
+		t.Errorf("Markdown not truncated: %d runes", len([]rune(page.Markdown)))
+	}
+	if !strings.HasSuffix(page.Markdown, "\n…") {
+		t.Errorf("Markdown should end on a whole line then an ellipsis, got %q", page.Markdown)
 	}
 }

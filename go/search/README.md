@@ -73,6 +73,13 @@ execute JavaScript — a page whose content is rendered client-side yields
 empty text, not an error, since half the web is like this and the caller
 should decide what to do about it rather than have this package guess.
 
+`Page.Markdown` carries the same content with its headings, lists, tables
+and links kept, converted from readability's cleaned DOM. `Text` flattens a
+pricing table into a run of words and drops every link; a model reading the
+page needs both back, and markdown costs a few percent more tokens than the
+flat text where HTML costs several times as much. Both fields are truncated
+to `maxRunes`, markdown on a whole line so a table row is never cut in half.
+
 ```go
 page, err := fetch.FetchWithFallback(ctx, url, renderer, 6000, nil)
 ```
