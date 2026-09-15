@@ -3,7 +3,7 @@ module github.com/lalternative/packages/go/authz
 go 1.26.0
 
 require (
-	github.com/lalternative/packages/go/svcauth v0.3.1-0.20260915085422-fe032601fa5d
+	github.com/lalternative/packages/go/svcauth v0.4.0
 	github.com/open-policy-agent/opa v1.20.2
 	go.opentelemetry.io/otel v1.46.0
 	go.opentelemetry.io/otel/trace v1.46.0
