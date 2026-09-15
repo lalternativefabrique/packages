@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -40,7 +41,9 @@ type Config struct {
 	// Concurrency defaults to DefaultConcurrency.
 	Concurrency int
 	// MaxChars is how much text goes into one request. It defaults to MaxChars,
-	// the limit hosted endpoints impose — but a limit is not a target. Reading
+	// the limit hosted endpoints impose; WholeText sends the text as one
+	// request whatever its length, for a server with no limit that cuts and
+	// streams by sentence itself. A limit is not a target, though. Reading
 	// happens one request at a time, so a text that fits in a single one is
 	// read serially however high Concurrency is set: cutting smaller is what
 	// turns waiting into parallel work.
@@ -60,6 +63,12 @@ type Config struct {
 	// package has no opinion on it and no dependency on one.
 	OnUsage func(chars int)
 }
+
+// WholeText, as MaxChars, sends every text as a single request. Only for a
+// server that takes any length and streams its sentences as it reads them:
+// a hosted endpoint refuses the request, and one that answers whole would
+// keep the listener waiting for all of it.
+const WholeText = -1
 
 // OpenAIVoice reads text through the /v1/audio/speech protocol.
 type OpenAIVoice struct {
@@ -83,7 +92,7 @@ func NewOpenAIVoice(cfg Config) *OpenAIVoice {
 	if cfg.Concurrency <= 0 {
 		cfg.Concurrency = DefaultConcurrency
 	}
-	if cfg.MaxChars <= 0 {
+	if cfg.MaxChars <= 0 && cfg.MaxChars != WholeText {
 		cfg.MaxChars = MaxChars
 	}
 	if cfg.Client == nil {
@@ -108,7 +117,7 @@ func (v *OpenAIVoice) Speak(ctx context.Context, text string) ([]byte, string, e
 }
 
 func (v *OpenAIVoice) SpeakStream(ctx context.Context, text string, emit func([]byte) error) (string, error) {
-	pieces := Split(text, v.cfg.MaxChars)
+	pieces := v.pieces(text)
 	if len(pieces) == 0 {
 		return "", errors.New("tts: nothing to read")
 	}
@@ -174,6 +183,17 @@ func (v *OpenAIVoice) SpeakStream(ctx context.Context, text string, emit func([]
 		return "", err
 	}
 	return MIMEFor(v.cfg.Format), nil
+}
+
+func (v *OpenAIVoice) pieces(text string) []string {
+	if v.cfg.MaxChars != WholeText {
+		return Split(text, v.cfg.MaxChars)
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+	return []string{text}
 }
 
 type spoken struct {

@@ -440,3 +440,35 @@ func TestAnEmptyFramedAnswerIsAFailure(t *testing.T) {
 		t.Fatal("Speak accepted a 200 with no frames as audio")
 	}
 }
+
+func TestWholeTextIsOneRequestWhateverItsLength(t *testing.T) {
+	text, _ := longText(6)
+	var calls atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		body, _ := io.ReadAll(r.Body)
+		if got := inputOf(string(body)); len(got) < len(text)/2 {
+			t.Errorf("request carries %d characters, want the whole text", len(got))
+		}
+		framed(w, 0, "<a>", "<b>")
+	}))
+	t.Cleanup(srv.Close)
+
+	audio, _, err := NewOpenAIVoice(Config{BaseURL: srv.URL, MaxChars: WholeText}).Speak(context.Background(), text)
+	if err != nil {
+		t.Fatalf("Speak: %v", err)
+	}
+	if calls.Load() != 1 {
+		t.Fatalf("%d requests for one text, want 1", calls.Load())
+	}
+	if string(audio) != "<a><b>" {
+		t.Fatalf("audio is %q", audio)
+	}
+}
+
+func TestWholeTextStillRefusesNothingToRead(t *testing.T) {
+	v := NewOpenAIVoice(Config{BaseURL: "http://127.0.0.1:1", MaxChars: WholeText})
+	if _, _, err := v.Speak(context.Background(), "  \n "); err == nil {
+		t.Fatal("Speak read blank text")
+	}
+}
