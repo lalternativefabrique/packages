@@ -1,6 +1,7 @@
 package fetch
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
@@ -16,12 +17,103 @@ var markdownConverter = converter.NewConverter(converter.WithPlugins(
 	table.NewTablePlugin(),
 ))
 
-func renderMarkdown(node *html.Node, domain string) string {
-	out, err := markdownConverter.ConvertNode(node, converter.WithDomain(domain))
+func renderMarkdown(node *html.Node, page *url.URL) string {
+	prepareForMarkdown(node, page)
+	out, err := markdownConverter.ConvertNode(node)
 	if err != nil {
 		return ""
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// prepareForMarkdown rewrites the DOM for a reader that is a model, not a
+// browser: links and images resolve against the page so a fragment keeps
+// pointing into it, link titles go since they repeat the link text, and
+// footnote markers go since they carry nothing without the notes.
+func prepareForMarkdown(node *html.Node, page *url.URL) {
+	var drop []*html.Node
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode {
+			switch n.Data {
+			case "a":
+				if isFootnoteMarker(n) {
+					drop = append(drop, n)
+					return
+				}
+				resolveAttr(n, "href", page)
+				removeAttr(n, "title")
+			case "img":
+				resolveAttr(n, "src", page)
+				removeAttr(n, "title")
+			case "sup":
+				if hasClass(n, "reference") {
+					drop = append(drop, n)
+					return
+				}
+			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(node)
+	for _, n := range drop {
+		if n.Parent != nil {
+			n.Parent.RemoveChild(n)
+		}
+	}
+}
+
+// isFootnoteMarker recognises a "[1]"-style link into the page's own notes.
+func isFootnoteMarker(a *html.Node) bool {
+	href := attr(a, "href")
+	return strings.Contains(href, "#cite_note") || strings.Contains(href, "#cite_ref")
+}
+
+func resolveAttr(n *html.Node, name string, page *url.URL) {
+	if page == nil {
+		return
+	}
+	for i, a := range n.Attr {
+		if a.Key != name {
+			continue
+		}
+		ref, err := url.Parse(strings.TrimSpace(a.Val))
+		if err != nil {
+			return
+		}
+		n.Attr[i].Val = page.ResolveReference(ref).String()
+		return
+	}
+}
+
+func removeAttr(n *html.Node, name string) {
+	kept := n.Attr[:0]
+	for _, a := range n.Attr {
+		if a.Key != name {
+			kept = append(kept, a)
+		}
+	}
+	n.Attr = kept
+}
+
+func attr(n *html.Node, name string) string {
+	for _, a := range n.Attr {
+		if a.Key == name {
+			return a.Val
+		}
+	}
+	return ""
+}
+
+func hasClass(n *html.Node, class string) bool {
+	for _, c := range strings.Fields(attr(n, "class")) {
+		if c == class {
+			return true
+		}
+	}
+	return false
 }
 
 // truncateMarkdown cuts at the last line break inside max, so a table row or

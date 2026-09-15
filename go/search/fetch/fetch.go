@@ -135,7 +135,7 @@ func extract(body io.Reader, parsed *url.URL) (page *Page) {
 	return &Page{
 		Title:    strings.TrimSpace(article.Title()),
 		Text:     strings.TrimSpace(buf.String()),
-		Markdown: renderMarkdown(article.Node, parsed.Scheme+"://"+parsed.Host),
+		Markdown: renderMarkdown(article.Node, parsed),
 	}
 }
 
