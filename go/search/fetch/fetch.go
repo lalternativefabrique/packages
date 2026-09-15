@@ -100,13 +100,22 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 	defer body.Close()
 
 	var page *Page
-	if isPDF(contentType, final) {
+	switch {
+	case isPDF(contentType, final):
 		page, err = extractPDF(ctx, body, final)
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	case isPlainText(contentType, final):
+		page, err = extractPlainText(body, final)
+		if err != nil {
+			return nil, err
+		}
+	default:
 		page = extract(body, final)
+	}
+	if page.Title == "" {
+		page.Title = fileTitle(final)
 	}
 	if cache != nil && page.Text != "" {
 		cache.Set(rawURL, page)
