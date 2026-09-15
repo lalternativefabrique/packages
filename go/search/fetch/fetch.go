@@ -90,36 +90,41 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 		}
 	}
 
-	body, final, err := httpGet(ctx, rawURL)
+	body, final, contentType, err := httpGet(ctx, rawURL)
 	if err != nil {
 		return nil, err
 	}
 	defer body.Close()
 
-	page := extract(body, final)
+	var page *Page
+	if isPDF(contentType, final) {
+		page = extractPDF(body, final)
+	} else {
+		page = extract(body, final)
+	}
 	if cache != nil {
 		cache.Set(rawURL, page)
 	}
 	return page, nil
 }
 
-func httpGet(ctx context.Context, rawURL string) (io.ReadCloser, *url.URL, error) {
+func httpGet(ctx context.Context, rawURL string) (body io.ReadCloser, final *url.URL, contentType string, err error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("build request: %w", err)
+		return nil, nil, "", fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("User-Agent", fetchUserAgent)
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf;q=0.9,*/*;q=0.8")
 
 	resp, err := httpClient(fetchTimeout).Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetch page: %w", err)
+		return nil, nil, "", fmt.Errorf("fetch page: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		resp.Body.Close()
-		return nil, nil, fmt.Errorf("fetch page: status %d", resp.StatusCode)
+		return nil, nil, "", fmt.Errorf("fetch page: status %d", resp.StatusCode)
 	}
-	return resp.Body, resp.Request.URL, nil
+	return resp.Body, resp.Request.URL, resp.Header.Get("Content-Type"), nil
 }
 
 // extract isolates the readability call: the library panics on malformed

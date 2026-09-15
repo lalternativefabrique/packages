@@ -118,6 +118,12 @@ package should have to bundle. Deploy it separately and point `rendersvc`'s
 `baseURL` at it; a caller with no such service simply never wires a
 `Renderer` in.
 
+A URL that serves a PDF — by `Content-Type`, or by a `.pdf` name with no
+usable type — is read as one: `Text` is its pages' text, `Title` its
+metadata title or file name, and `Markdown` repeats the text since a PDF's
+layout does not survive extraction. Extraction is pure Go; columns and
+tables come out as reading order at best.
+
 `Page.URL` is the address actually read, after redirects, and `Page.Links`
 lists every http(s) link of the whole document, absolute and without
 fragments — the navigation readability strips is what a crawler needs.
