@@ -73,6 +73,13 @@ execute JavaScript — a page whose content is rendered client-side yields
 empty text, not an error, since half the web is like this and the caller
 should decide what to do about it rather than have this package guess.
 
+Readability is trusted only when it keeps at least half of the page's
+text. A list page — one large table after a short intro — comes back from
+it as the intro alone, the table scored as an unrelated sibling; the whole
+body, less scripts, navigation and forms, stands in for the article then.
+Measured on Wikipedia, articles keep 0.90-0.95 and the list of countries by
+population kept 0.16.
+
 `Page.Markdown` carries the same content with its headings, lists, tables
 and links kept, converted from readability's cleaned DOM. `Text` flattens a
 pricing table into a run of words and drops every link; a model reading the

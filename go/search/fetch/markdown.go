@@ -11,10 +11,17 @@ import (
 	"golang.org/x/net/html"
 )
 
+// The table plugin skips a table with a line break in a cell by default;
+// Wikipedia's data tables all have one, and a skipped table is the page
+// lost, so breaks are kept as spaces inside the cell instead.
 var markdownConverter = converter.NewConverter(converter.WithPlugins(
 	base.NewBasePlugin(),
 	commonmark.NewCommonmarkPlugin(),
-	table.NewTablePlugin(),
+	table.NewTablePlugin(
+		table.WithNewlineBehavior(table.NewlineBehaviorPreserve),
+		table.WithSkipEmptyRows(true),
+		table.WithCellPaddingBehavior(table.CellPaddingBehaviorMinimal),
+	),
 ))
 
 func renderMarkdown(node *html.Node, page *url.URL) string {
@@ -37,13 +44,17 @@ func prepareForMarkdown(node *html.Node, page *url.URL) {
 		if n.Type == html.ElementNode {
 			switch n.Data {
 			case "a":
-				if isFootnoteMarker(n) {
+				if isFootnoteMarker(n) || isEmptyLink(n) {
 					drop = append(drop, n)
 					return
 				}
 				resolveAttr(n, "href", page)
 				removeAttr(n, "title")
 			case "img":
+				if strings.TrimSpace(attr(n, "alt")) == "" {
+					drop = append(drop, n)
+					return
+				}
 				resolveAttr(n, "src", page)
 				removeAttr(n, "title")
 			case "sup":
@@ -69,6 +80,28 @@ func prepareForMarkdown(node *html.Node, page *url.URL) {
 func isFootnoteMarker(a *html.Node) bool {
 	href := attr(a, "href")
 	return strings.Contains(href, "#cite_note") || strings.Contains(href, "#cite_ref")
+}
+
+// isEmptyLink is an anchor with nothing to show: no text, no described
+// image. Icon links and edit links come out as "[](url)" otherwise, by the
+// hundred, and an image with no alt text is nothing a model can read.
+func isEmptyLink(a *html.Node) bool {
+	var has func(*html.Node) bool
+	has = func(n *html.Node) bool {
+		if n.Type == html.TextNode && strings.TrimSpace(n.Data) != "" {
+			return true
+		}
+		if n.Type == html.ElementNode && n.Data == "img" && strings.TrimSpace(attr(n, "alt")) != "" {
+			return true
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			if has(c) {
+				return true
+			}
+		}
+		return false
+	}
+	return !has(a)
 }
 
 func resolveAttr(n *html.Node, name string, page *url.URL) {

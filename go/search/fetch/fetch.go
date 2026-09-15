@@ -5,6 +5,7 @@
 package fetch
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -127,9 +128,18 @@ func httpGet(ctx context.Context, rawURL string) (body io.ReadCloser, final *url
 	return resp.Body, resp.Request.URL, resp.Header.Get("Content-Type"), nil
 }
 
+// maxHTMLBytes bounds a page read into memory: it is parsed twice, once
+// for its links and once for readability, which prunes what it parses.
+const maxHTMLBytes = 16 << 20
+
 // extract isolates the readability call: the library panics on malformed
 // DOMs and would otherwise take the whole caller down with it. Links are
-// read off the document before readability prunes it.
+// read off the whole document, which readability prunes.
+//
+// When readability keeps less than keepShare of the page's text, its
+// article is not the page: a list page is one large table that scores as
+// a sibling of the intro, and comes back without it. The whole body, less
+// its boilerplate, stands in for the article then.
 func extract(body io.Reader, page *url.URL) (out *Page) {
 	out = &Page{URL: page.String()}
 	defer func() {
@@ -138,23 +148,44 @@ func extract(body io.Reader, page *url.URL) (out *Page) {
 		}
 	}()
 
-	doc, err := html.Parse(body)
+	raw, err := io.ReadAll(io.LimitReader(body, maxHTMLBytes))
+	if err != nil {
+		return out
+	}
+	doc, err := html.Parse(bytes.NewReader(raw))
 	if err != nil {
 		return out
 	}
 	out.Links = collectLinks(doc, page)
+	out.Title = documentTitle(doc)
 
-	article, err := readability.FromDocument(doc, page)
+	whole := bodyOf(doc)
+	pruneBoilerplate(whole)
+	wholeRunes := textRunes(whole)
+
+	forReadability, err := html.Parse(bytes.NewReader(raw))
 	if err != nil {
 		return out
 	}
-	var buf strings.Builder
-	if err := article.RenderText(&buf); err != nil {
-		return out
+	article, err := readability.FromDocument(forReadability, page)
+	if err == nil && article.Node != nil && float64(textRunes(article.Node)) >= keepShare*float64(wholeRunes) {
+		var buf strings.Builder
+		if err := article.RenderText(&buf); err == nil {
+			if title := strings.TrimSpace(article.Title()); title != "" {
+				out.Title = title
+			}
+			out.Text = strings.TrimSpace(buf.String())
+			out.Markdown = renderMarkdown(article.Node, page)
+			return out
+		}
 	}
-	out.Title = strings.TrimSpace(article.Title())
-	out.Text = strings.TrimSpace(buf.String())
-	out.Markdown = renderMarkdown(article.Node, page)
+	if err == nil && article.Node != nil {
+		if title := strings.TrimSpace(article.Title()); title != "" {
+			out.Title = title
+		}
+	}
+	out.Text = renderText(whole)
+	out.Markdown = renderMarkdown(whole, page)
 	return out
 }
 
