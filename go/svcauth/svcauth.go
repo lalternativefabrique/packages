@@ -35,6 +35,10 @@ type Claims struct {
 	Issuer   string
 	Subject  string
 	ClientID string
+	// Owner is the identity that created the client, when the issuer says so.
+	// Hydra's client_credentials tokens have the client id as subject; the
+	// suite's token hook adds the owner of a personal key as this claim.
+	Owner    string
 	Audience []string
 	Scopes   []string
 	Roles    []string
@@ -112,8 +116,10 @@ type rawClaims struct {
 	Scope     string   `json:"scope"`
 	ScopeList []string `json:"scp"`
 	Roles     []string `json:"roles"`
+	Owner     string   `json:"owner"`
 	Ext       struct {
 		Roles []string `json:"roles"`
+		Owner string   `json:"owner"`
 	} `json:"ext"`
 	jwt.RegisteredClaims
 }
@@ -173,6 +179,7 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Claims, error) {
 		Issuer:   ik.url,
 		Subject:  rc.Subject,
 		ClientID: rc.ClientID,
+		Owner:    ownerOf(rc),
 		Audience: rc.Audience,
 		Scopes:   scopesOf(rc),
 		Roles:    rolesOf(rc),
@@ -202,6 +209,13 @@ func scopesOf(rc rawClaims) []string {
 		return nil
 	}
 	return strings.Fields(rc.Scope)
+}
+
+func ownerOf(rc rawClaims) string {
+	if rc.Owner != "" {
+		return rc.Owner
+	}
+	return rc.Ext.Owner
 }
 
 func rolesOf(rc rawClaims) []string {
