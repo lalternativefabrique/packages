@@ -75,3 +75,44 @@ func TestFetchStaticTruncatesAPDF(t *testing.T) {
 		t.Errorf("Text not truncated: %q", page.Text)
 	}
 }
+
+type recordingCache struct {
+	sets int
+}
+
+func (c *recordingCache) Get(string) (*Page, bool) { return nil, false }
+func (c *recordingCache) Set(string, *Page)        { c.sets++ }
+
+func TestFetchStaticReportsAPDFItCannotRead(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Write([]byte("not a pdf at all"))
+	}))
+	defer srv.Close()
+	cache := &recordingCache{}
+
+	_, err := FetchStatic(context.Background(), srv.URL+"/x.pdf", 6000, cache)
+	if err == nil {
+		t.Fatal("a file pdftotext cannot read should be an error, not an empty page")
+	}
+	if cache.sets != 0 {
+		t.Errorf("nothing should be cached on failure, got %d sets", cache.sets)
+	}
+}
+
+func TestFetchStaticDoesNotCacheAnEmptyPage(t *testing.T) {
+	srv := serveHTML(t, jsOnlyShellHTML)
+	defer srv.Close()
+	cache := &recordingCache{}
+
+	page, err := FetchStatic(context.Background(), srv.URL, 6000, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if page.Text != "" {
+		t.Skipf("fixture yielded text %q, cannot test the empty case", page.Text)
+	}
+	if cache.sets != 0 {
+		t.Errorf("an empty page was cached: %d sets", cache.sets)
+	}
+}
