@@ -83,7 +83,9 @@ func (p *Page) truncated(maxRunes int) *Page {
 }
 
 // fetchFull returns the page's full, untruncated content, consulting and
-// populating cache around the network fetch.
+// populating cache around the network fetch. An empty page is never
+// cached: it is a JS shell or a download that failed, and either deserves
+// another try before the TTL runs out.
 func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache) (*Page, error) {
 	if cache != nil {
 		if page, ok := cache.Get(rawURL); ok {
@@ -99,11 +101,14 @@ func fetchFull(ctx context.Context, rawURL string, parsed *url.URL, cache Cache)
 
 	var page *Page
 	if isPDF(contentType, final) {
-		page = extractPDF(ctx, body, final)
+		page, err = extractPDF(ctx, body, final)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		page = extract(body, final)
 	}
-	if cache != nil {
+	if cache != nil && page.Text != "" {
 		cache.Set(rawURL, page)
 	}
 	return page, nil
