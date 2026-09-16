@@ -3,6 +3,7 @@ import { emailOTP, admin, magicLink, twoFactor, genericOAuth } from "better-auth
 import type { PlatformAuthConfig, PlatformAuthMailerType, PlatformSsoConfig } from "./types"
 import { withGoogleDefaults } from "./google-defaults"
 import { mapSsoProfile, roleFromIdToken, type SsoProfile } from "./sso-profile"
+import { ssoEndpoints } from "./sso-endpoints"
 import { withSignUpName } from "./signup-name"
 import { resolveRateLimit } from "./rate-limit"
 
@@ -205,7 +206,7 @@ export function createPlatformAuth(
               config: [
                 {
                   providerId: ssoProviderId,
-                  discoveryUrl: `${sso.issuer.replace(/\/$/, "")}/.well-known/openid-configuration`,
+                  ...ssoEndpoints(sso.issuer),
                   clientId: sso.clientId,
                   clientSecret: sso.clientSecret,
                   scopes: ["openid", "email", "profile", "offline_access"],
