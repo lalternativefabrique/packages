@@ -225,6 +225,15 @@ An app therefore **must not deactivate or delete the identity** when it
 deletes a local account: it drops its own role and its local row. Deactivating
 the identity would sign the person out of every other product of the suite.
 
+The address is what joins the two, and nothing else does. Someone who signs up
+on spore with one address and on lalter with another gets **two identities**,
+and the provider has no way to know they are the same person. Their app keys
+are then split across those identities: `/keys` shows each set on its own, and
+a key minted under one cannot name the other's product. That follows from each
+app keeping its own accounts, and is not a defect to route around — but an
+integrator who used two addresses will meet it, and the answer is to sign up
+with the same address on both products.
+
 ### Refusals a form must tell apart
 
 `res.error.message` carries the reason, so the existing error banner renders
