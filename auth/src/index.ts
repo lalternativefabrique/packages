@@ -36,6 +36,7 @@ export type {
   AuthNavProps,
   AuthInviteProps,
   LinkComponent,
+  PlatformKratosPasswordConfig,
 } from "./types"
 
 // Hooks
@@ -60,6 +61,16 @@ export { normalizeInviteToken, withInviteToken } from "./invite-token"
 
 // A route guarding on the same refusal outside the form needs the predicate.
 export { isEmailNotVerified } from "./email-not-verified"
+
+// Sign-in refusals coming from the identity provider rather than from a wrong
+// password: a page routing to recovery or reporting an outage needs to tell
+// them apart.
+export {
+  isAccountDisabled,
+  isIdentityProviderUnavailable,
+  needsPasswordRecovery,
+  needsSecondFactor,
+} from "./kratos-sign-in-error"
 
 // OAuth failures reach the page through the address bar, so a route reading one
 // before render needs these outside the components.

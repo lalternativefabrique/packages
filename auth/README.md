@@ -186,3 +186,90 @@ if (isInvitationFailure(outcome)) return <InvitationNotice reason={outcome} />
 
 `endpoint` is any backend that redeems a token, so an app already claiming
 against its own API keeps doing so; `extra` adds fields to the request body.
+
+## Customer passwords at the identity provider (0.14.0)
+
+From **0.14.0**, an app can move its customers' passwords to the suite's
+identity provider while keeping its own login screen, its own domain and its
+own session. Nothing is enabled by a version bump alone: passwords stay local
+until `kratosPasswords` is passed. An app upgrading to 0.14.x never changes
+behaviour by accident.
+
+```ts
+createPlatformAuth({
+  // …
+  kratosPasswords: {
+    publicUrl: process.env.URBANGATE_PUBLIC_URL!,
+    issuer: process.env.URBANGATE_ISSUER_URL!,
+    clientId: process.env.URBANGATE_PROVISIONER_CLIENT_ID!,
+    clientSecret: process.env.URBANGATE_PROVISIONER_CLIENT_SECRET!,
+    role: "spore:user",
+    product: "spore",
+    onProvisioningDeferred: ({ userId, email }) => queueIdentityRepair(userId, email),
+  },
+})
+```
+
+The login form, its copy and its routes do not change, and nobody is
+redirected: the password is posted to this app as before and checked against
+Kratos instead of a local hash.
+
+### Each app keeps its own accounts
+
+The same person signing up on two products gets two local users and two
+passwords, which may use two different addresses. They are never told the
+products know each other. What they share — when the address is the same — is
+one identity at the provider, which is what an app key is issued against.
+
+An app therefore **must not deactivate or delete the identity** when it
+deletes a local account: it drops its own role and its local row. Deactivating
+the identity would sign the person out of every other product of the suite.
+
+### Refusals a form must tell apart
+
+`res.error.message` carries the reason, so the existing error banner renders
+it with no change. A page that routes rather than renders uses the predicates:
+
+| Predicate | Meaning |
+|---|---|
+| `needsPasswordRecovery` | The identity has no password yet (an account predating the move). Send to recovery — it is **not** a wrong password. |
+| `isIdentityProviderUnavailable` | The provider is unreachable. The password was never refused; do not suggest changing it. |
+| `needsSecondFactor` | Kratos requires a second factor. |
+| `isAccountDisabled` | The identity is deactivated. |
+
+Verification fails closed: only an explicit refusal by Kratos reads as a wrong
+password, and an outage answers 503 so nobody rotates a password that was
+right.
+
+### Why the sentinel hash
+
+Better Auth's `/sign-in/email` reads the credential row and refuses **before**
+reaching the verifier when it carries no hash, and its verifier is handed only
+`{hash, password}` — never the address. So the package writes
+`KRATOS_SENTINEL_HASH` in place of a hash and carries the address to the
+verifier from the route hook.
+
+The sentinel is a constant, not a hash: argon2/bcrypt/scrypt verification of
+it fails on its format, so a build that ever bypassed the custom verifier
+refuses everyone rather than admitting anyone.
+
+This is deliberate and it is a workaround. When Better Auth exposes a seam for
+an external credential provider, the replacement is to handle `/sign-in/email`
+before the native route runs, and the sentinel disappears. That was not taken
+now because it means re-implementing session creation, which is where a
+mistake becomes an authentication hole.
+
+### Provisioning is not atomic
+
+`user.create.after` runs after the insert commits, so a sign-up cannot be
+atomic with the identity it needs. A provider that is down leaves `identityId`
+null and the person registered all the same — a customer is never refused
+registration because the provider is unavailable. `onProvisioningDeferred`
+receives those sign-ups so the app can queue the repair, which re-sends
+through `provisionIdentity`. The endpoint is idempotent on the address, so a
+repair for someone who already got an identity returns that same one.
+
+### Rollout
+
+Per app, smallest customer base first — never all at once. An app that
+switches and breaks locks its customers out.

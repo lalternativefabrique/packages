@@ -1,6 +1,17 @@
 import { betterAuth, APIError, type Auth, type BetterAuthOptions } from "better-auth"
 import { emailOTP, admin, magicLink, twoFactor, genericOAuth } from "better-auth/plugins"
-import type { PlatformAuthConfig, PlatformAuthMailerType, PlatformSsoConfig } from "./types"
+import type {
+  PlatformAuthConfig,
+  PlatformAuthMailerType,
+  PlatformKratosPasswordConfig,
+  PlatformSsoConfig,
+} from "./types"
+import {
+  KRATOS_SENTINEL_HASH,
+  verifyAgainstKratos,
+  type KratosOutcome,
+} from "./kratos-credentials"
+import { provisionIdentity } from "./identity-provisioning"
 import { withGoogleDefaults } from "./google-defaults"
 import { mapSsoProfile, roleFromIdToken, type SsoProfile } from "./sso-profile"
 import { ssoEndpoints } from "./sso-endpoints"
@@ -64,6 +75,7 @@ export function createPlatformAuth(
     twoFactor: twoFactorConfig,
     trustedOrigins,
     sso,
+    kratosPasswords,
   } = config
   const ssoProviderId = sso?.providerId ?? "urbangate"
 
@@ -84,6 +96,17 @@ export function createPlatformAuth(
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,
+      ...(kratosPasswords
+        ? {
+            password: {
+              // Sign-in refuses before reaching the verifier when the account
+              // carries no hash, so a sign-up must still write one. It is a
+              // constant that validates nothing, never a hash of the password.
+              hash: async () => KRATOS_SENTINEL_HASH,
+              verify: kratosVerifier(kratosPasswords),
+            },
+          }
+        : {}),
     },
     // Never auto-merge a social identity into an existing account by matching
     // email. Better Auth links by default (email-verified providers are trusted),
@@ -98,6 +121,19 @@ export function createPlatformAuth(
         ? { enabled: true, trustedProviders: [ssoProviderId] }
         : { enabled: false },
     },
+    ...(kratosPasswords
+      ? {
+          user: {
+            additionalFields: {
+              identityId: {
+                type: "string",
+                required: false,
+                input: false,
+              },
+            },
+          },
+        }
+      : {}),
     // Naming happens here rather than on /sign-up/email so that every way in
     // is covered: a magic link that signs up bypasses the endpoint entirely
     // and calls createUser straight, with `name: name || ""`.
@@ -108,6 +144,10 @@ export function createPlatformAuth(
         ...databaseHooks?.user,
         create: {
           ...databaseHooks?.user?.create,
+          after: withIdentityProvisioning(
+            databaseHooks?.user?.create?.after,
+            kratosPasswords,
+          ),
           before: async (user: Record<string, unknown>, ctx: unknown) => {
             const named = withSignUpName(user)
             const appHook = databaseHooks?.user?.create?.before
@@ -125,6 +165,12 @@ export function createPlatformAuth(
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {
+        if (kratosPasswords && ctx.path === "/sign-in/email") {
+          const body = ctx.body as { email?: string; password?: string } | undefined
+          if (body?.email && body?.password) {
+            rememberSignInIdentifier(body.password, body.email)
+          }
+        }
         if (!betaMode) return
         if (ctx.path !== "/sign-up/email") return
         const body = ctx.body as { email?: string; inviteToken?: string } | undefined
@@ -248,6 +294,43 @@ export function createPlatformAuth(
   }) as unknown as Auth<BetterAuthOptions>
 }
 
+type UserHooks = NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["user"]>
+type UserAfterHook = NonNullable<NonNullable<UserHooks["create"]>["after"]>
+
+/**
+ * Gives the new local user an identity at the provider and stores its id.
+ *
+ * This runs after the insert commits, so it cannot be atomic with the
+ * sign-up: a provider that is down leaves `identityId` null and the person
+ * registered all the same. The endpoint is idempotent on the address, so the
+ * repair re-sends without risking a second identity.
+ */
+function withIdentityProvisioning(
+  own: UserAfterHook | undefined,
+  config: PlatformKratosPasswordConfig | undefined,
+): UserAfterHook | undefined {
+  if (!config) return own
+  return async (user, ctx) => {
+    await own?.(user, ctx)
+    const record = user as { id?: string; email?: string; name?: string }
+    if (!record.id || !record.email) return
+
+    const outcome = await provisionIdentity(config, {
+      email: record.email,
+      name: record.name,
+    })
+
+    if (outcome.status === "provisioned" && ctx) {
+      await ctx.context.internalAdapter.updateUser(record.id, {
+        identityId: outcome.identityId,
+      })
+      return
+    }
+
+    await config.onProvisioningDeferred?.({ userId: record.id, email: record.email })
+  }
+}
+
 type AccountHooks = NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["account"]>
 type AccountAfterHook = NonNullable<NonNullable<AccountHooks["create"]>["after"]>
 
@@ -280,6 +363,80 @@ function withSsoRoleSync(
   }
 }
 
+/**
+ * Better Auth's verifier is handed the stored hash and the submitted password,
+ * never the address, and the same verifier serves sign-in, password change and
+ * account deletion. The address of the sign-in being processed is carried here
+ * by the route hook, keyed by the submitted password so two concurrent
+ * sign-ins cannot read each other's.
+ */
+const pendingIdentifiers = new Map<string, string>()
+
+export function rememberSignInIdentifier(password: string, email: string): void {
+  pendingIdentifiers.set(password, email.trim().toLowerCase())
+}
+
+function takeSignInIdentifier(password: string): string | undefined {
+  const email = pendingIdentifiers.get(password)
+  pendingIdentifiers.delete(password)
+  return email
+}
+
+export class KratosSignInError extends APIError {
+  constructor(status: "UNAUTHORIZED" | "FORBIDDEN" | "SERVICE_UNAVAILABLE", code: string, message: string) {
+    super(status, { code, message })
+  }
+}
+
+function refusalFor(outcome: KratosOutcome): KratosSignInError | undefined {
+  switch (outcome.status) {
+    case "no_credential":
+      return new KratosSignInError(
+        "FORBIDDEN",
+        "IDENTITY_HAS_NO_PASSWORD",
+        "This account has no password yet at the identity provider. Use the password recovery to set one.",
+      )
+    case "second_factor_required":
+      return new KratosSignInError(
+        "FORBIDDEN",
+        "SECOND_FACTOR_REQUIRED",
+        "A second factor is required to sign in.",
+      )
+    case "account_disabled":
+      return new KratosSignInError(
+        "FORBIDDEN",
+        "ACCOUNT_DISABLED",
+        "This account is deactivated.",
+      )
+    case "unavailable":
+      return new KratosSignInError(
+        "SERVICE_UNAVAILABLE",
+        "IDENTITY_PROVIDER_UNAVAILABLE",
+        "The identity service is unavailable. Your password has not been refused — try again shortly.",
+      )
+    default:
+      return undefined
+  }
+}
+
+/**
+ * Fails closed: anything other than an explicit success refuses the sign-in,
+ * and only an explicit refusal by Kratos reads as a wrong password. An outage
+ * answers 503, so nobody is told their password is wrong and rotates a
+ * password that was right.
+ */
+function kratosVerifier(config: PlatformKratosPasswordConfig) {
+  return async ({ password }: { hash: string; password: string }): Promise<boolean> => {
+    const email = takeSignInIdentifier(password)
+    if (!email) return false
+    const outcome = await verifyAgainstKratos(config.publicUrl, { email, password })
+    if (outcome.status === "valid") return true
+    const refusal = refusalFor(outcome)
+    if (refusal) throw refusal
+    return false
+  }
+}
+
 export type PlatformAuth = ReturnType<typeof createPlatformAuth>
 
 // Re-export the session contract from /server so consumers that import the
@@ -309,6 +466,17 @@ export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
 
 export { mapSsoProfile } from "./sso-profile"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"
+
+export { KRATOS_SENTINEL_HASH, isKratosSentinel } from "./kratos-credentials"
+export type { KratosOutcome } from "./kratos-credentials"
+
+// The repair path an app schedules for the sign-ups whose provisioning could
+// not reach the provider.
+export { provisionIdentity } from "./identity-provisioning"
+export type {
+  IdentityProvisioningConfig,
+  ProvisionOutcome,
+} from "./identity-provisioning"
 
 export { bootstrapFirstAdmin } from "./bootstrap-admin"
 export type {
