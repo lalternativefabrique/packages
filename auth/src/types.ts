@@ -158,6 +158,27 @@ export interface PlatformSsoConfig {
   allowSignUp?: boolean
 }
 
+export interface PlatformKratosPasswordConfig {
+  /** Kratos' public URL, e.g. https://id.urbangate.dev */
+  publicUrl: string
+  /** urbangate's issuer URL for the provisioning credential. */
+  issuer: string
+  /** The product's provisioner client, e.g. "spore-provisioner". */
+  clientId: string
+  clientSecret: string
+  /** The role granted to a customer of this product, e.g. "spore:user". */
+  role: string
+  /** The product id, e.g. "spore". */
+  product: string
+  /**
+   * Called when a sign-up could not reach the provider, so the app can queue
+   * the repair. The sign-up itself always succeeds: the hook runs after the
+   * insert commits, and a customer is never refused registration because the
+   * provider is down.
+   */
+  onProvisioningDeferred?: (input: { userId: string; email: string }) => void | Promise<void>
+}
+
 export interface SsoClientSurface {
   signIn: {
     social(args: {
@@ -200,6 +221,21 @@ export interface PlatformAuthConfig {
    * as admin, anyone else as a plain user. Omit to leave it off.
    */
   sso?: PlatformSsoConfig
+  /**
+   * Moves the customers' passwords to the suite's identity provider while the
+   * app keeps its own login screen, its own domain and its own session. The
+   * form posts to this app as before; the password is checked against Kratos
+   * instead of a local hash, and the person is never redirected.
+   *
+   * Each app keeps its own accounts: the same person signing up on two
+   * products has two local users and two passwords. They share one identity
+   * at the provider, which is what an app key is issued against — so an app
+   * dropping a local account must drop its role, never deactivate the
+   * identity, or the person loses every other product of the suite.
+   *
+   * Omit to leave passwords local, as before.
+   */
+  kratosPasswords?: PlatformKratosPasswordConfig
   /**
    * Override the OTP email subject line per verification type. Merged over
    * the platform defaults — provide only the keys you want to change. The
