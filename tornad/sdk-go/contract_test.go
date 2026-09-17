@@ -12,10 +12,10 @@ import (
 //
 // This is the test the hand-written client this package replaces did not have.
 // That one covered /search alone and stayed unaware of /map and /crawl for as
-// long as they existed, because nothing compared it to what vvaves serves. A
+// long as they existed, because nothing compared it to what tornad serves. A
 // route added upstream now fails here rather than being quietly absent.
 func TestEveryCallerFacingRouteIsGenerated(t *testing.T) {
-	raw, err := os.ReadFile("openapi/vvaves.json")
+	raw, err := os.ReadFile("openapi/tornad.json")
 	if err != nil {
 		t.Fatalf("reading the contract: %v", err)
 	}

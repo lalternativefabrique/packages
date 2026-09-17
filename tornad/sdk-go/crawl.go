@@ -3,10 +3,10 @@ package sdk
 import (
 	"context"
 
-	"github.com/lalternative/packages/vvaves/sdk-go/internal/wire"
+	"github.com/lalternative/packages/tornad/sdk-go/internal/wire"
 )
 
-// CrawlJob is a crawl as vvaves reports it.
+// CrawlJob is a crawl as tornad reports it.
 type CrawlJob struct {
 	ID     string
 	Status string

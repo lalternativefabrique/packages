@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lalternative/packages/vvaves/sdk-go/internal/wire"
+	"github.com/lalternative/packages/tornad/sdk-go/internal/wire"
 )
 
-// Categories vvaves answers for. The wire value of the academic one is
-// "scientific publications"; vvaves accepts "academic" as an alias, and this is
+// Categories tornad answers for. The wire value of the academic one is
+// "scientific publications"; tornad accepts "academic" as an alias, and this is
 // the alias — a caller that hardcodes the long form against a deployment that
 // renames it has no compiler to tell it.
 //
@@ -23,13 +23,13 @@ const (
 
 // SearchQuery is what to search for.
 //
-// A struct rather than parameters because vvaves's own request grows: Content
+// A struct rather than parameters because tornad's own request grows: Content
 // and Format arrived after the first callers were written, and each would have
 // been a new signature.
 type SearchQuery struct {
 	Query string
 	// Categories to search, empty meaning general alone. Several are fused by
-	// reciprocal rank, which is the reason to ask vvaves rather than a search
+	// reciprocal rank, which is the reason to ask tornad rather than a search
 	// backend directly.
 	Categories []string
 	Limit      int
@@ -41,10 +41,10 @@ type SearchQuery struct {
 	// this is a ceiling, never an extension.
 	DeadlineMS int
 	// Content reads the first N results' pages into the answer, which is one
-	// call instead of a search followed by N fetches. Clamped to 10 by vvaves.
+	// call instead of a search followed by N fetches. Clamped to 10 by tornad.
 	Content int
 	// ContentRunes bounds each page read by Content, defaulting to 4000.
-	// vvaves applies no ceiling of its own, so a large value here is a large
+	// tornad applies no ceiling of its own, so a large value here is a large
 	// answer.
 	ContentRunes int
 	// Format picks which rendering of a page Content returns: FormatText,
@@ -186,7 +186,7 @@ type FetchRequest struct {
 	// sees all of it.
 	MaxRunes int
 	// Render decides whether a page that yields nothing statically is retried
-	// in a browser. Nil leaves vvaves's default, which is to render.
+	// in a browser. Nil leaves tornad's default, which is to render.
 	Render *bool
 	// Paginate returns fixed-size pages instead of a truncation, so a long
 	// article can be walked rather than lost.
@@ -196,7 +196,7 @@ type FetchRequest struct {
 	Format string
 }
 
-// Page is a page as vvaves read it.
+// Page is a page as tornad read it.
 type Page struct {
 	Title    string
 	Text     string
@@ -208,7 +208,7 @@ type Page struct {
 // Fetch reads a page's main text, rendering it when a static read comes back
 // near-empty.
 //
-// A page vvaves could not read answers ErrUpstream, which is routine on the
+// A page tornad could not read answers ErrUpstream, which is routine on the
 // open web: a caller with a fallback should take it rather than retry.
 func (c *Client) Fetch(ctx context.Context, req FetchRequest) (Page, error) {
 	if c.wire == nil {
@@ -260,7 +260,7 @@ type Rendered struct {
 
 // Render returns a page's HTML after its JavaScript has run.
 //
-// It does not go through vvaves's residential proxy — it is a renderer, not a
+// It does not go through tornad's residential proxy — it is a renderer, not a
 // way around a block. Fetch is what carries both a residential address and a
 // real browser's fingerprint.
 func (c *Client) Render(ctx context.Context, req RenderRequest) (Rendered, error) {
@@ -295,12 +295,12 @@ type Scope struct {
 // MapRequest asks for a site's URLs.
 type MapRequest struct {
 	Scope
-	// Limit defaults to 100 and is clamped to 1000 by vvaves.
+	// Limit defaults to 100 and is clamped to 1000 by tornad.
 	Limit int
 	// DeadlineMS is clamped to 50s.
 	DeadlineMS int
 	// Sitemap reads the site's sitemaps before walking its links. Nil leaves
-	// vvaves's default, which is on — the cheapest and most complete source.
+	// tornad's default, which is on — the cheapest and most complete source.
 	Sitemap *bool
 }
 

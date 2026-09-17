@@ -1,4 +1,4 @@
-module github.com/lalternative/packages/vvaves/sdk-go
+module github.com/lalternative/packages/tornad/sdk-go
 
 go 1.25.0
 
