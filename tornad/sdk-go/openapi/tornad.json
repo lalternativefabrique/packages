@@ -1,10 +1,10 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "description": "Search, fetch, render and speak for every product, plus the admin API of the applications registry.\n\nThe web and speak routes answer at the root; the admin API is\nunder /api/v1, which is why no global base path is declared.",
-        "title": "Vvaves",
+        "description": "Search, fetch, render, map and crawl the open web, behind one HTTP contract.",
+        "title": "Tornad",
         "contact": {},
-        "version": "0.3.0"
+        "version": "0.1.0"
     },
     "paths": {
         "/api/v1/admin/apps": {
@@ -591,266 +591,6 @@
                     }
                 }
             }
-        },
-        "/speak": {
-            "post": {
-                "security": [
-                    {
-                        "ServiceKey": []
-                    },
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Answers audio bytes, not JSON. With stream=false the whole\nreading comes back with a Content-Length and ranges; with\nstream=true each piece is emitted as it is read, length-prefixed\nunder application/x-lalter-audio-frames.",
-                "tags": [
-                    "speak"
-                ],
-                "summary": "Read a text aloud, from the store when it is already there",
-                "operationId": "speak",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/httpapi.speakRequest"
-                            }
-                        }
-                    },
-                    "description": "text to read",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "audio/mpeg": {
-                                "schema": {
-                                    "type": "string",
-                                    "format": "binary"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "audio/mpeg": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "audio/mpeg": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "audio/mpeg": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/speak/exists": {
-            "post": {
-                "security": [
-                    {
-                        "ServiceKey": []
-                    },
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "tags": [
-                    "speak"
-                ],
-                "summary": "Whether a reading is already stored, without reading its bytes",
-                "operationId": "speakExists",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/httpapi.speakRequest"
-                            }
-                        }
-                    },
-                    "description": "reading to look for",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.existsResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/speak/pregenerate": {
-            "post": {
-                "security": [
-                    {
-                        "ServiceKey": []
-                    },
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "For a text expected to be heard more than once. It holds a\nsynthesis slot, so prefer /speak/prime for a text that may never\nbe played. Takes an application key.",
-                "tags": [
-                    "speak"
-                ],
-                "summary": "Read a whole text ahead of time and keep it",
-                "operationId": "pregenerateSpeak",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/httpapi.speakRequest"
-                            }
-                        }
-                    },
-                    "description": "text to read in full",
-                    "required": true
-                },
-                "responses": {
-                    "202": {
-                        "description": "Accepted"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/speak/prime": {
-            "post": {
-                "security": [
-                    {
-                        "ServiceKey": []
-                    },
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Answers 202 without waiting: nobody is listening yet. Takes an\napplication key — a browser signature is good for /speak alone.",
-                "tags": [
-                    "speak"
-                ],
-                "summary": "Read a text's opening ahead of time, so the first listen starts at once",
-                "operationId": "primeSpeak",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/httpapi.speakRequest"
-                            }
-                        }
-                    },
-                    "description": "text whose opening to read",
-                    "required": true
-                },
-                "responses": {
-                    "202": {
-                        "description": "Accepted"
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/httpapi.errorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "servers": [
@@ -867,7 +607,7 @@
             },
             "ServiceKey": {
                 "type": "apiKey",
-                "name": "X-Vvaves-Key",
+                "name": "X-Tornad-Key",
                 "in": "header"
             }
         },
@@ -1026,14 +766,6 @@
                 "properties": {
                     "error": {
                         "type": "string"
-                    }
-                }
-            },
-            "httpapi.existsResponse": {
-                "type": "object",
-                "properties": {
-                    "ready": {
-                        "type": "boolean"
                     }
                 }
             },
@@ -1285,24 +1017,6 @@
                         "items": {
                             "$ref": "#/components/schemas/httpapi.result"
                         }
-                    }
-                }
-            },
-            "httpapi.speakRequest": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "scope": {
-                        "description": "Scope and ID name where a reading is kept. Both optional: an ID lets a\ncaller prime a reading before anyone asks for it, since priming means\nnaming ahead of time what will be listened to. Without one the reading\nis still cached, keyed by the text alone — a second listen of the same\nwords finds it, which no caller has to opt into.",
-                        "type": "string"
-                    },
-                    "stream": {
-                        "type": "boolean"
-                    },
-                    "text": {
-                        "type": "string"
                     }
                 }
             },

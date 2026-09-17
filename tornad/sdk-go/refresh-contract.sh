@@ -1,19 +1,19 @@
 #!/usr/bin/env sh
-# Refresh openapi/vvaves.json from a running vvaves, then regenerate the wire
+# Refresh openapi/tornad.json from a running tornad, then regenerate the wire
 # types.
 #
-# The client this replaces was written by hand against vvaves's source, which is
+# The client this replaces was written by hand against tornad's source, which is
 # why it covered /search alone and never learned that /map and /crawl exist:
 # nothing forces a hand-written client to be refreshed, and a stale one compiles,
-# passes its tests, and cannot call the endpoints it is missing. Vvaves serves
+# passes its tests, and cannot call the endpoints it is missing. Tornad serves
 # its own contract now, so there is no source to read.
 #
 # Usage: ./refresh-contract.sh [base-url]
 set -eu
 
-BASE="${1:-${VVAVES_BASE_URL:-http://app.vvaves-production.internal}}"
+BASE="${1:-${TORNAD_BASE_URL:-http://app.tornad-production.internal}}"
 URL="${BASE%/}/openapi.json"
-OUT="$(dirname "$0")/openapi/vvaves.json"
+OUT="$(dirname "$0")/openapi/tornad.json"
 
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT

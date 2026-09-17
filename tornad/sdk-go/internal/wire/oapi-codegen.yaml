@@ -1,4 +1,4 @@
-# The transport: every path, method and parameter, generated from vvaves's own
+# The transport: every path, method and parameter, generated from tornad's own
 # contract so none of them is typed by hand. A route renamed upstream becomes a
 # compile error here rather than a 404 in production.
 #

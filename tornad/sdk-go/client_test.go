@@ -25,7 +25,7 @@ func TestSearchSendsTheQueryAndReadsResults(t *testing.T) {
 		if r.URL.Path != "/search" {
 			t.Errorf("path = %s, want /search", r.URL.Path)
 		}
-		if k := r.Header.Get("X-Vvaves-Key"); k != "app-key" {
+		if k := r.Header.Get("X-Tornad-Key"); k != "app-key" {
 			t.Errorf("key header = %q, want app-key", k)
 		}
 		json.NewDecoder(r.Body).Decode(&got)
@@ -64,7 +64,7 @@ func TestSearchSendsTheQueryAndReadsResults(t *testing.T) {
 	}
 }
 
-// An unset field must not be sent: vvaves defaults them, and a zero on the wire
+// An unset field must not be sent: tornad defaults them, and a zero on the wire
 // would override the default with something the caller never asked for.
 func TestUnsetFieldsAreOmitted(t *testing.T) {
 	var got map[string]any
@@ -85,7 +85,7 @@ func TestUnsetFieldsAreOmitted(t *testing.T) {
 	}
 }
 
-// A page vvaves could not read is routine on the open web, not an outage: a
+// A page tornad could not read is routine on the open web, not an outage: a
 // caller with a static fallback must be able to tell the two apart.
 func TestUpstreamFailureIsItsOwnError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -100,10 +100,10 @@ func TestUpstreamFailureIsItsOwnError(t *testing.T) {
 		t.Fatalf("Fetch = %v, want ErrUpstream", err)
 	}
 	if errors.Is(err, ErrUnavailable) {
-		t.Error("a refused page must not read as vvaves being down")
+		t.Error("a refused page must not read as tornad being down")
 	}
 	if got := err.Error(); !contains(got, "refused by publisher") {
-		t.Errorf("error = %q, want it to carry what vvaves reported", got)
+		t.Errorf("error = %q, want it to carry what tornad reported", got)
 	}
 }
 

@@ -84,11 +84,6 @@ type HttpapiErrorResponse struct {
 	Error *string `json:"error,omitempty"`
 }
 
-// HttpapiExistsResponse defines model for httpapi.existsResponse.
-type HttpapiExistsResponse struct {
-	Ready *bool `json:"ready,omitempty"`
-}
-
 // HttpapiFetchRequest defines model for httpapi.fetchRequest.
 type HttpapiFetchRequest struct {
 	// Format Format picks which rendering of the page comes back: "text" flattens
@@ -201,20 +196,6 @@ type HttpapiSearchResponse struct {
 	Results *[]HttpapiResult `json:"results,omitempty"`
 }
 
-// HttpapiSpeakRequest defines model for httpapi.speakRequest.
-type HttpapiSpeakRequest struct {
-	Id *string `json:"id,omitempty"`
-
-	// Scope Scope and ID name where a reading is kept. Both optional: an ID lets a
-	// caller prime a reading before anyone asks for it, since priming means
-	// naming ahead of time what will be listened to. Without one the reading
-	// is still cached, keyed by the text alone — a second listen of the same
-	// words finds it, which no caller has to opt into.
-	Scope  *string `json:"scope,omitempty"`
-	Stream *bool   `json:"stream,omitempty"`
-	Text   *string `json:"text,omitempty"`
-}
-
 // CrawlStatusParams defines parameters for CrawlStatus.
 type CrawlStatusParams struct {
 	// Offset first page to return
@@ -238,18 +219,6 @@ type RenderPageJSONRequestBody = HttpapiRenderRequest
 
 // SearchJSONRequestBody defines body for Search for application/json ContentType.
 type SearchJSONRequestBody = HttpapiSearchRequest
-
-// SpeakJSONRequestBody defines body for Speak for application/json ContentType.
-type SpeakJSONRequestBody = HttpapiSpeakRequest
-
-// SpeakExistsJSONRequestBody defines body for SpeakExists for application/json ContentType.
-type SpeakExistsJSONRequestBody = HttpapiSpeakRequest
-
-// PregenerateSpeakJSONRequestBody defines body for PregenerateSpeak for application/json ContentType.
-type PregenerateSpeakJSONRequestBody = HttpapiSpeakRequest
-
-// PrimeSpeakJSONRequestBody defines body for PrimeSpeak for application/json ContentType.
-type PrimeSpeakJSONRequestBody = HttpapiSpeakRequest
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -354,26 +323,6 @@ type ClientInterface interface {
 	SearchWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	Search(ctx context.Context, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SpeakWithBody request with any body
-	SpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	Speak(ctx context.Context, body SpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// SpeakExistsWithBody request with any body
-	SpeakExistsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	SpeakExists(ctx context.Context, body SpeakExistsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PregenerateSpeakWithBody request with any body
-	PregenerateSpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PregenerateSpeak(ctx context.Context, body PregenerateSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PrimeSpeakWithBody request with any body
-	PrimeSpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	PrimeSpeak(ctx context.Context, body PrimeSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) StartCrawlWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -510,102 +459,6 @@ func (c *Client) SearchWithBody(ctx context.Context, contentType string, body io
 
 func (c *Client) Search(ctx context.Context, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSearchRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSpeakRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) Speak(ctx context.Context, body SpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSpeakRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SpeakExistsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSpeakExistsRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) SpeakExists(ctx context.Context, body SpeakExistsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewSpeakExistsRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PregenerateSpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPregenerateSpeakRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PregenerateSpeak(ctx context.Context, body PregenerateSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPregenerateSpeakRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PrimeSpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPrimeSpeakRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) PrimeSpeak(ctx context.Context, body PrimeSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPrimeSpeakRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -915,166 +768,6 @@ func NewSearchRequestWithBody(server string, contentType string, body io.Reader)
 	return req, nil
 }
 
-// NewSpeakRequest calls the generic Speak builder with application/json body
-func NewSpeakRequest(server string, body SpeakJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewSpeakRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewSpeakRequestWithBody generates requests for Speak with any type of body
-func NewSpeakRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/speak")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewSpeakExistsRequest calls the generic SpeakExists builder with application/json body
-func NewSpeakExistsRequest(server string, body SpeakExistsJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewSpeakExistsRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewSpeakExistsRequestWithBody generates requests for SpeakExists with any type of body
-func NewSpeakExistsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/speak/exists")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPregenerateSpeakRequest calls the generic PregenerateSpeak builder with application/json body
-func NewPregenerateSpeakRequest(server string, body PregenerateSpeakJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPregenerateSpeakRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPregenerateSpeakRequestWithBody generates requests for PregenerateSpeak with any type of body
-func NewPregenerateSpeakRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/speak/pregenerate")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewPrimeSpeakRequest calls the generic PrimeSpeak builder with application/json body
-func NewPrimeSpeakRequest(server string, body PrimeSpeakJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewPrimeSpeakRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewPrimeSpeakRequestWithBody generates requests for PrimeSpeak with any type of body
-func NewPrimeSpeakRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/speak/prime")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1148,26 +841,6 @@ type ClientWithResponsesInterface interface {
 	SearchWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SearchResponse, error)
 
 	SearchWithResponse(ctx context.Context, body SearchJSONRequestBody, reqEditors ...RequestEditorFn) (*SearchResponse, error)
-
-	// SpeakWithBodyWithResponse request with any body
-	SpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SpeakResponse, error)
-
-	SpeakWithResponse(ctx context.Context, body SpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*SpeakResponse, error)
-
-	// SpeakExistsWithBodyWithResponse request with any body
-	SpeakExistsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SpeakExistsResponse, error)
-
-	SpeakExistsWithResponse(ctx context.Context, body SpeakExistsJSONRequestBody, reqEditors ...RequestEditorFn) (*SpeakExistsResponse, error)
-
-	// PregenerateSpeakWithBodyWithResponse request with any body
-	PregenerateSpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PregenerateSpeakResponse, error)
-
-	PregenerateSpeakWithResponse(ctx context.Context, body PregenerateSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*PregenerateSpeakResponse, error)
-
-	// PrimeSpeakWithBodyWithResponse request with any body
-	PrimeSpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PrimeSpeakResponse, error)
-
-	PrimeSpeakWithResponse(ctx context.Context, body PrimeSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*PrimeSpeakResponse, error)
 }
 
 type StartCrawlResponse struct {
@@ -1338,93 +1011,6 @@ func (r SearchResponse) StatusCode() int {
 	return 0
 }
 
-type SpeakResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r SpeakResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SpeakResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type SpeakExistsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *HttpapiExistsResponse
-	JSON400      *HttpapiErrorResponse
-	JSON401      *HttpapiErrorResponse
-}
-
-// Status returns HTTPResponse.Status
-func (r SpeakExistsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r SpeakExistsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PregenerateSpeakResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r PregenerateSpeakResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PregenerateSpeakResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type PrimeSpeakResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r PrimeSpeakResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PrimeSpeakResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 // StartCrawlWithBodyWithResponse request with arbitrary body returning *StartCrawlResponse
 func (c *ClientWithResponses) StartCrawlWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*StartCrawlResponse, error) {
 	rsp, err := c.StartCrawlWithBody(ctx, contentType, body, reqEditors...)
@@ -1526,74 +1112,6 @@ func (c *ClientWithResponses) SearchWithResponse(ctx context.Context, body Searc
 		return nil, err
 	}
 	return ParseSearchResponse(rsp)
-}
-
-// SpeakWithBodyWithResponse request with arbitrary body returning *SpeakResponse
-func (c *ClientWithResponses) SpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SpeakResponse, error) {
-	rsp, err := c.SpeakWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSpeakResponse(rsp)
-}
-
-func (c *ClientWithResponses) SpeakWithResponse(ctx context.Context, body SpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*SpeakResponse, error) {
-	rsp, err := c.Speak(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSpeakResponse(rsp)
-}
-
-// SpeakExistsWithBodyWithResponse request with arbitrary body returning *SpeakExistsResponse
-func (c *ClientWithResponses) SpeakExistsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SpeakExistsResponse, error) {
-	rsp, err := c.SpeakExistsWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSpeakExistsResponse(rsp)
-}
-
-func (c *ClientWithResponses) SpeakExistsWithResponse(ctx context.Context, body SpeakExistsJSONRequestBody, reqEditors ...RequestEditorFn) (*SpeakExistsResponse, error) {
-	rsp, err := c.SpeakExists(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseSpeakExistsResponse(rsp)
-}
-
-// PregenerateSpeakWithBodyWithResponse request with arbitrary body returning *PregenerateSpeakResponse
-func (c *ClientWithResponses) PregenerateSpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PregenerateSpeakResponse, error) {
-	rsp, err := c.PregenerateSpeakWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePregenerateSpeakResponse(rsp)
-}
-
-func (c *ClientWithResponses) PregenerateSpeakWithResponse(ctx context.Context, body PregenerateSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*PregenerateSpeakResponse, error) {
-	rsp, err := c.PregenerateSpeak(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePregenerateSpeakResponse(rsp)
-}
-
-// PrimeSpeakWithBodyWithResponse request with arbitrary body returning *PrimeSpeakResponse
-func (c *ClientWithResponses) PrimeSpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PrimeSpeakResponse, error) {
-	rsp, err := c.PrimeSpeakWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePrimeSpeakResponse(rsp)
-}
-
-func (c *ClientWithResponses) PrimeSpeakWithResponse(ctx context.Context, body PrimeSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*PrimeSpeakResponse, error) {
-	rsp, err := c.PrimeSpeak(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePrimeSpeakResponse(rsp)
 }
 
 // ParseStartCrawlResponse parses an HTTP response from a StartCrawlWithResponse call
@@ -1871,94 +1389,6 @@ func ParseSearchResponse(rsp *http.Response) (*SearchResponse, error) {
 		}
 		response.JSON503 = &dest
 
-	}
-
-	return response, nil
-}
-
-// ParseSpeakResponse parses an HTTP response from a SpeakWithResponse call
-func ParseSpeakResponse(rsp *http.Response) (*SpeakResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SpeakResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseSpeakExistsResponse parses an HTTP response from a SpeakExistsWithResponse call
-func ParseSpeakExistsResponse(rsp *http.Response) (*SpeakExistsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &SpeakExistsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest HttpapiExistsResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest HttpapiErrorResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest HttpapiErrorResponse
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePregenerateSpeakResponse parses an HTTP response from a PregenerateSpeakWithResponse call
-func ParsePregenerateSpeakResponse(rsp *http.Response) (*PregenerateSpeakResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PregenerateSpeakResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParsePrimeSpeakResponse parses an HTTP response from a PrimeSpeakWithResponse call
-func ParsePrimeSpeakResponse(rsp *http.Response) (*PrimeSpeakResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PrimeSpeakResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
 	}
 
 	return response, nil

@@ -1,14 +1,14 @@
-// Package sdk is the Go client for the vvaves API.
+// Package sdk is the Go client for the tornad API.
 //
 // It exists because every consumer was writing this by hand. packages/go/search
 // carried a tornade client covering /search alone; lalter's cortex built its
 // own /fetch request beside it. Each re-derived the same auth header, the same
-// status handling and the same request shape, from reading vvaves's source —
+// status handling and the same request shape, from reading tornad's source —
 // and neither ever learned that /map and /crawl exist.
 //
 // # Where the transport comes from
 //
-// internal/wire is generated from openapi/vvaves.json, vvaves's own contract.
+// internal/wire is generated from openapi/tornad.json, tornad's own contract.
 // It owns every path, method and parameter, so none of them is typed by hand
 // here: a route renamed upstream becomes a compile error rather than a 404 in
 // production, and a field added or renamed surfaces the same way instead of as
@@ -17,10 +17,10 @@
 // It is internal because it is not this package's API. Its methods return raw
 // *http.Response and generated pointer types; what is exported wraps them with
 // typed errors and the pointer-to-value conversions that keep "this page could
-// not be read" distinguishable from "vvaves is down".
+// not be read" distinguishable from "tornad is down".
 //
 // Updating after an API change is ./refresh-contract.sh, which fetches
-// /openapi.json from a running vvaves and regenerates — then reconcile any
+// /openapi.json from a running tornad and regenerates — then reconcile any
 // compile error the new shape causes.
 package sdk
 
@@ -34,7 +34,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lalternative/packages/vvaves/sdk-go/internal/wire"
+	"github.com/lalternative/packages/tornad/sdk-go/internal/wire"
 )
 
 // DefaultTimeout bounds a single call.
@@ -44,11 +44,11 @@ import (
 // browser. Short enough that a hung backend degrades instead of hanging.
 const DefaultTimeout = 30 * time.Second
 
-// Client talks to a vvaves deployment on behalf of ONE application.
+// Client talks to a tornad deployment on behalf of ONE application.
 //
 // The key identifies the calling application, never a user. A deployment
 // reachable only from inside the cluster may run with no key at all, which is
-// why an empty one is not an error here: vvaves decides whether to refuse.
+// why an empty one is not an error here: tornad decides whether to refuse.
 type Client struct {
 	baseURL string
 	key     string
@@ -71,7 +71,7 @@ func WithTimeout(d time.Duration) Option {
 }
 
 // New returns a Client. An empty baseURL yields one whose every method returns
-// ErrNotConfigured, so a deployment with no vvaves reachable can hold a client
+// ErrNotConfigured, so a deployment with no tornad reachable can hold a client
 // and branch on the error rather than on a nil pointer.
 func New(baseURL, key string, opts ...Option) *Client {
 	c := &Client{
@@ -96,7 +96,7 @@ func newWire(baseURL, key string, doer wire.HttpRequestDoer) *wire.ClientWithRes
 	}
 	auth := wire.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 		if key != "" {
-			req.Header.Set("X-Vvaves-Key", key)
+			req.Header.Set("X-Tornad-Key", key)
 		}
 		return nil
 	})
@@ -111,24 +111,24 @@ func newWire(baseURL, key string, doer wire.HttpRequestDoer) *wire.ClientWithRes
 var (
 	// ErrNotConfigured — no base URL. The call was never made, and a caller
 	// with a static fallback should use it.
-	ErrNotConfigured = errors.New("vvaves: not configured")
+	ErrNotConfigured = errors.New("tornad: not configured")
 	// ErrUnauthorized — the key was rejected (401/403). Operator error.
-	ErrUnauthorized = errors.New("vvaves: unauthorized")
-	// ErrBadRequest — vvaves refused the arguments (400). A bug in the caller.
-	ErrBadRequest = errors.New("vvaves: bad request")
+	ErrUnauthorized = errors.New("tornad: unauthorized")
+	// ErrBadRequest — tornad refused the arguments (400). A bug in the caller.
+	ErrBadRequest = errors.New("tornad: bad request")
 	// ErrNotFound — no such crawl (404).
-	ErrNotFound = errors.New("vvaves: not found")
-	// ErrUpstream — vvaves reached the open web and did not get a page (502).
+	ErrNotFound = errors.New("tornad: not found")
+	// ErrUpstream — tornad reached the open web and did not get a page (502).
 	//
 	// It has its own sentinel because it is ROUTINE, not an outage: a publisher
 	// refusing a datacenter address, a page that never settles, a site that is
-	// down. Folded into ErrUnavailable it reads as "vvaves is broken", so a
+	// down. Folded into ErrUnavailable it reads as "tornad is broken", so a
 	// caller retries a URL that will never load instead of moving on.
-	ErrUpstream = errors.New("vvaves: upstream page could not be read")
+	ErrUpstream = errors.New("tornad: upstream page could not be read")
 	// ErrUnavailable — transport failure, a 5xx other than 502, or a backend
 	// this deployment does not have configured (503). Transient or structural;
 	// either way, degrading is safer than failing the caller's own request.
-	ErrUnavailable = errors.New("vvaves: unavailable")
+	ErrUnavailable = errors.New("tornad: unavailable")
 )
 
 // statusError maps a response status onto the sentinels above.
@@ -150,7 +150,7 @@ func statusError(code int, body io.Reader) error {
 	return nil
 }
 
-// snippet reads the head of an error body, so a failure says what vvaves
+// snippet reads the head of an error body, so a failure says what tornad
 // reported rather than only which status it used.
 func snippet(r io.Reader) string {
 	if r == nil {
