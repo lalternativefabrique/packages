@@ -102,7 +102,7 @@ export function createPlatformAuth(
               // Sign-in refuses before reaching the verifier when the account
               // carries no hash, so a sign-up must still write one. It is a
               // constant that validates nothing, never a hash of the password.
-              hash: async () => KRATOS_SENTINEL_HASH,
+              hash: kratosHasher(kratosPasswords),
               verify: kratosVerifier(kratosPasswords),
             },
           }
@@ -165,10 +165,26 @@ export function createPlatformAuth(
     hooks: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       before: async (ctx: any) => {
-        if (kratosPasswords && ctx.path === "/sign-in/email") {
-          const body = ctx.body as { email?: string; password?: string } | undefined
-          if (body?.email && body?.password) {
+        if (kratosPasswords) {
+          const body = ctx.body as
+            | { email?: string; password?: string; newPassword?: string }
+            | undefined
+          if (ctx.path === "/sign-in/email" && body?.email && body?.password) {
             rememberSignInIdentifier(body.password, body.email)
+          }
+          // Sign-up and the OTP reset name the address they act on; a change
+          // of password only has the session, whose user carries it.
+          if (
+            (ctx.path === "/sign-up/email" ||
+              ctx.path === "/email-otp/reset-password") &&
+            body?.email &&
+            body?.password
+          ) {
+            rememberPasswordOwner(body.password, body.email)
+          }
+          if (ctx.path === "/change-password" && body?.newPassword) {
+            const email = sessionEmail(ctx)
+            if (email) rememberPasswordOwner(body.newPassword, email)
           }
         }
         if (!betaMode) return
@@ -382,8 +398,60 @@ function takeSignInIdentifier(password: string): string | undefined {
   return email
 }
 
+// The same blind spot on the writing side: `hash` is handed the new password
+// and nothing else, and it is the only place Better Auth exposes it before
+// storing a placeholder in its stead. Sign-up and reset carry the address in
+// their body; a password change carries only a session, so the route hook
+// resolves it there.
+const pendingPasswordOwners = new Map<string, string>()
+
+function rememberPasswordOwner(password: string, email: string): void {
+  pendingPasswordOwners.set(password, email.trim().toLowerCase())
+}
+
+function takePasswordOwner(password: string): string | undefined {
+  const email = pendingPasswordOwners.get(password)
+  pendingPasswordOwners.delete(password)
+  return email
+}
+
+// Writing a password is the one operation that must reach the provider: a
+// placeholder stored against a password Kratos never received is an account
+// its owner can never open. It is relayed before the local write, so a
+// provider that refuses it fails the request instead of stranding the account.
+function kratosHasher(config: PlatformKratosPasswordConfig) {
+  return async (password: string): Promise<string> => {
+    const email = takePasswordOwner(password)
+    if (!email) return KRATOS_SENTINEL_HASH
+
+    const outcome = await provisionIdentity(config, { email, password })
+    if (outcome.status === "provisioned") return KRATOS_SENTINEL_HASH
+
+    if (outcome.status === "unavailable") {
+      throw new KratosSignInError(
+        "SERVICE_UNAVAILABLE",
+        "IDENTITY_PROVIDER_UNAVAILABLE",
+        "The identity service is unavailable. Nothing was changed — try again shortly.",
+      )
+    }
+    throw new KratosSignInError(
+      "UNPROCESSABLE_ENTITY",
+      "IDENTITY_PASSWORD_REFUSED",
+      "The identity service refused this password.",
+    )
+  }
+}
+
 export class KratosSignInError extends APIError {
-  constructor(status: "UNAUTHORIZED" | "FORBIDDEN" | "SERVICE_UNAVAILABLE", code: string, message: string) {
+  constructor(
+    status:
+      | "UNAUTHORIZED"
+      | "FORBIDDEN"
+      | "SERVICE_UNAVAILABLE"
+      | "UNPROCESSABLE_ENTITY",
+    code: string,
+    message: string,
+  ) {
     super(status, { code, message })
   }
 }
@@ -437,6 +505,12 @@ function kratosVerifier(config: PlatformKratosPasswordConfig) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sessionEmail(ctx: any): string | undefined {
+  const email = ctx?.context?.session?.user?.email
+  return typeof email === "string" ? email : undefined
+}
+
 export type PlatformAuth = ReturnType<typeof createPlatformAuth>
 
 // Re-export the session contract from /server so consumers that import the
@@ -472,7 +546,7 @@ export type { KratosOutcome } from "./kratos-credentials"
 
 // The repair path an app schedules for the sign-ups whose provisioning could
 // not reach the provider.
-export { provisionIdentity } from "./identity-provisioning"
+export { provisionIdentity, updateIdentityPassword } from "./identity-provisioning"
 export type {
   IdentityProvisioningConfig,
   ProvisionOutcome,

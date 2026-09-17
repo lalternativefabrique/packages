@@ -187,9 +187,10 @@ if (isInvitationFailure(outcome)) return <InvitationNotice reason={outcome} />
 `endpoint` is any backend that redeems a token, so an app already claiming
 against its own API keeps doing so; `extra` adds fields to the request body.
 
-## Customer passwords at the identity provider (0.14.0)
+## Customer passwords at the identity provider (0.14.0, completed in 0.15.0)
 
-From **0.14.0**, an app can move its customers' passwords to the suite's
+From **0.14.0** — and working end to end from **0.15.0**, which relays the
+password to the provider instead of dropping it — an app can move its customers' passwords to the suite's
 identity provider while keeping its own login screen, its own domain and its
 own session. Nothing is enabled by a version bump alone: passwords stay local
 until `kratosPasswords` is passed. An app upgrading to 0.14.x never changes
@@ -249,6 +250,24 @@ it with no change. A page that routes rather than renders uses the predicates:
 Verification fails closed: only an explicit refusal by Kratos reads as a wrong
 password, and an outage answers 503 so nobody rotates a password that was
 right.
+
+### The password reaches the provider, or the write fails
+
+Kratos holds the password, so every write must reach it: sign-up, the OTP
+reset and a password change all relay what the form collected before anything
+is stored locally. Kratos hashes it with the hasher its own configuration
+declares, so an app cannot hand over one it hashed itself.
+
+If the provider is unreachable the write fails with 503 and nothing changes,
+rather than storing a placeholder against a password Kratos never received —
+that account could never be opened again, and nothing would say why.
+
+This is the one place the package refuses rather than degrades. Reading
+(signing in) fails closed too, but a sign-up that cannot reach the provider
+still creates the local account: the person is registered, `identityId` stays
+null, and `onProvisioningDeferred` hands the repair to the app. Writing a
+password has no such fallback, because a password stored nowhere is not a
+state a repair can fix.
 
 ### Why the sentinel hash
 

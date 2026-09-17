@@ -18,6 +18,14 @@ export type ProvisionOutcome =
 export interface ProvisionRequest {
   email: string
   name?: string
+  /**
+   * The password the person just typed on the product's own form. Kratos
+   * hashes it with the hasher its configuration declares, so an app cannot
+   * hand over one it hashed itself; it is relayed for the length of this
+   * request and stored nowhere. Omitted, the identity is created without a
+   * credential and its owner sets one through recovery.
+   */
+  password?: string
 }
 
 interface TokenResponse {
@@ -115,6 +123,7 @@ export async function provisionIdentity(
         name: request.name ?? "",
         role: config.role,
         product: config.product,
+        ...(request.password ? { password: request.password } : {}),
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
@@ -137,6 +146,70 @@ export async function provisionIdentity(
     if (response.status === 401) {
       tokenCache.delete(`${config.issuer}|${config.clientId}`)
       return { status: "unavailable" }
+    }
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: string
+      message?: string
+    }
+    return {
+      status: "rejected",
+      reason: body.error ?? body.message ?? `http_${response.status}`,
+    }
+  } catch {
+    return { status: "unavailable" }
+  }
+}
+
+/**
+ * Sets the password of an identity the product already enrols, for a reset or
+ * a change made on the product's own form.
+ *
+ * `rejected` with reason `not_found` is the person having no identity yet —
+ * a local account that predates the move, or one whose provisioning is still
+ * to be repaired — and is worth provisioning rather than retrying.
+ */
+export async function updateIdentityPassword(
+  config: IdentityProvisioningConfig,
+  request: { email: string; password: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<ProvisionOutcome> {
+  const token = await accessToken(config, fetchImpl)
+  if (!token) return { status: "unavailable" }
+
+  const base = config.issuer.replace(/\/$/, "")
+  try {
+    const response = await fetchImpl(`${base}/api/machine/passwords`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: request.email.trim().toLowerCase(),
+        password: request.password,
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+
+    if (response.ok) {
+      const body = (await response.json()) as IdentityResponse
+      if (!body.identity_id) return { status: "unavailable" }
+      return {
+        status: "provisioned",
+        identityId: body.identity_id,
+        created: false,
+      }
+    }
+
+    if (response.status === 503 || response.status >= 500) {
+      return { status: "unavailable" }
+    }
+    if (response.status === 401) {
+      tokenCache.delete(`${config.issuer}|${config.clientId}`)
+      return { status: "unavailable" }
+    }
+    if (response.status === 404) {
+      return { status: "rejected", reason: "not_found" }
     }
     const body = (await response.json().catch(() => ({}))) as {
       error?: string
