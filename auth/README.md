@@ -287,6 +287,23 @@ before the native route runs, and the sentinel disappears. That was not taken
 now because it means re-implementing session creation, which is where a
 mistake becomes an authentication hole.
 
+### Enrolment follows the verified address (0.16.0)
+
+Every way into the app enrols the person — a password sign-up, a magic link,
+Google — because the hook is on the user row, not on one route.
+
+It waits for the address to be verified, though. Enrolment is idempotent on
+the address, so sending one nobody proved would join this person to the
+identity of whoever actually owns it. A password sign-up is created
+unverified and confirmed by its OTP a moment later; a social sign-up is
+confirmed by the provider, or not at all if it reports the address unverified.
+Enrolment therefore happens when the address becomes verified, whenever that
+is, and never for an address that stays unverified.
+
+A social sign-up brings no password, so the identity is created without a
+credential: that person signs in through their provider, and sets a password
+through recovery only if they ever want one.
+
 ### Provisioning is not atomic
 
 `user.create.after` runs after the insert commits, so a sign-up cannot be

@@ -142,6 +142,17 @@ export function createPlatformAuth(
       account: withSsoRoleSync(databaseHooks?.account, sso, ssoProviderId),
       user: {
         ...databaseHooks?.user,
+        update: {
+          ...databaseHooks?.user?.update,
+          // A password sign-up is created unverified and confirmed by its OTP
+          // a moment later; a social sign-up may be confirmed by the provider
+          // later still. Enrolment follows the address becoming verified,
+          // whenever that happens, and is idempotent so it never doubles.
+          after: withIdentityProvisioning(
+            databaseHooks?.user?.update?.after,
+            kratosPasswords,
+          ),
+        },
         create: {
           ...databaseHooks?.user?.create,
           after: withIdentityProvisioning(
@@ -328,8 +339,23 @@ function withIdentityProvisioning(
   if (!config) return own
   return async (user, ctx) => {
     await own?.(user, ctx)
-    const record = user as { id?: string; email?: string; name?: string }
+    const record = user as {
+      id?: string
+      email?: string
+      name?: string
+      emailVerified?: boolean
+      identityId?: unknown
+    }
     if (!record.id || !record.email) return
+    // Already enrolled: every later update of the row would otherwise call the
+    // provider again for nothing.
+    if (typeof record.identityId === "string" && record.identityId) return
+    // An address nobody proved belongs to this person must not reach the
+    // provider: enrolment is idempotent on the address, so an unverified one
+    // would join them to the identity of whoever actually owns it. A social
+    // sign-up whose provider reports the address unverified, and a password
+    // sign-up before its OTP, are enrolled once the address is confirmed.
+    if (record.emailVerified !== true) return
 
     const outcome = await provisionIdentity(config, {
       email: record.email,
