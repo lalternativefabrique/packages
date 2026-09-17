@@ -1,0 +1,25 @@
+# The transport: every path, method and parameter, generated from vvaves's own
+# contract so none of them is typed by hand. A route renamed upstream becomes a
+# compile error here rather than a 404 in production.
+#
+# Internal because it is not the SDK's API. The generated methods return raw
+# *http.Response and generated pointer types; the hand-written client wraps them
+# to add typed errors and the pointer-to-value conversions (see ../../client.go).
+package: wire
+output: wire.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  # A DENY list, deliberately.
+  #
+  # An allow list is silent when it is wrong: a route added upstream under a tag
+  # nobody listed simply never reaches the SDK — no error, no warning. That is
+  # exactly how the hand-written tornade client this replaces stayed unaware
+  # that /map and /crawl exist, for as long as they did. Denying instead means a
+  # new caller-facing route arrives on its own.
+  #
+  # What is excluded is the admin surface: everything under /api/v1/admin is
+  # authenticated by an operator's JWT, not by an application key, so an
+  # application has nothing to call there.
+  exclude-tags: [admin]
