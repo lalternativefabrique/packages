@@ -3,6 +3,7 @@ import assert from "node:assert/strict"
 import {
   provisionIdentity,
   resetProvisioningTokenCache,
+  updateIdentityPassword,
   type IdentityProvisioningConfig,
 } from "./identity-provisioning.ts"
 
@@ -131,4 +132,72 @@ test("an unreachable endpoint is unavailable", async () => {
   }) as unknown as typeof fetch
   const outcome = await provisionIdentity(CONFIG, { email: "jean@perso.fr" }, failing)
   assert.deepEqual(outcome, { status: "unavailable" })
+})
+
+test("the password is relayed as typed, never trimmed or lowercased", async () => {
+  const { fetch: impl, calls } = stub({
+    status: 200,
+    body: { identity_id: "id-6", created: true },
+  })
+  await provisionIdentity(
+    CONFIG,
+    { email: "A@B.fr", password: "  Spaces And Caps  " },
+    impl,
+  )
+  const body = JSON.parse(String(calls.at(-1)?.init?.body))
+  assert.equal(body.password, "  Spaces And Caps  ")
+  assert.equal(body.email, "a@b.fr")
+})
+
+test("no password means no field, so the identity stays credential-less", async () => {
+  const { fetch: impl, calls } = stub({
+    status: 200,
+    body: { identity_id: "id-7", created: true },
+  })
+  await provisionIdentity(CONFIG, { email: "a@b.fr" }, impl)
+  const body = JSON.parse(String(calls.at(-1)?.init?.body))
+  assert.equal("password" in body, false)
+})
+
+test("updating a password PUTs to the passwords route", async () => {
+  const { fetch: impl, calls } = stub({ status: 200, body: { identity_id: "id-8" } })
+  const outcome = await updateIdentityPassword(
+    CONFIG,
+    { email: "A@B.fr", password: "the-new-one" },
+    impl,
+  )
+  assert.deepEqual(outcome, {
+    status: "provisioned",
+    identityId: "id-8",
+    created: false,
+  })
+  const last = calls.at(-1)
+  assert.match(String(last?.url), /\/api\/machine\/passwords$/)
+  assert.equal(last?.init?.method, "PUT")
+  const body = JSON.parse(String(last?.init?.body))
+  assert.equal(body.email, "a@b.fr")
+  assert.equal(body.password, "the-new-one")
+})
+
+test("an unknown address is rejected as not_found, not retried", async () => {
+  const { fetch: impl } = stub({ status: 404, body: { error: "not_found" } })
+  const outcome = await updateIdentityPassword(
+    CONFIG,
+    { email: "nobody@b.fr", password: "the-new-one" },
+    impl,
+  )
+  assert.deepEqual(outcome, { status: "rejected", reason: "not_found" })
+})
+
+test("a refused role on update is a rejection, an outage is retryable", async () => {
+  const refused = stub({ status: 403, body: { error: "role" } })
+  assert.deepEqual(
+    await updateIdentityPassword(CONFIG, { email: "a@b.fr", password: "x" }, refused.fetch),
+    { status: "rejected", reason: "role" },
+  )
+  const down = stub({ status: 503, body: { error: "unavailable" } })
+  assert.deepEqual(
+    await updateIdentityPassword(CONFIG, { email: "a@b.fr", password: "x" }, down.fetch),
+    { status: "unavailable" },
+  )
 })
