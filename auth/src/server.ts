@@ -572,11 +572,24 @@ export type { KratosOutcome } from "./kratos-credentials"
 
 // The repair path an app schedules for the sign-ups whose provisioning could
 // not reach the provider.
-export { provisionIdentity, updateIdentityPassword } from "./identity-provisioning"
+export {
+  provisionIdentity,
+  updateIdentityPassword,
+  requestAccountDeletion,
+} from "./identity-provisioning"
 export type {
   IdentityProvisioningConfig,
   ProvisionOutcome,
+  DeletionOutcome,
 } from "./identity-provisioning"
+
+export { deleteAccount } from "./delete-account"
+export type {
+  DeleteAccountConfig,
+  DeleteAccountRequest,
+  DeleteAccountResult,
+  DeleteAccountStep,
+} from "./delete-account"
 
 export { bootstrapFirstAdmin } from "./bootstrap-admin"
 export type {
