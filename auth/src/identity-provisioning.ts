@@ -223,3 +223,74 @@ export async function updateIdentityPassword(
     return { status: "unavailable" }
   }
 }
+
+export type DeletionOutcome =
+  | { status: "requested"; eventId: string }
+  | { status: "rejected"; reason: string }
+  | { status: "unavailable" }
+
+/**
+ * Asks urbangate to drop this product's role on the identity, so the person
+ * stops being one of its users.
+ *
+ * It drops the role and nothing else. The identity belongs to the person, not
+ * to the product that enrolled them: deactivating it would take away every
+ * other product of the suite, without either product knowing why. urbangate
+ * deletes the identity itself only once no role is left on it.
+ *
+ * `identityId` is the `identityId` the local user row stores, written there by
+ * `provisionIdentity`. A local account that predates the move has none, and is
+ * deleted locally without a call here.
+ */
+export async function requestAccountDeletion(
+  config: IdentityProvisioningConfig,
+  request: { identityId: string; userId?: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<DeletionOutcome> {
+  const token = await accessToken(config, fetchImpl)
+  if (!token) return { status: "unavailable" }
+
+  const base = config.issuer.replace(/\/$/, "")
+  try {
+    const response = await fetchImpl(`${base}/api/v1/machine/accounts/deletions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      // No product field: urbangate reads it from the token's client_id, so a
+      // token cannot ask for an account it does not own.
+      body: JSON.stringify({
+        identity_id: request.identityId,
+        ...(request.userId ? { user_id: request.userId } : {}),
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+
+    if (response.ok) {
+      const body = (await response.json()) as { event_id?: string }
+      return { status: "requested", eventId: body.event_id ?? "" }
+    }
+
+    if (response.status >= 500) return { status: "unavailable" }
+    if (response.status === 401) {
+      tokenCache.delete(`${config.issuer}|${config.clientId}`)
+      return { status: "unavailable" }
+    }
+    // The identity is already gone: an earlier attempt got through, or an
+    // administrator removed it. Either way this product has no role left on
+    // it, which is what the call was for.
+    if (response.status === 404) return { status: "requested", eventId: "" }
+
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: string
+      message?: string
+    }
+    return {
+      status: "rejected",
+      reason: body.error ?? body.message ?? `http_${response.status}`,
+    }
+  } catch {
+    return { status: "unavailable" }
+  }
+}
