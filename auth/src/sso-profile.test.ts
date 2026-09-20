@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { mapSsoProfile, roleFromIdToken } from "./sso-profile.ts"
+import { identityIdFromIdToken, mapSsoProfile, roleFromIdToken } from "./sso-profile.ts"
 
 test("the product's admin role makes the user an admin", () => {
   const u = mapSsoProfile(
@@ -46,4 +46,32 @@ test("an unreadable token leaves the role alone", () => {
   assert.equal(roleFromIdToken(undefined, "www:admin"), undefined)
   assert.equal(roleFromIdToken("not-a-jwt", "www:admin"), undefined)
   assert.equal(roleFromIdToken("a.!!!.c", "www:admin"), undefined)
+})
+
+test("mapSsoProfile carries the provider identity id", () => {
+  const u = mapSsoProfile(
+    { sub: "8f3a-1c2d", email: "a@example.com", roles: [] },
+    "spore:admin",
+  )
+  assert.equal(u.identityId, "8f3a-1c2d")
+})
+
+test("mapSsoProfile omits the identity id when the provider sends none", () => {
+  const u = mapSsoProfile({ email: "a@example.com" }, "spore:admin")
+  assert.equal("identityId" in u, false)
+})
+
+test("identityIdFromIdToken reads sub", () => {
+  const payload = Buffer.from(JSON.stringify({ sub: "8f3a-1c2d" })).toString("base64url")
+  assert.equal(identityIdFromIdToken(`x.${payload}.y`), "8f3a-1c2d")
+})
+
+// A token that cannot be read must not overwrite an identity id already
+// stored: the caller skips the update when this answers undefined.
+test("identityIdFromIdToken answers undefined rather than a wrong value", () => {
+  assert.equal(identityIdFromIdToken(null), undefined)
+  assert.equal(identityIdFromIdToken(""), undefined)
+  assert.equal(identityIdFromIdToken("not.a.token"), undefined)
+  const empty = Buffer.from(JSON.stringify({ sub: "" })).toString("base64url")
+  assert.equal(identityIdFromIdToken(`x.${empty}.y`), undefined)
 })

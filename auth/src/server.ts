@@ -13,7 +13,12 @@ import {
 } from "./kratos-credentials"
 import { provisionIdentity } from "./identity-provisioning"
 import { withGoogleDefaults } from "./google-defaults"
-import { mapSsoProfile, roleFromIdToken, type SsoProfile } from "./sso-profile"
+import {
+  identityIdFromIdToken,
+  mapSsoProfile,
+  roleFromIdToken,
+  type SsoProfile,
+} from "./sso-profile"
 import { ssoEndpoints } from "./sso-endpoints"
 import { withSignUpName } from "./signup-name"
 import { resolveRateLimit } from "./rate-limit"
@@ -121,7 +126,10 @@ export function createPlatformAuth(
         ? { enabled: true, trustedProviders: [ssoProviderId] }
         : { enabled: false },
     },
-    ...(kratosPasswords
+    // Declared for single sign-on too, not only for Kratos passwords: the
+    // suite addresses a person by their provider identity id, and an app key
+    // is issued against it, so a row without one cannot ask for a key.
+    ...(kratosPasswords || sso
       ? {
           user: {
             additionalFields: {
@@ -389,8 +397,16 @@ function withSsoRoleSync(
   const sync: AccountAfterHook = async (account, ctx) => {
     if (account.providerId !== providerId || !ctx) return
     const role = roleFromIdToken(account.idToken, sso.adminRole)
-    if (!role) return
-    await ctx.context.internalAdapter.updateUser(account.userId, { role })
+    // Written on every sign-in rather than at creation only: the OAuth path
+    // drops what mapProfileToUser returns, and an account that predates this
+    // field fills it the next time its holder signs in, with no backfill.
+    const identityId = identityIdFromIdToken(account.idToken)
+    const update = {
+      ...(role ? { role } : {}),
+      ...(identityId ? { identityId } : {}),
+    }
+    if (Object.keys(update).length === 0) return
+    await ctx.context.internalAdapter.updateUser(account.userId, update)
   }
   const chain =
     (own: AccountAfterHook | undefined): AccountAfterHook =>
@@ -564,7 +580,7 @@ export {
 } from "./invitation"
 export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
 
-export { mapSsoProfile } from "./sso-profile"
+export { identityIdFromIdToken, mapSsoProfile } from "./sso-profile"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"
 
 export { KRATOS_SENTINEL_HASH, isKratosSentinel } from "./kratos-credentials"

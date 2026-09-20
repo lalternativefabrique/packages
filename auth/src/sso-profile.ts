@@ -14,6 +14,7 @@ export interface SsoMappedUser {
   name: string
   image?: string
   role: "admin" | "user"
+  identityId?: string
 }
 
 export function rolesOf(profile: SsoProfile): string[] {
@@ -35,7 +36,21 @@ export function mapSsoProfile(profile: SsoProfile, adminRole: string): SsoMapped
     name: profile.name?.trim() || email.split("@")[0] || "",
     ...(profile.picture ? { image: profile.picture } : {}),
     role: rolesOf(profile).includes(adminRole) ? "admin" : "user",
+    ...(profile.sub ? { identityId: profile.sub } : {}),
   }
+}
+
+/**
+ * The provider's identity id an ID token names, or undefined when the token
+ * cannot be read. It is the `sub` claim: the suite addresses a person by it,
+ * and an app key is issued against it, so a local row without one cannot ask
+ * for a key on that person's behalf.
+ */
+export function identityIdFromIdToken(idToken: string | null | undefined): string | undefined {
+  if (!idToken) return undefined
+  const claims = decodeJwtPayload(idToken)
+  const sub = claims?.sub
+  return typeof sub === "string" && sub ? sub : undefined
 }
 
 function decodeJwtPayload(token: string): Record<string, unknown> | undefined {
