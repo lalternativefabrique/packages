@@ -12,6 +12,8 @@ export const defaultCopy: KeysCopy = {
   columnId: "Identifiant",
   columnScopes: "Droits",
   columnCreated: "Créée le",
+  columnExpires: "Expire le",
+  never: "N'expire pas",
   revoke: "Révoquer",
   revoking: "Révocation…",
   confirmRevoke: (label) =>

@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/keys",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Shared app-key UI for L'Alternative apps: list, create and revoke the keys urbangate issues",
   "type": "module",
   "main": "./dist/index.js",

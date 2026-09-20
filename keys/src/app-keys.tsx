@@ -110,6 +110,7 @@ export function AppKeys({
               <th scope="col">{text.columnId}</th>
               <th scope="col">{text.columnScopes}</th>
               <th scope="col">{text.columnCreated}</th>
+              <th scope="col">{text.columnExpires}</th>
               <th scope="col">
                 <span className="sr-only">{text.revoke}</span>
               </th>
@@ -124,6 +125,9 @@ export function AppKeys({
                 </td>
                 <td>{key.scopes.join(" ") || "—"}</td>
                 <td>{formatDate(key.createdAt)}</td>
+                <td>
+                  {key.expiresAt ? formatDate(key.expiresAt) : text.never}
+                </td>
                 <td>
                   <button
                     type="button"
