@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/keys",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared app-key UI for L'Alternative apps: list, create and revoke the keys urbangate issues",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
