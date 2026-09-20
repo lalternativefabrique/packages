@@ -1,30 +1,30 @@
-import { useMemo, useState } from 'react'
-import { httpTransport } from './transport'
-import { useAppKeys } from './use-app-keys'
-import { defaultCopy } from './copy'
-import type { KeysCopy, KeysTransport } from './types'
+import { useMemo, useState } from "react";
+import { httpTransport } from "./transport";
+import { useAppKeys } from "./use-app-keys";
+import { defaultCopy } from "./copy";
+import type { KeysCopy, KeysTransport } from "./types";
 
 export interface AppKeysProps {
-  endpoint?: string
-  transport?: KeysTransport
-  copy?: Partial<KeysCopy>
-  className?: string
+  endpoint?: string;
+  transport?: KeysTransport;
+  copy?: Partial<KeysCopy>;
+  className?: string;
 }
 
 function formatDate(value: string | null) {
-  if (!value) return '—'
-  const date = new Date(value)
+  if (!value) return "—";
+  const date = new Date(value);
   return Number.isNaN(date.valueOf())
-    ? '—'
-    : date.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
+    ? "—"
+    : date.toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
 }
 
 export function AppKeys({
-  endpoint = '/api/keys',
+  endpoint = "/api/keys",
   transport,
   copy,
   className,
@@ -32,19 +32,19 @@ export function AppKeys({
   const wire = useMemo(
     () => transport ?? httpTransport(endpoint),
     [transport, endpoint],
-  )
-  const text = useMemo(() => ({ ...defaultCopy, ...copy }), [copy])
+  );
+  const text = useMemo(() => ({ ...defaultCopy, ...copy }), [copy]);
   const { keys, status, error, created, create, revoke, dismissCreated } =
-    useAppKeys(wire)
-  const [label, setLabel] = useState('')
-  const [copied, setCopied] = useState(false)
+    useAppKeys(wire);
+  const [label, setLabel] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  const busy = status === 'working'
+  const busy = status === "working";
 
   const submit = async () => {
-    await create(label)
-    setLabel('')
-  }
+    await create(label);
+    setLabel("");
+  };
 
   return (
     <section className={className}>
@@ -53,8 +53,8 @@ export function AppKeys({
 
       <form
         onSubmit={(event) => {
-          event.preventDefault()
-          void submit()
+          event.preventDefault();
+          void submit();
         }}
       >
         <input
@@ -80,7 +80,7 @@ export function AppKeys({
               void navigator.clipboard
                 ?.writeText(created.secret)
                 .then(() => setCopied(true))
-                .catch(() => setCopied(false))
+                .catch(() => setCopied(false));
             }}
           >
             {copied ? text.copied : text.copy}
@@ -88,8 +88,8 @@ export function AppKeys({
           <button
             type="button"
             onClick={() => {
-              setCopied(false)
-              dismissCreated()
+              setCopied(false);
+              dismissCreated();
             }}
           >
             {text.dismiss}
@@ -99,7 +99,8 @@ export function AppKeys({
 
       {error && <p role="alert">{text.errors[error.kind]}</p>}
 
-      {status === 'loading' ? null : keys.length === 0 ? (
+      {status === "loading" ||
+      (error && keys.length === 0) ? null : keys.length === 0 ? (
         <p>{text.empty}</p>
       ) : (
         <table>
@@ -121,7 +122,7 @@ export function AppKeys({
                 <td>
                   <code>{key.id}</code>
                 </td>
-                <td>{key.scopes.join(' ') || '—'}</td>
+                <td>{key.scopes.join(" ") || "—"}</td>
                 <td>{formatDate(key.createdAt)}</td>
                 <td>
                   <button
@@ -129,7 +130,7 @@ export function AppKeys({
                     disabled={busy}
                     onClick={() => {
                       if (window.confirm(text.confirmRevoke(key.label))) {
-                        void revoke(key.id)
+                        void revoke(key.id);
                       }
                     }}
                   >
@@ -142,5 +143,5 @@ export function AppKeys({
         </table>
       )}
     </section>
-  )
+  );
 }
