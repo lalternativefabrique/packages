@@ -148,6 +148,27 @@ func TestOwnerClaimIsRead(t *testing.T) {
 	}
 }
 
+// The jti is what a revocation names a key by: a signed key verifies offline,
+// so nothing in the token itself can say it was withdrawn.
+func TestJTIIsRead(t *testing.T) {
+	f := newFakeIssuer(t)
+	v := verifier(t, svcauth.Hydra(f.url()))
+
+	signed := f.token(t, "rsa-1", jwt.MapClaims{"sub": "ak_1", "jti": "a5a52f36"})
+	c, err := v.Verify(context.Background(), signed)
+	if err != nil || c.JTI != "a5a52f36" {
+		t.Fatalf("claims = %+v, err = %v", c, err)
+	}
+
+	// A token issued before signed keys carries none, and that is not an
+	// error: it simply cannot be named by a revocation.
+	none := f.token(t, "rsa-1", jwt.MapClaims{"sub": "lalter-core"})
+	c, err = v.Verify(context.Background(), none)
+	if err != nil || c.JTI != "" {
+		t.Fatalf("claims = %+v, err = %v", c, err)
+	}
+}
+
 func TestRolesInHydraExtClaimAreRead(t *testing.T) {
 	f := newFakeIssuer(t)
 	v := verifier(t, svcauth.Hydra(f.url()))

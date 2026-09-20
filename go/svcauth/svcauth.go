@@ -43,6 +43,10 @@ type Claims struct {
 	Scopes   []string
 	Roles    []string
 	Expires  time.Time
+	// JTI identifies this token, and a customer app key by it: the key is
+	// verified offline, so a revocation reaches a product as this id on a
+	// list rather than as anything the token itself could say.
+	JTI string
 }
 
 func (c Claims) HasScope(scope string) bool {
@@ -184,6 +188,7 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Claims, error) {
 		Scopes:   scopesOf(rc),
 		Roles:    rolesOf(rc),
 		Expires:  rc.ExpiresAt.Time,
+		JTI:      rc.ID,
 	}, nil
 }
 
