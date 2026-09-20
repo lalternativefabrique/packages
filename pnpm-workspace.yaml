@@ -4,6 +4,7 @@ packages:
   - "lalter/*"
   - "lungor/*"
   - "auth"
+  - "keys"
   - "legal"
   - "admin"
   - "editor"
