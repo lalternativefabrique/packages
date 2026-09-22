@@ -80,6 +80,13 @@ func JWKSURL(urbangate string) string {
 	return strings.TrimRight(urbangate, "/") + "/api/machine/keys/jwks"
 }
 
+// RevocationURL is where urbangate serves the keys a product must refuse. The
+// front signs and issues; the core keeps the list, and the gateway routes
+// /api/v1/machine to it under the same host.
+func RevocationURL(urbangate string) string {
+	return strings.TrimRight(urbangate, "/") + "/api/v1/machine/keys/revoked"
+}
+
 // New wires a product's key path. It returns an error rather than panicking on
 // a missing field: a product that forgets its provisioner would otherwise
 // serve a relay that 500s on every call.
@@ -120,7 +127,7 @@ func New(cfg Config) (*Keys, error) {
 	}
 
 	list, err := svcauth.NewRevocationList(
-		base+"/api/machine/revoked",
+		RevocationURL(base),
 		cfg.Provisioner,
 		svcauth.WithRevocationClient(client),
 	)

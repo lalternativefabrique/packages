@@ -91,7 +91,7 @@ func newGuardFixture(t *testing.T) *guardFixture {
 		case "/api/machine/keys/jwks":
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(f.signer.jwks()))
-		case "/api/machine/revoked":
+		case "/api/v1/machine/keys/revoked":
 			entries := make([]map[string]string, 0, len(f.revoked))
 			for _, jti := range f.revoked {
 				entries = append(entries, map[string]string{"jti": jti, "revoked_at": "2026-09-20T08:00:00Z"})
