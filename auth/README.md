@@ -45,16 +45,19 @@ creation and again on every sign-in, so a role removed at the provider is
 removed here the next time the person signs in.
 
 ```ts
+import { createPlatformAuth, ssoFromEnv } from "@lalternative/auth/server"
+
 export const auth = createPlatformAuth({
   // …
-  sso: {
-    issuer: "https://id.urbangate.dev",
-    clientId: "tornade-admin",
-    clientSecret: process.env.URBANGATE_CLIENT_SECRET!,
-    adminRole: "tornade:admin",
-  },
+  sso: ssoFromEnv("tornad", process.env),
 })
 ```
+
+`ssoFromEnv` reads the suite's variables (see [Environment](#environment))
+and is `undefined` while `URBANGATE_CLIENT_SECRET` is unset, so an app boots
+without SSO until the secret reaches it. The client is `<product>-admin` and
+the admin role `<product>:admin`, which is what urbangate declares for every
+product. Pass a `PlatformSsoConfig` by hand only when an app departs from that.
 
 The callback is `/api/auth/callback/urbangate`; register it on the Hydra
 client. The provider's endpoints are derived from the issuer, so the app boots
@@ -62,6 +65,24 @@ even when the issuer is unreachable; discovery only adds ID-token verification.
 On the client, `startSso(authClient, { callbackURL: "/admin" })`
 starts the redirect (Better Auth 1.7 serves generic providers through
 `signIn.social`, so no client plugin is needed).
+
+### Environment
+
+Both helpers read one set of variables, typed as `UrbangateEnv`. A secret is
+the switch of what it enables: unset, that part stays off and the app behaves
+as before.
+
+| Variable | Enables | Default |
+|---|---|---|
+| `URBANGATE_ISSUER_URL` | — | `https://id.urbangate.dev` |
+| `URBANGATE_PUBLIC_URL` | — | the issuer |
+| `URBANGATE_CLIENT_ID` | — | `<product>-admin` |
+| `URBANGATE_CLIENT_SECRET` | single sign-on | none |
+| `URBANGATE_PROVISIONER_CLIENT_ID` | — | `<product>-provisioner` |
+| `URBANGATE_PROVISIONER_CLIENT_SECRET` | enrolment at the provider, and the key relay | none |
+
+`URBANGATE_PUBLIC_URL` is for a dev stack where the front reaches Kratos by
+another address than Hydra's issuer; in production the two are the same host.
 
 ### Magic link
 
@@ -197,19 +218,22 @@ until `kratosPasswords` is passed. An app upgrading to 0.14.x never changes
 behaviour by accident.
 
 ```ts
+import { createPlatformAuth, kratosPasswordsFromEnv } from "@lalternative/auth/server"
+
 createPlatformAuth({
   // …
-  kratosPasswords: {
-    publicUrl: process.env.URBANGATE_PUBLIC_URL!,
-    issuer: process.env.URBANGATE_ISSUER_URL!,
-    clientId: process.env.URBANGATE_PROVISIONER_CLIENT_ID!,
-    clientSecret: process.env.URBANGATE_PROVISIONER_CLIENT_SECRET!,
-    role: "spore:user",
-    product: "spore",
+  kratosPasswords: kratosPasswordsFromEnv("spore", process.env, {
     onProvisioningDeferred: ({ userId, email }) => queueIdentityRepair(userId, email),
-  },
+  }),
 })
 ```
+
+`kratosPasswordsFromEnv` reads the suite's variables (see
+[Environment](#environment)) and is `undefined` while
+`URBANGATE_PROVISIONER_CLIENT_SECRET` is unset. The client is
+`<product>-provisioner` and the customer role `<product>:user`; urbangate
+checks that role against the client's own name, so neither can be anything
+else.
 
 The login form, its copy and its routes do not change, and nobody is
 redirected: the password is posted to this app as before and checked against
