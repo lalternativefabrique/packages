@@ -582,7 +582,7 @@ export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
 
 export { identityIdFromIdToken, mapSsoProfile } from "./sso-profile"
 export { URBANGATE_ISSUER, kratosPasswordsFromEnv, ssoFromEnv } from "./urbangate-env"
-export type { UrbangateEnv } from "./urbangate-env"
+export type { ProvisionerEnv, SsoEnv, UrbangateEnv } from "./urbangate-env"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"
 
 export { KRATOS_SENTINEL_HASH, isKratosSentinel } from "./kratos-credentials"

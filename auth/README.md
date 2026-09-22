@@ -49,13 +49,18 @@ import { createPlatformAuth, ssoFromEnv } from "@lalternative/auth/server"
 
 export const auth = createPlatformAuth({
   // …
-  sso: ssoFromEnv("tornad", process.env),
+  sso: ssoFromEnv("tornad", {
+    URBANGATE_ISSUER_URL: process.env.URBANGATE_ISSUER_URL,
+    URBANGATE_CLIENT_ID: process.env.URBANGATE_CLIENT_ID,
+    URBANGATE_CLIENT_SECRET: process.env.URBANGATE_CLIENT_SECRET,
+  }),
 })
 ```
 
-`ssoFromEnv` reads the suite's variables (see [Environment](#environment))
-and is `undefined` while `URBANGATE_CLIENT_SECRET` is unset, so an app boots
-without SSO until the secret reaches it. The client is `<product>-admin` and
+`ssoFromEnv` takes an `SsoEnv`, the three variables it reads and nothing
+else — never the whole `process.env` (see [Environment](#environment)). It is
+`undefined` while `URBANGATE_CLIENT_SECRET` is unset, so an app boots without
+SSO until the secret reaches it. The client is `<product>-admin` and
 the admin role `<product>:admin`, which is what urbangate declares for every
 product. Pass a `PlatformSsoConfig` by hand only when an app departs from that.
 
@@ -68,9 +73,12 @@ starts the redirect (Better Auth 1.7 serves generic providers through
 
 ### Environment
 
-Both helpers read one set of variables, typed as `UrbangateEnv`. A secret is
-the switch of what it enables: unset, that part stays off and the app behaves
-as before.
+Each helper declares the variables it reads — `SsoEnv` for single sign-on,
+`ProvisionerEnv` for enrolment, `UrbangateEnv` being both — and the app hands
+it those and nothing else. Passing `process.env` whole would give a library
+every secret the process holds for the sake of three or four values. A secret
+is the switch of what it enables: unset, that part stays off and the app
+behaves as before.
 
 | Variable | Enables | Default |
 |---|---|---|
@@ -222,14 +230,22 @@ import { createPlatformAuth, kratosPasswordsFromEnv } from "@lalternative/auth/s
 
 createPlatformAuth({
   // …
-  kratosPasswords: kratosPasswordsFromEnv("spore", process.env, {
-    onProvisioningDeferred: ({ userId, email }) => queueIdentityRepair(userId, email),
-  }),
+  kratosPasswords: kratosPasswordsFromEnv(
+    "spore",
+    {
+      URBANGATE_ISSUER_URL: process.env.URBANGATE_ISSUER_URL,
+      URBANGATE_PUBLIC_URL: process.env.URBANGATE_PUBLIC_URL,
+      URBANGATE_PROVISIONER_CLIENT_ID: process.env.URBANGATE_PROVISIONER_CLIENT_ID,
+      URBANGATE_PROVISIONER_CLIENT_SECRET: process.env.URBANGATE_PROVISIONER_CLIENT_SECRET,
+    },
+    { onProvisioningDeferred: ({ userId, email }) => queueIdentityRepair(userId, email) },
+  ),
 })
 ```
 
-`kratosPasswordsFromEnv` reads the suite's variables (see
-[Environment](#environment)) and is `undefined` while
+`kratosPasswordsFromEnv` takes a `ProvisionerEnv`, the four variables it
+reads and nothing else — never the whole `process.env` (see
+[Environment](#environment)). It is `undefined` while
 `URBANGATE_PROVISIONER_CLIENT_SECRET` is unset. The client is
 `<product>-provisioner` and the customer role `<product>:user`; urbangate
 checks that role against the client's own name, so neither can be anything
