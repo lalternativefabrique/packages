@@ -52,6 +52,9 @@ test("an exchange takes three calls and yields the person's token", async () => 
       const form = init.body as URLSearchParams;
       assert.equal(form.get("assertion"), "a.b.c");
       assert.equal(form.get("audience"), "tornad");
+      assert.equal(form.get("client_id"), "tornad-admin");
+      assert.equal(form.get("client_secret"), "a");
+      assert.equal(new Headers(init.headers).get("authorization"), null);
       return Response.json({ access_token: access, expires_in: 900 });
     },
   });

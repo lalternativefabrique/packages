@@ -94,10 +94,14 @@ export class Exchange {
     identity_id: string;
     roles: Array<string>;
   }): Promise<ExchangeOutcome> {
+    // An -admin client authenticates with client_secret_post, unlike the
+    // provisioner: Hydra refuses its credentials in a Basic header.
     const form = new URLSearchParams({
       grant_type: JWT_BEARER,
       assertion: answer.assertion,
       audience: this.config.product,
+      client_id: this.config.admin.clientId,
+      client_secret: this.config.admin.clientSecret,
     });
     let res: Response;
     try {
@@ -107,10 +111,6 @@ export class Exchange {
           method: "POST",
           headers: {
             "content-type": "application/x-www-form-urlencoded",
-            authorization: basic(
-              this.config.admin.clientId,
-              this.config.admin.clientSecret,
-            ),
           },
           body: form,
         },
