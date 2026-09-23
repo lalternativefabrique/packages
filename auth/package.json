@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/auth",
-  "version": "0.20.0",
+  "version": "1.0.0",
   "description": "Shared Better Auth wrapper for L'Alternative apps (server + React client + auth UI)",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,6 +17,14 @@
     "./client": {
       "import": "./dist/client.js",
       "types": "./dist/client.d.ts"
+    },
+    "./urbangate": {
+      "import": "./dist/urbangate.js",
+      "types": "./dist/urbangate.d.ts"
+    },
+    "./urbangate-client": {
+      "import": "./dist/urbangate-client.js",
+      "types": "./dist/urbangate-client.d.ts"
     }
   },
   "files": [
