@@ -31,6 +31,7 @@ export function ssoFromEnv(product: string, env: SsoEnv): PlatformSsoConfig | un
     clientId: env.URBANGATE_CLIENT_ID || `${product}-admin`,
     clientSecret: env.URBANGATE_CLIENT_SECRET,
     adminRole: `${product}:admin`,
+    audience: product,
   }
 }
 

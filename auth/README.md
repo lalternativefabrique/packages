@@ -71,6 +71,32 @@ On the client, `startSso(authClient, { callbackURL: "/admin" })`
 starts the redirect (Better Auth 1.7 serves generic providers through
 `signIn.social`, so no client plugin is needed).
 
+### The person's token reaches the core (0.20.0)
+
+urbangate's ADR 0009: a signed-in person reaches the product's core with the
+access token Hydra issued to them, not with one the web signs. `ssoFromEnv`
+therefore asks for the product as `audience` at sign-in, and `coreProxy`
+forwards the stored access token, refreshed at Hydra by Better Auth when it
+is about to expire.
+
+```ts
+import { coreProxy } from "@lalternative/auth/server"
+
+const proxy = coreProxy(auth, { coreUrl: process.env.CORE_URL, adminOnly: true })
+
+export const Route = createFileRoute("/api/v1/$")({
+  server: { handlers: { ANY: ({ request }) => proxy(request) } },
+})
+```
+
+The proxy answers 401 `sign_in_required` without a session, 403 when
+`adminOnly` is set and the person is not one, and otherwise forwards the
+request as it is, minus the cookie and hop-by-hop headers. `fallbackToken`
+mints a token for an account without an urbangate access token — one opened
+before the change, or a local-password account — and is the bridge a product
+removes once every session is on the new token. The core verifies both with
+`go/websession`.
+
 ### Environment
 
 Each helper declares the variables it reads — `SsoEnv` for single sign-on,

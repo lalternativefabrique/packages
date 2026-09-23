@@ -291,6 +291,7 @@ export function createPlatformAuth(
                   clientId: sso.clientId,
                   clientSecret: sso.clientSecret,
                   scopes: ["openid", "email", "profile", "offline_access"],
+                  ...(sso.audience ? { authorizationUrlParams: { audience: sso.audience } } : {}),
                   pkce: true,
                   overrideUserInfo: true,
                   disableSignUp: sso.allowSignUp === false,
@@ -582,6 +583,8 @@ export type { ClaimOutcome, ClaimInvitationOptions } from "./invitation"
 
 export { identityIdFromIdToken, mapSsoProfile } from "./sso-profile"
 export { URBANGATE_ISSUER, kratosPasswordsFromEnv, ssoFromEnv } from "./urbangate-env"
+export { coreProxy, forwardHeaders } from "./core-proxy"
+export type { CoreProxyOptions } from "./core-proxy"
 export type { ProvisionerEnv, SsoEnv, UrbangateEnv } from "./urbangate-env"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"
 
