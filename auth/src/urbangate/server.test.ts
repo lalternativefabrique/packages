@@ -65,6 +65,7 @@ function kratosStub(
 function auth(fetchImpl: typeof fetch) {
   return createUrbangateAuth({
     product: "tornad",
+    productName: "Tornad",
     kratosUrl: "http://kratos:4433",
     urbangate: {
       issuerUrl: "https://id.urbangate.dev",
@@ -102,6 +103,7 @@ test("sign-in by password sets the session cookie", async () => {
     method: "password",
     identifier: "ana@example",
     password: "pw",
+    transient_payload: { product: "tornad", product_name: "Tornad" },
   });
   const body = (await res.json()) as { user: { email: string; role: string } };
   assert.equal(body.user.email, "ana@example");
@@ -145,6 +147,7 @@ test("sign-up opens the session, keeps the verification flow, and the code verif
       method: "password",
       traits: { email: "ana@example", name: "Ana" },
       password: "pw",
+      transient_payload: { product: "tornad", product_name: "Tornad" },
     },
   );
   const verified = await a.handler(
@@ -157,7 +160,11 @@ test("sign-up opens the session, keeps the verification flow, and the code verif
   assert.equal(verified.status, 200);
   assert.deepEqual(
     calls.find((c) => c.key === "POST /self-service/verification?flow=V")?.body,
-    { method: "code", code: "123456" },
+    {
+      method: "code",
+      code: "123456",
+      transient_payload: { product: "tornad", product_name: "Tornad" },
+    },
   );
 });
 
@@ -273,5 +280,177 @@ test("a code for an unknown address becomes a sign-up by code", async () => {
   );
   assert.ok(
     calls.some((c) => c.key === "POST /self-service/registration?flow=R"),
+  );
+});
+
+test("every submit carries the product for urbangate's mail templates", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "POST /self-service/login?flow=L": (init) => {
+      const b = JSON.parse(init.body as string) as { code?: string };
+      return b.code
+        ? Response.json({ session_token: "ory_st", session })
+        : Response.json({ id: "L", state: "sent_email" });
+    },
+  });
+  const a = auth(fetchImpl);
+  const sent = await a.handler(
+    post("email-otp/send-verification-otp", {
+      email: "ana@example",
+      type: "sign-in",
+    }),
+  );
+  const flow = (sent.headers.get("set-cookie") ?? "").split(";")[0];
+  await a.handler(
+    post("sign-in/email-otp", { email: "ana@example", otp: "123456" }, flow),
+  );
+  await a.handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  const submits = calls.filter((c) => c.key.startsWith("POST /self-service/"));
+  assert.ok(submits.length >= 3);
+  for (const c of submits) {
+    assert.deepEqual(
+      (c.body as { transient_payload?: unknown }).transient_payload,
+      { product: "tornad", product_name: "Tornad" },
+      c.key,
+    );
+  }
+});
+
+function recoveryStub(settings: (init: RequestInit) => Response) {
+  return kratosStub({
+    "POST /self-service/recovery?flow=RC": () =>
+      Response.json(
+        {
+          id: "RC",
+          continue_with: [
+            { action: "set_ory_session_token", ory_session_token: "ory_st" },
+            { action: "show_settings_ui", flow: { id: "S" } },
+          ],
+        },
+        { status: 422 },
+      ),
+    "POST /self-service/settings?flow=S": settings,
+  });
+}
+
+const aal2Refusal = () =>
+  Response.json(
+    { error: { id: "session_aal2_required", code: 403 } },
+    { status: 403 },
+  );
+
+test("a reset refused for a second factor keeps the session and the settings flow", async () => {
+  const { fetchImpl } = recoveryStub(aal2Refusal);
+  const res = await auth(fetchImpl).handler(
+    post(
+      "email-otp/reset-password",
+      { email: "ana@example", otp: "123456", password: "a-new-password" },
+      "tornad_flow=recovery%3ARC",
+    ),
+  );
+  assert.equal(res.status, 403);
+  assert.equal(
+    ((await res.json()) as { error: { code: string } }).error.code,
+    "second_factor_required",
+  );
+  const cookies = res.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(cookies.some((c) => c.startsWith("tornad_flow=settings2fa%3AS")));
+});
+
+test("the second factor steps the session up, then sets the password", async () => {
+  let stepped = false;
+  const { fetchImpl, calls } = recoveryStub(() =>
+    stepped ? Response.json({ id: "S", state: "success" }) : aal2Refusal(),
+  );
+  const withLogin = (async (url: URL | string, init: RequestInit = {}) => {
+    const u = new URL(String(url));
+    if (u.pathname === "/self-service/login/api" && u.searchParams.get("aal"))
+      return Response.json({ id: "L2" });
+    if (
+      u.pathname === "/self-service/login" &&
+      u.searchParams.get("flow") === "L2"
+    ) {
+      const b = JSON.parse(init.body as string) as { totp_code?: string };
+      if (b.totp_code !== "123456")
+        return Response.json(
+          { id: "L2", ui: { messages: [{ id: 4000008, type: "error" }] } },
+          { status: 400 },
+        );
+      stepped = true;
+      return Response.json({ session });
+    }
+    return fetchImpl(url, init);
+  }) as typeof fetch;
+  const a = auth(withLogin);
+  const cookie = "tornad_session=ory_st; tornad_flow=settings2fa%3AS";
+  const wrong = await a.handler(
+    post("second-factor/verify", { code: "000000", password: "p" }, cookie),
+  );
+  assert.equal(wrong.status, 400);
+  assert.equal(
+    ((await wrong.json()) as { error: { code: string } }).error.code,
+    "invalid_code",
+  );
+  const ok = await a.handler(
+    post(
+      "second-factor/verify",
+      { code: "123 456", password: "a-new-password" },
+      cookie,
+    ),
+  );
+  assert.equal(ok.status, 200);
+  const settings = calls.filter(
+    (c) => c.key === "POST /self-service/settings?flow=S",
+  );
+  assert.equal(settings.at(-1)?.headers.get("x-session-token"), "ory_st");
+  assert.equal(
+    (settings.at(-1)?.body as { password?: string }).password,
+    "a-new-password",
+  );
+});
+
+test("a backup code goes through lookup_secret", async () => {
+  const bodies: Array<unknown> = [];
+  const f = (async (url: URL | string, init: RequestInit = {}) => {
+    const u = new URL(String(url));
+    if (u.pathname === "/self-service/login/api")
+      return Response.json({ id: "L2" });
+    if (u.pathname === "/self-service/login") {
+      bodies.push(JSON.parse(init.body as string));
+      return Response.json({ session });
+    }
+    return Response.json({ id: "S", state: "success" });
+  }) as typeof fetch;
+  const res = await auth(f).handler(
+    post(
+      "second-factor/verify",
+      { code: "ab12cd34", password: "p" },
+      "tornad_session=ory_st; tornad_flow=settings2fa%3AS",
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.deepEqual(bodies[0], {
+    method: "lookup_secret",
+    lookup_secret: "ab12cd34",
+  });
+});
+
+test("a second sign-up with a known address answers already_registered", async () => {
+  const { fetchImpl } = kratosStub({
+    "POST /self-service/registration?flow=R": () =>
+      Response.json(
+        { id: "R", ui: { messages: [{ id: 4000007, type: "error" }] } },
+        { status: 400 },
+      ),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("sign-up/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 409);
+  assert.equal(
+    ((await res.json()) as { error: { code: string } }).error.code,
+    "already_registered",
   );
 });

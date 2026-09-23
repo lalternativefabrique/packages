@@ -31,6 +31,10 @@ test("failureOf reads Kratos' message ids", () => {
     }),
     { status: "password_refused", message: "too short" },
   );
+  assert.deepEqual(
+    failureOf(400, { ui: { messages: [{ id: 4000008, type: "error" }] } }),
+    { status: "invalid_code" },
+  );
   assert.deepEqual(failureOf(410, {}), { status: "flow_expired" });
   assert.deepEqual(failureOf(403, { error: { id: "session_aal2_required" } }), {
     status: "second_factor_required",

@@ -110,6 +110,7 @@ import { createUrbangateAuth } from "@lalternative/auth/urbangate"
 
 export const auth = createUrbangateAuth({
   product: "tornad",
+  productName: "Tornad",                              // on the mails; defaults to product
   kratosUrl: process.env.KRATOS_PUBLIC_URL,          // http://kratos:4433 in the space
   urbangate: {
     issuerUrl: process.env.URBANGATE_ISSUER_URL,      // https://id.urbangate.dev
@@ -134,7 +135,8 @@ Routes the handler serves under `/api/auth/`, all JSON:
 | `POST email-otp/send-verification-otp` `{email,type}` | verification, recovery or login by code, per `type` |
 | `POST email-otp/verify-email` `{email,otp}` | verification |
 | `POST sign-in/email-otp` `{email,otp}` | login by code, second step |
-| `POST email-otp/reset-password` `{email,otp,password}` | recovery, then settings with the recovered session |
+| `POST email-otp/reset-password` `{email,otp,password}` | recovery, then settings with the recovered session; 403 `second_factor_required` when the identity holds one |
+| `POST second-factor/verify` `{code,password}` | login at `aal2` (TOTP, or a backup code), then the pending settings flow |
 | `POST sign-out` | logout |
 | `GET get-session` | whoami |
 
@@ -154,6 +156,17 @@ and hands back the `Set-Cookie` to append; `coreProxy` does that and forwards,
 answering 401 `sign_in_required`, 403 `forbidden`, or 503
 `identity_provider_unavailable` when urbangate cannot answer — never 401 for
 an outage.
+
+A reset for an identity holding a second factor is refused by Kratos'
+settings flow at aal1, after the recovery code is spent. The handler keeps
+the recovered session and the settings flow (`<product>_flow=settings2fa:…`)
+and answers 403 `second_factor_required`; `ResetPasswordForm` then asks for
+the authenticator code and finishes through `authClient.secondFactor.verify`.
+A Better Auth client has no `secondFactor`, and the form keeps its old
+failure message there.
+
+Every flow submit carries `transient_payload: { product, product_name }`,
+which urbangate's courier templates read to name the product on the mail.
 
 Kratos must run the native flows for this product's identities and open the
 session at registration: `selfservice.flows.registration.after.password.hooks`

@@ -67,7 +67,7 @@ export class KratosError extends Error {
 // Kratos' message ids, from its text catalogue. A wrong password and an
 // unknown address share one id on purpose.
 const INVALID_CREDENTIALS = 4000006;
-const INVALID_CODE = new Set([4010008, 4060006, 4070006]);
+const INVALID_CODE = new Set([4000008, 4000016, 4010008, 4060006, 4070006]);
 const CODE_SENT = new Set([1010014, 1040005, 1060003, 1070003, 1080003]);
 const ALREADY_REGISTERED = 4000007;
 const ACCOUNT_NOT_FOUND = 4000035;

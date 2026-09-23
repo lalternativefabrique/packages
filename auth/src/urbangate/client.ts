@@ -32,6 +32,12 @@ export type UrbangateAuthClient = Omit<
   signIn: AuthClientSurface["signIn"] & {
     emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>;
   };
+  secondFactor: {
+    verify(input: {
+      code: string;
+      password: string;
+    }): Promise<AuthClientResult>;
+  };
   signOut(): Promise<AuthClientResult>;
   getSession(): Promise<{
     data: UrbangateClientSession | null;
@@ -99,6 +105,9 @@ export function createUrbangateAuthClient(
         call("POST", "email-otp/send-verification-otp", input),
       verifyEmail: (input) => call("POST", "email-otp/verify-email", input),
       resetPassword: (input) => call("POST", "email-otp/reset-password", input),
+    },
+    secondFactor: {
+      verify: (input) => call("POST", "second-factor/verify", input),
     },
     signOut: () => call("POST", "sign-out"),
     getSession: () => call<UrbangateClientSession | null>("GET", "get-session"),
