@@ -454,3 +454,48 @@ test("a second sign-up with a known address answers already_registered", async (
     "already_registered",
   );
 });
+
+test("an admin is an admin from the sign-in on, before any call to the core", async () => {
+  const admin = jwt({
+    sub: "8f3a",
+    roles: ["tornad:admin"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": (init) => {
+      const form = init.body as URLSearchParams;
+      return form.get("grant_type") === "client_credentials"
+        ? Response.json({ access_token: "m", expires_in: 3600 })
+        : Response.json({ access_token: admin, expires_in: 900 });
+    },
+    "POST /api/machine/sessions/exchange": () =>
+      Response.json({
+        assertion: "a.b.c",
+        identity_id: "8f3a",
+        roles: ["tornad:admin"],
+      }),
+  });
+  const a = auth(fetchImpl);
+  const signedIn = await a.handler(
+    post("sign-in/email", { email: "ana@example", password: "long-enough-pw" }),
+  );
+  const body = (await signedIn.json()) as { user: { role: string } };
+  assert.equal(body.user.role, "admin");
+  const cookies = signedIn.headers.getSetCookie().join("\n");
+  assert.match(cookies, /tornad_session=ory_st/);
+  assert.match(cookies, /tornad_token=/);
+
+  const read = await a.handler(
+    new Request("https://tornad.dev/api/auth/get-session", {
+      headers: { cookie: "tornad_session=ory_st" },
+    }),
+  );
+  const session = (await read.json()) as { user: { role: string } };
+  assert.equal(session.user.role, "admin");
+  assert.match(read.headers.get("set-cookie") ?? "", /^tornad_token=/);
+  assert.equal(
+    (await a.getSession(new Headers({ cookie: "tornad_session=ory_st" })))?.user
+      .role,
+    "admin",
+  );
+});

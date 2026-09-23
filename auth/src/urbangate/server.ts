@@ -157,14 +157,23 @@ export function createUrbangateAuth(
   const cookie = (name: string, value: string, maxAge: number) =>
     serializeCookie(name, value, { maxAge, secure });
 
-  const signedIn = (result: KratosSessionResult): Array<string> => {
+  // The role lives in urbangate's token, not in the Kratos session: a page
+  // that reads the profile right after sign-in must find it, so the token is
+  // obtained here rather than at the first call to the core.
+  async function signedIn(
+    result: KratosSessionResult,
+  ): Promise<{ cookies: Array<string>; roles: Array<string> }> {
     const token = result.session_token;
-    if (!token) return [];
-    return [
+    if (!token) return { cookies: [], roles: [] };
+    const cookies = [
       cookie(names.session, token, SESSION_MAX_AGE),
       clearCookie(names.flow, secure),
     ];
-  };
+    const outcome = await exchange.exchange(token).catch(() => null);
+    if (outcome?.status !== "ok") return { cookies, roles: [] };
+    cookies.push(cookie(names.token, outcome.token.accessToken, TOKEN_MAX_AGE));
+    return { cookies, roles: outcome.token.roles };
+  }
 
   const readToken = (headers: Headers): PersonToken | null => {
     const raw = readCookie(headers, names.token);
@@ -189,17 +198,38 @@ export function createUrbangateAuth(
     };
   }
 
+  async function resolveSession(
+    headers: Headers,
+  ): Promise<{ session: UrbangateSession | null; setCookie?: string }> {
+    const sessionToken = readCookie(headers, names.session);
+    if (!sessionToken) return { session: null };
+    const session = await kratos.whoami(sessionToken);
+    if (!session?.active) return { session: null };
+    let roles = readToken(headers)?.roles;
+    let setCookie: string | undefined;
+    if (!roles || exchange.needsRefresh(readToken(headers))) {
+      const outcome = await exchange.exchange(sessionToken).catch(() => null);
+      if (outcome?.status === "ok") {
+        roles = outcome.token.roles;
+        setCookie = cookie(
+          names.token,
+          outcome.token.accessToken,
+          TOKEN_MAX_AGE,
+        );
+      }
+    }
+    const user = userOf(session, roles ?? [], product);
+    if (!user) return { session: null };
+    return {
+      session: { user, session: { expiresAt: session.expires_at ?? "" } },
+      setCookie,
+    };
+  }
+
   async function getSession(
     headers: Headers,
   ): Promise<UrbangateSession | null> {
-    const sessionToken = readCookie(headers, names.session);
-    if (!sessionToken) return null;
-    const session = await kratos.whoami(sessionToken);
-    if (!session?.active) return null;
-    const held = readToken(headers);
-    const user = userOf(session, held?.roles ?? [], product);
-    if (!user) return null;
-    return { user, session: { expiresAt: session.expires_at ?? "" } };
+    return (await resolveSession(headers)).session;
   }
 
   async function body(request: Request): Promise<Record<string, unknown>> {
@@ -226,10 +256,15 @@ export function createUrbangateAuth(
       password,
       ...brand,
     });
+    const signed = await signedIn(result);
     return json(
       200,
-      { user: result.session ? userOf(result.session, [], product) : null },
-      signedIn(result),
+      {
+        user: result.session
+          ? userOf(result.session, signed.roles, product)
+          : null,
+      },
+      signed.cookies,
     );
   }
 
@@ -254,7 +289,8 @@ export function createUrbangateAuth(
       result.continue_with,
       "show_verification_ui",
     );
-    const cookies = signedIn(result);
+    const signed = await signedIn(result);
+    const cookies = signed.cookies;
     if (verification)
       cookies.push(
         cookie(
@@ -266,7 +302,9 @@ export function createUrbangateAuth(
     return json(
       200,
       {
-        user: result.session ? userOf(result.session, [], product) : null,
+        user: result.session
+          ? userOf(result.session, signed.roles, product)
+          : null,
         ...(verification
           ? { verification: { flowId: verification.flow.id } }
           : {}),
@@ -362,10 +400,15 @@ export function createUrbangateAuth(
           code,
           ...brand,
         });
+    const signed = await signedIn(result);
     return json(
       200,
-      { user: result.session ? userOf(result.session, [], product) : null },
-      signedIn(result),
+      {
+        user: result.session
+          ? userOf(result.session, signed.roles, product)
+          : null,
+      },
+      signed.cookies,
     );
   }
 
@@ -491,8 +534,12 @@ export function createUrbangateAuth(
   }
 
   async function session(request: Request): Promise<Response> {
-    const s = await getSession(request.headers);
-    return json(200, s);
+    const resolved = await resolveSession(request.headers);
+    return json(
+      200,
+      resolved.session,
+      resolved.setCookie ? [resolved.setCookie] : [],
+    );
   }
 
   const routes: Record<string, (request: Request) => Promise<Response>> = {
