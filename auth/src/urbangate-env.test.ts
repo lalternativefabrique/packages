@@ -12,6 +12,7 @@ test("sso derives the client and the admin role from the product", () => {
     clientId: "tornad-admin",
     clientSecret: "s",
     adminRole: "tornad:admin",
+    audience: "tornad",
   })
 })
 

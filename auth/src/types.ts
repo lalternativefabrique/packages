@@ -156,6 +156,12 @@ export interface PlatformSsoConfig {
   providerId?: string
   /** Lets a first visit create the local user. Defaults to true. */
   allowSignUp?: boolean
+  /**
+   * The audience the access token asks Hydra for, i.e. the product whose
+   * core will verify it (ADR 0009 of urbangate). Omit for a token the core
+   * never sees.
+   */
+  audience?: string
 }
 
 export interface PlatformKratosPasswordConfig {
