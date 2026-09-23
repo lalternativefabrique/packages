@@ -29,6 +29,8 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   emailRequired: "Renseigne ton adresse e-mail",
   passwordTooShort: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères`,
   signUpFailed: "La création du compte a échoué",
+  alreadyRegistered:
+    "Tu as déjà un compte L'Alternative avec cette adresse. Connecte-toi avec ton mot de passe, ou reçois un code par e-mail.",
   // accountLinking is disabled in createPlatformAuth, so signing up with Google
   // on an address already registered is refused rather than folded into the
   // existing account.
@@ -95,7 +97,11 @@ export function RegisterForm({
         withSignUpName({ name, email: email.trim(), password }),
       )
       if (res?.error) {
-        setError(res.error.message ?? t.signUpFailed)
+        setError(
+          res.error.code === "already_registered"
+            ? t.alreadyRegistered
+            : (res.error.message ?? t.signUpFailed),
+        )
         return
       }
       // createPlatformAuth sets requireEmailVerification, so sign-up leaves the

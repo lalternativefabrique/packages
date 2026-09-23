@@ -13,6 +13,8 @@ import type {
 
 export interface UrbangateAuthConfig {
   product: string;
+  /** The name a person knows the product by, on the mails urbangate sends. Defaults to `product`. */
+  productName?: string;
   /** Kratos' public API as the server reaches it, e.g. http://kratos:4433 or https://id.urbangate.dev. */
   kratosUrl: string;
   urbangate: Omit<ExchangeConfig, "product">;
@@ -139,6 +141,9 @@ export function createUrbangateAuth(
   config: UrbangateAuthConfig,
 ): UrbangateAuth {
   const product = config.product;
+  const brand = {
+    transient_payload: { product, product_name: config.productName ?? product },
+  };
   const kratos = new KratosFlows(config.kratosUrl, config.fetch);
   const exchange = new Exchange({ ...config.urbangate, product }, config.fetch);
   const names = {
@@ -219,6 +224,7 @@ export function createUrbangateAuth(
       method: "password",
       identifier: email,
       password,
+      ...brand,
     });
     return json(
       200,
@@ -241,6 +247,7 @@ export function createUrbangateAuth(
         method: "password",
         traits: { email, ...(str(b, "name") ? { name: str(b, "name") } : {}) },
         password,
+        ...brand,
       },
     );
     const verification = continueWith(
@@ -315,6 +322,7 @@ export function createUrbangateAuth(
         : kind === "registration"
           ? { traits: { email } }
           : { email }),
+      ...brand,
     });
     if (!codeWasSent(submitted) && submitted.state !== "sent_email") {
       throw new KratosError({
@@ -346,11 +354,13 @@ export function createUrbangateAuth(
           method: "code",
           identifier: email,
           code,
+          ...brand,
         })
       : await kratos.submit<KratosSessionResult>("registration", flowId, {
           method: "code",
           traits: { email },
           code,
+          ...brand,
         });
     return json(
       200,
@@ -368,6 +378,7 @@ export function createUrbangateAuth(
     const flow = await kratos.submit("verification", flowId, {
       method: "code",
       code,
+      ...brand,
     });
     if (flow.state !== "passed_challenge") return failure("invalid_code", 400);
     return json(200, { verified: true }, [clearCookie(names.flow, secure)]);
@@ -384,7 +395,7 @@ export function createUrbangateAuth(
     const recovered = await kratos.submit<KratosSessionResult>(
       "recovery",
       flowId,
-      { method: "code", code },
+      { method: "code", code, ...brand },
     );
     const token = continueWith(
       recovered.continue_with,
@@ -392,14 +403,79 @@ export function createUrbangateAuth(
     )?.ory_session_token;
     const settings = continueWith(recovered.continue_with, "show_settings_ui");
     if (!token || !settings) return failure("invalid_code", 400);
-    await kratos.submit(
-      "settings",
-      settings.flow.id,
-      { method: "password", password },
-      token,
-    );
+    try {
+      await setPassword(settings.flow.id, password, token);
+    } catch (error) {
+      // The recovery code is spent by now; an identity holding a second
+      // factor is refused the settings flow at aal1, so the session and the
+      // settings flow are kept for the second-factor step instead of lost.
+      if (
+        error instanceof KratosError &&
+        error.failure.status === "second_factor_required"
+      ) {
+        return json(
+          403,
+          { error: { code: "second_factor_required", status: 403 } },
+          [
+            cookie(names.session, token, SESSION_MAX_AGE),
+            cookie(names.flow, `settings2fa:${settings.flow.id}`, FLOW_MAX_AGE),
+          ],
+        );
+      }
+      throw error;
+    }
     return json(200, { reset: true }, [
       cookie(names.session, token, SESSION_MAX_AGE),
+      clearCookie(names.flow, secure),
+    ]);
+  }
+
+  async function setPassword(
+    settingsFlowId: string,
+    password: string,
+    token: string,
+  ): Promise<void> {
+    await kratos.submit(
+      "settings",
+      settingsFlowId,
+      { method: "password", password, ...brand },
+      token,
+    );
+  }
+
+  async function verifySecondFactor(request: Request): Promise<Response> {
+    const b = await body(request);
+    const code = str(b, "code").replace(/\s+/g, "");
+    const password = typeof b.password === "string" ? b.password : "";
+    const token = readCookie(request.headers, names.session);
+    const settingsFlowId = pendingFlow(request.headers, "settings2fa");
+    if (!token || !settingsFlowId) return failure("flow_expired", 410);
+    if (!code || !password)
+      return failure("invalid_input", 400, "code and password are required");
+    const login = await kratos.start("login", token, { aal: "aal2" });
+    const stepped = await kratos.submit<KratosSessionResult>(
+      "login",
+      login.id,
+      /^\d{6}$/.test(code)
+        ? { method: "totp", totp_code: code, ...brand }
+        : { method: "lookup_secret", lookup_secret: code },
+      token,
+    );
+    const session = stepped.session_token ?? token;
+    try {
+      await setPassword(settingsFlowId, password, session);
+    } catch (error) {
+      if (
+        !(error instanceof KratosError) ||
+        error.failure.status !== "flow_expired"
+      ) {
+        throw error;
+      }
+      const fresh = await kratos.start("settings", session);
+      await setPassword(fresh.id, password, session);
+    }
+    return json(200, { reset: true }, [
+      cookie(names.session, session, SESSION_MAX_AGE),
       clearCookie(names.flow, secure),
     ]);
   }
@@ -426,6 +502,7 @@ export function createUrbangateAuth(
     "POST email-otp/send-verification-otp": sendOtp,
     "POST email-otp/verify-email": verifyEmail,
     "POST email-otp/reset-password": resetPassword,
+    "POST second-factor/verify": verifySecondFactor,
     "POST sign-out": signOut,
     "GET get-session": session,
   };

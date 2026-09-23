@@ -391,6 +391,7 @@ export interface RegisterFormLabels {
   passwordTooShort?: string
   signUpFailed?: string
   accountNotLinked?: string
+  alreadyRegistered?: string
   socialCancelled?: string
   socialFailed?: string
 }
@@ -491,6 +492,14 @@ export interface AuthClientSurface {
    * on PlatformAuthClient, which always does.
    */
   admin?: AdminClientSurface
+  /**
+   * The second step of a password reset for an identity holding a second
+   * factor. Only the urbangate client has it; without it the reset form
+   * reports the refusal as a failure.
+   */
+  secondFactor?: {
+    verify(input: { code: string; password: string }): Promise<AuthClientResult>
+  }
 }
 
 /**
@@ -758,6 +767,12 @@ export interface ResetPasswordFormLabels {
   passwordMismatch?: string
   resetFailed?: string
   resendFailed?: string
+  codeSpent?: string
+  secondFactorTitle?: string
+  secondFactorPlaceholder?: string
+  secondFactorHint?: string
+  secondFactorSubmit?: string
+  secondFactorInvalid?: string
 }
 
 export interface ResetPasswordFormProps extends AuthThemeProps, AuthNavProps {
