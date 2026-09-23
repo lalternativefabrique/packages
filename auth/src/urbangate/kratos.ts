@@ -50,6 +50,7 @@ export type KratosFailure =
   | { status: "second_factor_required" }
   | { status: "account_disabled" }
   | { status: "already_registered" }
+  | { status: "account_not_found" }
   | { status: "password_refused"; message: string }
   | { status: "invalid_input"; message: string }
   | { status: "flow_expired" }
@@ -69,6 +70,7 @@ const INVALID_CREDENTIALS = 4000006;
 const INVALID_CODE = new Set([4010008, 4060006, 4070006]);
 const CODE_SENT = new Set([1010014, 1040005, 1060003, 1070003, 1080003]);
 const ALREADY_REGISTERED = 4000007;
+const ACCOUNT_NOT_FOUND = 4000035;
 const PASSWORD_POLICY = new Set([4000005, 4000031, 4000032, 4000033, 4000034]);
 const FLOW_EXPIRED = new Set([4010001, 4040001, 4060005, 4070005]);
 
@@ -94,6 +96,7 @@ export function failureOf(status: number, body: unknown): KratosFailure {
     if (m.id === INVALID_CREDENTIALS) return { status: "invalid_credentials" };
     if (INVALID_CODE.has(m.id ?? -1)) return { status: "invalid_code" };
     if (m.id === ALREADY_REGISTERED) return { status: "already_registered" };
+    if (m.id === ACCOUNT_NOT_FOUND) return { status: "account_not_found" };
     if (PASSWORD_POLICY.has(m.id ?? -1)) {
       return { status: "password_refused", message: m.text ?? "" };
     }

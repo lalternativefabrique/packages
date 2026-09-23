@@ -25,7 +25,13 @@ export interface SessionState {
   error: { message?: string; status?: number } | null;
 }
 
-export type UrbangateAuthClient = Omit<AuthClientSurface, "admin"> & {
+export type UrbangateAuthClient = Omit<
+  AuthClientSurface,
+  "admin" | "signIn"
+> & {
+  signIn: AuthClientSurface["signIn"] & {
+    emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>;
+  };
   signOut(): Promise<AuthClientResult>;
   getSession(): Promise<{
     data: UrbangateClientSession | null;
@@ -82,6 +88,7 @@ export function createUrbangateAuthClient(
   const client: UrbangateAuthClient = {
     signIn: {
       email: (input) => call("POST", "sign-in/email", input),
+      emailOtp: (input) => call("POST", "sign-in/email-otp", input),
       social: async () => ({ error: { code: "not_supported", status: 501 } }),
     },
     signUp: {

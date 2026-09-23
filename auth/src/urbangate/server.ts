@@ -72,6 +72,7 @@ const FAILURE_STATUS: Record<KratosFailure["status"], number> = {
   second_factor_required: 403,
   account_disabled: 403,
   already_registered: 409,
+  account_not_found: 404,
   password_refused: 422,
   invalid_input: 400,
   flow_expired: 410,
@@ -274,17 +275,54 @@ export function createUrbangateAuth(
     const kind = FLOW_OF_TYPE[type];
     if (!email || !kind)
       return failure("invalid_input", 400, "email and type are required");
+    const sent = await sendCode(kind, email);
+    return json(200, { sent: true }, [
+      cookie(names.flow, `${sent.kind}:${sent.flowId}`, FLOW_MAX_AGE),
+    ]);
+  }
+
+  // A code asked for an address Kratos does not know is a sign-up, not a
+  // refusal: the person typed their address on the product's screen and
+  // expects a code either way, and a registration by code opens the session
+  // exactly as a login does.
+  async function sendCode(
+    kind: "verification" | "recovery" | "login",
+    email: string,
+  ): Promise<{ kind: string; flowId: string }> {
+    try {
+      return await sendCodeOn(kind, email);
+    } catch (error) {
+      if (
+        kind !== "login" ||
+        !(error instanceof KratosError) ||
+        error.failure.status !== "account_not_found"
+      ) {
+        throw error;
+      }
+      return sendCodeOn("registration", email);
+    }
+  }
+
+  async function sendCodeOn(
+    kind: "verification" | "recovery" | "login" | "registration",
+    email: string,
+  ): Promise<{ kind: string; flowId: string }> {
     const flow = await kratos.start(kind);
     const submitted = await kratos.submit(kind, flow.id, {
       method: "code",
-      ...(kind === "login" ? { identifier: email } : { email }),
+      ...(kind === "login"
+        ? { identifier: email }
+        : kind === "registration"
+          ? { traits: { email } }
+          : { email }),
     });
     if (!codeWasSent(submitted) && submitted.state !== "sent_email") {
-      return failure("invalid_input", 400, "the code could not be sent");
+      throw new KratosError({
+        status: "invalid_input",
+        message: "the code could not be sent",
+      });
     }
-    return json(200, { sent: true }, [
-      cookie(names.flow, `${kind}:${flow.id}`, FLOW_MAX_AGE),
-    ]);
+    return { kind, flowId: flow.id };
   }
 
   function pendingFlow(headers: Headers, kind: string): string | null {
@@ -297,15 +335,23 @@ export function createUrbangateAuth(
     const b = await body(request);
     const email = str(b, "email");
     const code = str(b, "otp");
-    const flowId = pendingFlow(request.headers, "login");
+    const login = pendingFlow(request.headers, "login");
+    const registration = pendingFlow(request.headers, "registration");
+    const flowId = login ?? registration;
     if (!flowId) return failure("flow_expired", 410);
     if (!email || !code)
       return failure("invalid_input", 400, "email and otp are required");
-    const result = await kratos.submit<KratosSessionResult>("login", flowId, {
-      method: "code",
-      identifier: email,
-      code,
-    });
+    const result = login
+      ? await kratos.submit<KratosSessionResult>("login", flowId, {
+          method: "code",
+          identifier: email,
+          code,
+        })
+      : await kratos.submit<KratosSessionResult>("registration", flowId, {
+          method: "code",
+          traits: { email },
+          code,
+        });
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
