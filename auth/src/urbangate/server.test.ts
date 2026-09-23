@@ -224,3 +224,54 @@ test("an unknown route is 404 and the social sign-in is 501", async () => {
   assert.equal((await a.handler(post("nope", {}))).status, 404);
   assert.equal((await a.handler(post("sign-in/social", {}))).status, 501);
 });
+
+test("a code for an unknown address becomes a sign-up by code", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "POST /self-service/login?flow=L": () =>
+      Response.json(
+        {
+          id: "L",
+          ui: {
+            messages: [
+              {
+                id: 4000035,
+                type: "error",
+                text: "This account does not exist or has not setup sign in with code.",
+              },
+            ],
+          },
+        },
+        { status: 400 },
+      ),
+    "POST /self-service/registration?flow=R": (init) => {
+      const b = JSON.parse(init.body as string) as { code?: string };
+      if (!b.code) return Response.json({ id: "R", state: "sent_email" });
+      return Response.json({ session_token: "ory_st", session });
+    },
+  });
+  const a = auth(fetchImpl);
+  const sent = await a.handler(
+    post("email-otp/send-verification-otp", {
+      email: "ana@example",
+      type: "sign-in",
+    }),
+  );
+  assert.equal(sent.status, 200);
+  const flow = sent.headers.get("set-cookie") ?? "";
+  assert.match(flow, /tornad_flow=registration%3AR/);
+  const signedIn = await a.handler(
+    post(
+      "sign-in/email-otp",
+      { email: "ana@example", otp: "123456" },
+      flow.split(";")[0],
+    ),
+  );
+  assert.equal(signedIn.status, 200);
+  assert.match(
+    signedIn.headers.get("set-cookie") ?? "",
+    /tornad_session=ory_st/,
+  );
+  assert.ok(
+    calls.some((c) => c.key === "POST /self-service/registration?flow=R"),
+  );
+});
