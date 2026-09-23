@@ -97,6 +97,71 @@ before the change, or a local-password account — and is the bridge a product
 removes once every session is on the new token. The core verifies both with
 `go/websession`.
 
+## Sign-in on the product's screens, urbangate behind (1.0)
+
+urbangate's ADR 0009: the product renders sign-up, sign-in, the e-mail
+code, recovery, with the components above, and nothing of Better Auth runs
+behind them. Its server drives Kratos' native flows and holds the session
+token in a cookie; the core gets the person's own Hydra token.
+
+```ts
+// server
+import { createUrbangateAuth } from "@lalternative/auth/urbangate"
+
+export const auth = createUrbangateAuth({
+  product: "tornad",
+  kratosUrl: process.env.KRATOS_PUBLIC_URL,          // http://kratos:4433 in the space
+  urbangate: {
+    issuerUrl: process.env.URBANGATE_ISSUER_URL,      // https://id.urbangate.dev
+    provisioner: { clientId: "tornad-provisioner", clientSecret: process.env.URBANGATE_PROVISIONER_CLIENT_SECRET },
+    admin: { clientId: "tornad-admin", clientSecret: process.env.URBANGATE_CLIENT_SECRET },
+  },
+})
+// /api/auth/$ → auth.handler(request)
+// /api/v1/$   → auth.coreProxy({ coreUrl: process.env.CORE_API_URL, adminOnly: true })(request)
+
+// browser
+import { createUrbangateAuthClient } from "@lalternative/auth/urbangate-client"
+export const authClient = createUrbangateAuthClient()   // the prop every form takes
+```
+
+Routes the handler serves under `/api/auth/`, all JSON:
+
+| Route | Kratos flow |
+|---|---|
+| `POST sign-in/email` `{email,password}` | login, password |
+| `POST sign-up/email` `{email,password,name?}` | registration, password; answers `verification.flowId` when a code was sent |
+| `POST email-otp/send-verification-otp` `{email,type}` | verification, recovery or login by code, per `type` |
+| `POST email-otp/verify-email` `{email,otp}` | verification |
+| `POST sign-in/email-otp` `{email,otp}` | login by code, second step |
+| `POST email-otp/reset-password` `{email,otp,password}` | recovery, then settings with the recovered session |
+| `POST sign-out` | logout |
+| `GET get-session` | whoami |
+
+Refusals come back as `{ error: { code, status, message? } }`: `invalid_credentials`
+401, `invalid_code` 400, `already_registered` 409, `password_refused` 422 with
+Kratos' reason, `flow_expired` 410, `account_disabled` and
+`second_factor_required` 403, `unavailable` 503. `sign-in/social` answers 501
+until Kratos' social providers are wired.
+
+Cookies, all httpOnly and Lax: `<product>_session` holds the Kratos session
+token for thirty days, `<product>_token` the person's Hydra access token for
+its fifteen minutes, `<product>_flow` the flow a code was sent for, ten
+minutes. `getSession(headers)` reads whoami and takes the role off the token
+(`<product>:admin` makes an admin). `accessToken(headers)` exchanges the
+session at urbangate when the token is missing or within a minute of its end
+and hands back the `Set-Cookie` to append; `coreProxy` does that and forwards,
+answering 401 `sign_in_required`, 403 `forbidden`, or 503
+`identity_provider_unavailable` when urbangate cannot answer — never 401 for
+an outage.
+
+Kratos must run the native flows for this product's identities and open the
+session at registration: `selfservice.flows.registration.after.password.hooks`
+and `.code.hooks` carry `- hook: session`. The `-provisioner` client carries
+the `urbangate:sessions:exchange` scope and the `-admin` client the
+`urn:ietf:params:oauth:grant-type:jwt-bearer` grant, both declared in
+urbangate.
+
 ### Environment
 
 Each helper declares the variables it reads — `SsoEnv` for single sign-on,
