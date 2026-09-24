@@ -39,6 +39,12 @@ export type UrbangateAuthClient = Omit<
     }): Promise<AuthClientResult>;
   };
   signOut(): Promise<AuthClientResult>;
+  updateUser(input: { name: string }): Promise<AuthClientResult>;
+  changePassword(input: {
+    currentPassword: string;
+    newPassword: string;
+    revokeOtherSessions?: boolean;
+  }): Promise<AuthClientResult>;
   getSession(): Promise<{
     data: UrbangateClientSession | null;
     error: AuthClientResult["error"];
@@ -110,6 +116,8 @@ export function createUrbangateAuthClient(
       verify: (input) => call("POST", "second-factor/verify", input),
     },
     signOut: () => call("POST", "sign-out"),
+    updateUser: (input) => call("POST", "update-user", input),
+    changePassword: (input) => call("POST", "change-password", input),
     getSession: () => call<UrbangateClientSession | null>("GET", "get-session"),
     useSession() {
       const [state, setState] = useState<SessionState>({

@@ -580,3 +580,102 @@ test("delete-account needs a session, and is 501 when the product wired none", a
   );
   assert.equal(unwired.status, 501);
 });
+
+const signedInCookie = "tornad_session=ory_st";
+
+test("update-user submits the profile with the other traits kept", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/settings/api": () => Response.json({ id: "S" }),
+    "POST /self-service/settings?flow=S": () => Response.json({ id: "S" }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("update-user", { name: " Ana B " }, signedInCookie),
+  );
+  assert.equal(res.status, 200);
+  const submitted = calls.find(
+    (c) => c.key === "POST /self-service/settings?flow=S",
+  );
+  assert.deepEqual(submitted?.body, {
+    method: "profile",
+    traits: { email: "ana@example", name: "Ana B" },
+    transient_payload: { product: "tornad", product_name: "Tornad" },
+  });
+  assert.equal(submitted?.headers.get("x-session-token"), "ory_st");
+});
+
+test("update-user needs a session and a name", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = auth(fetchImpl);
+  assert.equal((await a.handler(post("update-user", { name: "Ana" }))).status, 401);
+  assert.equal(
+    (await a.handler(post("update-user", { name: " " }, signedInCookie))).status,
+    400,
+  );
+});
+
+test("change-password re-proves the current one, sets the new one, and revokes the others", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+    "GET /self-service/settings/api": () => Response.json({ id: "S" }),
+    "POST /self-service/settings?flow=S": () => Response.json({ id: "S" }),
+    "DELETE /sessions": () => Response.json({ count: 2 }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post(
+      "change-password",
+      { currentPassword: "old", newPassword: "new-pass1", revokeOtherSessions: true },
+      signedInCookie,
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { status: true, othersRevoked: true });
+  const keys = calls.map((c) => c.key);
+  assert.deepEqual(
+    keys.filter((k) => k !== "GET /sessions/whoami"),
+    [
+      "GET /self-service/login/api?refresh=true",
+      "POST /self-service/login?flow=L",
+      "GET /self-service/settings/api",
+      "POST /self-service/settings?flow=S",
+      "DELETE /sessions",
+    ],
+  );
+  const login = calls.find((c) => c.key === "POST /self-service/login?flow=L");
+  assert.deepEqual(login?.body, {
+    method: "password",
+    identifier: "ana@example",
+    password: "old",
+    transient_payload: { product: "tornad", product_name: "Tornad" },
+  });
+  const settings = calls.find((c) => c.key === "POST /self-service/settings?flow=S");
+  assert.equal((settings?.body as { password: string }).password, "new-pass1");
+});
+
+test("a wrong current password is 401 and the password is left alone", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+    "POST /self-service/login?flow=L": () =>
+      Response.json(
+        { ui: { messages: [{ id: 4000006, type: "error" }] } },
+        { status: 400 },
+      ),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("change-password", { currentPassword: "bad", newPassword: "new-pass1" }, signedInCookie),
+  );
+  assert.equal(res.status, 401);
+  assert.ok(!calls.some((c) => c.key.startsWith("GET /self-service/settings")));
+});
+
+test("change-password needs a session and both passwords", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = auth(fetchImpl);
+  assert.equal(
+    (await a.handler(post("change-password", { currentPassword: "a", newPassword: "b" }))).status,
+    401,
+  );
+  assert.equal(
+    (await a.handler(post("change-password", { currentPassword: "a" }, signedInCookie))).status,
+    400,
+  );
+});

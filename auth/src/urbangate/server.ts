@@ -498,6 +498,69 @@ export function createUrbangateAuth(
     ]);
   }
 
+  async function signedInIdentity(request: Request) {
+    const token = readCookie(request.headers, names.session);
+    const current = token ? await kratos.whoami(token) : null;
+    if (!token || !current?.active || !current.identity) return null;
+    return { token, identity: current.identity };
+  }
+
+  async function updateUser(request: Request): Promise<Response> {
+    const b = await body(request);
+    const name = str(b, "name");
+    if (!name) return failure("invalid_input", 400, "name is required");
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const flow = await kratos.start("settings", signed.token);
+    await kratos.submit(
+      "settings",
+      flow.id,
+      {
+        method: "profile",
+        traits: { ...signed.identity.traits, name },
+        ...brand,
+      },
+      signed.token,
+    );
+    return json(200, { status: true });
+  }
+
+  // Kratos asks for a privileged session to change a password: the current
+  // one is re-proved by a refresh login on the same session first.
+  async function changePassword(request: Request): Promise<Response> {
+    const b = await body(request);
+    const current =
+      typeof b.currentPassword === "string" ? b.currentPassword : "";
+    const next = typeof b.newPassword === "string" ? b.newPassword : "";
+    if (!current || !next)
+      return failure(
+        "invalid_input",
+        400,
+        "currentPassword and newPassword are required",
+      );
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const login = await kratos.start("login", signed.token, { refresh: "true" });
+    await kratos.submit(
+      "login",
+      login.id,
+      {
+        method: "password",
+        identifier: signed.identity.traits?.email ?? "",
+        password: current,
+        ...brand,
+      },
+      signed.token,
+    );
+    const settings = await kratos.start("settings", signed.token);
+    await setPassword(settings.id, next, signed.token);
+    const othersRevoked =
+      b.revokeOtherSessions === true
+        ? await kratos.revokeOtherSessions(signed.token)
+        : false;
+    return json(200, { status: true, othersRevoked });
+  }
+
   async function signOut(request: Request): Promise<Response> {
     const token = readCookie(request.headers, names.session);
     if (token) await kratos.logout(token);
@@ -571,6 +634,8 @@ export function createUrbangateAuth(
     "POST second-factor/verify": verifySecondFactor,
     "POST sign-out": signOut,
     "POST delete-account": deleteAccount,
+    "POST update-user": updateUser,
+    "POST change-password": changePassword,
     "GET get-session": session,
   };
 

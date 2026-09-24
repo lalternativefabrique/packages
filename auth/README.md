@@ -137,6 +137,8 @@ Routes the handler serves under `/api/auth/`, all JSON:
 | `POST sign-in/email-otp` `{email,otp}` | login by code, second step |
 | `POST email-otp/reset-password` `{email,otp,password}` | recovery, then settings with the recovered session; 403 `second_factor_required` when the identity holds one |
 | `POST second-factor/verify` `{code,password}` | login at `aal2` (TOTP, or a backup code), then the pending settings flow |
+| `POST update-user` `{name}` | settings, profile; the other traits are kept |
+| `POST change-password` `{currentPassword,newPassword,revokeOtherSessions?}` | login with `refresh` to re-prove the current password, then settings, password; `DELETE /sessions` when asked |
 | `POST sign-out` | logout |
 | `GET get-session` | whoami |
 
