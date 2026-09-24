@@ -37,11 +37,11 @@ func (e *executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 		return finish(ctx, queue, reqCtx, a2a.TaskStateFailed, "a text message is required")
 	}
 	subject, headers, turnContext := metadata(reqCtx.Message)
-	h := e.host
 	if err := queue.Write(ctx, a2a.NewStatusUpdateEvent(reqCtx, a2a.TaskStateWorking, nil)); err != nil {
 		return err
 	}
 
+	h := e.host
 	tools := h.servers.forTurn()
 	var memory *recall.Recorder
 	if h.cfg.Recall != nil && subject != "" {
