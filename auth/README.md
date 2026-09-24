@@ -159,6 +159,18 @@ answering 401 `sign_in_required`, 403 `forbidden`, or 503
 `identity_provider_unavailable` when urbangate cannot answer — never 401 for
 an outage.
 
+A core whose public routes share the proxied path — invitation claims,
+app-key calls, a payment provider's callbacks — passes `anonymous: "forward"`
+(1.5): a request without a session reaches the core as it came, keeping its own
+`Authorization` header, and a signed-in one still gets the person's token.
+`adminOnly` keeps turning signed-in non-admins away. An unreachable core
+answers 502 `core_unavailable`.
+
+`getSession` reads the role off a token that is still valid: when the cookie's
+has expired it exchanges the session first, and `get-session` sets the new
+cookie. While urbangate cannot be reached the person reads as a plain user,
+never as the admin an expired token once said they were.
+
 A reset for an identity holding a second factor is refused by Kratos'
 settings flow at aal1, after the recovery code is spent. The handler keeps
 the recovered session and the settings flow (`<product>_flow=settings2fa:…`)
