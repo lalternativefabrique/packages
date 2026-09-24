@@ -5,6 +5,18 @@ export type {
   AccountDeletionSteps,
 } from "../account-deletion.ts";
 import { forwardHeaders } from "../core-proxy.ts";
+export { forwardHeaders } from "../core-proxy.ts";
+export {
+  claimInvitation,
+  completesSignup,
+  holdInviteTokenCookie,
+  invitationOutcomeCookie,
+  inviteTokenFrom,
+  isInvitationFailure,
+  pinInviteToken,
+  releaseInviteTokenCookie,
+} from "../invitation.ts";
+export type { ClaimOutcome, ClaimInvitationOptions } from "../invitation.ts";
 import { requestAccountDeletion } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
