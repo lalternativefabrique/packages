@@ -916,3 +916,22 @@ test("a forged admin token cookie reads as user while urbangate cannot be reache
   );
   assert.equal(s?.user.role, "user");
 });
+
+test("someone else's valid token cookie beside my session is exchanged, not read", async () => {
+  resetProvisioningTokenCache();
+  const theirs = await jwt({
+    sub: "someone-else",
+    roles: ["tornad:admin"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const { fetchImpl, calls } = await exchangeStub(["tornad:user"]);
+  const res = await auth(fetchImpl).handler(
+    new Request("https://tornad.dev/api/auth/get-session", {
+      headers: { cookie: `tornad_session=ory_st; tornad_token=${theirs}` },
+    }),
+  );
+  const body = (await res.json()) as { user: { role: string; identityId: string } };
+  assert.equal(body.user.identityId, "8f3a");
+  assert.equal(body.user.role, "user");
+  assert.ok(calls.some((c) => c.key === "POST /api/machine/sessions/exchange"));
+});

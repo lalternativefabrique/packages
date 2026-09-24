@@ -31,6 +31,7 @@ function jsonOf(b64url: string): Record<string, unknown> {
 export class Jwks {
   private keys = new Map<string, CryptoKey>();
   private fetchedAt = 0;
+  private attemptedAt = -Infinity;
   private refreshing: Promise<void> | null = null;
 
   private readonly issuerUrl: string;
@@ -74,25 +75,31 @@ export class Jwks {
       typeof payload.sub !== "string"
     )
       return null;
+    const ext = payload.ext as { roles?: unknown } | undefined;
+    const roles = Array.isArray(payload.roles) ? payload.roles : ext?.roles;
     return {
       identityId: payload.sub,
-      roles: Array.isArray(payload.roles)
-        ? payload.roles.filter((r): r is string => typeof r === "string")
+      roles: Array.isArray(roles)
+        ? roles.filter((r): r is string => typeof r === "string")
         : [],
       expiresAt: exp,
     };
   }
 
+  // Every attempt, failed or not, opens the cooldown: while the issuer is
+  // down, requests keep the keys they have instead of all asking it again.
   private async key(kid: string, now: number): Promise<CryptoKey | null> {
-    const stale = now - this.fetchedAt > CACHE_MS;
-    const unknownMayRefresh =
-      !this.keys.has(kid) && now - this.fetchedAt > UNKNOWN_KID_COOLDOWN_MS;
-    if (stale || unknownMayRefresh) {
+    const wanted = now - this.fetchedAt > CACHE_MS || !this.keys.has(kid);
+    const cooling = now - this.attemptedAt < UNKNOWN_KID_COOLDOWN_MS;
+    if (wanted && !cooling) {
+      this.attemptedAt = now;
       try {
         await this.refresh(now);
       } catch (error) {
         if (this.keys.size === 0) throw error;
       }
+    } else if (wanted && this.keys.size === 0 && this.fetchedAt === 0) {
+      throw new JwksUnavailable("jwks not loaded yet");
     }
     return this.keys.get(kid) ?? null;
   }
