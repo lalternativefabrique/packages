@@ -635,6 +635,44 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInvite
   authClient: AuthClientSurface
 }
 
+export interface EmailCodeSignInFormLabels {
+  title?: string
+  subtitle?: string
+  emailPlaceholder?: string
+  codePlaceholder?: string
+  send?: string
+  submit?: string
+  pending?: string
+  sendFailed?: string
+  invalidCode?: string
+  unavailable?: string
+  changeEmail?: string
+  usePassword?: string
+}
+
+export interface EmailCodeSignInClientSurface {
+  emailOtp: {
+    sendVerificationOtp(input: {
+      email: string
+      type: "sign-in"
+    }): Promise<AuthClientResult>
+  }
+  signIn: {
+    emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>
+  }
+}
+
+export interface EmailCodeSignInFormProps extends AuthThemeProps, AuthNavProps {
+  onSuccess?: () => void
+  error?: string
+  /** Link back to the password sign-in */
+  passwordSignInUrl?: string
+  /** Called once signed in to renew the core's token; null skips it */
+  coreTokenUrl?: string | null
+  labels?: EmailCodeSignInFormLabels
+  authClient: EmailCodeSignInClientSurface
+}
+
 export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
   /**
    * Address the invitation was issued to. Given, it fills the email field and

@@ -289,6 +289,42 @@ it renews, and `cookieHeader()` for a transport that cannot go through `fetch`
 sign in with a password or an e-mail code (`emailOtp.sendVerificationOtp` with
 `type: "sign-in"`, then `signIn.emailOtp`).
 
+The app reaches its core only through `authClient.fetch` on the web's core
+proxy: the proxy attaches the person's token, so the device never holds one,
+and needs neither `core-token` nor a `token` cookie of its own.
+
+### What the product's server no longer writes (1.7)
+
+```ts
+export const auth = createUrbangateAuth({
+  // …
+  coreUrl: process.env.CORE_URL,                       // http://core:4100 in the space
+  onAccountOpened: async ({ user, headers, request }) => {
+    const call = await auth.coreFetch(headers, "/api/v1/llm-usage/provision", { method: "POST" })
+    return call.status === "ok" ? call.setCookies : []
+  },
+})
+
+// /api/core/$ → auth.coreProxy({ stripPrefix: "/api/core", forwardCookies: ["txl_trial"] })(request)
+// a server route  → const g = await auth.requireAdmin(request.headers); if ("response" in g) return g.response
+// as the person   → const call = await auth.coreFetch(request.headers, "/me"); if (call.status !== "ok") return coreRefusal(call)
+```
+
+| | |
+|---|---|
+| `coreProxy({ stripPrefix, forwardCookies })` | `coreUrl` defaults to the auth's. The prefix is cut from the path; the cookies named are the only ones the core sees. An event stream is relayed unbuffered, every `Set-Cookie` of the core is kept, and the body's decoded `content-encoding` is dropped |
+| `coreFetch(headers, path, init)` | `ok` with the response and the cookies to set, `signed_out`, or `unavailable` with `cause` `identity_provider` or `core`; `coreRefusal(call)` answers 401, 503 or 502 |
+| `requireSession(headers)`, `requireAdmin(headers)` | `{ session, setCookies }`, or `{ response }`: 401 signed out, 403 not this product's admin, 503 while urbangate cannot answer, including when it cannot say which roles the person holds |
+| `onAccountOpened` | runs once an identity is created here: a password sign-up, or a code that signs an unknown address up; never on a sign-in. `user.emailVerified` is false after a password sign-up, so an address-bound grant (an invitation) checks it first |
+
+`adminOnly` on the proxy follows the same rule: a 503, not a 403, while the
+roles cannot be read. A route guard in `beforeLoad` runs these through the
+framework's server function; it is the server call that protects, the
+navigation only follows it.
+
+`EmailCodeSignInForm` is the sign-in by e-mail code, both steps, with a link
+back to the password form; an unknown address is signed up by the same code.
+
 ### Environment
 
 Each helper declares the variables it reads — `SsoEnv` for single sign-on,

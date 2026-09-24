@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createUrbangateAuth } from "./server.ts";
+import { coreRefusal, createUrbangateAuth } from "./server.ts";
+import type { UrbangateAuthConfig } from "./server.ts";
 import { resetProvisioningTokenCache } from "../identity-provisioning.ts";
 import { signer, unsigned } from "./test-keys.ts";
 
@@ -934,4 +935,264 @@ test("someone else's valid token cookie beside my session is exchanged, not read
   assert.equal(body.user.identityId, "8f3a");
   assert.equal(body.user.role, "user");
   assert.ok(calls.some((c) => c.key === "POST /api/machine/sessions/exchange"));
+});
+
+function authWith(
+  fetchImpl: typeof fetch,
+  extra: Partial<UrbangateAuthConfig> = {},
+) {
+  return createUrbangateAuth({
+    product: "tornad",
+    kratosUrl: "http://kratos:4433",
+    urbangate: {
+      issuerUrl: "https://id.urbangate.dev",
+      provisioner: { clientId: "tornad-provisioner", clientSecret: "p" },
+      admin: { clientId: "tornad-admin", clientSecret: "a" },
+    },
+    coreUrl: "http://core:4100",
+    fetch: fetchImpl,
+    ...extra,
+  });
+}
+
+async function withCore(
+  answer: (url: string, init: RequestInit) => Response,
+  run: () => Promise<unknown>,
+) {
+  const seen: Array<{ url: string; headers: Headers }> = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (url: URL | string, init: RequestInit = {}) => {
+    seen.push({ url: String(url), headers: new Headers(init.headers) });
+    return answer(String(url), init);
+  }) as typeof fetch;
+  try {
+    return { result: await run(), seen };
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+const signedInAs = async (roles: Array<string>) =>
+  `tornad_session=ory_st; tornad_token=${await jwt({
+    sub: "8f3a",
+    roles,
+    exp: Math.floor(Date.now() / 1000) + 900,
+  })}`;
+
+test("coreProxy strips its prefix and reaches the auth's own coreUrl", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = authWith(fetchImpl).coreProxy({ stripPrefix: "/api/core" });
+  const cookie = await signedInAs(["tornad:user"]);
+  const { seen } = await withCore(
+    () => Response.json({ ok: true }),
+    () =>
+      proxy(
+        new Request("https://tornad.dev/api/core/chat/send?x=1", {
+          headers: { cookie },
+        }),
+      ),
+  );
+  assert.equal(seen[0].url, "http://core:4100/chat/send?x=1");
+});
+
+test("coreProxy forwards only the cookies the core reads itself", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = authWith(fetchImpl).coreProxy({
+    forwardCookies: ["txl_trial"],
+  });
+  const cookie = `${await signedInAs(["tornad:user"])}; txl_trial=trial-xyz; other=1`;
+  const { seen } = await withCore(
+    () => Response.json({ ok: true }),
+    () =>
+      proxy(
+        new Request("https://tornad.dev/api/v1/me", { headers: { cookie } }),
+      ),
+  );
+  assert.equal(seen[0].headers.get("cookie"), "txl_trial=trial-xyz");
+  assert.match(seen[0].headers.get("authorization") ?? "", /^Bearer /);
+});
+
+test("coreProxy relays an event stream unbuffered, every Set-Cookie, and no stale encoding", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = authWith(fetchImpl).coreProxy();
+  const cookie = await signedInAs(["tornad:user"]);
+  const { result } = await withCore(
+    () => {
+      const h = new Headers({
+        "content-type": "text/event-stream",
+        "content-encoding": "gzip",
+      });
+      h.append("set-cookie", "a=1; Path=/");
+      h.append("set-cookie", "b=2; Path=/");
+      return new Response("data: hi\n\n", { headers: h });
+    },
+    () =>
+      proxy(
+        new Request("https://tornad.dev/api/v1/stream", {
+          headers: { cookie },
+        }),
+      ),
+  );
+  const res = result as Response;
+  assert.equal(res.headers.get("x-accel-buffering"), "no");
+  assert.equal(res.headers.get("content-encoding"), null);
+  assert.deepEqual(res.headers.getSetCookie(), ["a=1; Path=/", "b=2; Path=/"]);
+});
+
+test("coreProxy's adminOnly is a 503, not a 403, while the roles cannot be read", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const res = await authWith(fetchImpl).coreProxy({ adminOnly: true })(
+    new Request("https://tornad.dev/api/v1/admin", {
+      headers: { cookie: "tornad_session=ory_st" },
+    }),
+  );
+  assert.equal(res.status, 503);
+});
+
+test("coreFetch calls the core as the person and tells a refusal from an outage", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = authWith(fetchImpl);
+  const cookie = await signedInAs(["tornad:user"]);
+  const { result, seen } = await withCore(
+    () => Response.json({ tenantId: "t1" }),
+    () => a.coreFetch(new Headers({ cookie }), "/me"),
+  );
+  const call = result as Awaited<ReturnType<typeof a.coreFetch>>;
+  assert.equal(call.status, "ok");
+  assert.equal(seen[0].url, "http://core:4100/me");
+  assert.match(seen[0].headers.get("authorization") ?? "", /^Bearer /);
+
+  const out = await a.coreFetch(new Headers(), "/me");
+  assert.deepEqual(out, { status: "signed_out" });
+  assert.equal(coreRefusal(out as never).status, 401);
+
+  const down = await withCore(
+    () => {
+      throw new Error("refused");
+    },
+    () => a.coreFetch(new Headers({ cookie }), "/me"),
+  );
+  assert.deepEqual(down.result, { status: "unavailable", cause: "core" });
+  assert.equal(coreRefusal(down.result as never).status, 502);
+
+  resetProvisioningTokenCache();
+  const idpDown = kratosStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const noIdp = await authWith(idpDown.fetchImpl).coreFetch(
+    new Headers({ cookie: "tornad_session=ory_st" }),
+    "/me",
+  );
+  assert.deepEqual(noIdp, {
+    status: "unavailable",
+    cause: "identity_provider",
+  });
+  assert.equal(coreRefusal(noIdp as never).status, 503);
+});
+
+test("requireAdmin: admin passes, user is 403, unknown roles are 503, signed out is 401", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = authWith(fetchImpl);
+  const ok = await a.requireAdmin(
+    new Headers({ cookie: await signedInAs(["tornad:admin"]) }),
+  );
+  assert.ok("session" in ok && ok.session.user.role === "admin");
+  const user = await a.requireAdmin(
+    new Headers({ cookie: await signedInAs(["tornad:user"]) }),
+  );
+  assert.equal("response" in user && user.response.status, 403);
+  const session = await a.requireSession(
+    new Headers({ cookie: await signedInAs(["tornad:user"]) }),
+  );
+  assert.ok("session" in session);
+  const none = await a.requireAdmin(new Headers());
+  assert.equal("response" in none && none.response.status, 401);
+
+  resetProvisioningTokenCache();
+  const down = kratosStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const unknown = await authWith(down.fetchImpl).requireAdmin(
+    new Headers({ cookie: "tornad_session=ory_st" }),
+  );
+  assert.equal("response" in unknown && unknown.response.status, 503);
+
+  const kratosDown = kratosStub({
+    "GET /sessions/whoami": () => new Response("", { status: 502 }),
+  });
+  const noKratos = await authWith(kratosDown.fetchImpl).requireSession(
+    new Headers({ cookie: "tornad_session=ory_st" }),
+  );
+  assert.equal("response" in noKratos && noKratos.response.status, 503);
+});
+
+test("onAccountOpened runs on a sign-up with the new session, and its cookies are set", async () => {
+  const { fetchImpl } = kratosStub();
+  const opened: Array<{ email: string; cookie: string | null }> = [];
+  const res = await authWith(fetchImpl, {
+    onAccountOpened: ({ user, headers }) => {
+      opened.push({ email: user.email, cookie: headers.get("cookie") });
+      return ["tornad_invite=; Max-Age=0; Path=/"];
+    },
+  }).handler(post("sign-up/email", { email: "ana@example", password: "pw" }));
+  assert.equal(res.status, 200);
+  assert.deepEqual(opened, [
+    { email: "ana@example", cookie: "tornad_session=ory_st" },
+  ]);
+  assert.ok(
+    res.headers.getSetCookie().some((c) => c.startsWith("tornad_invite=")),
+  );
+});
+
+test("onAccountOpened runs for a code that signs an address up, not for a sign-in", async () => {
+  let calls = 0;
+  const hook = { onAccountOpened: () => void calls++ };
+  const login = kratosStub({
+    "POST /self-service/login?flow=L": () =>
+      Response.json({ session_token: "ory_st", session }),
+  });
+  await authWith(login.fetchImpl, hook).handler(
+    post(
+      "sign-in/email-otp",
+      { email: "ana@example", otp: "123456" },
+      "tornad_flow=login%3AL",
+    ),
+  );
+  assert.equal(calls, 0);
+  const registration = kratosStub({
+    "POST /self-service/registration?flow=R": () =>
+      Response.json({ session_token: "ory_st", session }),
+  });
+  await authWith(registration.fetchImpl, hook).handler(
+    post(
+      "sign-in/email-otp",
+      { email: "ana@example", otp: "123456" },
+      "tornad_flow=registration%3AR",
+    ),
+  );
+  assert.equal(calls, 1);
+});
+
+test("a failing onAccountOpened never fails the sign-up", async () => {
+  const { fetchImpl } = kratosStub();
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const res = await authWith(fetchImpl, {
+      onAccountOpened: () => {
+        throw new Error("lungor down");
+      },
+    }).handler(post("sign-up/email", { email: "ana@example", password: "pw" }));
+    assert.equal(res.status, 200);
+    assert.ok(
+      res.headers
+        .getSetCookie()
+        .some((c) => c.startsWith("tornad_session=ory_st")),
+    );
+  } finally {
+    console.warn = warn;
+  }
 });

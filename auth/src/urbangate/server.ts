@@ -55,6 +55,17 @@ export interface UrbangateAuthConfig {
    * screens.
    */
   sso?: UrbangateSsoConfig;
+  /** The core as this server reaches it, e.g. http://core:4100; used by `coreFetch` and `coreProxy`. */
+  coreUrl?: string;
+  /**
+   * Runs once an identity is created through this product: a password
+   * sign-up, or a code sent to an unknown address. `headers` carries the new
+   * session, for `coreFetch`; the cookies returned are set on the answer.
+   * Best effort: a failure is logged, and the sign-up stands.
+   */
+  onAccountOpened?: (
+    opened: AccountOpened,
+  ) => Promise<Array<string> | void> | Array<string> | void;
   /**
    * `GET core-token` also answers `{ token, expires_at }`, for a client that
    * is no browser (a CLI) and needs the bearer itself. Off by default: in a
@@ -69,6 +80,21 @@ export interface UrbangateSsoConfig {
   loginPath?: string;
   landingPath?: string;
 }
+
+export interface AccountOpened {
+  user: UrbangateUser;
+  headers: Headers;
+  request: Request;
+}
+
+export type CoreCall =
+  | { status: "ok"; response: Response; setCookies: Array<string> }
+  | { status: "signed_out" }
+  | { status: "unavailable"; cause: "identity_provider" | "core" };
+
+export type Guarded =
+  | { session: UrbangateSession; setCookies: Array<string> }
+  | { response: Response };
 
 export interface AccountDeletionPerson {
   user: UrbangateUser;
@@ -103,7 +129,12 @@ interface HeldToken extends AccessToken {
 }
 
 export interface UrbangateCoreProxyOptions {
-  coreUrl: string;
+  /** Defaults to the `coreUrl` the auth was created with. */
+  coreUrl?: string;
+  /** Removed from the request path before it reaches the core, e.g. "/api/core". */
+  stripPrefix?: string;
+  /** Browser cookies the core reads itself; every other cookie stays here. */
+  forwardCookies?: Array<string>;
   adminOnly?: boolean;
   /**
    * `"forward"` passes a request that carries no session on to the core as it
@@ -118,8 +149,24 @@ export interface UrbangateAuth {
   getSession(headers: Headers): Promise<UrbangateSession | null>;
   accessToken(headers: Headers): Promise<AccessToken | null>;
   coreProxy(
-    options: UrbangateCoreProxyOptions,
+    options?: UrbangateCoreProxyOptions,
   ): (request: Request) => Promise<Response>;
+  /** Calls the core as the signed-in person. */
+  coreFetch(headers: Headers, path: string, init?: RequestInit): Promise<CoreCall>;
+  /** A 401 signed out, a 503 while urbangate cannot answer. */
+  requireSession(headers: Headers): Promise<Guarded>;
+  /** As requireSession, and a 403 for anyone but this product's admin. */
+  requireAdmin(headers: Headers): Promise<Guarded>;
+}
+
+/** The answer a route gives when a core call did not happen. */
+export function coreRefusal(
+  call: Exclude<CoreCall, { status: "ok" }>,
+): Response {
+  if (call.status === "signed_out") return failure("sign_in_required", 401);
+  return call.cause === "core"
+    ? failure("core_unavailable", 502)
+    : failure("identity_provider_unavailable", 503);
 }
 
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
@@ -331,14 +378,18 @@ export function createUrbangateAuth(
     };
   }
 
-  async function resolveSession(
-    headers: Headers,
-  ): Promise<{ session: UrbangateSession; setCookies: Array<string> } | null> {
+  // `rolesUnknown`: urbangate could not say which roles the person holds,
+  // so `user` there means "unknown", not "not an admin".
+  async function resolveSession(headers: Headers): Promise<{
+    session: UrbangateSession;
+    setCookies: Array<string>;
+    rolesUnknown?: boolean;
+  } | null> {
     const sessionToken = readCookie(headers, names.session);
     if (!sessionToken) return resolveConsoleSession(headers);
     const session = await kratos.whoami(sessionToken);
     if (!session?.active) return null;
-    const { roles, setCookies } = await currentRoles(
+    const { roles, setCookies, unknown } = await currentRoles(
       headers,
       session.identity?.id ?? "",
     );
@@ -347,6 +398,7 @@ export function createUrbangateAuth(
     return {
       session: { user, session: { expiresAt: session.expires_at ?? "" } },
       setCookies,
+      ...(unknown && !sso ? { rolesUnknown: true } : {}),
     };
   }
 
@@ -418,12 +470,85 @@ export function createUrbangateAuth(
   async function currentRoles(
     headers: Headers,
     owner: string,
-  ): Promise<{ roles: Array<string>; setCookies: Array<string> }> {
+  ): Promise<{
+    roles: Array<string>;
+    setCookies: Array<string>;
+    unknown?: boolean;
+  }> {
     try {
       const t = await tokenFor(headers, owner);
       return { roles: t?.roles ?? [], setCookies: t?.setCookies ?? [] };
     } catch {
-      return { roles: [], setCookies: [] };
+      return { roles: [], setCookies: [], unknown: true };
+    }
+  }
+
+  async function guard(headers: Headers, admin: boolean): Promise<Guarded> {
+    let resolved;
+    try {
+      resolved = await resolveSession(headers);
+    } catch {
+      return { response: failure("identity_provider_unavailable", 503) };
+    }
+    if (!resolved) return { response: failure("sign_in_required", 401) };
+    if (admin && resolved.session.user.role !== "admin")
+      return {
+        response: resolved.rolesUnknown
+          ? failure("identity_provider_unavailable", 503)
+          : failure("forbidden", 403),
+      };
+    return { session: resolved.session, setCookies: resolved.setCookies };
+  }
+
+  async function coreFetch(
+    headers: Headers,
+    path: string,
+    init: RequestInit = {},
+  ): Promise<CoreCall> {
+    if (!config.coreUrl) throw new Error("coreFetch needs the auth's coreUrl");
+    let token: AccessToken | null;
+    try {
+      token = await accessToken(headers);
+    } catch {
+      return { status: "unavailable", cause: "identity_provider" };
+    }
+    if (!token) return { status: "signed_out" };
+    const h = new Headers(init.headers);
+    h.set("authorization", `Bearer ${token.token}`);
+    try {
+      const response = await fetch(`${config.coreUrl.replace(/\/$/, "")}${path}`, {
+        ...init,
+        headers: h,
+        signal: init.signal ?? AbortSignal.timeout(10_000),
+      });
+      return { status: "ok", response, setCookies: token.setCookies ?? [] };
+    } catch {
+      return { status: "unavailable", cause: "core" };
+    }
+  }
+
+  async function accountOpened(
+    result: KratosSessionResult,
+    request: Request,
+  ): Promise<Array<string>> {
+    const token = result.session_token;
+    const user = result.session ? userOf(result.session, [], product) : null;
+    if (!config.onAccountOpened || !token || !user) return [];
+    try {
+      const cookies = await config.onAccountOpened({
+        user,
+        headers: new Headers({
+          cookie: `${names.session}=${encodeURIComponent(token)}`,
+        }),
+        request,
+      });
+      return cookies ?? [];
+    } catch (error) {
+      console.warn(
+        "[auth] onAccountOpened failed:",
+        error instanceof Error ? error.message : error,
+      );
+      return [];
     }
   }
 
@@ -485,7 +610,10 @@ export function createUrbangateAuth(
       result.continue_with,
       "show_verification_ui",
     );
-    const cookies = signedIn(result);
+    const cookies = [
+      ...signedIn(result),
+      ...(await accountOpened(result, request)),
+    ];
     if (verification)
       cookies.push(
         cookie(
@@ -593,10 +721,11 @@ export function createUrbangateAuth(
           code,
           ...brand,
         });
+    const opened = registration && !login ? await accountOpened(result, request) : [];
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
-      signedIn(result),
+      [...signedIn(result), ...opened],
     );
   }
 
@@ -963,40 +1092,54 @@ export function createUrbangateAuth(
     }
   }
 
-  function coreProxy(options: UrbangateCoreProxyOptions) {
-    const coreUrl = options.coreUrl.replace(/\/$/, "");
+  function coreProxy(options: UrbangateCoreProxyOptions = {}) {
+    const base = options.coreUrl ?? config.coreUrl;
+    if (!base) throw new Error("coreProxy needs a coreUrl");
+    const coreUrl = base.replace(/\/$/, "");
     const forwardAnonymous = options.anonymous === "forward";
     return async (request: Request): Promise<Response> => {
       const headers = forwardHeaders(request.headers);
+      const cookies = keptCookies(request.headers, options.forwardCookies);
+      if (cookies) headers.set("cookie", cookies);
       const ownCredential = request.headers.get("authorization");
       let token: AccessToken | null = null;
       if (forwardAnonymous && ownCredential) {
         headers.set("authorization", ownCredential);
       } else {
-        let s: UrbangateSession | null;
+        let resolved: Awaited<ReturnType<typeof resolveSession>>;
         try {
           token = await accessToken(request.headers);
-          s = token
-            ? await getSession(
+          resolved = token
+            ? await resolveSession(
                 new Headers({ ...cookieHeader(request.headers, names, token) }),
               )
             : null;
         } catch {
           return failure("identity_provider_unavailable", 503);
         }
-        if (!token || !s) {
+        if (!token || !resolved) {
           if (!forwardAnonymous) return failure("sign_in_required", 401);
           token = null;
-        } else if (options.adminOnly && s.user.role !== "admin") {
-          return failure("forbidden", 403);
+        } else if (
+          options.adminOnly &&
+          resolved.session.user.role !== "admin"
+        ) {
+          return resolved.rolesUnknown
+            ? failure("identity_provider_unavailable", 503)
+            : failure("forbidden", 403);
         } else {
           headers.set("authorization", `Bearer ${token.token}`);
         }
       }
       const url = new URL(request.url);
+      const prefix = options.stripPrefix?.replace(/\/$/, "");
+      const path =
+        prefix && url.pathname.startsWith(prefix)
+          ? url.pathname.slice(prefix.length) || "/"
+          : url.pathname;
       let upstream: Response;
       try {
-        upstream = await fetch(`${coreUrl}${url.pathname}${url.search}`, {
+        upstream = await fetch(`${coreUrl}${path}${url.search}`, {
           method: request.method,
           headers,
           body:
@@ -1009,7 +1152,7 @@ export function createUrbangateAuth(
       } catch {
         return failure("core_unavailable", 502);
       }
-      const out = forwardHeaders(upstream.headers);
+      const out = relayedHeaders(upstream.headers);
       for (const c of token?.setCookies ?? []) out.append("set-cookie", c);
       return new Response(upstream.body, {
         status: upstream.status,
@@ -1018,7 +1161,42 @@ export function createUrbangateAuth(
     };
   }
 
-  return { handler, getSession, accessToken, coreProxy };
+  return {
+    handler,
+    getSession,
+    accessToken,
+    coreProxy,
+    coreFetch,
+    requireSession: (headers: Headers) => guard(headers, false),
+    requireAdmin: (headers: Headers) => guard(headers, true),
+  };
+}
+
+function keptCookies(
+  headers: Headers,
+  names: Array<string> | undefined,
+): string | null {
+  if (!names?.length) return null;
+  const kept = (headers.get("cookie") ?? "")
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => names.includes(part.split("=")[0]));
+  return kept.length ? kept.join("; ") : null;
+}
+
+// fetch hands back the body already decoded, so its content-encoding would
+// have the browser decode it twice; an event stream must not be held by any
+// buffering layer on the way.
+function relayedHeaders(upstream: Headers): Headers {
+  const out = forwardHeaders(upstream);
+  out.delete("set-cookie");
+  out.delete("content-encoding");
+  for (const c of upstream.getSetCookie?.() ?? []) out.append("set-cookie", c);
+  if (out.get("content-type")?.includes("text/event-stream")) {
+    out.set("cache-control", "no-cache, no-transform");
+    out.set("x-accel-buffering", "no");
+  }
+  return out;
 }
 
 // A token just exchanged is not in the request's cookie yet; the session
