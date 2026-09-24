@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createUrbangateAuth } from "./server.ts";
+import { resetProvisioningTokenCache } from "../identity-provisioning.ts";
 
 const identity = {
   id: "8f3a",
@@ -20,6 +21,15 @@ function jwt(payload: Record<string, unknown>) {
   );
 }
 
+function parseBody(body: RequestInit["body"]) {
+  if (typeof body !== "string") return body;
+  try {
+    return JSON.parse(body);
+  } catch {
+    return body;
+  }
+}
+
 function kratosStub(
   overrides: Record<string, (init: RequestInit) => Response> = {},
 ) {
@@ -29,7 +39,7 @@ function kratosStub(
     const key = `${init.method ?? "GET"} ${u.pathname}${u.search}`;
     calls.push({
       key,
-      body: typeof init.body === "string" ? JSON.parse(init.body) : init.body,
+      body: parseBody(init.body),
       headers: new Headers(init.headers),
     });
     if (overrides[key]) return overrides[key](init);
@@ -453,4 +463,120 @@ test("a second sign-up with a known address answers already_registered", async (
     ((await res.json()) as { error: { code: string } }).error.code,
     "already_registered",
   );
+});
+
+function deletionStub(deletions: () => Response) {
+  resetProvisioningTokenCache();
+  return kratosStub({
+    "POST /oauth2/token": () =>
+      Response.json({ access_token: "machine", expires_in: 900 }),
+    "POST /api/v1/machine/accounts/deletions": deletions,
+  });
+}
+
+function deletionAuth(
+  fetchImpl: typeof fetch,
+  steps: { cancelBilling?: () => Promise<void>; deleteData: () => Promise<void> },
+) {
+  return createUrbangateAuth({
+    product: "tornad",
+    kratosUrl: "http://kratos:4433",
+    urbangate: {
+      issuerUrl: "https://id.urbangate.dev",
+      provisioner: { clientId: "tornad-provisioner", clientSecret: "p" },
+      admin: { clientId: "tornad-admin", clientSecret: "a" },
+    },
+    fetch: fetchImpl,
+    accountDeletion: () => steps,
+  });
+}
+
+const signedIn = () =>
+  `tornad_session=ory_st; tornad_token=${jwt({
+    sub: "8f3a",
+    roles: ["tornad:user"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  })}`;
+
+test("delete-account runs billing then data, drops the role, and signs out", async () => {
+  const { fetchImpl, calls } = deletionStub(() =>
+    Response.json({ event_id: "e1" }, { status: 202 }),
+  );
+  const order: Array<string> = [];
+  const res = await deletionAuth(fetchImpl, {
+    cancelBilling: async () => void order.push("billing"),
+    deleteData: async () => void order.push("data"),
+  }).handler(post("delete-account", {}, signedIn()));
+
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), {
+    deleted: true,
+    steps: [
+      { id: "billing", status: "done" },
+      { id: "data", status: "done" },
+    ],
+  });
+  assert.deepEqual(order, ["billing", "data"]);
+  const drop = calls.find(
+    (c) => c.key === "POST /api/v1/machine/accounts/deletions",
+  );
+  assert.deepEqual(drop?.body, { identity_id: "8f3a" });
+  assert.ok(calls.some((c) => c.key === "DELETE /self-service/logout/api"));
+  assert.equal(
+    res.headers.getSetCookie().filter((c) => c.includes("Max-Age=0")).length,
+    3,
+  );
+});
+
+test("a failed billing step stops before the data and keeps the session", async () => {
+  const { fetchImpl, calls } = deletionStub(() =>
+    Response.json({ event_id: "e1" }, { status: 202 }),
+  );
+  let purged = false;
+  const res = await deletionAuth(fetchImpl, {
+    cancelBilling: async () => {
+      throw new Error("lungor down");
+    },
+    deleteData: async () => {
+      purged = true;
+    },
+  }).handler(post("delete-account", {}, signedIn()));
+
+  assert.equal(res.status, 502);
+  assert.deepEqual(await res.json(), {
+    deleted: false,
+    steps: [
+      { id: "billing", status: "failed" },
+      { id: "data", status: "pending" },
+    ],
+  });
+  assert.equal(purged, false);
+  assert.ok(!calls.some((c) => c.key === "DELETE /self-service/logout/api"));
+});
+
+test("urbangate unreachable fails the data step so the person retries", async () => {
+  const { fetchImpl } = deletionStub(
+    () => new Response("", { status: 503 }),
+  );
+  const res = await deletionAuth(fetchImpl, {
+    deleteData: async () => {},
+  }).handler(post("delete-account", {}, signedIn()));
+
+  assert.equal(res.status, 502);
+  assert.deepEqual(await res.json(), {
+    deleted: false,
+    steps: [{ id: "data", status: "failed" }],
+  });
+});
+
+test("delete-account needs a session, and is 501 when the product wired none", async () => {
+  const { fetchImpl } = deletionStub(() => Response.json({}));
+  const unsigned = await deletionAuth(fetchImpl, {
+    deleteData: async () => {},
+  }).handler(post("delete-account", {}));
+  assert.equal(unsigned.status, 401);
+  const unwired = await auth(fetchImpl).handler(
+    post("delete-account", {}, signedIn()),
+  );
+  assert.equal(unwired.status, 501);
 });

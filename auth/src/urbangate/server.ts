@@ -1,4 +1,11 @@
+import { runAccountDeletion } from "../account-deletion.ts";
+import type { AccountDeletionSteps } from "../account-deletion.ts";
+export type {
+  AccountDeletionReport,
+  AccountDeletionSteps,
+} from "../account-deletion.ts";
 import { forwardHeaders } from "../core-proxy.ts";
+import { requestAccountDeletion } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
@@ -20,6 +27,17 @@ export interface UrbangateAuthConfig {
   urbangate: Omit<ExchangeConfig, "product">;
   cookie?: { name?: string; secure?: boolean };
   fetch?: Fetch;
+  /**
+   * Mounts `POST delete-account`. The steps reach the product's core with the
+   * person's own token; the handler then drops the product's role at
+   * urbangate and signs the person out.
+   */
+  accountDeletion?: (person: AccountDeletionPerson) => AccountDeletionSteps;
+}
+
+export interface AccountDeletionPerson {
+  user: UrbangateUser;
+  accessToken: string;
 }
 
 export interface UrbangateUser {
@@ -490,6 +508,54 @@ export function createUrbangateAuth(
     ]);
   }
 
+  async function deleteAccount(request: Request): Promise<Response> {
+    if (!config.accountDeletion) return failure("not_supported", 501);
+    const token = await accessToken(request.headers);
+    const s = token
+      ? await getSession(
+          new Headers({ ...cookieHeader(request.headers, names, token) }),
+        )
+      : null;
+    if (!token || !s) return failure("sign_in_required", 401);
+
+    const steps = config.accountDeletion({
+      user: s.user,
+      accessToken: token.token,
+    });
+    const report = await runAccountDeletion({
+      ...steps,
+      deleteData: async () => {
+        await steps.deleteData();
+        const outcome = await requestAccountDeletion(
+          {
+            issuer: config.urbangate.issuerUrl,
+            clientId: config.urbangate.provisioner.clientId,
+            clientSecret: config.urbangate.provisioner.clientSecret,
+            role: `${product}:user`,
+            product,
+          },
+          { identityId: s.user.identityId },
+          config.fetch,
+        );
+        if (outcome.status === "unavailable")
+          throw new Error("urbangate unavailable");
+        if (outcome.status === "rejected") throw new Error(outcome.reason);
+      },
+    });
+    if (!report.deleted) {
+      const cookies = token.setCookie ? [token.setCookie] : [];
+      return json(502, report, cookies);
+    }
+
+    const sessionToken = readCookie(request.headers, names.session);
+    if (sessionToken) await kratos.logout(sessionToken);
+    return json(200, report, [
+      clearCookie(names.session, secure),
+      clearCookie(names.token, secure),
+      clearCookie(names.flow, secure),
+    ]);
+  }
+
   async function session(request: Request): Promise<Response> {
     const s = await getSession(request.headers);
     return json(200, s);
@@ -504,6 +570,7 @@ export function createUrbangateAuth(
     "POST email-otp/reset-password": resetPassword,
     "POST second-factor/verify": verifySecondFactor,
     "POST sign-out": signOut,
+    "POST delete-account": deleteAccount,
     "GET get-session": session,
   };
 
