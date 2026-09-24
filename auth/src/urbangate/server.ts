@@ -20,6 +20,7 @@ export type { ClaimOutcome, ClaimInvitationOptions } from "../invitation.ts";
 import { requestAccountDeletion } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
+import { Jwks } from "./jwks.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
 import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
 import type {
@@ -203,26 +204,49 @@ export function createUrbangateAuth(
     ];
   };
 
-  const readToken = (headers: Headers): PersonToken | null => {
+  const jwks = new Jwks(config.urbangate.issuerUrl, product, config.fetch);
+
+  // The cookie is the browser's to write: a token Hydra did not sign for this
+  // product, or one that cannot be checked right now, counts as absent and is
+  // exchanged again rather than read.
+  const readToken = async (headers: Headers): Promise<PersonToken | null> => {
     const raw = readCookie(headers, names.token);
-    const decoded = raw ? decodeToken(raw) : null;
-    return raw && decoded ? { accessToken: raw, ...decoded } : null;
+    if (!raw) return null;
+    const verified = await jwks.verify(raw).catch(() => null);
+    return verified ? { accessToken: raw, ...verified } : null;
   };
 
   async function accessToken(headers: Headers): Promise<AccessToken | null> {
+    const t = await tokenFor(headers);
+    if (!t) return null;
+    return { token: t.token, ...(t.setCookie ? { setCookie: t.setCookie } : {}) };
+  }
+
+  // `owner` binds the held token to the session's identity: a token cookie
+  // copied from someone else is exchanged again, never read.
+  async function tokenFor(
+    headers: Headers,
+    owner?: string,
+  ): Promise<(AccessToken & { roles: Array<string> }) | null> {
     const sessionToken = readCookie(headers, names.session);
     if (!sessionToken) return null;
-    const held = readToken(headers);
-    if (held && !exchange.needsRefresh(held))
-      return { token: held.accessToken };
+    const held = await readToken(headers);
+    if (
+      held &&
+      !exchange.needsRefresh(held) &&
+      (owner === undefined || held.identityId === owner)
+    )
+      return { token: held.accessToken, roles: held.roles };
     const outcome = await exchange.exchange(sessionToken);
     if (outcome.status === "session_gone" || outcome.status === "inactive")
       return null;
     if (outcome.status === "unavailable")
       throw new KratosError({ status: "unavailable" });
+    const fresh = outcome.token.accessToken;
     return {
-      token: outcome.token.accessToken,
-      setCookie: cookie(names.token, outcome.token.accessToken, TOKEN_MAX_AGE),
+      token: fresh,
+      setCookie: cookie(names.token, fresh, TOKEN_MAX_AGE),
+      roles: decodeToken(fresh)?.roles ?? [],
     };
   }
 
@@ -233,7 +257,10 @@ export function createUrbangateAuth(
     if (!sessionToken) return null;
     const session = await kratos.whoami(sessionToken);
     if (!session?.active) return null;
-    const { roles, setCookie } = await currentRoles(headers);
+    const { roles, setCookie } = await currentRoles(
+      headers,
+      session.identity?.id ?? "",
+    );
     const user = userOf(session, roles, product);
     if (!user) return null;
     return {
@@ -247,17 +274,19 @@ export function createUrbangateAuth(
   // outage at urbangate yields no role rather than one it can no longer vouch for.
   async function currentRoles(
     headers: Headers,
+    owner: string,
   ): Promise<{ roles: Array<string>; setCookie?: string }> {
-    const held = readToken(headers);
-    if (held && !exchange.needsRefresh(held)) return { roles: held.roles };
     try {
-      const token = await accessToken(headers);
-      const roles = (token && decodeToken(token.token)?.roles) || [];
-      return { roles, ...(token?.setCookie ? { setCookie: token.setCookie } : {}) };
+      const t = await tokenFor(headers, owner);
+      return {
+        roles: t?.roles ?? [],
+        ...(t?.setCookie ? { setCookie: t.setCookie } : {}),
+      };
     } catch {
       return { roles: [] };
     }
   }
+
 
   async function getSession(
     headers: Headers,
