@@ -37,11 +37,18 @@ func (e *executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 		return finish(ctx, queue, reqCtx, a2a.TaskStateFailed, "a text message is required")
 	}
 	subject, headers, turnContext := metadata(reqCtx.Message)
+	h := e.host
+	if h.cfg.SubjectKey != nil {
+		proven, err := provenSubject(reqCtx.Message, h.cfg.SubjectKey, h.cfg.Agent.Name)
+		if err != nil {
+			return finish(ctx, queue, reqCtx, a2a.TaskStateRejected, "the turn's subject is not proven: "+err.Error())
+		}
+		subject = proven
+	}
 	if err := queue.Write(ctx, a2a.NewStatusUpdateEvent(reqCtx, a2a.TaskStateWorking, nil)); err != nil {
 		return err
 	}
 
-	h := e.host
 	tools := h.servers.forTurn()
 	var memory *recall.Recorder
 	if h.cfg.Recall != nil && subject != "" {
@@ -68,14 +75,15 @@ func (e *executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 	}
 
 	asking := agent.Message{Role: agent.RoleUser, Content: asked}
-	history := append(h.conversations.history(reqCtx.ContextID), asking)
+	conversation := conversationKey(subject, reqCtx.ContextID)
+	history := append(h.conversations.history(conversation), asking)
 	memory.Said(reqCtx.Message.ID, "user", asked)
 
 	res, err := runner.Run(mcp.WithHeaders(ctx, headers), history)
 	if err != nil {
 		return finish(ctx, queue, reqCtx, a2a.TaskStateFailed, err.Error())
 	}
-	h.conversations.append(reqCtx.ContextID, asking, agent.Message{Role: agent.RoleAssistant, Content: res.Text})
+	h.conversations.append(conversation, asking, agent.Message{Role: agent.RoleAssistant, Content: res.Text})
 	memory.Said(uuid.NewString(), "assistant", res.Text)
 
 	if err := stream.close(res.Text); err != nil {

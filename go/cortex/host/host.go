@@ -6,6 +6,7 @@ package host
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
@@ -23,8 +24,13 @@ import (
 // Metadata keys a caller sets on its A2A message. Only a caller holding the
 // token reaches the agent, and it names these for its own users.
 const (
-	// SubjectKey names the person the turn acts for: its memory scope.
+	// SubjectKey names the person the turn acts for: its memory scope. A
+	// host holding Config.SubjectKey ignores it for SubjectTokenKey.
 	SubjectKey = "subject"
+	// SubjectTokenKey carries a JWT proving the person the turn acts for:
+	// EdDSA-signed by the caller, audience the agent's name, subject the
+	// person. Required when the host holds Config.SubjectKey.
+	SubjectTokenKey = "subjectToken"
 	// MCPHeadersKey carries headers every MCP call of the turn sends, such as
 	// the person's grant, beside the tool call and never to the model.
 	MCPHeadersKey = "mcpHeaders"
@@ -47,6 +53,10 @@ type Config struct {
 	MCP      mcp.Config
 	// Recall nil keeps no memory; recall_memory is offered only with it.
 	Recall recall.Store
+	// SubjectKey verifies each turn's subject token. Set, a leaked Token
+	// no longer lets its holder act as anyone: every turn must prove whom
+	// it acts for with a token only the caller can sign.
+	SubjectKey ed25519.PublicKey
 	// Token is what every caller of /a2a presents as Bearer. Empty refuses
 	// everyone.
 	Token string
