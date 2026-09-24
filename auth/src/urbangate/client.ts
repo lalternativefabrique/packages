@@ -3,6 +3,8 @@ import type { AuthClientResult, AuthClientSurface } from "../types";
 
 export interface UrbangateAuthClientConfig {
   baseURL?: string;
+  /** Called when a core call is refused and the session cannot renew its token. */
+  onSignedOut?: () => void;
 }
 
 export interface UrbangateClientUser {
@@ -31,6 +33,7 @@ export type UrbangateAuthClient = Omit<
 > & {
   signIn: AuthClientSurface["signIn"] & {
     emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>;
+    urbangate(input?: { callbackURL?: string }): Promise<void>;
   };
   secondFactor: {
     verify(input: {
@@ -50,6 +53,12 @@ export type UrbangateAuthClient = Omit<
     error: AuthClientResult["error"];
   }>;
   useSession(): SessionState;
+  /**
+   * `fetch` for the product's core: on a 401 it renews the person's token
+   * once and replays the request. A renewal refused signs out through
+   * `onSignedOut`; one urbangate cannot answer comes back as its 503.
+   */
+  fetch(input: string | URL, init?: RequestInit): Promise<Response>;
 };
 
 type Result<T = unknown> = { data: T | null; error: AuthClientResult["error"] };
@@ -97,11 +106,45 @@ export function createUrbangateAuthClient(
     }
   }
 
+  let renewing: Promise<Response> | null = null;
+  const renew = () => {
+    renewing ??= fetch(`${base}/api/auth/core-token`, {
+      credentials: "include",
+    }).finally(() => {
+      renewing = null;
+    });
+    return renewing;
+  };
+
+  async function coreFetch(
+    input: string | URL,
+    init: RequestInit = {},
+  ): Promise<Response> {
+    const send = () => fetch(input, { ...init, credentials: "include" });
+    const first = await send();
+    if (first.status !== 401) return first;
+    let renewed: Response;
+    try {
+      renewed = await renew();
+    } catch {
+      return first;
+    }
+    if (renewed.ok) return send();
+    if (renewed.status === 401) config.onSignedOut?.();
+    return renewed.status === 401 ? first : renewed.clone();
+  }
+
   const client: UrbangateAuthClient = {
     signIn: {
       email: (input) => call("POST", "sign-in/email", input),
       emailOtp: (input) => call("POST", "sign-in/email-otp", input),
       social: async () => ({ error: { code: "not_supported", status: 501 } }),
+      urbangate: async (input = {}) => {
+        const q = input.callbackURL
+          ? `?callbackURL=${encodeURIComponent(input.callbackURL)}`
+          : "";
+        window.location.assign(`${base}/api/auth/sign-in/urbangate${q}`);
+      },
     },
     signUp: {
       email: (input) => call("POST", "sign-up/email", input),
@@ -119,6 +162,7 @@ export function createUrbangateAuthClient(
     updateUser: (input) => call("POST", "update-user", input),
     changePassword: (input) => call("POST", "change-password", input),
     getSession: () => call<UrbangateClientSession | null>("GET", "get-session"),
+    fetch: coreFetch,
     useSession() {
       const [state, setState] = useState<SessionState>({
         data: null,

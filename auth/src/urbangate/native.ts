@@ -25,7 +25,11 @@ export interface NativeSessionState {
   refetch(): Promise<void>;
 }
 
-export type UrbangateNativeClient = Omit<UrbangateAuthClient, "useSession"> & {
+export type UrbangateNativeClient = Omit<
+  UrbangateAuthClient,
+  "useSession" | "signIn"
+> & {
+  signIn: Omit<UrbangateAuthClient["signIn"], "urbangate">;
   cookieHeader(): Promise<string>;
   fetch(path: string, init?: RequestInit): Promise<Response>;
   useSession(): NativeSessionState;

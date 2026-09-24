@@ -189,6 +189,68 @@ the `urbangate:sessions:exchange` scope and the `-admin` client the
 `urn:ietf:params:oauth:grant-type:jwt-bearer` grant, both declared in
 urbangate.
 
+### The console signs in through urbangate (1.6)
+
+Customers never see urbangate's page; the suite's team does, for a
+product's console (urbangate ADR 0003). `sso` mounts that sign-in on the
+`admin` client:
+
+```ts
+createUrbangateAuth({
+  // …
+  sso: { appUrl: process.env.APP_URL },   // loginPath "/admin/login", landingPath "/admin"
+})
+
+// /admin/login
+<AdminLoginForm
+  authClient={authClient}
+  getProfile={getProfile}
+  sso={{ signIn: () => authClient.signIn.urbangate({ callbackURL: "/admin" }), only: true }}
+/>
+```
+
+| Route | |
+|---|---|
+| `GET sign-in/urbangate?callbackURL=` | redirects to Hydra, authorization code with PKCE, audience the product |
+| `GET callback/urbangate` | trades the code, then lands on `callbackURL`, or on `loginPath?error=` |
+
+The client needs the `authorization_code` and `refresh_token` grants and
+`<appUrl>/api/auth/callback/urbangate` in its `redirect_uris`, as urbangate
+declares for every `-admin` client. The errors on `loginPath` are
+`sso_state` (the sign-in was started elsewhere or too long ago),
+`sso_refused`, `not_admin` and `unavailable`.
+
+With `sso`, `admin` comes from that sign-in only: a session opened on the
+product's screens reads as `user` whatever its token carries. The cores do
+not make that distinction yet: a token exchanged from such a session still
+carries `<product>:admin` until urbangate's token hook drops it on the
+`jwt-bearer` grant.
+
+The console session is Hydra's refresh token in `<product>_admin`, rotated
+at each renewal. The access token is verified against Hydra's JWKS, as the
+cores verify it, so a token cookie the browser forged is no session. The
+name and address come from `/userinfo` when the token is issued or renewed,
+and are kept in `<product>_profile` in between. While Hydra cannot answer,
+`get-session` is 503, never a signed-out `null`.
+
+A renewal sets two cookies, so a route that hands `accessToken()`'s cookies
+back appends every one of `setCookies`, not `setCookie` alone: a refresh
+token dropped on the floor is spent, and the console signs out once Hydra's
+`rotation_grace_period` (60 s at urbangate) has passed. That same grace is
+what lets two replicas renew one refresh token at once; within a process,
+concurrent renewals share one call.
+
+### The routes every product used to write (1.6)
+
+| Route | Answers |
+|---|---|
+| `GET core-token` | renews the person's token when it is missing or near its end, and sets every cookie; 401 `sign_in_required`, 503 while urbangate cannot answer |
+| `GET profile` | `{ user_id, email, name, avatar_url, roles: [role] }`, the `UserProfile` `@lalternative/admin` reads; 401 signed out |
+
+A product whose browser reaches its core directly calls `core-token` on the
+core's 401 and retries; `AdminLoginForm`'s `getProfile` fetches `profile`.
+Neither needs a route of the product's own any more.
+
 ### Mobile apps (1.4)
 
 An Expo app uses the same routes on the product's web, through
