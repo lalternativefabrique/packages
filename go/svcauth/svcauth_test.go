@@ -282,3 +282,47 @@ func TestRequireMiddleware(t *testing.T) {
 		t.Fatalf("status = %d body = %q", rec.Code, rec.Body.String())
 	}
 }
+
+func TestIssuerDownBeforeAnyFetchIsUnavailable(t *testing.T) {
+	f := newFakeIssuer(t)
+	f.fail.Store(true)
+	v := verifier(t, svcauth.Hydra(f.url(), "tornade"))
+	tok := f.token(t, "rsa-1", jwt.MapClaims{"sub": "x", "aud": "tornade"})
+	for i := 0; i < 3; i++ {
+		if _, err := v.Verify(context.Background(), tok); !errors.Is(err, svcauth.ErrUnavailable) {
+			t.Fatalf("attempt %d: err = %v, want ErrUnavailable", i, err)
+		}
+	}
+	if got := f.hits.Load(); got != 1 {
+		t.Fatalf("jwks fetched %d times, want 1: a failed fetch is not retried inside the cooldown", got)
+	}
+}
+
+func TestExpiredTokenIsInvalidEvenWhileIssuerIsDown(t *testing.T) {
+	f := newFakeIssuer(t)
+	f.fail.Store(true)
+	v := verifier(t, svcauth.Hydra(f.url(), "tornade"))
+	tok := f.token(t, "rsa-1", jwt.MapClaims{"sub": "x", "aud": "tornade", "exp": time.Now().Add(-time.Minute).Unix()})
+	if _, err := v.Verify(context.Background(), tok); !errors.Is(err, svcauth.ErrInvalidToken) {
+		t.Fatalf("err = %v, want ErrInvalidToken", err)
+	}
+}
+
+func TestRequireAnswers503WhenIssuerIsDown(t *testing.T) {
+	f := newFakeIssuer(t)
+	f.fail.Store(true)
+	v := verifier(t, svcauth.Hydra(f.url(), "tornade"))
+	h := svcauth.Require(v)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("handler reached with an unchecked token")
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+f.token(t, "rsa-1", jwt.MapClaims{"sub": "svc", "aud": "tornade"}))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", rec.Code)
+	}
+	if rec.Header().Get("Retry-After") == "" {
+		t.Fatal("503 without Retry-After")
+	}
+}
