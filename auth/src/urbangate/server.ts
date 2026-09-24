@@ -55,6 +55,12 @@ export interface UrbangateAuthConfig {
    * screens.
    */
   sso?: UrbangateSsoConfig;
+  /**
+   * `GET core-token` also answers `{ token, expires_at }`, for a client that
+   * is no browser (a CLI) and needs the bearer itself. Off by default: in a
+   * browser it hands the token to any script on the page.
+   */
+  coreTokenInBody?: boolean;
 }
 
 export interface UrbangateSsoConfig {
@@ -893,9 +899,15 @@ export function createUrbangateAuth(
   }
 
   async function coreToken(request: Request): Promise<Response> {
-    const token = await accessToken(request.headers);
+    const token = await tokenFor(request.headers);
     if (!token) return failure("sign_in_required", 401);
-    return json(200, { refreshed: true }, token.setCookies ?? []);
+    const body = config.coreTokenInBody
+      ? {
+          token: token.token,
+          expires_at: new Date(token.expiresAt).toISOString(),
+        }
+      : { refreshed: true };
+    return json(200, body, token.setCookies ?? []);
   }
 
   async function profile(request: Request): Promise<Response> {

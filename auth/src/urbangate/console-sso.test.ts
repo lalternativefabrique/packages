@@ -485,3 +485,30 @@ test("a profile cookie rewritten by the browser is read again from Hydra", async
   assert.equal(body.user.email, "ana@example");
   assert.equal(calls.filter((c) => c.key === "GET /userinfo").length, 2);
 });
+
+test("core-token hands the bearer over only when the product asks for it", async () => {
+  const { fetchImpl } = hydraStub();
+  const quiet = await auth(fetchImpl).handler(
+    get("core-token", "partage_admin=rt1"),
+  );
+  assert.deepEqual(await quiet.json(), { refreshed: true });
+  const cli = createUrbangateAuth({
+    product: "partage",
+    kratosUrl: "https://id.urbangate.dev",
+    urbangate: {
+      issuerUrl: "https://id.urbangate.dev",
+      provisioner: { clientId: "partage-provisioner", clientSecret: "p" },
+      admin: { clientId: "partage-admin", clientSecret: "a" },
+    },
+    sso: { appUrl: "https://app.partagg.fr" },
+    coreTokenInBody: true,
+    fetch: fetchImpl,
+  });
+  const res = await cli.handler(get("core-token", "partage_admin=rt1"));
+  const body = (await res.json()) as { token: string; expires_at: string };
+  assert.equal(body.token, adminToken);
+  assert.ok(Date.parse(body.expires_at) > Date.now());
+  assert.ok(
+    res.headers.getSetCookie().some((c) => c.startsWith("partage_admin=rt2")),
+  );
+});

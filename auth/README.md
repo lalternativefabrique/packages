@@ -251,6 +251,11 @@ concurrent renewals share one call.
 | `GET core-token` | renews the person's token when it is missing or near its end, and sets every cookie; 401 `sign_in_required`, 503 while urbangate cannot answer |
 | `GET profile` | `{ user_id, email, name, avatar_url, roles: [role] }`, the `UserProfile` `@lalternative/admin` reads; 401 signed out |
 
+`coreTokenInBody: true` makes `core-token` also answer
+`{ token, expires_at }`, for a client that is no browser, a CLI, and needs
+the bearer itself. It stays off unless a product has such a client: in a
+browser it hands the token to any script on the page.
+
 A product whose browser reaches its core directly calls `core-token` on the
 core's 401 and retries; `AdminLoginForm`'s `getProfile` fetches `profile`.
 Neither needs a route of the product's own any more.
