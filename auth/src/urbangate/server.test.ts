@@ -697,3 +697,166 @@ test("an old session is asked to sign in again before a settings change", async 
     error: { code: "session_refresh_required", status: 403 },
   });
 });
+
+function exchangeStub(roles: Array<string>) {
+  const fresh = jwt({
+    sub: "8f3a",
+    roles,
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const stub = kratosStub({
+    "POST /oauth2/token": (init) => {
+      const form = init.body as URLSearchParams;
+      return form.get("grant_type") === "client_credentials"
+        ? Response.json({ access_token: "m", expires_in: 3600 })
+        : Response.json({ access_token: fresh, expires_in: 900 });
+    },
+    "POST /api/machine/sessions/exchange": () =>
+      Response.json({ assertion: "a.b.c", identity_id: "8f3a", roles }),
+  });
+  return { ...stub, fresh };
+}
+
+test("get-session exchanges an expired token so the role is the current one, and keeps the new token", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = exchangeStub(["tornad:admin"]);
+  const expired = jwt({
+    sub: "8f3a",
+    roles: [],
+    exp: Math.floor(Date.now() / 1000) - 60,
+  });
+  const res = await auth(fetchImpl).handler(
+    new Request("https://tornad.dev/api/auth/get-session", {
+      headers: { cookie: `tornad_session=ory_st; tornad_token=${expired}` },
+    }),
+  );
+  const body = (await res.json()) as { user: { role: string } };
+  assert.equal(body.user.role, "admin");
+  assert.match(res.headers.getSetCookie().join(";"), /tornad_token=/);
+});
+
+test("get-session reads no role while urbangate cannot be reached", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const s = await auth(fetchImpl).getSession(
+    new Headers({ cookie: "tornad_session=ory_st" }),
+  );
+  assert.equal(s?.user.role, "user");
+  assert.equal(s?.user.identityId, "8f3a");
+});
+
+async function throughProxy(
+  proxy: (request: Request) => Promise<Response>,
+  request: Request,
+) {
+  const seen: Array<Headers> = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (_url: URL | string, init: RequestInit = {}) => {
+    seen.push(new Headers(init.headers));
+    return Response.json({ ok: true });
+  }) as typeof fetch;
+  try {
+    return { res: await proxy(request), seen };
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+test("coreProxy refuses a request without a session by default", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = auth(fetchImpl).coreProxy({ coreUrl: "http://core:8080" });
+  const { res, seen } = await throughProxy(
+    proxy,
+    new Request("https://tornad.dev/api/v1/me"),
+  );
+  assert.equal(res.status, 401);
+  assert.equal(seen.length, 0);
+});
+
+test("coreProxy forwards an anonymous request as it came when asked to", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = auth(fetchImpl).coreProxy({
+    coreUrl: "http://core:8080",
+    anonymous: "forward",
+  });
+  const { res, seen } = await throughProxy(
+    proxy,
+    new Request("https://tornad.dev/api/v1/invitations/claim", {
+      headers: { cookie: "other=1" },
+    }),
+  );
+  assert.equal(res.status, 200);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].get("authorization"), null);
+  assert.equal(seen[0].get("cookie"), null);
+});
+
+test("coreProxy keeps a caller's own credential when forwarding anonymous requests", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = auth(fetchImpl).coreProxy({
+    coreUrl: "http://core:8080",
+    anonymous: "forward",
+  });
+  const { seen } = await throughProxy(
+    proxy,
+    new Request("https://tornad.dev/api/v1/customers", {
+      headers: { authorization: "Bearer app-key" },
+    }),
+  );
+  assert.equal(seen[0].get("authorization"), "Bearer app-key");
+});
+
+test("coreProxy attaches the person's token when there is a session, in either mode", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl, fresh } = exchangeStub(["tornad:user"]);
+  const proxy = auth(fetchImpl).coreProxy({
+    coreUrl: "http://core:8080",
+    anonymous: "forward",
+  });
+  const { res, seen } = await throughProxy(
+    proxy,
+    new Request("https://tornad.dev/api/v1/me", {
+      headers: { cookie: "tornad_session=ory_st" },
+    }),
+  );
+  assert.equal(seen[0].get("authorization"), `Bearer ${fresh}`);
+  assert.match(res.headers.getSetCookie().join(";"), /tornad_token=/);
+});
+
+test("coreProxy still turns a signed-in non-admin away from an admin-only core", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = exchangeStub(["tornad:user"]);
+  const proxy = auth(fetchImpl).coreProxy({
+    coreUrl: "http://core:8080",
+    adminOnly: true,
+    anonymous: "forward",
+  });
+  const { res, seen } = await throughProxy(
+    proxy,
+    new Request("https://tornad.dev/api/v1/me", {
+      headers: { cookie: "tornad_session=ory_st" },
+    }),
+  );
+  assert.equal(res.status, 403);
+  assert.equal(seen.length, 0);
+});
+
+test("coreProxy answers 502 when the core cannot be reached", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = auth(fetchImpl).coreProxy({
+    coreUrl: "http://core:8080",
+    anonymous: "forward",
+  });
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new TypeError("fetch failed");
+  }) as typeof fetch;
+  try {
+    const res = await proxy(new Request("https://tornad.dev/api/v1/plans"));
+    assert.equal(res.status, 502);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
