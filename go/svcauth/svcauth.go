@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,12 +69,17 @@ func (c Claims) HasRole(role string) bool {
 }
 
 var (
-	ErrNoToken         = errors.New("svcauth: no bearer token")
-	ErrUnknownIssuer   = errors.New("svcauth: unknown issuer")
-	ErrInvalidToken    = errors.New("svcauth: invalid token")
-	ErrWrongAudience   = errors.New("svcauth: token not meant for this service")
-	ErrMissingSubject  = errors.New("svcauth: token has no subject")
-	ErrUnsupportedAlg  = errors.New("svcauth: unsupported signing algorithm")
+	ErrNoToken        = errors.New("svcauth: no bearer token")
+	ErrUnknownIssuer  = errors.New("svcauth: unknown issuer")
+	ErrInvalidToken   = errors.New("svcauth: invalid token")
+	ErrWrongAudience  = errors.New("svcauth: token not meant for this service")
+	ErrMissingSubject = errors.New("svcauth: token has no subject")
+	ErrUnsupportedAlg = errors.New("svcauth: unsupported signing algorithm")
+	// ErrUnavailable is a token that could not be checked because its
+	// issuer's keys could not be read. It says nothing about the token: a
+	// caller answers 503 and never 401, or a client told its valid credential
+	// is invalid starts rotating secrets during an outage.
+	ErrUnavailable     = errors.New("svcauth: issuer keys unavailable")
 	errUnknownKeyID    = errors.New("svcauth: unknown key id")
 	acceptedAlgorithms = []string{jwt.SigningMethodRS256.Alg(), jwt.SigningMethodEdDSA.Alg()}
 )
@@ -141,6 +147,9 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Claims, error) {
 	if !ok {
 		return Claims{}, ErrUnknownIssuer
 	}
+	if unverified.ExpiresAt != nil && !v.now().Before(unverified.ExpiresAt.Time) {
+		return Claims{}, ErrInvalidToken
+	}
 
 	var rc rawClaims
 	keyFunc := func(refresh bool) jwt.Keyfunc {
@@ -168,6 +177,9 @@ func (v *Verifier) Verify(ctx context.Context, raw string) (Claims, error) {
 		_, err = parser.ParseWithClaims(raw, &rc, keyFunc(true))
 	}
 	if err != nil {
+		if errors.Is(err, ErrUnavailable) {
+			return Claims{}, err
+		}
 		if errors.Is(err, ErrUnsupportedAlg) {
 			return Claims{}, ErrUnsupportedAlg
 		}
@@ -240,10 +252,15 @@ func BearerToken(r *http.Request) (string, bool) {
 	return strings.TrimSpace(h[len(prefix):]), true
 }
 
+// RetryAfter is the Retry-After a 503 for ErrUnavailable carries: the
+// cooldown before the issuer's keys are fetched again.
+var RetryAfter = strconv.Itoa(int(jwksRefreshCooldown / time.Second))
+
 type claimsKey struct{}
 
 // Require is middleware that refuses a request without a valid bearer token
-// and stores its claims in the context for the handler behind it.
+// and stores its claims in the context for the handler behind it. A token it
+// cannot check is answered 503, never 401.
 func Require(v *Verifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -254,6 +271,11 @@ func Require(v *Verifier) func(http.Handler) http.Handler {
 				return
 			}
 			c, err := v.Verify(r.Context(), raw)
+			if errors.Is(err, ErrUnavailable) {
+				w.Header().Set("Retry-After", RetryAfter)
+				http.Error(w, "identity provider unavailable", http.StatusServiceUnavailable)
+				return
+			}
 			if err != nil {
 				w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token"`)
 				http.Error(w, "invalid bearer token", http.StatusUnauthorized)

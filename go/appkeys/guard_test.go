@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -76,11 +77,12 @@ func (s *signer) sign(t *testing.T, c keyClaims) string {
 // guardFixture is a product wired against a fake urbangate that publishes a
 // JWKS and a revocation list.
 type guardFixture struct {
-	keys    *Keys
-	signer  *signer
-	server  *httptest.Server
-	revoked []string
-	now     time.Time
+	keys     *Keys
+	signer   *signer
+	server   *httptest.Server
+	revoked  []string
+	now      time.Time
+	jwksDown bool
 }
 
 func newGuardFixture(t *testing.T) *guardFixture {
@@ -89,6 +91,10 @@ func newGuardFixture(t *testing.T) *guardFixture {
 	f.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/machine/keys/jwks":
+			if f.jwksDown {
+				w.WriteHeader(http.StatusBadGateway)
+				return
+			}
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(f.signer.jwks()))
 		case "/api/v1/machine/keys/revoked":
@@ -294,5 +300,17 @@ func TestVerifyNamesWhyItRefused(t *testing.T) {
 	cold := newGuardFixture(t)
 	if _, err := cold.keys.Verify(ctx, cold.key(t, keyClaims{})); err != svcauth.ErrRevocationUnknown {
 		t.Errorf("never loaded: err = %v, want ErrRevocationUnknown", err)
+	}
+}
+
+func TestGuardAnswers503WhenTheKeySetCannotBeRead(t *testing.T) {
+	f := newGuardFixture(t).loaded(t)
+	f.jwksDown = true
+	rec := call(f.guard(), f.key(t, keyClaims{scopes: "tornad:search"}))
+	if rec.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want 503", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "identity_provider_unavailable") {
+		t.Errorf("body = %s", rec.Body.String())
 	}
 }

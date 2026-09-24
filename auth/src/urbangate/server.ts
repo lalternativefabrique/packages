@@ -90,6 +90,12 @@ export interface AccessToken {
   setCookies?: Array<string>;
 }
 
+interface HeldToken extends AccessToken {
+  identityId: string;
+  roles: Array<string>;
+  expiresAt: number;
+}
+
 export interface UrbangateCoreProxyOptions {
   coreUrl: string;
   adminOnly?: boolean;
@@ -224,9 +230,7 @@ export function createUrbangateAuth(
         config.fetch,
       )
     : null;
-  const jwks = sso
-    ? new Jwks(config.urbangate.issuerUrl, product, config.fetch)
-    : null;
+  const jwks = new Jwks(config.urbangate.issuerUrl, product, config.fetch);
   const outage = () => new KratosError({ status: "unavailable" });
   const loginPath = config.sso?.loginPath ?? "/admin/login";
   const landingPath = config.sso?.landingPath ?? "/admin";
@@ -245,44 +249,74 @@ export function createUrbangateAuth(
     ];
   };
 
-  const readToken = (headers: Headers): PersonToken | null => {
+  // The cookie is the browser's to write: a token Hydra did not sign for this
+  // product, or one that cannot be checked right now, counts as absent and is
+  // replaced rather than read.
+  const readToken = async (headers: Headers): Promise<PersonToken | null> => {
     const raw = readCookie(headers, names.token);
-    const decoded = raw ? decodeToken(raw) : null;
-    return raw && decoded ? { accessToken: raw, ...decoded } : null;
+    if (!raw) return null;
+    const verified = await jwks.verify(raw).catch(() => null);
+    return verified ? { accessToken: raw, ...verified } : null;
   };
 
   async function accessToken(headers: Headers): Promise<AccessToken | null> {
+    const t = await tokenFor(headers);
+    if (!t) return null;
+    return {
+      token: t.token,
+      ...(t.setCookie
+        ? { setCookie: t.setCookie, setCookies: t.setCookies }
+        : {}),
+    };
+  }
+
+  // `owner` binds the held token to the session's identity: a token cookie
+  // copied from someone else is replaced, never read.
+  async function tokenFor(
+    headers: Headers,
+    owner?: string,
+  ): Promise<HeldToken | null> {
     const sessionToken = readCookie(headers, names.session);
     const refreshToken = sso ? readCookie(headers, names.admin) : undefined;
     if (!sessionToken && !refreshToken) return null;
-    const held = readToken(headers);
-    if (held && !exchange.needsRefresh(held))
-      return { token: held.accessToken };
+    const held = await readToken(headers);
+    if (
+      held &&
+      !exchange.needsRefresh(held) &&
+      (owner === undefined || held.identityId === owner)
+    )
+      return {
+        token: held.accessToken,
+        identityId: held.identityId,
+        roles: held.roles,
+        expiresAt: held.expiresAt,
+      };
+    let fresh: string;
+    const renewed: Array<string> = [];
     if (sessionToken) {
       const outcome = await exchange.exchange(sessionToken);
       if (outcome.status === "session_gone" || outcome.status === "inactive")
         return null;
-      if (outcome.status === "unavailable")
-        throw new KratosError({ status: "unavailable" });
-      const set = cookie(names.token, outcome.token.accessToken, TOKEN_MAX_AGE);
-      return {
-        token: outcome.token.accessToken,
-        setCookie: set,
-        setCookies: [set],
-      };
-    }
-    const outcome = await sso!.refresh(refreshToken!);
-    if (outcome.status === "refused") return null;
-    if (outcome.status === "unavailable")
-      throw new KratosError({ status: "unavailable" });
-    const set = cookie(names.token, outcome.tokens.accessToken, TOKEN_MAX_AGE);
-    return {
-      token: outcome.tokens.accessToken,
-      setCookie: set,
-      setCookies: [
-        set,
+      if (outcome.status === "unavailable") throw outage();
+      fresh = outcome.token.accessToken;
+    } else {
+      const outcome = await sso!.refresh(refreshToken!);
+      if (outcome.status === "refused") return null;
+      if (outcome.status === "unavailable") throw outage();
+      fresh = outcome.tokens.accessToken;
+      renewed.push(
         cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),
-      ],
+      );
+    }
+    const set = cookie(names.token, fresh, TOKEN_MAX_AGE);
+    const decoded = decodeToken(fresh);
+    return {
+      token: fresh,
+      setCookie: set,
+      setCookies: [set, ...renewed],
+      identityId: decoded?.identityId ?? "",
+      roles: decoded?.roles ?? [],
+      expiresAt: decoded?.expiresAt ?? 0,
     };
   }
 
@@ -293,7 +327,10 @@ export function createUrbangateAuth(
     if (!sessionToken) return resolveConsoleSession(headers);
     const session = await kratos.whoami(sessionToken);
     if (!session?.active) return null;
-    const { roles, setCookies } = await currentRoles(headers);
+    const { roles, setCookies } = await currentRoles(
+      headers,
+      session.identity?.id ?? "",
+    );
     const user = userOf(session, roles, product, !sso);
     if (!user) return null;
     return {
@@ -302,23 +339,18 @@ export function createUrbangateAuth(
     };
   }
 
-  // The token is verified here rather than decoded: the cookie is the
-  // browser's to forge. The profile is read from Hydra when the token is
-  // issued or renewed, and kept beside it in between.
+  // The profile is read from Hydra when the token is issued or renewed, and
+  // kept beside it in between.
   async function resolveConsoleSession(
     headers: Headers,
   ): Promise<{ session: UrbangateSession; setCookies: Array<string> } | null> {
-    if (!sso || !jwks || !readCookie(headers, names.admin)) return null;
-    const token = await accessToken(headers);
-    if (!token) return null;
-    const claims = await jwks.verify(token.token).catch(() => {
-      throw outage();
-    });
-    if (!claims) return null;
+    if (!sso || !readCookie(headers, names.admin)) return null;
+    const token = await tokenFor(headers);
+    if (!token?.identityId) return null;
     const setCookies = [...(token.setCookies ?? [])];
     let profile = setCookies.length
       ? null
-      : readProfile(headers, claims.identityId);
+      : readProfile(headers, token.identityId);
     if (!profile) {
       profile = await sso.profile(token.token).catch(() => {
         throw outage();
@@ -327,7 +359,7 @@ export function createUrbangateAuth(
       setCookies.push(
         cookie(
           names.profile,
-          JSON.stringify({ sub: claims.identityId, ...profile }),
+          JSON.stringify({ sub: token.identityId, ...profile }),
           ADMIN_MAX_AGE,
         ),
       );
@@ -335,12 +367,12 @@ export function createUrbangateAuth(
     return {
       session: {
         user: {
-          id: claims.identityId,
-          identityId: claims.identityId,
+          id: token.identityId,
+          identityId: token.identityId,
           ...profile,
-          role: claims.roles.includes(`${product}:admin`) ? "admin" : "user",
+          role: token.roles.includes(`${product}:admin`) ? "admin" : "user",
         },
-        session: { expiresAt: new Date(claims.expiresAt).toISOString() },
+        session: { expiresAt: new Date(token.expiresAt).toISOString() },
       },
       setCookies,
     };
@@ -367,14 +399,11 @@ export function createUrbangateAuth(
   // outage at urbangate yields no role rather than one it can no longer vouch for.
   async function currentRoles(
     headers: Headers,
+    owner: string,
   ): Promise<{ roles: Array<string>; setCookies: Array<string> }> {
-    const held = readToken(headers);
-    if (held && !exchange.needsRefresh(held))
-      return { roles: held.roles, setCookies: [] };
     try {
-      const token = await accessToken(headers);
-      const roles = (token && decodeToken(token.token)?.roles) || [];
-      return { roles, setCookies: token?.setCookies ?? [] };
+      const t = await tokenFor(headers, owner);
+      return { roles: t?.roles ?? [], setCookies: t?.setCookies ?? [] };
     } catch {
       return { roles: [], setCookies: [] };
     }

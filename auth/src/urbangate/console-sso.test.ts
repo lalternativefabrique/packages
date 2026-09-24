@@ -260,20 +260,36 @@ test("get-session verifies the console token, reads userinfo once, then keeps th
   assert.equal(calls.filter((c) => c.key === "GET /userinfo").length, 1);
 });
 
-test("a token cookie Hydra did not sign is no session", async () => {
-  const { fetchImpl, calls } = hydraStub();
+test("a token cookie Hydra did not sign is replaced by the refresh token's own", async () => {
+  const { fetchImpl, calls } = hydraStub({
+    "POST /oauth2/token": () =>
+      Response.json({
+        access_token: userToken,
+        refresh_token: "rt2",
+        expires_in: 900,
+      }),
+  });
   const res = await auth(fetchImpl).handler(
     get("get-session", `partage_admin=rt1; partage_token=${forgedToken}`),
   );
-  assert.equal(await res.json(), null);
-  assert.ok(!calls.some((c) => c.key === "GET /userinfo"));
+  const body = (await res.json()) as { user: { role: string } };
+  assert.equal(body.user.role, "user");
+  assert.equal(
+    calls.find((c) => c.key === "POST /oauth2/token")?.body?.get("grant_type"),
+    "refresh_token",
+  );
+  const none = await auth(fetchImpl).handler(
+    get("get-session", `partage_token=${forgedToken}`),
+  );
+  assert.equal(await none.json(), null);
 });
 
 test("a console session answers 503 while urbangate cannot answer, never a signed-out 200", async () => {
-  const jwksDown = hydraStub({
+  const jwksAndHydraDown = hydraStub({
     "GET /.well-known/jwks.json": () => new Response("", { status: 502 }),
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
   });
-  const r1 = await auth(jwksDown.fetchImpl).handler(
+  const r1 = await auth(jwksAndHydraDown.fetchImpl).handler(
     get("get-session", `partage_admin=rt1; partage_token=${adminToken}`),
   );
   assert.equal(r1.status, 503);

@@ -47,6 +47,7 @@ type issuerKeys struct {
 	keys        map[string]publicKey
 	fetchedAt   time.Time
 	lastAttempt time.Time
+	lastErr     error
 }
 
 func newIssuerKeys(is Issuer) *issuerKeys {
@@ -75,23 +76,32 @@ func (ik *issuerKeys) keyFor(ctx context.Context, kid string, forceRefresh bool)
 			return key, nil
 		}
 	}
-	// A token forged with a random kid must not turn every request into a
-	// fetch against the issuer.
-	if !ik.fetchedAt.IsZero() && time.Since(ik.lastAttempt) < jwksRefreshCooldown {
-		return publicKey{}, errUnknownKeyID
+	// A token forged with a random kid, or a caller retrying through an
+	// outage, must not turn every request into a fetch against the issuer.
+	attempted := !ik.fetchedAt.IsZero() || ik.lastErr != nil
+	if attempted && time.Since(ik.lastAttempt) < jwksRefreshCooldown {
+		if ik.lastErr == nil {
+			return publicKey{}, errUnknownKeyID
+		}
+		if key, ok := ik.lookupAny(kid); ok {
+			return key, nil
+		}
+		return publicKey{}, ik.lastErr
 	}
 	ik.lastAttempt = time.Now()
 
 	keys, err := ik.fetch(ctx)
 	if err != nil {
+		ik.lastErr = fmt.Errorf("%w: %w", ErrUnavailable, err)
 		// Stale keys beat refusing every caller while the issuer is down.
 		if key, ok := ik.lookupAny(kid); ok {
 			return key, nil
 		}
-		return publicKey{}, err
+		return publicKey{}, ik.lastErr
 	}
 	ik.keys = keys
 	ik.fetchedAt = time.Now()
+	ik.lastErr = nil
 	if key, ok := ik.lookupAny(kid); ok {
 		return key, nil
 	}

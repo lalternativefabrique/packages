@@ -61,8 +61,13 @@ type Verifier interface {
 	Verify(ctx context.Context, raw string) (svcauth.Claims, error)
 }
 
+// ErrUnavailable is a token Resolve could not check because the issuer's
+// keys could not be read; Require answers it 503, never 401.
+var ErrUnavailable = svcauth.ErrUnavailable
+
 // Guard answers 401 to a request that carries no token one of the issuers
-// signed, and hands the User to the handlers behind it.
+// signed, 503 when it cannot check one, and hands the User to the handlers
+// behind it.
 type Guard struct {
 	verifier Verifier
 	product  string
@@ -103,18 +108,37 @@ type ctxKey struct{}
 // Require is the middleware.
 func (g *Guard) Require(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		raw := tokenFrom(r)
+		raw := g.tokenFrom(r)
 		if raw == "" {
 			unauthenticated(w)
 			return
 		}
 		u, err := g.Resolve(r.Context(), raw)
+		if errors.Is(err, ErrUnavailable) {
+			unavailable(w)
+			return
+		}
 		if err != nil {
 			unauthenticated(w)
 			return
 		}
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey{}, u)))
 	})
+}
+
+// RequireRole is Require for the routes only a person holding role for this
+// product may reach: 403 for anyone else, so a core never relies on the web
+// having turned them away.
+func (g *Guard) RequireRole(role string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return g.Require(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if u, _ := UserFrom(r.Context()); u.Role != role {
+				forbidden(w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		}))
+	}
 }
 
 // UserFrom returns the User Require resolved for this request.
@@ -191,12 +215,16 @@ func payload(raw string) (profile, error) {
 	return p, nil
 }
 
-func tokenFrom(r *http.Request) string {
+// tokenFrom reads the bearer header, then the cookie @lalternative/auth sets
+// for this product, then the "token" cookie of the web-signed era.
+func (g *Guard) tokenFrom(r *http.Request) string {
 	if raw, ok := svcauth.BearerToken(r); ok {
 		return raw
 	}
-	if c, err := r.Cookie("token"); err == nil && c.Value != "" {
-		return c.Value
+	for _, name := range []string{g.product + "_token", "token"} {
+		if c, err := r.Cookie(name); err == nil && c.Value != "" {
+			return c.Value
+		}
 	}
 	return ""
 }
@@ -206,4 +234,17 @@ func unauthenticated(w http.ResponseWriter) {
 	w.Header().Set("WWW-Authenticate", "Bearer")
 	w.WriteHeader(http.StatusUnauthorized)
 	_, _ = w.Write([]byte(`{"error":"unauthenticated"}`))
+}
+
+func unavailable(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Retry-After", svcauth.RetryAfter)
+	w.WriteHeader(http.StatusServiceUnavailable)
+	_, _ = w.Write([]byte(`{"error":"identity_provider_unavailable"}`))
+}
+
+func forbidden(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write([]byte(`{"error":"forbidden"}`))
 }

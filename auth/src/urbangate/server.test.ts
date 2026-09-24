@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createUrbangateAuth } from "./server.ts";
 import { resetProvisioningTokenCache } from "../identity-provisioning.ts";
+import { signer, unsigned } from "./test-keys.ts";
 
 const identity = {
   id: "8f3a",
@@ -15,10 +16,14 @@ const session = {
   identity,
 };
 
+const hydra = await signer();
+
 function jwt(payload: Record<string, unknown>) {
-  return (
-    "h." + Buffer.from(JSON.stringify(payload)).toString("base64url") + ".s"
-  );
+  return hydra.sign({
+    iss: "https://id.urbangate.dev",
+    aud: ["https://id.urbangate.dev/oauth2/token", "tornad"],
+    ...payload,
+  });
 }
 
 function parseBody(body: RequestInit["body"]) {
@@ -67,6 +72,8 @@ function kratosStub(
     }
     if (key === "DELETE /self-service/logout/api")
       return new Response("", { status: 204 });
+    if (key === "GET /.well-known/jwks.json")
+      return Response.json({ keys: [hydra.jwk] });
     return new Response("{}", { status: 500 });
   }) as typeof fetch;
   return { fetchImpl, calls };
@@ -181,7 +188,7 @@ test("sign-up opens the session, keeps the verification flow, and the code verif
 test("get-session reads whoami and the role off the token cookie; sign-out clears everything", async () => {
   const { fetchImpl } = kratosStub();
   const a = auth(fetchImpl);
-  const token = jwt({
+  const token = await jwt({
     sub: "8f3a",
     roles: ["tornad:admin"],
     exp: Math.floor(Date.now() / 1000) + 900,
@@ -208,7 +215,7 @@ test("get-session reads whoami and the role off the token cookie; sign-out clear
 });
 
 test("accessToken exchanges when the cookie is missing or stale, and keeps a fresh one", async () => {
-  const fresh = jwt({
+  const fresh = await jwt({
     sub: "8f3a",
     roles: [],
     exp: Math.floor(Date.now() / 1000) + 900,
@@ -491,8 +498,8 @@ function deletionAuth(
   });
 }
 
-const signedIn = () =>
-  `tornad_session=ory_st; tornad_token=${jwt({
+const signedIn = async () =>
+  `tornad_session=ory_st; tornad_token=${await jwt({
     sub: "8f3a",
     roles: ["tornad:user"],
     exp: Math.floor(Date.now() / 1000) + 900,
@@ -506,7 +513,7 @@ test("delete-account runs billing then data, drops the role, and signs out", asy
   const res = await deletionAuth(fetchImpl, {
     cancelBilling: async () => void order.push("billing"),
     deleteData: async () => void order.push("data"),
-  }).handler(post("delete-account", {}, signedIn()));
+  }).handler(post("delete-account", {}, await signedIn()));
 
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), {
@@ -540,7 +547,7 @@ test("a failed billing step stops before the data and keeps the session", async 
     deleteData: async () => {
       purged = true;
     },
-  }).handler(post("delete-account", {}, signedIn()));
+  }).handler(post("delete-account", {}, await signedIn()));
 
   assert.equal(res.status, 502);
   assert.deepEqual(await res.json(), {
@@ -560,7 +567,7 @@ test("urbangate unreachable fails the data step so the person retries", async ()
   );
   const res = await deletionAuth(fetchImpl, {
     deleteData: async () => {},
-  }).handler(post("delete-account", {}, signedIn()));
+  }).handler(post("delete-account", {}, await signedIn()));
 
   assert.equal(res.status, 502);
   assert.deepEqual(await res.json(), {
@@ -576,7 +583,7 @@ test("delete-account needs a session, and is 501 when the product wired none", a
   }).handler(post("delete-account", {}));
   assert.equal(unsigned.status, 401);
   const unwired = await auth(fetchImpl).handler(
-    post("delete-account", {}, signedIn()),
+    post("delete-account", {}, await signedIn()),
   );
   assert.equal(unwired.status, 501);
 });
@@ -698,8 +705,8 @@ test("an old session is asked to sign in again before a settings change", async 
   });
 });
 
-function exchangeStub(roles: Array<string>) {
-  const fresh = jwt({
+async function exchangeStub(roles: Array<string>) {
+  const fresh = await jwt({
     sub: "8f3a",
     roles,
     exp: Math.floor(Date.now() / 1000) + 900,
@@ -719,8 +726,8 @@ function exchangeStub(roles: Array<string>) {
 
 test("get-session exchanges an expired token so the role is the current one, and keeps the new token", async () => {
   resetProvisioningTokenCache();
-  const { fetchImpl } = exchangeStub(["tornad:admin"]);
-  const expired = jwt({
+  const { fetchImpl } = await exchangeStub(["tornad:admin"]);
+  const expired = await jwt({
     sub: "8f3a",
     roles: [],
     exp: Math.floor(Date.now() / 1000) - 60,
@@ -810,7 +817,7 @@ test("coreProxy keeps a caller's own credential when forwarding anonymous reques
 
 test("coreProxy attaches the person's token when there is a session, in either mode", async () => {
   resetProvisioningTokenCache();
-  const { fetchImpl, fresh } = exchangeStub(["tornad:user"]);
+  const { fetchImpl, fresh } = await exchangeStub(["tornad:user"]);
   const proxy = auth(fetchImpl).coreProxy({
     coreUrl: "http://core:8080",
     anonymous: "forward",
@@ -827,7 +834,7 @@ test("coreProxy attaches the person's token when there is a session, in either m
 
 test("coreProxy still turns a signed-in non-admin away from an admin-only core", async () => {
   resetProvisioningTokenCache();
-  const { fetchImpl } = exchangeStub(["tornad:user"]);
+  const { fetchImpl } = await exchangeStub(["tornad:user"]);
   const proxy = auth(fetchImpl).coreProxy({
     coreUrl: "http://core:8080",
     adminOnly: true,
@@ -859,4 +866,72 @@ test("coreProxy answers 502 when the core cannot be reached", async () => {
   } finally {
     globalThis.fetch = original;
   }
+});
+
+test("a token cookie Hydra did not sign is never read: it is exchanged again", async () => {
+  const stranger = await signer();
+  const claims = {
+    iss: "https://id.urbangate.dev",
+    aud: ["https://id.urbangate.dev/oauth2/token", "tornad"],
+    sub: "8f3a",
+    roles: ["tornad:admin"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  };
+  const forged = [
+    await stranger.sign(claims),
+    unsigned("none", claims),
+    unsigned("HS256", claims),
+    await jwt({ ...claims, aud: ["other-product"] }),
+  ];
+  for (const token of forged) {
+    resetProvisioningTokenCache();
+    const { fetchImpl, calls } = await exchangeStub(["tornad:user"]);
+    const res = await auth(fetchImpl).handler(
+      new Request("https://tornad.dev/api/auth/get-session", {
+        headers: { cookie: `tornad_session=ory_st; tornad_token=${token}` },
+      }),
+    );
+    const body = (await res.json()) as { user: { role: string } };
+    assert.equal(body.user.role, "user");
+    assert.ok(calls.some((c) => c.key === "POST /api/machine/sessions/exchange"));
+  }
+});
+
+test("a forged admin token cookie reads as user while urbangate cannot be reached", async () => {
+  resetProvisioningTokenCache();
+  const stranger = await signer();
+  const forged = await stranger.sign({
+    iss: "https://id.urbangate.dev",
+    aud: ["tornad"],
+    sub: "8f3a",
+    roles: ["tornad:admin"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+    "GET /.well-known/jwks.json": () => new Response("", { status: 503 }),
+  });
+  const s = await auth(fetchImpl).getSession(
+    new Headers({ cookie: `tornad_session=ory_st; tornad_token=${forged}` }),
+  );
+  assert.equal(s?.user.role, "user");
+});
+
+test("someone else's valid token cookie beside my session is exchanged, not read", async () => {
+  resetProvisioningTokenCache();
+  const theirs = await jwt({
+    sub: "someone-else",
+    roles: ["tornad:admin"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const { fetchImpl, calls } = await exchangeStub(["tornad:user"]);
+  const res = await auth(fetchImpl).handler(
+    new Request("https://tornad.dev/api/auth/get-session", {
+      headers: { cookie: `tornad_session=ory_st; tornad_token=${theirs}` },
+    }),
+  );
+  const body = (await res.json()) as { user: { role: string; identityId: string } };
+  assert.equal(body.user.identityId, "8f3a");
+  assert.equal(body.user.role, "user");
+  assert.ok(calls.some((c) => c.key === "POST /api/machine/sessions/exchange"));
 });

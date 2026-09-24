@@ -29,4 +29,28 @@ writes them. A core moving to ADR 0009 keeps both while sessions opened
 under the web's key live, then drops `Web`.
 
 A request without a token, with one neither issuer signed, or with one that
-names no subject, is answered 401.
+names no subject, is answered 401. A token that cannot be checked because the issuer's keys
+cannot be read is answered 503 `identity_provider_unavailable` with
+`Retry-After`, never 401: the person's session is fine, urbangate is not.
+`Resolve` returns `websession.ErrUnavailable` for that case, for a core that
+calls it by hand.
+
+The token is read from `Authorization: Bearer`, else from the
+`<product>_token` cookie `@lalternative/auth` sets, so a browser that reaches
+the core directly needs no header copied by hand.
+
+## Echo, chi
+
+`Require` is plain `net/http` middleware, so a core mounts it as it is rather
+than writing its own:
+
+```go
+api := e.Group("/api/v1", echo.WrapMiddleware(guard.Require))  // Echo
+r.Use(guard.Require)                                             // chi
+
+u, _ := websession.UserFrom(c.Request().Context())
+```
+
+A route only this product's admins may reach takes `guard.RequireRole("admin")`
+in place of `Require`: 403 for anyone else. The core checks it itself — a
+proxy's `adminOnly` is a courtesy to the browser, not the gate.
