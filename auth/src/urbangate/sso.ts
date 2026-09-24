@@ -150,26 +150,24 @@ export class ConsoleSso {
     }).catch(() => undefined);
   }
 
+  /** Null when Hydra refuses the token; throws when it cannot answer. */
   async profile(accessToken: string): Promise<SsoProfile | null> {
-    try {
-      const res = await this.fetchImpl(
-        new URL("/userinfo", this.config.issuerUrl),
-        { headers: { authorization: `Bearer ${accessToken}` } },
-      );
-      if (!res.ok) return null;
-      const body = (await res.json()) as {
-        email?: string;
-        email_verified?: boolean;
-        name?: string;
-      };
-      return {
-        email: body.email ?? "",
-        emailVerified: body.email_verified ?? false,
-        name: body.name ?? "",
-      };
-    } catch {
-      return null;
-    }
+    const res = await this.fetchImpl(
+      new URL("/userinfo", this.config.issuerUrl),
+      { headers: { authorization: `Bearer ${accessToken}` } },
+    );
+    if (res.status === 401 || res.status === 403) return null;
+    if (!res.ok) throw new Error(`userinfo ${res.status}`);
+    const body = (await res.json()) as {
+      email?: string;
+      email_verified?: boolean;
+      name?: string;
+    };
+    return {
+      email: body.email ?? "",
+      emailVerified: body.email_verified ?? false,
+      name: body.name ?? "",
+    };
   }
 
   private async token(grant: Record<string, string>): Promise<SsoOutcome> {

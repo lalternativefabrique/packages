@@ -22,7 +22,9 @@ import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
 import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
+import { Jwks } from "./jwks.ts";
 import { ConsoleSso, decodePending, encodePending, localPath } from "./sso.ts";
+import type { SsoProfile } from "./sso.ts";
 import type {
   ContinueWith,
   Fetch,
@@ -208,6 +210,7 @@ export function createUrbangateAuth(
     flow: `${product}_flow`,
     admin: `${product}_admin`,
     sso: `${product}_sso`,
+    profile: `${product}_profile`,
   };
   const sso = config.sso
     ? new ConsoleSso(
@@ -221,6 +224,10 @@ export function createUrbangateAuth(
         config.fetch,
       )
     : null;
+  const jwks = sso
+    ? new Jwks(config.urbangate.issuerUrl, product, config.fetch)
+    : null;
+  const outage = () => new KratosError({ status: "unavailable" });
   const loginPath = config.sso?.loginPath ?? "/admin/login";
   const landingPath = config.sso?.landingPath ?? "/admin";
   const secure =
@@ -295,14 +302,36 @@ export function createUrbangateAuth(
     };
   }
 
+  // The token is verified here rather than decoded: the cookie is the
+  // browser's to forge. The profile is read from Hydra when the token is
+  // issued or renewed, and kept beside it in between.
   async function resolveConsoleSession(
     headers: Headers,
   ): Promise<{ session: UrbangateSession; setCookies: Array<string> } | null> {
-    if (!sso || !readCookie(headers, names.admin)) return null;
-    const token = await accessToken(headers).catch(() => null);
-    const claims = token ? decodeToken(token.token) : null;
-    const profile = token && claims ? await sso.profile(token.token) : null;
-    if (!token || !claims || !profile) return null;
+    if (!sso || !jwks || !readCookie(headers, names.admin)) return null;
+    const token = await accessToken(headers);
+    if (!token) return null;
+    const claims = await jwks.verify(token.token).catch(() => {
+      throw outage();
+    });
+    if (!claims) return null;
+    const setCookies = [...(token.setCookies ?? [])];
+    let profile = setCookies.length
+      ? null
+      : readProfile(headers, claims.identityId);
+    if (!profile) {
+      profile = await sso.profile(token.token).catch(() => {
+        throw outage();
+      });
+      if (!profile) return null;
+      setCookies.push(
+        cookie(
+          names.profile,
+          JSON.stringify({ sub: claims.identityId, ...profile }),
+          ADMIN_MAX_AGE,
+        ),
+      );
+    }
     return {
       session: {
         user: {
@@ -313,8 +342,24 @@ export function createUrbangateAuth(
         },
         session: { expiresAt: new Date(claims.expiresAt).toISOString() },
       },
-      setCookies: token.setCookies ?? [],
+      setCookies,
     };
+  }
+
+  function readProfile(headers: Headers, sub: string): SsoProfile | null {
+    try {
+      const p = JSON.parse(readCookie(headers, names.profile) ?? "") as {
+        sub?: string;
+      } & Partial<SsoProfile>;
+      if (p.sub !== sub) return null;
+      return {
+        email: p.email ?? "",
+        emailVerified: p.emailVerified ?? false,
+        name: p.name ?? "",
+      };
+    } catch {
+      return null;
+    }
   }
 
   // The roles ride on the access token, whose cookie outlives it by nothing:
@@ -686,7 +731,9 @@ export function createUrbangateAuth(
     clearCookie(names.session, secure),
     clearCookie(names.token, secure),
     clearCookie(names.flow, secure),
-    ...(sso ? [clearCookie(names.admin, secure)] : []),
+    ...(sso
+      ? [clearCookie(names.admin, secure), clearCookie(names.profile, secure)]
+      : []),
   ];
 
   async function signOut(request: Request): Promise<Response> {
@@ -740,6 +787,7 @@ export function createUrbangateAuth(
       clearCookie(names.sso, secure),
       clearCookie(names.session, secure),
       clearCookie(names.flow, secure),
+      clearCookie(names.profile, secure),
       cookie(names.token, outcome.tokens.accessToken, TOKEN_MAX_AGE),
       cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),
     ]);
@@ -794,6 +842,29 @@ export function createUrbangateAuth(
     return json(200, resolved?.session ?? null, resolved?.setCookies ?? []);
   }
 
+  async function coreToken(request: Request): Promise<Response> {
+    const token = await accessToken(request.headers);
+    if (!token) return failure("sign_in_required", 401);
+    return json(200, { refreshed: true }, token.setCookies ?? []);
+  }
+
+  async function profile(request: Request): Promise<Response> {
+    const resolved = await resolveSession(request.headers);
+    if (!resolved) return failure("sign_in_required", 401);
+    const u = resolved.session.user;
+    return json(
+      200,
+      {
+        user_id: u.identityId,
+        email: u.email,
+        name: u.name,
+        avatar_url: "",
+        roles: [u.role],
+      },
+      resolved.setCookies,
+    );
+  }
+
   const routes: Record<string, (request: Request) => Promise<Response>> = {
     "POST sign-in/email": signInEmail,
     "POST sign-in/email-otp": signInOtp,
@@ -807,6 +878,8 @@ export function createUrbangateAuth(
     "POST update-user": updateUser,
     "POST change-password": changePassword,
     "GET get-session": session,
+    "GET core-token": coreToken,
+    "GET profile": profile,
     ...(sso
       ? {
           "GET sign-in/urbangate": startConsoleSignIn,

@@ -221,13 +221,35 @@ declares for every `-admin` client. The errors on `loginPath` are
 `sso_refused`, `not_admin` and `unavailable`.
 
 With `sso`, `admin` comes from that sign-in only: a session opened on the
-product's screens reads as `user` whatever its token carries. The console
-session is Hydra's refresh token in `<product>_admin`, rotated at each
-renewal, and the person's name and address are read from `/userinfo`, which
-also refuses a token Hydra did not sign. A renewal sets two cookies, so a
-route that hands `accessToken()`'s cookies back appends every one of
-`setCookies`, not `setCookie` alone: a refresh token dropped on the floor has
-been spent, and the console signs out a minute later.
+product's screens reads as `user` whatever its token carries. The cores do
+not make that distinction yet: a token exchanged from such a session still
+carries `<product>:admin` until urbangate's token hook drops it on the
+`jwt-bearer` grant.
+
+The console session is Hydra's refresh token in `<product>_admin`, rotated
+at each renewal. The access token is verified against Hydra's JWKS, as the
+cores verify it, so a token cookie the browser forged is no session. The
+name and address come from `/userinfo` when the token is issued or renewed,
+and are kept in `<product>_profile` in between. While Hydra cannot answer,
+`get-session` is 503, never a signed-out `null`.
+
+A renewal sets two cookies, so a route that hands `accessToken()`'s cookies
+back appends every one of `setCookies`, not `setCookie` alone: a refresh
+token dropped on the floor is spent, and the console signs out once Hydra's
+`rotation_grace_period` (60 s at urbangate) has passed. That same grace is
+what lets two replicas renew one refresh token at once; within a process,
+concurrent renewals share one call.
+
+### The routes every product used to write (1.6)
+
+| Route | Answers |
+|---|---|
+| `GET core-token` | renews the person's token when it is missing or near its end, and sets every cookie; 401 `sign_in_required`, 503 while urbangate cannot answer |
+| `GET profile` | `{ user_id, email, name, avatar_url, roles: [role] }`, the `UserProfile` `@lalternative/admin` reads; 401 signed out |
+
+A product whose browser reaches its core directly calls `core-token` on the
+core's 401 and retries; `AdminLoginForm`'s `getProfile` fetches `profile`.
+Neither needs a route of the product's own any more.
 
 ### Mobile apps (1.4)
 

@@ -3,23 +3,45 @@ import assert from "node:assert/strict";
 import { createUrbangateAuth } from "./server.ts";
 import { decodePending, encodePending, localPath } from "./sso.ts";
 
-function jwt(payload: Record<string, unknown>) {
-  return (
-    "h." + Buffer.from(JSON.stringify(payload)).toString("base64url") + ".s"
-  );
+const rsa = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" };
+
+async function signer(kid: string) {
+  const pair = (await crypto.subtle.generateKey(
+    { ...rsa, modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]) },
+    true,
+    ["sign", "verify"],
+  )) as CryptoKeyPair;
+  const jwk = {
+    ...(await crypto.subtle.exportKey("jwk", pair.publicKey)),
+    kid,
+    use: "sig",
+  };
+  const sign = async (payload: Record<string, unknown>) => {
+    const part = (o: unknown) =>
+      Buffer.from(JSON.stringify(o)).toString("base64url");
+    const head = `${part({ alg: "RS256", kid, typ: "JWT" })}.${part(payload)}`;
+    const sig = await crypto.subtle.sign(
+      rsa,
+      pair.privateKey,
+      new TextEncoder().encode(head),
+    );
+    return `${head}.${Buffer.from(sig).toString("base64url")}`;
+  };
+  return { jwk, sign };
 }
 
-const inFifteen = () => Math.floor(Date.now() / 1000) + 900;
-const adminToken = jwt({
+const hydra = await signer("k1");
+const stranger = await signer("k1");
+const claims = (roles: Array<string>) => ({
+  iss: "https://id.urbangate.dev",
+  aud: ["https://id.urbangate.dev/oauth2/token", "partage"],
   sub: "8f3a",
-  roles: ["partage:admin"],
-  exp: inFifteen(),
+  roles,
+  exp: Math.floor(Date.now() / 1000) + 900,
 });
-const userToken = jwt({
-  sub: "8f3a",
-  roles: ["partage:user"],
-  exp: inFifteen(),
-});
+const adminToken = await hydra.sign(claims(["partage:admin"]));
+const userToken = await hydra.sign(claims(["partage:user"]));
+const forgedToken = await stranger.sign(claims(["partage:admin"]));
 
 function hydraStub(
   overrides: Record<string, (init: RequestInit) => Response> = {},
@@ -46,6 +68,8 @@ function hydraStub(
         email_verified: true,
         name: "Ana",
       });
+    if (key === "GET /.well-known/jwks.json")
+      return Response.json({ keys: [hydra.jwk] });
     if (key === "POST /oauth2/revoke")
       return new Response(null, { status: 200 });
     if (key === "DELETE /self-service/logout/api")
@@ -203,12 +227,13 @@ test("a refused code and an unreachable Hydra are told apart", async () => {
   assert.equal(r2.headers.get("location"), "/admin/login?error=unavailable");
 });
 
-test("get-session reads a console session through userinfo", async () => {
-  const { fetchImpl } = hydraStub();
-  const res = await auth(fetchImpl).handler(
+test("get-session verifies the console token, reads userinfo once, then keeps the profile", async () => {
+  const { fetchImpl, calls } = hydraStub();
+  const a = auth(fetchImpl);
+  const first = await a.handler(
     get("get-session", `partage_admin=rt1; partage_token=${adminToken}`),
   );
-  const body = (await res.json()) as { user: Record<string, unknown> };
+  const body = (await first.json()) as { user: Record<string, unknown> };
   assert.deepEqual(body.user, {
     id: "8f3a",
     identityId: "8f3a",
@@ -217,16 +242,91 @@ test("get-session reads a console session through userinfo", async () => {
     name: "Ana",
     role: "admin",
   });
+  const kept = first.headers
+    .getSetCookie()
+    .find((c) => c.startsWith("partage_profile="))
+    ?.split(";")[0];
+  assert.ok(kept);
+  const again = await a.handler(
+    get(
+      "get-session",
+      `partage_admin=rt1; partage_token=${adminToken}; ${kept}`,
+    ),
+  );
+  assert.equal(
+    ((await again.json()) as { user: { name: string } }).user.name,
+    "Ana",
+  );
+  assert.equal(calls.filter((c) => c.key === "GET /userinfo").length, 1);
 });
 
-test("a token userinfo refuses is no session, whatever its payload says", async () => {
-  const { fetchImpl } = hydraStub({
-    "GET /userinfo": () => new Response("", { status: 401 }),
-  });
+test("a token cookie Hydra did not sign is no session", async () => {
+  const { fetchImpl, calls } = hydraStub();
   const res = await auth(fetchImpl).handler(
-    get("get-session", `partage_admin=rt1; partage_token=${adminToken}`),
+    get("get-session", `partage_admin=rt1; partage_token=${forgedToken}`),
   );
   assert.equal(await res.json(), null);
+  assert.ok(!calls.some((c) => c.key === "GET /userinfo"));
+});
+
+test("a console session answers 503 while urbangate cannot answer, never a signed-out 200", async () => {
+  const jwksDown = hydraStub({
+    "GET /.well-known/jwks.json": () => new Response("", { status: 502 }),
+  });
+  const r1 = await auth(jwksDown.fetchImpl).handler(
+    get("get-session", `partage_admin=rt1; partage_token=${adminToken}`),
+  );
+  assert.equal(r1.status, 503);
+  const userinfoDown = hydraStub({
+    "GET /userinfo": () => new Response("", { status: 502 }),
+  });
+  const r2 = await auth(userinfoDown.fetchImpl).handler(
+    get("get-session", `partage_admin=rt1; partage_token=${adminToken}`),
+  );
+  assert.equal(r2.status, 503);
+  const refreshDown = hydraStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const r3 = await auth(refreshDown.fetchImpl).handler(
+    get("get-session", "partage_admin=rt1"),
+  );
+  assert.equal(r3.status, 503);
+});
+
+test("core-token renews every cookie, is 401 signed out and 503 in an outage", async () => {
+  const { fetchImpl } = hydraStub();
+  const ok = await auth(fetchImpl).handler(
+    get("core-token", "partage_admin=rt1"),
+  );
+  assert.equal(ok.status, 200);
+  const set = ok.headers.getSetCookie();
+  assert.ok(set.some((c) => c.startsWith("partage_admin=rt2")));
+  assert.ok(set.some((c) => c.startsWith("partage_token=")));
+  const none = await auth(fetchImpl).handler(get("core-token"));
+  assert.equal(none.status, 401);
+  const down = hydraStub({
+    "POST /oauth2/token": () => new Response("", { status: 503 }),
+  });
+  const out = await auth(down.fetchImpl).handler(
+    get("core-token", "partage_admin=rt1"),
+  );
+  assert.equal(out.status, 503);
+});
+
+test("profile answers the shape the admin package reads", async () => {
+  const { fetchImpl } = hydraStub();
+  const res = await auth(fetchImpl).handler(
+    get("profile", `partage_admin=rt1; partage_token=${adminToken}`),
+  );
+  assert.deepEqual(await res.json(), {
+    user_id: "8f3a",
+    email: "ana@example",
+    name: "Ana",
+    avatar_url: "",
+    roles: ["admin"],
+  });
+  const none = await auth(fetchImpl).handler(get("profile"));
+  assert.equal(none.status, 401);
 });
 
 test("an expired console token is refreshed once, and both cookies are renewed", async () => {
