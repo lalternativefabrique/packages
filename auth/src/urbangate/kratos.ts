@@ -48,6 +48,7 @@ export type KratosFailure =
   | { status: "invalid_code" }
   | { status: "email_not_verified" }
   | { status: "second_factor_required" }
+  | { status: "session_refresh_required" }
   | { status: "account_disabled" }
   | { status: "already_registered" }
   | { status: "account_not_found" }
@@ -84,6 +85,9 @@ export function failureOf(status: number, body: unknown): KratosFailure {
   }
   if (b.error?.id === "session_aal2_required") {
     return { status: "second_factor_required" };
+  }
+  if (b.error?.id === "session_refresh_required") {
+    return { status: "session_refresh_required" };
   }
   if (b.error?.id === "self_service_flow_expired")
     return { status: "flow_expired" };

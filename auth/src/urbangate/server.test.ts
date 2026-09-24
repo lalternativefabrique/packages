@@ -679,3 +679,21 @@ test("change-password needs a session and both passwords", async () => {
     400,
   );
 });
+
+test("an old session is asked to sign in again before a settings change", async () => {
+  const { fetchImpl } = kratosStub({
+    "GET /self-service/settings/api": () => Response.json({ id: "S" }),
+    "POST /self-service/settings?flow=S": () =>
+      Response.json(
+        { error: { id: "session_refresh_required", code: 403 } },
+        { status: 403 },
+      ),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("update-user", { name: "Ana" }, "tornad_session=ory_st"),
+  );
+  assert.equal(res.status, 403);
+  assert.deepEqual(await res.json(), {
+    error: { code: "session_refresh_required", status: 403 },
+  });
+});

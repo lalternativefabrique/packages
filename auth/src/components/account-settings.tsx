@@ -63,6 +63,8 @@ export interface AccountSettingsLabels {
   passwordNone: string
   cancel: string
   failed: string
+  wrongPassword: string
+  signInAgain: string
   dangerHeading: string
 }
 
@@ -128,7 +130,25 @@ const DEFAULTS: AccountSettingsLabels = {
     "Tu te connectes sans mot de passe (Google, GitHub ou lien magique).",
   cancel: "Annuler",
   failed: "La modification n'a pas pu être enregistrée. Réessaie dans un instant.",
+  wrongPassword: "Le mot de passe actuel est incorrect.",
+  signInAgain:
+    "Pour modifier ce réglage, déconnecte-toi puis reconnecte-toi, et recommence.",
   dangerHeading: "Supprimer mon compte",
+}
+
+function refusal(
+  error: { code?: string; message?: string },
+  t: AccountSettingsLabels,
+): string {
+  switch (error.code) {
+    case "invalid_credentials":
+    case "INVALID_PASSWORD":
+      return t.wrongPassword
+    case "session_refresh_required":
+      return t.signInAgain
+    default:
+      return error.message || t.failed
+  }
 }
 
 const PROFILE_TAB = "profil"
@@ -315,7 +335,7 @@ function NameSection({
     try {
       const res = await client.updateUser({ name: trimmed })
       if (res.error) {
-        setMessage({ tone: "error", text: res.error.message || t.failed })
+        setMessage({ tone: "error", text: refusal(res.error, t) })
         return
       }
       setMessage({ tone: "success", text: t.nameSaved })
@@ -385,7 +405,7 @@ function EmailSection({
         ...(callbackURL ? { callbackURL } : {}),
       })
       if (res.error) {
-        setMessage({ tone: "error", text: res.error.message || t.failed })
+        setMessage({ tone: "error", text: refusal(res.error, t) })
         return
       }
       close()
@@ -484,7 +504,7 @@ function PasswordSection({
         revokeOtherSessions: revokeOthers,
       })
       if (res.error) {
-        setMessage({ tone: "error", text: res.error.message || t.failed })
+        setMessage({ tone: "error", text: refusal(res.error, t) })
         return
       }
       close()
