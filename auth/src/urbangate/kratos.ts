@@ -196,6 +196,19 @@ export class KratosFlows {
     }
   }
 
+  async revokeOtherSessions(sessionToken: string): Promise<boolean> {
+    const url = new URL("/sessions", this.baseUrl);
+    try {
+      const res = await this.fetchImpl(url, {
+        method: "DELETE",
+        headers: { "x-session-token": sessionToken },
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   private async call(
     url: URL,
     init: RequestInit,
