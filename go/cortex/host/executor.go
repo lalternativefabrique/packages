@@ -38,13 +38,6 @@ func (e *executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 	}
 	subject, headers, turnContext := metadata(reqCtx.Message)
 	h := e.host
-	if h.cfg.SubjectKey != nil {
-		proven, err := provenSubject(reqCtx.Message, h.cfg.SubjectKey, h.cfg.Agent.Name)
-		if err != nil {
-			return finish(ctx, queue, reqCtx, a2a.TaskStateRejected, "the turn's subject is not proven: "+err.Error())
-		}
-		subject = proven
-	}
 	if err := queue.Write(ctx, a2a.NewStatusUpdateEvent(reqCtx, a2a.TaskStateWorking, nil)); err != nil {
 		return err
 	}

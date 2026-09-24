@@ -4,7 +4,6 @@ go 1.26.6
 
 require (
 	github.com/a2aproject/a2a-go v0.3.15
-	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/lalternative/packages/go/authz v0.1.0
@@ -19,6 +18,7 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/lalternative/packages/go/svcauth v0.4.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect
 	github.com/lestrrat-go/dsig v1.3.0 // indirect
