@@ -177,6 +177,35 @@ the `urbangate:sessions:exchange` scope and the `-admin` client the
 `urn:ietf:params:oauth:grant-type:jwt-bearer` grant, both declared in
 urbangate.
 
+### Mobile apps (1.4)
+
+An Expo app uses the same routes on the product's web, through
+`@lalternative/auth/urbangate-native`. It replaces `@better-auth/expo`: the
+cookies the web sets are kept in SecureStore and replayed by hand, because
+React Native has no reliable cookie jar. The web needs no change.
+
+```ts
+import * as SecureStore from "expo-secure-store"
+import { createUrbangateNativeClient } from "@lalternative/auth/urbangate-native"
+
+export const authClient = createUrbangateNativeClient({
+  baseURL: "https://lalter.fr",
+  product: "lalter",
+  storage: {
+    getItem: (k) => SecureStore.getItemAsync(k),
+    setItem: (k, v) => SecureStore.setItemAsync(k, v),
+    deleteItem: (k) => SecureStore.deleteItemAsync(k),
+  },
+})
+```
+
+It offers the browser client's methods, plus `fetch(path, init)`, which carries
+the session to the product's own routes (the core proxy) and keeps the token
+it renews, and `cookieHeader()` for a transport that cannot go through `fetch`
+(a WebSocket, an audio player). The magic link has no Kratos counterpart here:
+sign in with a password or an e-mail code (`emailOtp.sendVerificationOtp` with
+`type: "sign-in"`, then `signIn.emailOtp`).
+
 ### Environment
 
 Each helper declares the variables it reads — `SsoEnv` for single sign-on,

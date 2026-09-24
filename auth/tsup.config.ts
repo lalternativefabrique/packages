@@ -7,6 +7,7 @@ export default defineConfig({
     client: "src/client.ts",
     urbangate: "src/urbangate/server.ts",
     "urbangate-client": "src/urbangate/client.ts",
+    "urbangate-native": "src/urbangate/native.ts",
   },
   format: ["esm"],
   dts: { resolve: [/better-auth/, /zod/] },
