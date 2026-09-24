@@ -217,6 +217,7 @@ export function createUrbangateAuth(
     admin: `${product}_admin`,
     sso: `${product}_sso`,
     profile: `${product}_profile`,
+    seal: `${product}_seal`,
   };
   const sso = config.sso
     ? new ConsoleSso(
@@ -280,10 +281,13 @@ export function createUrbangateAuth(
     const refreshToken = sso ? readCookie(headers, names.admin) : undefined;
     if (!sessionToken && !refreshToken) return null;
     const held = await readToken(headers);
+    const viaConsole = !sessionToken;
     if (
       held &&
       !exchange.needsRefresh(held) &&
-      (owner === undefined || held.identityId === owner)
+      (owner === undefined || held.identityId === owner) &&
+      (!viaConsole ||
+        (await sso!.sealed(held.accessToken, readCookie(headers, names.seal))))
     )
       return {
         token: held.accessToken,
@@ -306,6 +310,7 @@ export function createUrbangateAuth(
       fresh = outcome.tokens.accessToken;
       renewed.push(
         cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),
+        cookie(names.seal, await sso!.seal(fresh), TOKEN_MAX_AGE),
       );
     }
     const set = cookie(names.token, fresh, TOKEN_MAX_AGE);
@@ -350,7 +355,7 @@ export function createUrbangateAuth(
     const setCookies = [...(token.setCookies ?? [])];
     let profile = setCookies.length
       ? null
-      : readProfile(headers, token.identityId);
+      : await readProfile(headers, token.token);
     if (!profile) {
       profile = await sso.profile(token.token).catch(() => {
         throw outage();
@@ -359,7 +364,10 @@ export function createUrbangateAuth(
       setCookies.push(
         cookie(
           names.profile,
-          JSON.stringify({ sub: token.identityId, ...profile }),
+          JSON.stringify({
+            ...profile,
+            mac: await sso.seal(profileSealed(token.token, profile)),
+          }),
           ADMIN_MAX_AGE,
         ),
       );
@@ -378,20 +386,24 @@ export function createUrbangateAuth(
     };
   }
 
-  function readProfile(headers: Headers, sub: string): SsoProfile | null {
+  async function readProfile(
+    headers: Headers,
+    accessToken: string,
+  ): Promise<SsoProfile | null> {
+    let p: { mac?: string } & Partial<SsoProfile>;
     try {
-      const p = JSON.parse(readCookie(headers, names.profile) ?? "") as {
-        sub?: string;
-      } & Partial<SsoProfile>;
-      if (p.sub !== sub) return null;
-      return {
-        email: p.email ?? "",
-        emailVerified: p.emailVerified ?? false,
-        name: p.name ?? "",
-      };
+      p = JSON.parse(readCookie(headers, names.profile) ?? "");
     } catch {
       return null;
     }
+    const profile = {
+      email: p.email ?? "",
+      emailVerified: p.emailVerified ?? false,
+      name: p.name ?? "",
+    };
+    return (await sso!.sealed(profileSealed(accessToken, profile), p.mac))
+      ? profile
+      : null;
   }
 
   // The roles ride on the access token, whose cookie outlives it by nothing:
@@ -761,7 +773,11 @@ export function createUrbangateAuth(
     clearCookie(names.token, secure),
     clearCookie(names.flow, secure),
     ...(sso
-      ? [clearCookie(names.admin, secure), clearCookie(names.profile, secure)]
+      ? [
+          clearCookie(names.admin, secure),
+          clearCookie(names.profile, secure),
+          clearCookie(names.seal, secure),
+        ]
       : []),
   ];
 
@@ -819,6 +835,11 @@ export function createUrbangateAuth(
       clearCookie(names.profile, secure),
       cookie(names.token, outcome.tokens.accessToken, TOKEN_MAX_AGE),
       cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),
+      cookie(
+        names.seal,
+        await sso!.seal(outcome.tokens.accessToken),
+        TOKEN_MAX_AGE,
+      ),
     ]);
   }
 
@@ -1004,4 +1025,8 @@ function cookieHeader(
       "; ",
     ),
   };
+}
+
+function profileSealed(accessToken: string, p: SsoProfile): string {
+  return JSON.stringify([accessToken, p.email, p.emailVerified, p.name]);
 }

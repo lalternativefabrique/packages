@@ -242,17 +242,13 @@ test("get-session verifies the console token, reads userinfo once, then keeps th
     name: "Ana",
     role: "admin",
   });
-  const kept = first.headers
+  const jar = first.headers
     .getSetCookie()
-    .find((c) => c.startsWith("partage_profile="))
-    ?.split(";")[0];
-  assert.ok(kept);
-  const again = await a.handler(
-    get(
-      "get-session",
-      `partage_admin=rt1; partage_token=${adminToken}; ${kept}`,
-    ),
-  );
+    .map((c) => c.split(";")[0])
+    .join("; ");
+  assert.match(jar, /partage_profile=/);
+  assert.match(jar, /partage_seal=/);
+  const again = await a.handler(get("get-session", jar));
   assert.equal(
     ((await again.json()) as { user: { name: string } }).user.name,
     "Ana",
@@ -453,4 +449,39 @@ test("coreProxy carries the console token and renews both cookies", async () => 
   } finally {
     globalThis.fetch = realFetch;
   }
+});
+
+test("an exchanged token beside a junk console cookie is no console session", async () => {
+  const { fetchImpl, calls } = hydraStub({
+    "POST /oauth2/token": () =>
+      Response.json({ error: "invalid_grant" }, { status: 400 }),
+  });
+  const res = await auth(fetchImpl).handler(
+    get("get-session", `partage_admin=junk; partage_token=${adminToken}`),
+  );
+  assert.equal(await res.json(), null);
+  assert.equal(
+    calls
+      .find((c) => c.key === "POST /oauth2/token")
+      ?.body?.get("refresh_token"),
+    "junk",
+  );
+});
+
+test("a profile cookie rewritten by the browser is read again from Hydra", async () => {
+  const { fetchImpl, calls } = hydraStub();
+  const a = auth(fetchImpl);
+  const first = await a.handler(get("get-session", "partage_admin=rt1"));
+  const cookies = first.headers.getSetCookie().map((c) => c.split(";")[0]);
+  const forged = cookies.map((c) => {
+    if (!c.startsWith("partage_profile=")) return c;
+    const p = JSON.parse(
+      decodeURIComponent(c.slice("partage_profile=".length)),
+    );
+    return `partage_profile=${encodeURIComponent(JSON.stringify({ ...p, email: "boss@example" }))}`;
+  });
+  const again = await a.handler(get("get-session", forged.join("; ")));
+  const body = (await again.json()) as { user: { email: string } };
+  assert.equal(body.user.email, "ana@example");
+  assert.equal(calls.filter((c) => c.key === "GET /userinfo").length, 2);
 });

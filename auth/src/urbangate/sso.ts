@@ -88,6 +88,7 @@ export function decodePending(raw: string | undefined): PendingSignIn | null {
  */
 export class ConsoleSso {
   private readonly inFlight = new Map<string, Promise<SsoOutcome>>();
+  private sealKey: Promise<CryptoKey> | null = null;
 
   private readonly config: ConsoleSsoConfig;
   private readonly fetchImpl: Fetch;
@@ -95,6 +96,34 @@ export class ConsoleSso {
   constructor(config: ConsoleSsoConfig, fetchImpl: Fetch = fetch) {
     this.config = config;
     this.fetchImpl = fetchImpl;
+  }
+
+  // Marks what this server issued with the admin client's secret, so a
+  // browser cannot pass its own cookies off as a console sign-in.
+  async seal(value: string): Promise<string> {
+    this.sealKey ??= crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(this.config.clientSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const mac = await crypto.subtle.sign(
+      "HMAC",
+      await this.sealKey,
+      new TextEncoder().encode(value),
+    );
+    return base64url(new Uint8Array(mac));
+  }
+
+  async sealed(value: string, mac: string | undefined): Promise<boolean> {
+    if (!mac) return false;
+    const expected = await this.seal(value);
+    if (expected.length !== mac.length) return false;
+    let diff = 0;
+    for (let i = 0; i < mac.length; i++)
+      diff |= expected.charCodeAt(i) ^ mac.charCodeAt(i);
+    return diff === 0;
   }
 
   async start(
