@@ -312,10 +312,10 @@ export const auth = createUrbangateAuth({
 
 | | |
 |---|---|
-| `coreProxy({ stripPrefix, forwardCookies })` | `coreUrl` defaults to the auth's. The prefix is cut from the path; the cookies named are the only ones the core sees. An event stream is relayed unbuffered, every `Set-Cookie` of the core is kept, and the body's decoded `content-encoding` is dropped |
+| `coreProxy({ stripPrefix, forwardCookies })` | `coreUrl` defaults to the auth's. The prefix is cut at a segment boundary, and a path that does not start with it, or that would leave the core's origin, is a 404. The cookies named are the only ones the core sees; naming one of the auth's own is refused at build. An event stream is relayed unbuffered, every `Set-Cookie` of the core is kept, and the body's decoded `content-encoding` is dropped |
 | `coreFetch(headers, path, init)` | `ok` with the response and the cookies to set, `signed_out`, or `unavailable` with `cause` `identity_provider` or `core`; `coreRefusal(call)` answers 401, 503 or 502 |
 | `requireSession(headers)`, `requireAdmin(headers)` | `{ session, setCookies }`, or `{ response }`: 401 signed out, 403 not this product's admin, 503 while urbangate cannot answer, including when it cannot say which roles the person holds |
-| `onAccountOpened` | runs once an identity is created here: a password sign-up, or a code that signs an unknown address up; never on a sign-in. `user.emailVerified` is false after a password sign-up, so an address-bound grant (an invitation) checks it first |
+| `onAccountOpened` | runs once an identity created here has proven its address: the code that verifies a password sign-up, or a code that signs an unknown address up; never on a sign-in, never before the proof, so an invitation claimed there went to its mailbox's owner |
 
 `adminOnly` on the proxy follows the same rule: a 503, not a 403, while the
 roles cannot be read. A route guard in `beforeLoad` runs these through the

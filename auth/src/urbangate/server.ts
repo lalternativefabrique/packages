@@ -172,6 +172,7 @@ export function coreRefusal(
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const FLOW_MAX_AGE = 600;
 const TOKEN_MAX_AGE = 15 * 60;
+const OPENED = "opened";
 const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;
 
 type OtpType = "email-verification" | "forget-password" | "sign-in";
@@ -506,6 +507,9 @@ export function createUrbangateAuth(
     init: RequestInit = {},
   ): Promise<CoreCall> {
     if (!config.coreUrl) throw new Error("coreFetch needs the auth's coreUrl");
+    const coreUrl = config.coreUrl.replace(/\/$/, "");
+    const target = onCore(coreUrl, path);
+    if (!target) throw new Error(`coreFetch path leaves the core: ${path}`);
     let token: AccessToken | null;
     try {
       token = await accessToken(headers);
@@ -516,7 +520,7 @@ export function createUrbangateAuth(
     const h = new Headers(init.headers);
     h.set("authorization", `Bearer ${token.token}`);
     try {
-      const response = await fetch(`${config.coreUrl.replace(/\/$/, "")}${path}`, {
+      const response = await fetch(target, {
         ...init,
         headers: h,
         signal: init.signal ?? AbortSignal.timeout(10_000),
@@ -527,18 +531,19 @@ export function createUrbangateAuth(
     }
   }
 
+  // Fired once the address is proven, never before: the hook may grant what
+  // was addressed to that mailbox, an invitation for one.
   async function accountOpened(
-    result: KratosSessionResult,
+    user: UrbangateUser | null,
+    sessionToken: string | undefined,
     request: Request,
   ): Promise<Array<string>> {
-    const token = result.session_token;
-    const user = result.session ? userOf(result.session, [], product) : null;
-    if (!config.onAccountOpened || !token || !user) return [];
+    if (!config.onAccountOpened || !sessionToken || !user) return [];
     try {
       const cookies = await config.onAccountOpened({
-        user,
+        user: { ...user, emailVerified: true },
         headers: new Headers({
-          cookie: `${names.session}=${encodeURIComponent(token)}`,
+          cookie: `${names.session}=${encodeURIComponent(sessionToken)}`,
         }),
         request,
       });
@@ -551,6 +556,7 @@ export function createUrbangateAuth(
       return [];
     }
   }
+
 
   async function getSession(
     headers: Headers,
@@ -610,15 +616,12 @@ export function createUrbangateAuth(
       result.continue_with,
       "show_verification_ui",
     );
-    const cookies = [
-      ...signedIn(result),
-      ...(await accountOpened(result, request)),
-    ];
+    const cookies = signedIn(result);
     if (verification)
       cookies.push(
         cookie(
           names.flow,
-          `verification:${verification.flow.id}`,
+          `verification:${verification.flow.id}:${OPENED}`,
           FLOW_MAX_AGE,
         ),
       );
@@ -642,8 +645,14 @@ export function createUrbangateAuth(
     if (!email || !kind)
       return failure("invalid_input", 400, "email and type are required");
     const sent = await sendCode(kind, email);
+    const stillOpening =
+      sent.kind === "verification" && flowOpensAccount(request.headers);
     return json(200, { sent: true }, [
-      cookie(names.flow, `${sent.kind}:${sent.flowId}`, FLOW_MAX_AGE),
+      cookie(
+        names.flow,
+        `${sent.kind}:${sent.flowId}${stillOpening ? `:${OPENED}` : ""}`,
+        FLOW_MAX_AGE,
+      ),
     ]);
   }
 
@@ -698,6 +707,11 @@ export function createUrbangateAuth(
     return k === kind && id ? id : null;
   }
 
+  function flowOpensAccount(headers: Headers): boolean {
+    const [k, , mark] = (readCookie(headers, names.flow) ?? "").split(":");
+    return k === "verification" && mark === OPENED;
+  }
+
   async function signInOtp(request: Request): Promise<Response> {
     const b = await body(request);
     const email = str(b, "email");
@@ -721,7 +735,14 @@ export function createUrbangateAuth(
           code,
           ...brand,
         });
-    const opened = registration && !login ? await accountOpened(result, request) : [];
+    const opened =
+      registration && !login
+        ? await accountOpened(
+            result.session ? userOf(result.session, [], product) : null,
+            result.session_token,
+            request,
+          )
+        : [];
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
@@ -741,7 +762,14 @@ export function createUrbangateAuth(
       ...brand,
     });
     if (flow.state !== "passed_challenge") return failure("invalid_code", 400);
-    return json(200, { verified: true }, [clearCookie(names.flow, secure)]);
+    const cookies = [clearCookie(names.flow, secure)];
+    const sessionToken = readCookie(request.headers, names.session);
+    if (config.onAccountOpened && sessionToken && flowOpensAccount(request.headers)) {
+      const session = await kratos.whoami(sessionToken).catch(() => null);
+      const user = session?.active ? userOf(session, [], product) : null;
+      cookies.push(...(await accountOpened(user, sessionToken, request)));
+    }
+    return json(200, { verified: true }, cookies);
   }
 
   async function resetPassword(request: Request): Promise<Response> {
@@ -1096,8 +1124,15 @@ export function createUrbangateAuth(
     const base = options.coreUrl ?? config.coreUrl;
     if (!base) throw new Error("coreProxy needs a coreUrl");
     const coreUrl = base.replace(/\/$/, "");
+    const own = new Set(Object.values(names));
+    const leaked = options.forwardCookies?.filter((n) => own.has(n)) ?? [];
+    if (leaked.length)
+      throw new Error(`forwardCookies may not name the auth's own cookies: ${leaked.join(", ")}`);
     const forwardAnonymous = options.anonymous === "forward";
     return async (request: Request): Promise<Response> => {
+      const url = new URL(request.url);
+      const target = coreTarget(coreUrl, url, options.stripPrefix);
+      if (!target) return failure("not_found", 404);
       const headers = forwardHeaders(request.headers);
       const cookies = keptCookies(request.headers, options.forwardCookies);
       if (cookies) headers.set("cookie", cookies);
@@ -1131,15 +1166,9 @@ export function createUrbangateAuth(
           headers.set("authorization", `Bearer ${token.token}`);
         }
       }
-      const url = new URL(request.url);
-      const prefix = options.stripPrefix?.replace(/\/$/, "");
-      const path =
-        prefix && url.pathname.startsWith(prefix)
-          ? url.pathname.slice(prefix.length) || "/"
-          : url.pathname;
       let upstream: Response;
       try {
-        upstream = await fetch(`${coreUrl}${path}${url.search}`, {
+        upstream = await fetch(target, {
           method: request.method,
           headers,
           body:
@@ -1170,6 +1199,34 @@ export function createUrbangateAuth(
     requireSession: (headers: Headers) => guard(headers, false),
     requireAdmin: (headers: Headers) => guard(headers, true),
   };
+}
+
+// The path comes from the browser: it may only ever address the core, and the
+// prefix is cut at a segment boundary, or `/api/core.evil.example` would
+// become a host.
+function coreTarget(
+  coreUrl: string,
+  url: URL,
+  stripPrefix: string | undefined,
+): string | null {
+  const prefix = stripPrefix?.replace(/\/$/, "");
+  let path = url.pathname;
+  if (prefix) {
+    if (path === prefix) path = "/";
+    else if (path.startsWith(`${prefix}/`)) path = path.slice(prefix.length);
+    else return null;
+  }
+  return onCore(coreUrl, `${path}${url.search}`);
+}
+
+function onCore(coreUrl: string, path: string): string | null {
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  try {
+    const target = new URL(`${coreUrl}${path}`);
+    return target.origin === new URL(coreUrl).origin ? target.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function keptCookies(

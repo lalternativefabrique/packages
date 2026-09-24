@@ -1129,22 +1129,57 @@ test("requireAdmin: admin passes, user is 403, unknown roles are 503, signed out
   assert.equal("response" in noKratos && noKratos.response.status, 503);
 });
 
-test("onAccountOpened runs on a sign-up with the new session, and its cookies are set", async () => {
+test("onAccountOpened waits for the address: not at a password sign-up, at its verification", async () => {
   const { fetchImpl } = kratosStub();
-  const opened: Array<{ email: string; cookie: string | null }> = [];
-  const res = await authWith(fetchImpl, {
+  const opened: Array<{ email: string; verified: boolean; cookie: string | null }> = [];
+  const a = authWith(fetchImpl, {
     onAccountOpened: ({ user, headers }) => {
-      opened.push({ email: user.email, cookie: headers.get("cookie") });
+      opened.push({
+        email: user.email,
+        verified: user.emailVerified,
+        cookie: headers.get("cookie"),
+      });
       return ["tornad_invite=; Max-Age=0; Path=/"];
     },
-  }).handler(post("sign-up/email", { email: "ana@example", password: "pw" }));
-  assert.equal(res.status, 200);
-  assert.deepEqual(opened, [
-    { email: "ana@example", cookie: "tornad_session=ory_st" },
-  ]);
-  assert.ok(
-    res.headers.getSetCookie().some((c) => c.startsWith("tornad_invite=")),
+  });
+  const signUp = await a.handler(
+    post("sign-up/email", { email: "ana@example", password: "pw" }),
   );
+  assert.equal(signUp.status, 200);
+  assert.equal(opened.length, 0);
+  const flow = signUp.headers
+    .getSetCookie()
+    .filter((c) => c.startsWith("tornad_flow=") && !c.includes("Max-Age=0"))
+    .at(-1)
+    ?.split(";")[0];
+  const verified = await a.handler(
+    post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, `tornad_session=ory_st; ${flow}`),
+  );
+  assert.equal(verified.status, 200);
+  assert.deepEqual(opened, [
+    { email: "ana@example", verified: true, cookie: "tornad_session=ory_st" },
+  ]);
+  assert.ok(verified.headers.getSetCookie().some((c) => c.startsWith("tornad_invite=")));
+});
+
+test("verifying an address later, outside a sign-up, opens no account", async () => {
+  let calls = 0;
+  const { fetchImpl } = kratosStub();
+  await authWith(fetchImpl, { onAccountOpened: () => void calls++ }).handler(
+    post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, "tornad_session=ory_st; tornad_flow=verification%3AV"),
+  );
+  assert.equal(calls, 0);
+});
+
+test("a code sent again during a sign-up keeps the sign-up's mark", async () => {
+  const { fetchImpl } = kratosStub({
+    "POST /self-service/verification?flow=V": () =>
+      Response.json({ id: "V", state: "sent_email" }),
+  });
+  const res = await authWith(fetchImpl).handler(
+    post("email-otp/send-verification-otp", { email: "ana@example", type: "email-verification" }, "tornad_flow=verification%3AV0%3Aopened"),
+  );
+  assert.ok(res.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=verification%3AV%3Aopened")));
 });
 
 test("onAccountOpened runs for a code that signs an address up, not for a sign-in", async () => {
@@ -1195,4 +1230,40 @@ test("a failing onAccountOpened never fails the sign-up", async () => {
   } finally {
     console.warn = warn;
   }
+});
+
+test("coreProxy never lets the path choose the host", async () => {
+  const { fetchImpl } = kratosStub();
+  const proxy = authWith(fetchImpl, { coreUrl: "http://lungor-core" }).coreProxy({
+    stripPrefix: "/api/core",
+  });
+  const cookie = await signedInAs(["tornad:user"]);
+  for (const path of ["/api/core.evil.example/x", "/api/coreX", "/api/core//evil.example/x"]) {
+    const { result, seen } = await withCore(
+      () => Response.json({ ok: true }),
+      () => proxy(new Request(`https://tornad.dev${path}`, { headers: { cookie } })),
+    );
+    assert.equal((result as Response).status, 404, path);
+    assert.equal(seen.length, 0, path);
+  }
+  const plain = authWith(fetchImpl, { coreUrl: "http://lungor-core" }).coreProxy();
+  const { result, seen } = await withCore(
+    () => Response.json({ ok: true }),
+    () => plain(new Request("https://tornad.dev//evil.example/x", { headers: { cookie } })),
+  );
+  assert.equal((result as Response).status, 404);
+  assert.equal(seen.length, 0);
+});
+
+test("coreFetch refuses a path that would leave the core", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = authWith(fetchImpl, { coreUrl: "http://lungor-core" });
+  await assert.rejects(a.coreFetch(new Headers(), ".evil.example/x"));
+  await assert.rejects(a.coreFetch(new Headers(), "//evil.example/x"));
+});
+
+test("forwardCookies may not name the auth's own cookies", () => {
+  const { fetchImpl } = kratosStub();
+  assert.throws(() => authWith(fetchImpl).coreProxy({ forwardCookies: ["tornad_session"] }));
+  assert.throws(() => authWith(fetchImpl).coreProxy({ forwardCookies: ["tornad_admin"] }));
 });
