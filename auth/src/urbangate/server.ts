@@ -20,6 +20,7 @@ export type { ClaimOutcome, ClaimInvitationOptions } from "../invitation.ts";
 import { requestAccountDeletion } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
+import { Jwks } from "./jwks.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
 import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
 import type {
@@ -203,16 +204,22 @@ export function createUrbangateAuth(
     ];
   };
 
-  const readToken = (headers: Headers): PersonToken | null => {
+  const jwks = new Jwks(config.urbangate.issuerUrl, product, config.fetch);
+
+  // The cookie is the browser's to write: a token Hydra did not sign for this
+  // product, or one that cannot be checked right now, counts as absent and is
+  // exchanged again rather than read.
+  const readToken = async (headers: Headers): Promise<PersonToken | null> => {
     const raw = readCookie(headers, names.token);
-    const decoded = raw ? decodeToken(raw) : null;
-    return raw && decoded ? { accessToken: raw, ...decoded } : null;
+    if (!raw) return null;
+    const verified = await jwks.verify(raw).catch(() => null);
+    return verified ? { accessToken: raw, ...verified } : null;
   };
 
   async function accessToken(headers: Headers): Promise<AccessToken | null> {
     const sessionToken = readCookie(headers, names.session);
     if (!sessionToken) return null;
-    const held = readToken(headers);
+    const held = await readToken(headers);
     if (held && !exchange.needsRefresh(held))
       return { token: held.accessToken };
     const outcome = await exchange.exchange(sessionToken);
@@ -248,7 +255,7 @@ export function createUrbangateAuth(
   async function currentRoles(
     headers: Headers,
   ): Promise<{ roles: Array<string>; setCookie?: string }> {
-    const held = readToken(headers);
+    const held = await readToken(headers);
     if (held && !exchange.needsRefresh(held)) return { roles: held.roles };
     try {
       const token = await accessToken(headers);
