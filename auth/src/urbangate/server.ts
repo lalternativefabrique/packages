@@ -90,6 +90,7 @@ const FAILURE_STATUS: Record<KratosFailure["status"], number> = {
   invalid_code: 400,
   email_not_verified: 403,
   second_factor_required: 403,
+  session_refresh_required: 403,
   account_disabled: 403,
   already_registered: 409,
   account_not_found: 404,
