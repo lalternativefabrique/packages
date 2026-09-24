@@ -196,6 +196,31 @@ behaves as before.
 `URBANGATE_PUBLIC_URL` is for a dev stack where the front reaches Kratos by
 another address than Hydra's issuer; in production the two are the same host.
 
+### Account settings (1.2)
+
+`AccountSettings` is the default settings page: a profile tab (name, address,
+password, account deletion through `DeleteAccountSteps`), a billing tab when
+`billing` is given, then whatever tabs the product adds through `sections`.
+
+```tsx
+<AccountSettings
+  client={authClient}
+  user={{ name: session.user.name, email: session.user.email }}
+  tab={search.tab}
+  onTabChange={(tab) => navigate({ search: { tab } })}
+  setPasswordHref="/forgot-password"
+  deleteAccount={{ endpoint: "/api/account/delete" }}
+  billing={<Billing />}
+  sections={[{ id: "comptes", label: "Comptes connectés", content: <Connections /> }]}
+/>
+```
+
+The address change stays off until `emailChange` is passed: it needs the
+server's `user.changeEmail` and, with Kratos passwords, the identity kept in
+step. Whether the person has a password is read from `client.listAccounts`;
+without one, the row links to `setPasswordHref`. `pnpm playground` shows it
+under « Paramètres », with a deletion that fails once then succeeds.
+
 ### Magic link
 
 Passwordless sign-in by emailed link. Off unless `magicLink` is passed — the

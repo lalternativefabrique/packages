@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { createRoot } from "react-dom/client"
 import {
+  AccountSettings,
   AuthLayout,
   ForgotPasswordForm,
   LoginForm,
@@ -24,6 +25,17 @@ const authClient = {
     sendVerificationOtp: () => delay({}),
     verifyEmail: () => delay({ error: { message: "Code invalide. Réessaie." } }),
   },
+}
+
+const accountClient = {
+  updateUser: () => delay({}),
+  changeEmail: () => delay({}),
+  changePassword: ({ currentPassword }: { currentPassword: string }) =>
+    delay(
+      currentPassword === "faux"
+        ? { error: { message: "Mot de passe actuel incorrect" } }
+        : {},
+    ),
 }
 
 function delay<T>(value: T): Promise<T> {
@@ -117,7 +129,44 @@ const SCREENS = {
       </AuthLayout>
     ),
   },
+  account: {
+    label: "Paramètres",
+    render: ({ social }: Opts) => (
+      <div className="min-h-dvh bg-background px-4 py-10 pb-40 sm:px-8">
+        <AccountSettings
+          client={accountClient}
+          user={{ name: "Camille Durand", email: "camille@exemple.fr" }}
+          emailChange
+          hasPassword={!social}
+          setPasswordHref="#forgot"
+          deleteAccount={{ endpoint: "/demo/delete-account" }}
+          billing={
+            <DemoSlot>Le produit monte ici sa page de facturation.</DemoSlot>
+          }
+          sections={[
+            {
+              id: "produit",
+              label: "Onglet du produit",
+              content: (
+                <DemoSlot>
+                  Chaque app ajoute ici ses propres onglets via sections.
+                </DemoSlot>
+              ),
+            },
+          ]}
+        />
+      </div>
+    ),
+  },
 } as const
+
+function DemoSlot({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+      {children}
+    </div>
+  )
+}
 
 type ScreenKey = keyof typeof SCREENS
 

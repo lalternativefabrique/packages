@@ -113,3 +113,16 @@ export type {
   AccountDeletionStepId,
   AccountDeletionStepStatus,
 } from "./account-deletion"
+
+export { AccountSettings } from "./components/account-settings"
+export type {
+  AccountSettingsClient,
+  AccountSettingsLabels,
+  AccountSettingsProps,
+  AccountSettingsSection,
+} from "./components/account-settings"
+export {
+  MIN_PASSWORD_LENGTH,
+  emailChangeProblem,
+  passwordChangeProblem,
+} from "./account-settings"
