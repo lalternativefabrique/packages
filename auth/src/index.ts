@@ -101,3 +101,15 @@ export type { ClaimOutcome } from "./invitation"
 
 export { mapSsoProfile } from "./sso-profile"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"
+
+export { DeleteAccountSteps } from "./components/delete-account-steps"
+export type {
+  DeleteAccountStepsLabels,
+  DeleteAccountStepsProps,
+} from "./components/delete-account-steps"
+export type {
+  AccountDeletionReport,
+  AccountDeletionStep,
+  AccountDeletionStepId,
+  AccountDeletionStepStatus,
+} from "./account-deletion"

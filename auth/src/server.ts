@@ -619,3 +619,9 @@ export type {
   BootstrapFirstAdminInput,
   BootstrapFirstAdminResult,
 } from "./bootstrap-admin"
+
+export { runAccountDeletion } from "./account-deletion"
+export type {
+  AccountDeletionReport,
+  AccountDeletionSteps,
+} from "./account-deletion"
