@@ -35,6 +35,20 @@ triggers one refresh, then a thirty-second cooldown, so a forged token cannot
 turn every request into a fetch. When the issuer cannot be reached, the cached
 keys keep serving.
 
+A token whose issuer's keys cannot be read — never fetched, or the `kid` is
+not among the cached ones — is `ErrUnavailable`, and `Require` answers it 503
+with `Retry-After`, never 401: a client told its valid credential is invalid
+starts rotating secrets during an outage. An expired token is refused as
+invalid without reaching the issuer. A failed fetch is retried after the same
+thirty-second cooldown. A caller verifying by hand does the same:
+
+```go
+switch _, err := v.Verify(ctx, raw); {
+case errors.Is(err, svcauth.ErrUnavailable): // 503, retry later
+case err != nil:                             // 401
+}
+```
+
 ## Obtaining a token
 
 The calling service side of the same exchange:
