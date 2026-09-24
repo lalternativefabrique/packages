@@ -114,3 +114,21 @@ func TestTheProductTokenCookieIsRead(t *testing.T) {
 		t.Fatalf("code=%d user=%+v", rec.Code, got)
 	}
 }
+
+func TestRequireRoleTurnsAwayAnyoneWithoutIt(t *testing.T) {
+	serveAs := func(roles ...string) int {
+		g := NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: roles}}, "tornad")
+		h := g.RequireRole("admin")(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+token(t, map[string]any{}))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if code := serveAs("tornad:admin"); code != http.StatusOK {
+		t.Errorf("admin: code=%d", code)
+	}
+	if code := serveAs("tornad:user", "spore:admin"); code != http.StatusForbidden {
+		t.Errorf("user here, admin elsewhere: code=%d, want 403", code)
+	}
+}

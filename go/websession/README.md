@@ -50,3 +50,7 @@ r.Use(guard.Require)                                             // chi
 
 u, _ := websession.UserFrom(c.Request().Context())
 ```
+
+A route only this product's admins may reach takes `guard.RequireRole("admin")`
+in place of `Require`: 403 for anyone else. The core checks it itself — a
+proxy's `adminOnly` is a courtesy to the browser, not the gate.

@@ -126,6 +126,21 @@ func (g *Guard) Require(next http.Handler) http.Handler {
 	})
 }
 
+// RequireRole is Require for the routes only a person holding role for this
+// product may reach: 403 for anyone else, so a core never relies on the web
+// having turned them away.
+func (g *Guard) RequireRole(role string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return g.Require(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if u, _ := UserFrom(r.Context()); u.Role != role {
+				forbidden(w)
+				return
+			}
+			next.ServeHTTP(w, r)
+		}))
+	}
+}
+
 // UserFrom returns the User Require resolved for this request.
 func UserFrom(ctx context.Context) (User, bool) {
 	u, ok := ctx.Value(ctxKey{}).(User)
@@ -226,4 +241,10 @@ func unavailable(w http.ResponseWriter) {
 	w.Header().Set("Retry-After", svcauth.RetryAfter)
 	w.WriteHeader(http.StatusServiceUnavailable)
 	_, _ = w.Write([]byte(`{"error":"identity_provider_unavailable"}`))
+}
+
+func forbidden(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = w.Write([]byte(`{"error":"forbidden"}`))
 }
