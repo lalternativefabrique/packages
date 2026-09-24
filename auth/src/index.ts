@@ -41,7 +41,7 @@ export type {
 
 // Hooks
 export { useSession, useLogout } from "./hooks/use-session"
-export { startSso } from "./client"
+export { startSso } from "./start-sso"
 
 // Components
 export { AuthField } from "./components/auth-field"
