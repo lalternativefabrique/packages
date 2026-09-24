@@ -189,6 +189,46 @@ the `urbangate:sessions:exchange` scope and the `-admin` client the
 `urn:ietf:params:oauth:grant-type:jwt-bearer` grant, both declared in
 urbangate.
 
+### The console signs in through urbangate (1.6)
+
+Customers never see urbangate's page; the suite's team does, for a
+product's console (urbangate ADR 0003). `sso` mounts that sign-in on the
+`admin` client:
+
+```ts
+createUrbangateAuth({
+  // …
+  sso: { appUrl: process.env.APP_URL },   // loginPath "/admin/login", landingPath "/admin"
+})
+
+// /admin/login
+<AdminLoginForm
+  authClient={authClient}
+  getProfile={getProfile}
+  sso={{ signIn: () => authClient.signIn.urbangate({ callbackURL: "/admin" }), only: true }}
+/>
+```
+
+| Route | |
+|---|---|
+| `GET sign-in/urbangate?callbackURL=` | redirects to Hydra, authorization code with PKCE, audience the product |
+| `GET callback/urbangate` | trades the code, then lands on `callbackURL`, or on `loginPath?error=` |
+
+The client needs the `authorization_code` and `refresh_token` grants and
+`<appUrl>/api/auth/callback/urbangate` in its `redirect_uris`, as urbangate
+declares for every `-admin` client. The errors on `loginPath` are
+`sso_state` (the sign-in was started elsewhere or too long ago),
+`sso_refused`, `not_admin` and `unavailable`.
+
+With `sso`, `admin` comes from that sign-in only: a session opened on the
+product's screens reads as `user` whatever its token carries. The console
+session is Hydra's refresh token in `<product>_admin`, rotated at each
+renewal, and the person's name and address are read from `/userinfo`, which
+also refuses a token Hydra did not sign. A renewal sets two cookies, so a
+route that hands `accessToken()`'s cookies back appends every one of
+`setCookies`, not `setCookie` alone: a refresh token dropped on the floor has
+been spent, and the console signs out a minute later.
+
 ### Mobile apps (1.4)
 
 An Expo app uses the same routes on the product's web, through

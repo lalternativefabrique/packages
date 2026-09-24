@@ -31,6 +31,7 @@ export type UrbangateAuthClient = Omit<
 > & {
   signIn: AuthClientSurface["signIn"] & {
     emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>;
+    urbangate(input?: { callbackURL?: string }): Promise<void>;
   };
   secondFactor: {
     verify(input: {
@@ -102,6 +103,12 @@ export function createUrbangateAuthClient(
       email: (input) => call("POST", "sign-in/email", input),
       emailOtp: (input) => call("POST", "sign-in/email-otp", input),
       social: async () => ({ error: { code: "not_supported", status: 501 } }),
+      urbangate: async (input = {}) => {
+        const q = input.callbackURL
+          ? `?callbackURL=${encodeURIComponent(input.callbackURL)}`
+          : "";
+        window.location.assign(`${base}/api/auth/sign-in/urbangate${q}`);
+      },
     },
     signUp: {
       email: (input) => call("POST", "sign-up/email", input),
