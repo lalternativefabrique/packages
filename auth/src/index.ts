@@ -10,6 +10,9 @@ export type {
   PlatformSessionData,
   LoginFormProps,
   LoginFormLabels,
+  EmailCodeSignInFormProps,
+  EmailCodeSignInFormLabels,
+  EmailCodeSignInClientSurface,
   RegisterFormProps,
   RegisterFormLabels,
   VerifyEmailFormProps,
@@ -48,6 +51,7 @@ export { AuthField } from "./components/auth-field"
 export type { AuthFieldProps } from "./components/auth-field"
 export { AuthSubmit } from "./components/auth-submit"
 export { LoginForm } from "./components/login-form"
+export { EmailCodeSignInForm } from "./components/email-code-sign-in-form"
 export { RegisterForm } from "./components/register-form"
 export { SocialButtons } from "./components/social-buttons"
 export { VerifyEmailForm } from "./components/verify-email-form"
