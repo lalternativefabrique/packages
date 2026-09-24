@@ -230,8 +230,12 @@ The console session is Hydra's refresh token in `<product>_admin`, rotated
 at each renewal. The access token is verified against Hydra's JWKS, as the
 cores verify it, so a token cookie the browser forged is no session. The
 name and address come from `/userinfo` when the token is issued or renewed,
-and are kept in `<product>_profile` in between. While Hydra cannot answer,
-`get-session` is 503, never a signed-out `null`.
+and are kept in `<product>_profile` in between. The console's token and that
+profile are sealed with the `-admin` client's secret in `<product>_seal`, so
+neither a token exchanged from a customer session beside a made-up
+`<product>_admin`, nor an address edited in the browser, passes as the
+console's own. While Hydra cannot answer, `get-session` is 503, never a
+signed-out `null`.
 
 A renewal sets two cookies, so a route that hands `accessToken()`'s cookies
 back appends every one of `setCookies`, not `setCookie` alone: a refresh
