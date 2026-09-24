@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -90,5 +91,44 @@ func TestNewNeedsAnIssuer(t *testing.T) {
 	g, err := New(Config{Product: "tornad", Urbangate: "https://id.urbangate.dev/", Web: "https://tornad.dev"})
 	if err != nil || g == nil {
 		t.Fatalf("New: %v", err)
+	}
+}
+
+func TestAnIssuerThatCannotBeReachedIs503(t *testing.T) {
+	g := NewWith(stub{err: fmt.Errorf("verify: %w", svcauth.ErrUnavailable)}, "tornad")
+	code, _, seen := serve(g, token(t, map[string]any{}))
+	if code != http.StatusServiceUnavailable || seen {
+		t.Fatalf("code=%d seen=%v, want 503 and no handler", code, seen)
+	}
+}
+
+func TestTheProductTokenCookieIsRead(t *testing.T) {
+	g := NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: []string{"tornad:user"}}}, "tornad")
+	var got User
+	h := g.Require(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { got, _ = UserFrom(r.Context()) }))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: "tornad_token", Value: token(t, map[string]any{})})
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || got.ID != "8f3a" {
+		t.Fatalf("code=%d user=%+v", rec.Code, got)
+	}
+}
+
+func TestRequireRoleTurnsAwayAnyoneWithoutIt(t *testing.T) {
+	serveAs := func(roles ...string) int {
+		g := NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: roles}}, "tornad")
+		h := g.RequireRole("admin")(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		req.Header.Set("Authorization", "Bearer "+token(t, map[string]any{}))
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if code := serveAs("tornad:admin"); code != http.StatusOK {
+		t.Errorf("admin: code=%d", code)
+	}
+	if code := serveAs("tornad:user", "spore:admin"); code != http.StatusForbidden {
+		t.Errorf("user here, admin elsewhere: code=%d, want 403", code)
 	}
 }

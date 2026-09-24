@@ -145,6 +145,10 @@ func (k *Keys) Require(scopes ...string) func(http.Handler) http.Handler {
 			case errors.Is(err, ErrListStale), errors.Is(err, svcauth.ErrRevocationUnknown):
 				writeError(w, http.StatusServiceUnavailable, "revocation_unknown")
 				return
+			case errors.Is(err, svcauth.ErrUnavailable):
+				w.Header().Set("Retry-After", svcauth.RetryAfter)
+				writeError(w, http.StatusServiceUnavailable, "identity_provider_unavailable")
+				return
 			case errors.Is(err, ErrMissingScope):
 				writeError(w, http.StatusForbidden, "scope")
 				return
