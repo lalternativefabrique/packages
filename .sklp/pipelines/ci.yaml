@@ -75,6 +75,8 @@ scopes:
     - "go/cortex/**"
   webhooks:
     - "go/webhooks/**"
+  busevents:
+    - "go/busevents/**"
   lungor-core:
     - "lungor/core/**"
   lungor-sdk:
@@ -189,6 +191,16 @@ steps:
 
   # Every published module is built, vetted and unit-tested. These modules are
   # consumed by three products, so a break here is a break there.
+  # The bus contract: a break here is a break in every producer and in nakoda.
+  - name: busevents
+    scope: [busevents]
+    tools: [go]
+    run: |
+      cd go/busevents
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
   - name: webhooks
     scope: [webhooks]
     tools: [go]
