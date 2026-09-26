@@ -28,6 +28,12 @@ and `identityId` directly, the way `@lalternative/auth`'s `jwt` plugin
 writes them. A core moving to ADR 0009 keeps both while sessions opened
 under the web's key live, then drops `Web`.
 
+A dev stack runs no urbangate: the web signs every token itself
+(`@lalternative/auth`'s `createDevAuth`), and `Web` is its only issuer.
+`ConfigFromEnv(os.Getenv)` reads the three variables every core sets —
+`OIDC_AUDIENCE`, `OIDC_ISSUER_URL`, `OIDC_WEB_ISSUER_URL` — so the dev stack
+only swaps which issuer it names.
+
 A request without a token, with one neither issuer signed, or with one that
 names no subject, is answered 401. A token that cannot be checked because the issuer's keys
 cannot be read is answered 503 `identity_provider_unavailable` with

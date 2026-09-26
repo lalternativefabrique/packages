@@ -132,3 +132,16 @@ func TestRequireRoleTurnsAwayAnyoneWithoutIt(t *testing.T) {
 		t.Errorf("user here, admin elsewhere: code=%d, want 403", code)
 	}
 }
+
+func TestConfigFromEnvReadsBothIssuers(t *testing.T) {
+	env := map[string]string{
+		"OIDC_AUDIENCE":       "messag",
+		"OIDC_ISSUER_URL":     "https://id.urbangate.dev/",
+		"OIDC_WEB_ISSUER_URL": "http://web:5273/",
+	}
+	got := ConfigFromEnv(func(k string) string { return env[k] })
+	want := Config{Product: "messag", Urbangate: "https://id.urbangate.dev", Web: "http://web:5273"}
+	if got != want {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
