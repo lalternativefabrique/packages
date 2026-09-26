@@ -158,6 +158,11 @@ type Config struct {
 	DLQStreamName string
 	// DLQMaxAge is how long dead letters are retained. Default: 7 days.
 	DLQMaxAge time.Duration
+	// StreamProvisioned says StreamName and DLQStreamName are owned by the
+	// server's operator (a shared bus provisions them per account): Start only
+	// checks they exist instead of declaring them, which would reset every
+	// setting it does not carry.
+	StreamProvisioned bool
 	// AckWait is the redelivery timeout for an un-acked message.
 	// Default: 30s. Long handlers should rely on the ack heartbeat rather
 	// than a large AckWait.
@@ -248,11 +253,17 @@ func Start(ctx context.Context, nc *nats.Conn, handler EventHandler, cfg Config)
 	if err != nil {
 		return fmt.Errorf("jetstream context: %w", err)
 	}
-	if err := ensurePipelineStream(ctx, js, cfg); err != nil {
-		return err
-	}
-	if err := ensureDLQStream(ctx, js, cfg); err != nil {
-		return err
+	if cfg.StreamProvisioned {
+		if err := requireStreams(ctx, js, cfg.StreamName, cfg.DLQStreamName); err != nil {
+			return err
+		}
+	} else {
+		if err := ensurePipelineStream(ctx, js, cfg); err != nil {
+			return err
+		}
+		if err := ensureDLQStream(ctx, js, cfg); err != nil {
+			return err
+		}
 	}
 
 	// JetStream rejects a consumer whose BackOff is at least as long as
@@ -518,6 +529,18 @@ func ensurePipelineStream(ctx context.Context, js jetstream.JetStream, cfg Confi
 	})
 	if err != nil {
 		return fmt.Errorf("ensure stream %s: %w", cfg.StreamName, err)
+	}
+	return nil
+}
+
+func requireStreams(ctx context.Context, js jetstream.JetStream, names ...string) error {
+	for _, name := range names {
+		if _, err := js.Stream(ctx, name); err != nil {
+			if errors.Is(err, jetstream.ErrStreamNotFound) {
+				return fmt.Errorf("stream %s is not provisioned in this account: %w", name, err)
+			}
+			return fmt.Errorf("look up stream %s: %w", name, err)
+		}
 	}
 	return nil
 }
