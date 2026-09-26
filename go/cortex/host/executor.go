@@ -62,6 +62,12 @@ func (e *executor) Execute(ctx context.Context, reqCtx *a2asrv.RequestContext, q
 		ContextWindow: h.cfg.ContextWindow,
 		Stream:        true,
 		Callback:      stream,
+		Logger: slog.Default().With(
+			"agent", h.cfg.Agent.Name,
+			"context_id", reqCtx.ContextID,
+			"task_id", string(reqCtx.TaskID),
+			"subject", subject,
+		),
 	})
 	if err != nil {
 		return finish(ctx, queue, reqCtx, a2a.TaskStateFailed, err.Error())
