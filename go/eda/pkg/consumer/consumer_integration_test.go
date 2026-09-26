@@ -212,3 +212,61 @@ func TestIntegration_TransientRetriesThenDLQ(t *testing.T) {
 		return info.State.Msgs >= 1
 	}, 5*time.Second, 100*time.Millisecond, "DLQ stream should capture the dead letter")
 }
+
+// TestIntegration_ProvisionedStreamKeepsItsSettings: on a shared bus the
+// streams belong to the operator; a consumer with StreamProvisioned consumes
+// from them without rewriting the settings it does not know about.
+func TestIntegration_ProvisionedStreamKeepsItsSettings(t *testing.T) {
+	nc, cfg, publish := itSetup(t, "prov")
+	js, err := jetstream.New(nc)
+	require.NoError(t, err)
+	ctx := context.Background()
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name: cfg.StreamName, Subjects: cfg.StreamSubjects,
+		Storage: jetstream.FileStorage, Retention: jetstream.LimitsPolicy,
+		Discard: jetstream.DiscardOld, Duplicates: 2 * time.Minute, MaxAge: 72 * time.Hour,
+	})
+	require.NoError(t, err)
+	_, err = js.CreateStream(ctx, jetstream.StreamConfig{
+		Name: cfg.DLQStreamName, Subjects: []string{"$JS.EVENT.ADVISORY.CONSUMER.MAX_DELIVERIES.>"},
+		Storage: jetstream.FileStorage, Retention: jetstream.LimitsPolicy, MaxAge: 7 * 24 * time.Hour,
+	})
+	require.NoError(t, err)
+
+	cfg.StreamProvisioned = true
+	h := &testHandler{
+		name: "prov", subject: "itconsumer.prov", durable: "prov-consumer", maxDeliv: 5,
+		handleFn: func(context.Context, *nats.Msg) error { return nil },
+	}
+	cancel, wg := runConsumer(nc, h, cfg)
+	defer func() { cancel(); wg.Wait() }()
+
+	publish(`{"event_id":"p1"}`)
+	require.Eventually(t, func() bool { return atomic.LoadInt32(&h.calls) == 1 },
+		3*time.Second, 50*time.Millisecond, "handler should be called once")
+
+	s, err := js.Stream(ctx, cfg.StreamName)
+	require.NoError(t, err)
+	got := s.CachedInfo().Config
+	assert.Equal(t, 2*time.Minute, got.Duplicates, "duplicate window rewritten")
+	assert.Equal(t, 72*time.Hour, got.MaxAge, "max age rewritten")
+	assert.Equal(t, jetstream.DiscardOld, got.Discard)
+}
+
+// TestIntegration_ProvisionedStreamMissingFails: without the operator's
+// streams, Start fails and says what is missing rather than creating them.
+func TestIntegration_ProvisionedStreamMissingFails(t *testing.T) {
+	nc, cfg, _ := itSetup(t, "noprov")
+	cfg.StreamProvisioned = true
+	h := &testHandler{name: "noprov", subject: "itconsumer.noprov", durable: "noprov-consumer", maxDeliv: 5,
+		handleFn: func(context.Context, *nats.Msg) error { return nil }}
+
+	err := Start(context.Background(), nc, h, cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not provisioned")
+
+	js, jerr := jetstream.New(nc)
+	require.NoError(t, jerr)
+	_, serr := js.Stream(context.Background(), cfg.StreamName)
+	assert.ErrorIs(t, serr, jetstream.ErrStreamNotFound, "Start must not create the stream")
+}
