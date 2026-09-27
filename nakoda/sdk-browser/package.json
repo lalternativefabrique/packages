@@ -18,7 +18,7 @@
     "build": "tsup",
     "test": "node --experimental-strip-types --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "npm run build",
     "dev": "tsup --watch"
   },
   "devDependencies": {

@@ -17,8 +17,10 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build",
-    "dev": "tsup --watch"
+    "prepublishOnly": "npm run build",
+    "dev": "tsup --watch",
+    "prepack": "node ../../scripts/pin-workspace-deps.mjs",
+    "postpack": "node ../../scripts/pin-workspace-deps.mjs --restore"
   },
   "peerDependencies": {
     "react": ">=18"
