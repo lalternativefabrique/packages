@@ -325,6 +325,35 @@ navigation only follows it.
 `EmailCodeSignInForm` is the sign-in by e-mail code, both steps, with a link
 back to the password form; an unknown address is signed up by the same code.
 
+### A dev stack without urbangate (1.8)
+
+A product's dev stack does not run urbangate: `createDevAuth` stands in for
+`createUrbangateAuth` with the same `UrbangateAuth` surface, routes and
+cookies, so the browser and Expo clients, the core proxy and the route guards
+work unchanged. Any address and password (or any e-mail code) open a session;
+the tokens the core receives are EdDSA, signed by the web itself, and the key
+set is served at `/api/auth/jwks`.
+
+```ts
+import { createDevAuth, createUrbangateAuth } from "@lalternative/auth/urbangate"
+
+export const auth =
+  process.env.URBANGATE_DEV_AUTH === "1"
+    ? createDevAuth({
+        product: "messag",
+        issuer: "http://web:5273",                     // the web as the core reaches it
+        coreUrl: process.env.CORE_URL,
+        admins: process.env.URBANGATE_DEV_ADMINS?.split(","),
+      })
+    : createUrbangateAuth({ /* … */ })
+```
+
+The core trusts that issuer through `go/websession`'s `Web`
+(`websession.ConfigFromEnv` reads it from `OIDC_WEB_ISSUER_URL`). It trusts
+whoever asks: set the variables in the dev stack only. Password checks, codes,
+second factors and account recovery all succeed without checking anything,
+and `admins` is the only way to an admin session.
+
 ### Environment
 
 Each helper declares the variables it reads — `SsoEnv` for single sign-on,

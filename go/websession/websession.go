@@ -55,6 +55,19 @@ type Config struct {
 	WebJWKS string
 }
 
+// ConfigFromEnv reads the Config every core takes from the same variables:
+// OIDC_AUDIENCE, OIDC_ISSUER_URL for urbangate and OIDC_WEB_ISSUER_URL for
+// the web, the only issuer of a dev stack that runs no urbangate
+// (@lalternative/auth's createDevAuth).
+func ConfigFromEnv(getenv func(string) string) Config {
+	trim := func(name string) string { return strings.TrimRight(getenv(name), "/") }
+	return Config{
+		Product:   getenv("OIDC_AUDIENCE"),
+		Urbangate: trim("OIDC_ISSUER_URL"),
+		Web:       trim("OIDC_WEB_ISSUER_URL"),
+	}
+}
+
 // Verifier is what checks a raw token. *svcauth.Verifier is the one New
 // wires; a test hands a stub.
 type Verifier interface {
