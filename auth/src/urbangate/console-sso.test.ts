@@ -451,6 +451,47 @@ test("coreProxy carries the console token and renews both cookies", async () => 
   }
 });
 
+test("coreProxy refreshes an expired console token once, as Hydra spends a refresh token on use", async () => {
+  const spent = new Set<string>();
+  const { fetchImpl, calls } = hydraStub({
+    "POST /oauth2/token": (init) => {
+      const form = init.body as URLSearchParams;
+      const rt = form.get("refresh_token") ?? "";
+      if (spent.has(rt))
+        return Response.json({ error: "invalid_grant" }, { status: 400 });
+      spent.add(rt);
+      return Response.json({
+        access_token: adminToken,
+        refresh_token: `${rt}-next`,
+        expires_in: 900,
+      });
+    },
+  });
+  const a = auth(fetchImpl);
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response("ok")) as typeof fetch;
+  try {
+    const res = await a.coreProxy({ coreUrl: "http://core:4100" })(
+      new Request("https://app.partagg.fr/api/core/organization", {
+        headers: { cookie: "partage_admin=rt1" },
+      }),
+    );
+    assert.equal(res.status, 200);
+    const refreshes = calls.filter((c) => c.key === "POST /oauth2/token");
+    assert.deepEqual(
+      refreshes.map((c) => c.body?.get("refresh_token")),
+      ["rt1"],
+    );
+    assert.ok(
+      res.headers
+        .getSetCookie()
+        .some((c) => c.startsWith("partage_admin=rt1-next")),
+    );
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
 test("an exchanged token beside a junk console cookie is no console session", async () => {
   const { fetchImpl, calls } = hydraStub({
     "POST /oauth2/token": () =>
