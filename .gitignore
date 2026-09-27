@@ -17,3 +17,4 @@ dist/
 
 # sklp writes its run plans here; they are machine-local build state.
 .sklp/cache/
+*.workspace
