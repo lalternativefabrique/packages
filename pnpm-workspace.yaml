@@ -16,3 +16,4 @@ allowBuilds:
   protobufjs: false
 minimumReleaseAgeExclude:
   - '@lalternative/nakoda-sdk-browser@0.1.0'
+  - '@lalternative/nakoda-sdk-react@0.1.1'

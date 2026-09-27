@@ -130,3 +130,4 @@ export {
   emailChangeProblem,
   passwordChangeProblem,
 } from "./account-settings"
+export { NakodaAnalytics } from "@lalternative/nakoda-sdk-react"

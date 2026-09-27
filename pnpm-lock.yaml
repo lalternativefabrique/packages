@@ -28,6 +28,13 @@ importers:
         version: 5.9.3
 
   auth:
+    dependencies:
+      '@lalternative/nakoda-sdk-browser':
+        specifier: ^0.1.0
+        version: 0.1.0
+      '@lalternative/nakoda-sdk-react':
+        specifier: ^0.1.1
+        version: 0.1.1(react@19.2.8)
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.0
@@ -953,6 +960,11 @@ packages:
 
   '@lalternative/nakoda-sdk-browser@0.1.0':
     resolution: {integrity: sha512-/fPekJcIbJxdDeQAWLLfYw/28LTnypsAaEu/HqPUoEDMQejW19BMIoDaSNf20EHZgMfFniX3C87wmm9xwjZ90w==}
+
+  '@lalternative/nakoda-sdk-react@0.1.1':
+    resolution: {integrity: sha512-fIwkWvlNAgJ1ZT+JRM62AEN3C6+rTnbfZj7BDlV3dvxt5nukjUMnwTiTWlBO8k9QXfqP7PasD/vZ6XOJJz4Hwg==}
+    peerDependencies:
+      react: '>=18'
 
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
@@ -4469,6 +4481,11 @@ snapshots:
       jsep: 1.4.0
 
   '@lalternative/nakoda-sdk-browser@0.1.0': {}
+
+  '@lalternative/nakoda-sdk-react@0.1.1(react@19.2.8)':
+    dependencies:
+      '@lalternative/nakoda-sdk-browser': 0.1.0
+      react: 19.2.8
 
   '@lukeed/csprng@1.1.0': {}
 
