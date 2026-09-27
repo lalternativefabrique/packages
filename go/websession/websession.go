@@ -83,6 +83,11 @@ type Verifier interface {
 // keys could not be read; Require answers it 503, never 401.
 var ErrUnavailable = svcauth.ErrUnavailable
 
+// ErrNotASession is a token urbangate issued to another client than this
+// product's own: an app the person connected (ADR 0012), a service, a key.
+// It names who may act, never a signed-in person, and is refused as one.
+var ErrNotASession = errors.New("websession: token was issued to another client than the product's own")
+
 // Guard answers 401 to a request that carries no token one of the issuers
 // signed, 503 when it cannot check one, and hands the User to the handlers
 // behind it.
@@ -118,6 +123,11 @@ func New(cfg Config) (*Guard, error) {
 	}
 	return &Guard{verifier: v, product: cfg.Product}, nil
 }
+
+// SessionClient is the one client whose tokens make a person's session
+// here: the product's own, through which it exchanges the person's session
+// (ADR 0009) and signs its console in (ADR 0003).
+func (g *Guard) SessionClient() string { return g.product + "-admin" }
 
 // NewWith builds the guard on a verifier of the caller's choosing.
 func NewWith(v Verifier, product string) *Guard {
@@ -177,6 +187,9 @@ func (g *Guard) Resolve(ctx context.Context, raw string) (User, error) {
 	if claims.Subject == "" {
 		return User{}, errors.New("websession: token has no subject")
 	}
+	if claims.ClientID != "" && claims.ClientID != g.SessionClient() {
+		return User{}, ErrNotASession
+	}
 	// The profile claims svcauth does not model are read off the payload,
 	// which is safe only after Verify checked the signature of this string.
 	p, err := payload(raw)
@@ -214,10 +227,11 @@ func roleOf(roles []string, product string) string {
 }
 
 type profile struct {
-	Email      string `json:"email"`
-	Name       string `json:"name"`
-	Role       string `json:"role"`
-	IdentityID string `json:"identityId"`
+	Email      string   `json:"email"`
+	Name       string   `json:"name"`
+	Role       string   `json:"role"`
+	IdentityID string   `json:"identityId"`
+	Resources  []string `json:"resources"`
 }
 
 func payload(raw string) (profile, error) {

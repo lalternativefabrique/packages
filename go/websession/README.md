@@ -20,7 +20,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-One issuer at a time. urbangate's access token carries the product as
+One issuer at a time. Only a token urbangate issued to the product's own
+client, `<product>-admin`, makes a session; a token of any other client with
+the product as audience is refused (`ErrNotASession`), whatever roles it
+carries. urbangate's access token carries the product as
 audience and the roles the token hook wrote, `<product>:admin` or
 `<product>:user`, from which `Role` is read.
 
@@ -60,3 +63,43 @@ u, _ := websession.UserFrom(c.Request().Context())
 A route only this product's admins may reach takes `guard.RequireRole("admin")`
 in place of `Require`: 403 for anyone else. The core checks it itself — a
 proxy's `adminOnly` is a courtesy to the browser, not the gate.
+
+## An app the person connected (urbangate ADR 0012)
+
+An app such as nakoda reaches a product with a token the person granted it
+on urbangate's consent screen: a few scopes and the resources they checked.
+That token never makes a `User`. The routes an app may call take
+`RequireDelegated`, and the handler reads the `Grant`:
+
+```go
+mux.Handle("/api/v1/connected/", guard.RequireDelegated("lungor:read")(h))
+
+gr, _ := websession.GrantFrom(r.Context())
+gr.Subject                                        // the person
+gr.ClientID                                       // the app
+gr.Allows("lungor:app:crm", "lungor:tenant:acme") // the resource, then its parents
+```
+
+`Allows` takes the resource's id followed by its ancestors' as the product
+reads them now, so a tenant granted whole covers the apps created since, and
+a resource the person no longer holds is never reached.
+
+A product joins by declaring what it shares and mounting the two routes
+urbangate and the apps call, outside `Require`:
+
+```go
+mux.Handle("/connect/v1/", guard.Connect(websession.ConnectConfig{
+    Scopes: []websession.Scope{{Name: "lungor:read", Label: "Lire ta facturation"}},
+    Resources: func(ctx context.Context, identityID string) ([]websession.Resource, error) {
+        // what this person holds and may share, ids "<product>:<type>:<id>"
+    },
+}))
+```
+
+- `GET /connect/v1/grantable?subject=<identity>` answers urbangate's
+  `urbangate-connect` client only, while it draws the consent screen.
+- `GET /connect/v1/resources` answers an app's grant with the resources it
+  reaches, each with its `url`, so the app can match them with its own data.
+
+Then set `metadata.connect_url` on the product's `-admin` client in
+urbangate: the base URL urbangate reaches the core at.
