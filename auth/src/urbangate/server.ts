@@ -70,6 +70,12 @@ export interface UrbangateAuthConfig {
     opened: AccountOpened,
   ) => Promise<Array<string> | void> | Array<string> | void;
   /**
+   * Reports each opened account to nakoda as `account.signed_up`, with where
+   * the visit came from (the `x-nakoda-source` header the client sends).
+   * `key` is the app's secret nakoda key; best effort, like onAccountOpened.
+   */
+  nakoda?: { key: string; url?: string };
+  /**
    * `GET core-token` also answers `{ token, expires_at }`, for a client that
    * is no browser (a CLI) and needs the bearer itself. Off by default: in a
    * browser it hands the token to any script on the page.
@@ -534,6 +540,33 @@ export function createUrbangateAuth(
     }
   }
 
+  async function reportSignUp(
+    nakoda: NonNullable<UrbangateAuthConfig["nakoda"]>,
+    user: UrbangateUser,
+    request: Request,
+  ): Promise<void> {
+    const url = `${(nakoda.url ?? "https://nakoda.club").replace(/\/$/, "")}/v1/events/account.signed_up`;
+    try {
+      const res = await (config.fetch ?? fetch)(url, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${nakoda.key}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          event_id: `signed-up-${user.identityId}`,
+          occurred_at: new Date().toISOString(),
+          person_id: user.identityId,
+          source: signUpSource(request.headers.get("x-nakoda-source")),
+        }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!res.ok) console.warn(`[auth] nakoda refused the sign-up: ${res.status}`);
+    } catch (error) {
+      console.warn("[auth] nakoda unreachable:", error instanceof Error ? error.message : error);
+    }
+  }
+
   // Fired once the address is proven, never before: the hook may grant what
   // was addressed to that mailbox, an invitation for one.
   async function accountOpened(
@@ -541,7 +574,9 @@ export function createUrbangateAuth(
     sessionToken: string | undefined,
     request: Request,
   ): Promise<Array<string>> {
-    if (!config.onAccountOpened || !sessionToken || !user) return [];
+    if (!sessionToken || !user) return [];
+    if (config.nakoda) await reportSignUp(config.nakoda, user, request);
+    if (!config.onAccountOpened) return [];
     try {
       const cookies = await config.onAccountOpened({
         user: { ...user, emailVerified: true },
@@ -767,7 +802,7 @@ export function createUrbangateAuth(
     if (flow.state !== "passed_challenge") return failure("invalid_code", 400);
     const cookies = [clearCookie(names.flow, secure)];
     const sessionToken = readCookie(request.headers, names.session);
-    if (config.onAccountOpened && sessionToken && flowOpensAccount(request.headers)) {
+    if ((config.onAccountOpened || config.nakoda) && sessionToken && flowOpensAccount(request.headers)) {
       const session = await kratos.whoami(sessionToken).catch(() => null);
       const user = session?.active ? userOf(session, [], product) : null;
       cookies.push(...(await accountOpened(user, sessionToken, request)));
@@ -1237,4 +1272,26 @@ function cookieHeader(
 
 function profileSealed(accessToken: string, p: SsoProfile): string {
   return JSON.stringify([accessToken, p.email, p.emailVerified, p.name]);
+}
+
+/**
+ * The sign-up's source in nakoda's words (ADR 0001): the campaign's
+ * utm_source, else the site the visit came from, else "direct".
+ */
+export function signUpSource(header: string | null): string {
+  if (!header) return "direct";
+  try {
+    const { landing, referrer } = JSON.parse(decodeURIComponent(header)) as {
+      landing?: string;
+      referrer?: string;
+    };
+    const page = landing ? new URL(landing) : null;
+    const utm = page?.searchParams.get("utm_source")?.trim().toLowerCase();
+    if (utm) return utm;
+    const from = referrer ? new URL(referrer).hostname.replace(/^www\./, "") : "";
+    const self = page?.hostname.replace(/^www\./, "") ?? "";
+    return from && from !== self ? from : "direct";
+  } catch {
+    return "direct";
+  }
 }

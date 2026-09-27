@@ -1,3 +1,4 @@
+import { getSource } from "@lalternative/nakoda-sdk-browser";
 import { useEffect, useState } from "react";
 import type { AuthClientResult, AuthClientSurface } from "../types";
 
@@ -77,11 +78,16 @@ export function createUrbangateAuthClient(
     body?: unknown,
   ): Promise<Result<T>> {
     try {
+      const source = getSource();
       const res = await fetch(`${base}/api/auth/${path}`, {
         method,
         credentials: "include",
-        headers:
-          body === undefined ? {} : { "content-type": "application/json" },
+        headers: {
+          ...(body === undefined ? {} : { "content-type": "application/json" }),
+          ...(source
+            ? { "x-nakoda-source": encodeURIComponent(JSON.stringify(source)) }
+            : {}),
+        },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       const parsed = (await res.json().catch(() => null)) as

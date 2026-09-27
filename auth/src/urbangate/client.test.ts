@@ -72,3 +72,30 @@ test("an outage at urbangate comes back as 503, not as signed out", async () => 
     s.restore();
   }
 });
+
+test("the client tells the server where the visit came from, for nakoda", async () => {
+  const seen: Array<string | null> = [];
+  const realFetch = globalThis.fetch;
+  const g = globalThis as unknown as { window?: unknown; sessionStorage?: unknown };
+  const stored = new Map([[
+    "nakoda.source",
+    JSON.stringify({ landing: "https://app.example/?utm_source=x", referrer: "https://www.linkedin.com/" }),
+  ]]);
+  const storage = { getItem: (k: string) => stored.get(k) ?? null, setItem: () => undefined };
+  g.window = { sessionStorage: storage };
+  globalThis.fetch = (async (_input: string | URL, init: RequestInit = {}) => {
+    seen.push(new Headers(init.headers).get("x-nakoda-source"));
+    return new Response("{}", { status: 200 });
+  }) as typeof fetch;
+  try {
+    const client = createUrbangateAuthClient({ baseURL: "https://app.example" });
+    await client.signUp.email({ email: "ana@example", password: "pw", name: "" });
+    assert.deepEqual(JSON.parse(decodeURIComponent(seen[0] ?? "")), {
+      landing: "https://app.example/?utm_source=x",
+      referrer: "https://www.linkedin.com/",
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+    delete g.window;
+  }
+});

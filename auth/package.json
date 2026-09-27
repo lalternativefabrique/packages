@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/auth",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Shared Better Auth wrapper for L'Alternative apps (server + React client + auth UI)",
   "type": "module",
   "main": "./dist/index.js",
@@ -77,5 +77,9 @@
     "type": "git",
     "url": "https://github.com/lalternative/packages.git",
     "directory": "auth"
+  },
+  "dependencies": {
+    "@lalternative/nakoda-sdk-browser": "^0.1.0",
+    "@lalternative/nakoda-sdk-react": "^0.1.1"
   }
 }

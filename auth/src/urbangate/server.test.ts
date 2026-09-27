@@ -1267,3 +1267,62 @@ test("forwardCookies may not name the auth's own cookies", () => {
   assert.throws(() => authWith(fetchImpl).coreProxy({ forwardCookies: ["tornad_session"] }));
   assert.throws(() => authWith(fetchImpl).coreProxy({ forwardCookies: ["tornad_admin"] }));
 });
+
+test("with nakoda, an opened account is reported once as signed up, with where the visit came from", async () => {
+  const reported: Array<{ url: string; key: string | null; body: Record<string, string> }> = [];
+  const { fetchImpl } = kratosStub({
+    "POST /v1/events/account.signed_up": () => new Response("{}", { status: 202 }),
+  });
+  const spy = (async (url: URL | string, init: RequestInit = {}) => {
+    if (String(url).includes("/v1/events/"))
+      reported.push({
+        url: String(url),
+        key: new Headers(init.headers).get("authorization"),
+        body: JSON.parse(String(init.body)),
+      });
+    return fetchImpl(url, init);
+  }) as typeof fetch;
+  const a = authWith(spy, { nakoda: { key: "nakoda_key_x" } });
+  const signUp = await a.handler(post("sign-up/email", { email: "ana@example", password: "pw" }));
+  const flow = signUp.headers
+    .getSetCookie()
+    .filter((c) => c.startsWith("tornad_flow=") && !c.includes("Max-Age=0"))
+    .at(-1)
+    ?.split(";")[0];
+  const source = encodeURIComponent(
+    JSON.stringify({ landing: "https://tornad.dev/?utm_source=newsletter", referrer: "https://mail.google.com/" }),
+  );
+  const verify = post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, `tornad_session=ory_st; ${flow}`);
+  verify.headers.set("x-nakoda-source", source);
+  const verified = await a.handler(verify);
+  assert.equal(verified.status, 200);
+  assert.equal(reported.length, 1);
+  assert.equal(reported[0].url, "https://nakoda.club/v1/events/account.signed_up");
+  assert.equal(reported[0].key, "Bearer nakoda_key_x");
+  assert.equal(reported[0].body.person_id, "8f3a");
+  assert.equal(reported[0].body.event_id, "signed-up-8f3a");
+  assert.equal(reported[0].body.source, "newsletter");
+  assert.ok(reported[0].body.occurred_at);
+
+  await a.handler(post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, "tornad_session=ory_st; tornad_flow=verification%3AV"));
+  assert.equal(reported.length, 1, "verifying an address outside a sign-up reports nothing");
+});
+
+test("nakoda's source falls back to the referrer's site, then to direct", async () => {
+  const { signUpSource } = await import("./server.ts");
+  assert.equal(signUpSource(encodeURIComponent(JSON.stringify({ landing: "https://tornad.dev/", referrer: "https://www.linkedin.com/feed" }))), "linkedin.com");
+  assert.equal(signUpSource(encodeURIComponent(JSON.stringify({ landing: "https://tornad.dev/", referrer: "https://tornad.dev/pricing" }))), "direct");
+  assert.equal(signUpSource(null), "direct");
+  assert.equal(signUpSource("%%%"), "direct");
+});
+
+test("a nakoda that cannot be reached does not stop the sign-up", async () => {
+  const { fetchImpl } = kratosStub({
+    "POST /v1/events/account.signed_up": () => { throw new Error("down"); },
+  });
+  const a = authWith(fetchImpl, { nakoda: { key: "k" } });
+  const signUp = await a.handler(post("sign-up/email", { email: "ana@example", password: "pw" }));
+  const flow = signUp.headers.getSetCookie().filter((c) => c.startsWith("tornad_flow=") && !c.includes("Max-Age=0")).at(-1)?.split(";")[0];
+  const verified = await a.handler(post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, `tornad_session=ory_st; ${flow}`));
+  assert.equal(verified.status, 200);
+});
