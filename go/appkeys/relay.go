@@ -58,7 +58,7 @@ func (k *Keys) Relay() http.Handler {
 		case r.Method == http.MethodPost && id == "":
 			k.create(w, r, owner)
 		case r.Method == http.MethodDelete && id != "":
-			k.revoke(w, r, id)
+			k.revoke(w, r, owner, id)
 		default:
 			writeError(w, http.StatusMethodNotAllowed, "method")
 		}
@@ -203,8 +203,8 @@ func (k *Keys) create(w http.ResponseWriter, r *http.Request, owner string) {
 	})
 }
 
-func (k *Keys) revoke(w http.ResponseWriter, r *http.Request, id string) {
-	path := "/api/machine/keys/" + url.PathEscape(id)
+func (k *Keys) revoke(w http.ResponseWriter, r *http.Request, owner, id string) {
+	path := "/api/machine/keys/" + url.PathEscape(id) + "?owner=" + url.QueryEscape(owner)
 	status, body, err := k.call(r.Context(), http.MethodDelete, path, nil)
 	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, "unavailable")
