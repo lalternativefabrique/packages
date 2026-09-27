@@ -89,6 +89,8 @@ scopes:
     - "lungor/policy/**"
   skalpai-sdk:
     - "skalpai/sdk-go/**"
+  nakoda-sdk-go:
+    - "nakoda/sdk-go/**"
   spore-sdk:
     - "spore/**"
     - "pnpm-lock.yaml"
@@ -291,6 +293,15 @@ steps:
     tools: [go]
     run: |
       cd skalpai/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: nakoda-sdk-go
+    scope: [nakoda-sdk-go]
+    tools: [go]
+    run: |
+      cd nakoda/sdk-go
       go build ./...
       go vet ./...
       go test -count=1 ./...
