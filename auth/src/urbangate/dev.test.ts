@@ -186,3 +186,14 @@ test("sign-out clears the session cookie", async () => {
   const res = await auth().handler(post("sign-out", {}));
   assert.match(res.headers.getSetCookie()[0], /^messag_session=;.*Max-Age=0/);
 });
+
+test("it refuses to start in a production build", () => {
+  const was = process.env.NODE_ENV;
+  process.env.NODE_ENV = "production";
+  try {
+    assert.throws(() => auth(), /NODE_ENV=production/);
+  } finally {
+    if (was === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = was;
+  }
+});

@@ -68,6 +68,11 @@ func ConfigFromEnv(getenv func(string) string) Config {
 	}
 }
 
+// ErrWebBesideUrbangate refuses a core configured to trust both. The web
+// issuer is createDevAuth's, whose signing key anyone can derive: next to
+// urbangate it can only be a dev variable carried into a real deployment.
+var ErrWebBesideUrbangate = errors.New("websession: a web issuer is for a dev stack without urbangate, not beside it")
+
 // Verifier is what checks a raw token. *svcauth.Verifier is the one New
 // wires; a test hands a stub.
 type Verifier interface {
@@ -90,6 +95,9 @@ type Guard struct {
 // rather than a guard that refuses everyone when no issuer is configured: a
 // core with no one to trust is a deployment mistake, not a policy.
 func New(cfg Config) (*Guard, error) {
+	if strings.TrimRight(cfg.Urbangate, "/") != "" && strings.TrimRight(cfg.Web, "/") != "" {
+		return nil, ErrWebBesideUrbangate
+	}
 	var issuers []svcauth.Issuer
 	if u := strings.TrimRight(cfg.Urbangate, "/"); u != "" {
 		issuers = append(issuers, svcauth.Hydra(u, cfg.Product))
