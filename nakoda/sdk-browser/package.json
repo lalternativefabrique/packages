@@ -1,0 +1,44 @@
+{
+  "name": "@lalternative/nakoda-sdk-browser",
+  "version": "0.1.0",
+  "description": "nakoda's cookieless visitor analytics for browsers: page views and where visitors come from",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build",
+    "dev": "tsup --watch"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "nakoda",
+    "analytics",
+    "cookieless",
+    "browser"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lalternative/packages.git",
+    "directory": "nakoda/sdk-browser"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  }
+}

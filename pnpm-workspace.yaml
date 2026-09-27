@@ -3,6 +3,7 @@ packages:
   - "spore/*"
   - "lalter/*"
   - "lungor/*"
+  - "nakoda/*"
   - "auth"
   - "keys"
   - "legal"

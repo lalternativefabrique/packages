@@ -57,6 +57,10 @@ scopes:
     - "auth/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
+  nakoda-sdk:
+    - "nakoda/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
   eda:
     - "go/eda/**"
   composition:
@@ -110,6 +114,15 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/auth test
       npx -y pnpm@11.3.0 --filter @lalternative/auth typecheck
       npx -y pnpm@11.3.0 --filter @lalternative/auth build
+
+  - name: nakoda-sdk
+    scope: [nakoda-sdk]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/nakoda-sdk-browser test
+      npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" typecheck
+      npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" build
 
   # eda's pkg/* are SEPARATE modules, so `go test ./...` at the root does not
   # reach them — outbox/pgx and pgprojector run in production at Lungor and
