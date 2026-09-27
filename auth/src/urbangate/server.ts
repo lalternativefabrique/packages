@@ -1206,19 +1206,32 @@ export function createUrbangateAuth(
 
 // A token just exchanged is not in the request's cookie yet; the session
 // lookup reads the roles off it as if it were.
+// The cookies a request carries once the token it resolved has renewed some:
+// resolving the session again must see the rotated refresh token and the new
+// seal, or it refreshes a second time with a refresh token Hydra already
+// spent, and Hydra answers invalid_grant.
 function cookieHeader(
   headers: Headers,
-  names: { session: string; token: string; admin: string },
+  names: { session: string; token: string; admin: string; seal: string; profile: string },
   token: AccessToken,
 ) {
-  const kept = [names.session, names.admin].flatMap((name) => {
+  const values = new Map<string, string>();
+  for (const name of [names.session, names.admin, names.seal, names.profile]) {
     const value = readCookie(headers, name);
-    return value ? [`${name}=${encodeURIComponent(value)}`] : [];
-  });
+    if (value) values.set(name, encodeURIComponent(value));
+  }
+  for (const set of token.setCookies ?? []) {
+    const pair = set.split(";", 1)[0];
+    const at = pair.indexOf("=");
+    if (at <= 0) continue;
+    const name = pair.slice(0, at);
+    const value = pair.slice(at + 1);
+    if (value) values.set(name, value);
+    else values.delete(name);
+  }
+  values.set(names.token, encodeURIComponent(token.token));
   return {
-    cookie: [...kept, `${names.token}=${encodeURIComponent(token.token)}`].join(
-      "; ",
-    ),
+    cookie: [...values].map(([name, value]) => `${name}=${value}`).join("; "),
   };
 }
 

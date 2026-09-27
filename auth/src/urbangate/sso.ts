@@ -219,6 +219,9 @@ export class ConsoleSso {
     }
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as { error?: string };
+      console.warn(
+        `urbangate console: Hydra refused ${grant.grant_type} for ${this.config.clientId}: ${res.status} ${body.error ?? ""}`,
+      );
       return body.error === "invalid_grant"
         ? { status: "refused" }
         : { status: "unavailable" };
