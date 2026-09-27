@@ -176,6 +176,11 @@ func TestRelayRevokes(t *testing.T) {
 	if path := fake.seen[0].URL.Path; path != "/api/machine/keys/ak_7f3a" {
 		t.Errorf("path = %q", path)
 	}
+	// The provisioner credential is the product's: without the owner,
+	// urbangate cannot tell one customer's key from another's.
+	if owner := fake.seen[0].URL.Query().Get("owner"); owner != "8f3a" {
+		t.Errorf("owner = %q, want the signed-in person", owner)
+	}
 }
 
 // urbangate records a revocation before it deletes, so a 503 means nothing was
