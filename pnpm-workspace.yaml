@@ -14,3 +14,5 @@ allowBuilds:
   '@scarf/scarf': false
   esbuild: true
   protobufjs: false
+minimumReleaseAgeExclude:
+  - '@lalternative/nakoda-sdk-browser@0.1.0'
