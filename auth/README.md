@@ -352,7 +352,10 @@ The core trusts that issuer through `go/websession`'s `Web`
 (`websession.ConfigFromEnv` reads it from `OIDC_WEB_ISSUER_URL`). It trusts
 whoever asks: set the variables in the dev stack only. Password checks, codes,
 second factors and account recovery all succeed without checking anything,
-and `admins` is the only way to an admin session.
+and `admins` is the only way to an admin session. Its signing key is derived
+from the product's name, so anyone can mint its tokens. Two guards keep it
+out of production: `createDevAuth` throws under `NODE_ENV=production`, and
+`go/websession` refuses a core that names the web issuer beside urbangate.
 
 ### Environment
 

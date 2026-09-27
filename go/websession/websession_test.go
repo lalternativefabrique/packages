@@ -88,9 +88,20 @@ func TestNewNeedsAnIssuer(t *testing.T) {
 	if _, err := New(Config{Product: "tornad"}); err == nil {
 		t.Fatal("want an error with no issuer")
 	}
-	g, err := New(Config{Product: "tornad", Urbangate: "https://id.urbangate.dev/", Web: "https://tornad.dev"})
-	if err != nil || g == nil {
-		t.Fatalf("New: %v", err)
+	for _, cfg := range []Config{
+		{Product: "tornad", Urbangate: "https://id.urbangate.dev/"},
+		{Product: "tornad", Web: "http://web:5273"},
+	} {
+		if g, err := New(cfg); err != nil || g == nil {
+			t.Fatalf("New(%+v): %v", cfg, err)
+		}
+	}
+}
+
+func TestAWebIssuerBesideUrbangateIsRefused(t *testing.T) {
+	_, err := New(Config{Product: "tornad", Urbangate: "https://id.urbangate.dev", Web: "http://web:5273"})
+	if !errors.Is(err, ErrWebBesideUrbangate) {
+		t.Fatalf("want ErrWebBesideUrbangate, got %v", err)
 	}
 }
 

@@ -103,14 +103,24 @@ function failure(code: string, status: number, message?: string): Response {
   return json(status, { error: { code, status, ...(message ? { message } : {}) } });
 }
 
+function nodeEnv(): string | undefined {
+  const runtime = globalThis as { process?: { env?: Record<string, string | undefined> } };
+  return runtime.process?.env?.NODE_ENV;
+}
+
 /**
  * Stands in for createUrbangateAuth on a dev stack that runs no urbangate:
  * any address and any password (or any code) open a session, and the tokens
  * the core receives are signed here. The routes, the cookies and the
  * UrbangateAuth surface are the ones the product already uses, so clients
- * and routes do not change. Never in production: it trusts whoever asks.
+ * and routes do not change. It trusts whoever asks, so it refuses to start
+ * with NODE_ENV=production.
  */
 export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
+  if (nodeEnv() === "production")
+    throw new Error(
+      "createDevAuth accepts any password and signs with a key anyone can derive: it never runs with NODE_ENV=production",
+    );
   const { product } = config;
   const issuer = config.issuer.replace(/\/$/, "");
   const sessionCookie = config.cookie?.name ?? `${product}_session`;

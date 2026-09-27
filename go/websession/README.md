@@ -10,7 +10,6 @@ go get github.com/lalternative/packages/go/websession
 guard, err := websession.New(websession.Config{
     Product:   "tornad",
     Urbangate: "https://id.urbangate.dev",  // the person's own access token (ADR 0009)
-    Web:       "https://tornad.dev",         // the token the web signs from its session
 })
 mux.Handle("/api/v1/", guard.Require(adminAPI))
 
@@ -21,15 +20,16 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-Two issuers, one verifier. urbangate's access token carries the product as
+One issuer at a time. urbangate's access token carries the product as
 audience and the roles the token hook wrote, `<product>:admin` or
-`<product>:user`, from which `Role` is read. The web's token carries `role`
-and `identityId` directly, the way `@lalternative/auth`'s `jwt` plugin
-writes them. A core moving to ADR 0009 keeps both while sessions opened
-under the web's key live, then drops `Web`.
+`<product>:user`, from which `Role` is read.
 
 A dev stack runs no urbangate: the web signs every token itself
-(`@lalternative/auth`'s `createDevAuth`), and `Web` is its only issuer.
+(`@lalternative/auth`'s `createDevAuth`), and `Web` is its only issuer. That
+token carries `role` and `identityId` directly. `createDevAuth` signs with a
+key derived from the product's name, so anyone can mint one: `New` refuses a
+`Config` naming `Web` beside `Urbangate` (`ErrWebBesideUrbangate`), because
+that is a dev variable carried into a real deployment.
 `ConfigFromEnv(os.Getenv)` reads the three variables every core sets —
 `OIDC_AUDIENCE`, `OIDC_ISSUER_URL`, `OIDC_WEB_ISSUER_URL` — so the dev stack
 only swaps which issuer it names.
