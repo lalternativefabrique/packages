@@ -156,3 +156,62 @@ func TestConfigFromEnvReadsBothIssuers(t *testing.T) {
 		t.Fatalf("got %+v, want %+v", got, want)
 	}
 }
+
+func TestOnlyTheProductsOwnClientMakesASession(t *testing.T) {
+	own := NewWith(stub{claims: svcauth.Claims{Issuer: "https://id.urbangate.dev", Subject: "8f3a", ClientID: "partage-admin", Roles: []string{"partage:admin"}}}, "partage")
+	if code, u, _ := serve(own, token(t, map[string]any{})); code != http.StatusOK || u.Role != "admin" {
+		t.Fatalf("own client: code=%d user=%+v", code, u)
+	}
+	for _, client := range []string{"nakoda-connect", "lalter-core", "ak_7f3a", "lungor-admin"} {
+		g := NewWith(stub{claims: svcauth.Claims{Issuer: "https://id.urbangate.dev", Subject: "8f3a", ClientID: client, Roles: []string{"partage:admin"}}}, "partage")
+		if code, _, seen := serve(g, token(t, map[string]any{})); code != http.StatusUnauthorized || seen {
+			t.Fatalf("%s made a session: code=%d", client, code)
+		}
+		if _, err := g.Resolve(context.Background(), token(t, map[string]any{})); !errors.Is(err, ErrNotASession) {
+			t.Fatalf("%s: err = %v", client, err)
+		}
+	}
+}
+
+func serveDelegated(g *Guard, scope, raw string) (int, Grant, bool) {
+	var got Grant
+	var seen bool
+	h := g.RequireDelegated(scope)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { got, seen = GrantFrom(r.Context()) }))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer "+raw)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec.Code, got, seen
+}
+
+func TestAnAppsGrantIsReadButNeverASession(t *testing.T) {
+	g := NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", ClientID: "nakoda-connect", Scopes: []string{"lungor:read"}}}, "lungor")
+	raw := token(t, map[string]any{"resources": []string{"lungor:tenant:acme"}})
+	code, gr, seen := serveDelegated(g, "lungor:read", raw)
+	if code != http.StatusOK || !seen || gr.Subject != "8f3a" || gr.ClientID != "nakoda-connect" {
+		t.Fatalf("code=%d grant=%+v", code, gr)
+	}
+	if !gr.Allows("lungor:app:crm", "lungor:tenant:acme") || gr.Allows("lungor:app:crm", "lungor:tenant:globex") {
+		t.Fatalf("a granted tenant covers its apps and nothing else: %+v", gr)
+	}
+	if code, _, _ := serveDelegated(g, "lungor:write", raw); code != http.StatusForbidden {
+		t.Fatalf("missing scope: code=%d", code)
+	}
+}
+
+func TestNotAGrant(t *testing.T) {
+	for name, claims := range map[string]svcauth.Claims{
+		"own session":   {Subject: "8f3a", ClientID: "lungor-admin"},
+		"service token": {Subject: "lalter-core", ClientID: "lalter-core"},
+		"web token":     {Subject: "u-1"},
+	} {
+		g := NewWith(stub{claims: claims}, "lungor")
+		if code, _, seen := serveDelegated(g, "", token(t, map[string]any{})); code != http.StatusUnauthorized || seen {
+			t.Fatalf("%s: code=%d", name, code)
+		}
+	}
+	g := NewWith(stub{err: fmt.Errorf("jwks: %w", ErrUnavailable)}, "lungor")
+	if code, _, _ := serveDelegated(g, "", token(t, map[string]any{})); code != http.StatusServiceUnavailable {
+		t.Fatalf("unavailable: code=%d", code)
+	}
+}
