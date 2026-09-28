@@ -18,3 +18,14 @@ test("serializeCookie is httpOnly, Lax, secure on demand, and a clear expires it
     "s=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0",
   );
 });
+
+test("a domain shares the cookie across sub-domains, on set and on clear", () => {
+  assert.equal(
+    serializeCookie("s", "v", { maxAge: 10, secure: true, domain: ".messag.eco" }),
+    "s=v; Path=/; HttpOnly; SameSite=Lax; Max-Age=10; Domain=.messag.eco; Secure",
+  );
+  assert.equal(
+    clearCookie("s", true, ".messag.eco"),
+    "s=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Domain=.messag.eco; Secure",
+  );
+});

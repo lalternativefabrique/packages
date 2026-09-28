@@ -24,7 +24,7 @@ export interface DevAuthConfig {
   coreUrl?: string;
   /** Addresses that sign in as this product's admin. */
   admins?: Array<string>;
-  cookie?: { name?: string; secure?: boolean };
+  cookie?: { name?: string; secure?: boolean; domain?: string };
   onAccountOpened?: UrbangateAuthConfig["onAccountOpened"];
   accountDeletion?: UrbangateAuthConfig["accountDeletion"];
   coreTokenInBody?: boolean;
@@ -125,6 +125,7 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
   const issuer = config.issuer.replace(/\/$/, "");
   const sessionCookie = config.cookie?.name ?? `${product}_session`;
   const secure = config.cookie?.secure ?? issuer.startsWith("https://");
+  const domain = config.cookie?.domain;
   const admins = new Set(config.admins?.map((a) => a.trim().toLowerCase()));
   const keys = keysFor(product);
 
@@ -196,6 +197,7 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
     serializeCookie(sessionCookie, await sign(user, SESSION_MAX_AGE), {
       maxAge: SESSION_MAX_AGE,
       secure,
+      domain,
     }),
   ];
 
@@ -265,7 +267,7 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
     return json(200, { status: true }, await signedIn(user));
   }
 
-  const signedOut = () => [clearCookie(sessionCookie, secure)];
+  const signedOut = () => [clearCookie(sessionCookie, secure, domain)];
 
   async function deleteAccount(request: Request) {
     if (!config.accountDeletion) return failure("not_supported", 501);

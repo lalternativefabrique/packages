@@ -1,6 +1,8 @@
 export interface CookieOptions {
   maxAge: number;
   secure: boolean;
+  /** Set to share the session across an apex domain's sub-domains, e.g. ".messag.eco". */
+  domain?: string;
 }
 
 export function readCookie(headers: Headers, name: string): string | undefined {
@@ -24,10 +26,15 @@ export function serializeCookie(
     "SameSite=Lax",
     `Max-Age=${value ? o.maxAge : 0}`,
   ];
+  if (o.domain) attrs.push(`Domain=${o.domain}`);
   if (o.secure) attrs.push("Secure");
   return attrs.join("; ");
 }
 
-export function clearCookie(name: string, secure: boolean): string {
-  return serializeCookie(name, "", { maxAge: 0, secure });
+export function clearCookie(
+  name: string,
+  secure: boolean,
+  domain?: string,
+): string {
+  return serializeCookie(name, "", { maxAge: 0, secure, domain });
 }
