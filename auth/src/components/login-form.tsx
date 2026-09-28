@@ -36,7 +36,7 @@ const DEFAULTS: Required<LoginFormLabels> = {
 export function LoginForm({
   onSuccess,
   onEmailNotVerified,
-  registerUrl = "/register",
+  registerUrl,
   forgotPasswordUrl = "/forgot-password",
   socialCallbackUrl = "/",
   errorCallbackUrl,
@@ -182,16 +182,18 @@ export function LoginForm({
         disabled={isPending}
       />
 
-      <p className="text-center text-sm text-muted-foreground">
-        {t.noAccount}{" "}
-        <AuthLink
-          to={withInviteToken(registerUrl, invite)}
-          as={linkComponent}
-          className={AUTH_LINK_CLASS}
-        >
-          {t.register}
-        </AuthLink>
-      </p>
+      {registerUrl && (
+        <p className="text-center text-sm text-muted-foreground">
+          {t.noAccount}{" "}
+          <AuthLink
+            to={withInviteToken(registerUrl, invite)}
+            as={linkComponent}
+            className={AUTH_LINK_CLASS}
+          >
+            {t.register}
+          </AuthLink>
+        </p>
+      )}
     </div>
   )
 }
