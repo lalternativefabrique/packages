@@ -14,11 +14,23 @@ export function readCookie(headers: Headers, name: string): string | undefined {
   return undefined;
 }
 
+/**
+ * A cookie domain, e.g. `messag.eco` or a leading-dot `.messag.eco`. `name`
+ * and `value` are encoded, but the domain is concatenated into the header as
+ * it is, so an unchecked value could smuggle extra attributes or, with a CRLF,
+ * a whole second `Set-Cookie`. It is meant to come from configuration, not a
+ * request; validating it keeps that true even when a caller wires it wrong.
+ */
+const DOMAIN = /^\.?([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+
 export function serializeCookie(
   name: string,
   value: string,
   o: CookieOptions,
 ): string {
+  if (o.domain !== undefined && !DOMAIN.test(o.domain)) {
+    throw new Error(`invalid cookie domain: ${JSON.stringify(o.domain)}`);
+  }
   const attrs = [
     `${name}=${encodeURIComponent(value)}`,
     "Path=/",
