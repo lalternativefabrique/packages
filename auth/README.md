@@ -159,6 +159,12 @@ answering 401 `sign_in_required`, 403 `forbidden`, or 503
 `identity_provider_unavailable` when urbangate cannot answer — never 401 for
 an outage.
 
+`cookie: { domain }` (1.10) shares the session across an apex domain's
+sub-domains: a product served on `app.messag.eco` behind the same web that
+serves `messag.eco` sets `domain: ".messag.eco"`, and a person signed in on
+either host is signed in on both. It defaults unset, one host per cookie.
+Leave it unset in dev, where the hosts differ.
+
 A core whose public routes share the proxied path — invitation claims,
 app-key calls, a payment provider's callbacks — passes `anonymous: "forward"`
 (1.5): a request without a session reaches the core as it came, keeping its own

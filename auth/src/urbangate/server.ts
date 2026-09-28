@@ -43,7 +43,7 @@ export interface UrbangateAuthConfig {
   /** Kratos' public API as the server reaches it, e.g. http://kratos:4433 or https://id.urbangate.dev. */
   kratosUrl: string;
   urbangate: Omit<ExchangeConfig, "product">;
-  cookie?: { name?: string; secure?: boolean };
+  cookie?: { name?: string; secure?: boolean; domain?: string };
   fetch?: Fetch;
   /**
    * Mounts `POST delete-account`. The steps reach the product's core with the
@@ -300,16 +300,19 @@ export function createUrbangateAuth(
   const landingPath = config.sso?.landingPath ?? "/admin";
   const secure =
     config.cookie?.secure ?? config.urbangate.issuerUrl.startsWith("https://");
+  const domain = config.cookie?.domain;
 
   const cookie = (name: string, value: string, maxAge: number) =>
-    serializeCookie(name, value, { maxAge, secure });
+    serializeCookie(name, value, { maxAge, secure, domain });
+
+  const clear = (name: string) => clearCookie(name, secure, domain);
 
   const signedIn = (result: KratosSessionResult): Array<string> => {
     const token = result.session_token;
     if (!token) return [];
     return [
       cookie(names.session, token, SESSION_MAX_AGE),
-      clearCookie(names.flow, secure),
+      clear(names.flow),
     ];
   };
 
@@ -800,7 +803,7 @@ export function createUrbangateAuth(
       ...brand,
     });
     if (flow.state !== "passed_challenge") return failure("invalid_code", 400);
-    const cookies = [clearCookie(names.flow, secure)];
+    const cookies = [clear(names.flow)];
     const sessionToken = readCookie(request.headers, names.session);
     if ((config.onAccountOpened || config.nakoda) && sessionToken && flowOpensAccount(request.headers)) {
       const session = await kratos.whoami(sessionToken).catch(() => null);
@@ -852,7 +855,7 @@ export function createUrbangateAuth(
     }
     return json(200, { reset: true }, [
       cookie(names.session, token, SESSION_MAX_AGE),
-      clearCookie(names.flow, secure),
+      clear(names.flow),
     ]);
   }
 
@@ -902,7 +905,7 @@ export function createUrbangateAuth(
     }
     return json(200, { reset: true }, [
       cookie(names.session, session, SESSION_MAX_AGE),
-      clearCookie(names.flow, secure),
+      clear(names.flow),
     ]);
   }
 
@@ -970,14 +973,14 @@ export function createUrbangateAuth(
   }
 
   const signedOut = () => [
-    clearCookie(names.session, secure),
-    clearCookie(names.token, secure),
-    clearCookie(names.flow, secure),
+    clear(names.session),
+    clear(names.token),
+    clear(names.flow),
     ...(sso
       ? [
-          clearCookie(names.admin, secure),
-          clearCookie(names.profile, secure),
-          clearCookie(names.seal, secure),
+          clear(names.admin),
+          clear(names.profile),
+          clear(names.seal),
         ]
       : []),
   ];
@@ -1012,7 +1015,7 @@ export function createUrbangateAuth(
     const pending = decodePending(readCookie(request.headers, names.sso));
     const refused = (code: string, extra: Array<string> = []) =>
       redirect(`${loginPath}?error=${code}`, [
-        clearCookie(names.sso, secure),
+        clear(names.sso),
         ...extra,
       ]);
     if (!pending || !params.get("state") || params.get("state") !== pending.state)
@@ -1030,10 +1033,10 @@ export function createUrbangateAuth(
     const productSession = readCookie(request.headers, names.session);
     if (productSession) await kratos.logout(productSession);
     return redirect(pending.landing, [
-      clearCookie(names.sso, secure),
-      clearCookie(names.session, secure),
-      clearCookie(names.flow, secure),
-      clearCookie(names.profile, secure),
+      clear(names.sso),
+      clear(names.session),
+      clear(names.flow),
+      clear(names.profile),
       cookie(names.token, outcome.tokens.accessToken, TOKEN_MAX_AGE),
       cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),
       cookie(
