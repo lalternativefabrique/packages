@@ -164,7 +164,7 @@ sub-domains: a product served on `app.messag.eco` behind the same web that
 serves `messag.eco` sets `domain: ".messag.eco"`, and a person signed in on
 either host is signed in on both. It defaults unset, one host per cookie.
 Leave it unset in dev, where the hosts differ. The value is meant to come
-from configuration and is refused unless it is a plain hostname (1.10.1), so
+from configuration and is refused unless it is a plain hostname (1.10.2), so
 it can never smuggle attributes into the `Set-Cookie` header. Every
 sub-domain of the apex then receives the session cookie, so point it only at
 an apex whose sub-domains you control.
