@@ -16,23 +16,12 @@ var (
 // letters and digits, with single dots, dashes or underscores between them.
 var DefaultPattern = regexp.MustCompile(`^[a-z0-9]+(?:[._-][a-z0-9]+)*$`)
 
-// StandardReserved are the names no sign-up may obtain under any owned
-// domain: the RFC 2142 mailboxes, the CA/Browser Forum domain-validation
-// names, report sinks and the daemons. Keys carry no separator.
-var StandardReserved = []string{
-	"abuse", "admin", "administrator", "hostmaster", "postmaster", "webmaster",
-	"info", "marketing", "sales", "support", "security", "noc", "root",
-	"mailerdaemon", "noreply", "donotreply", "mailer", "daemon", "system",
-	"dmarc", "tlsrpt", "bounce", "bounces", "www", "mail", "mx", "smtp",
-	"imap", "jmap", "ftp", "ssladmin", "sysadmin",
-}
-
 // IdentifierPolicy is the rule for the local part of an address under a
 // domain the product owns. The zero value is a product without one.
 type IdentifierPolicy struct {
 	OwnedDomain string
-	// Reserved holds names refused on top of StandardReserved, without
-	// separators: "post.master" and "post_master" both match "postmaster".
+	// Reserved holds the names the product refuses; separators are ignored:
+	// "post.master" and "post_master" both match "postmaster".
 	Reserved []string
 	// Pattern defaults to DefaultPattern.
 	Pattern *regexp.Regexp
@@ -51,11 +40,6 @@ func (p IdentifierPolicy) Check(local string) error {
 		return ErrInvalidIdentifier
 	}
 	bare := separators.Replace(local)
-	for _, r := range StandardReserved {
-		if bare == r {
-			return ErrReserved
-		}
-	}
 	for _, r := range p.Reserved {
 		if bare == separators.Replace(strings.ToLower(r)) {
 			return ErrReserved
@@ -81,5 +65,5 @@ func (p IdentifierPolicy) String() string {
 	if p.OwnedDomain == "" {
 		return "no owned domain"
 	}
-	return fmt.Sprintf("owned domain %s, %d reserved names", p.OwnedDomain, len(p.Reserved)+len(StandardReserved))
+	return fmt.Sprintf("owned domain %s, %d reserved names", p.OwnedDomain, len(p.Reserved))
 }
