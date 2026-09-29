@@ -31,21 +31,30 @@ export interface VerifyEmailFormProps extends AuthThemeProps, AuthNavProps {
   authClient: AuthClientSurface
 }
 
-/** Why an invitation link did not work, as far as the invitee needs to know. */
-export type InvitationFailure = "expired" | "claimed" | "unknown"
+export interface InvitationLandingLabels {
+  /** Receives the app name and the address, in that order */
+  invited?: (app: string, email: string) => string
+  subtitle?: string
+  login?: string
+  setPassword?: string
+}
 
-export interface InvitationNoticeProps {
-  reason?: InvitationFailure
-  /** Defaults to contact@ the apex domain the app is served from. */
-  supportEmail?: string
-  title?: string
-  /** Rendered under the contact line — typically a link back to the site. */
-  action?: React.ReactNode
+export interface InvitationLandingProps extends AuthNavProps {
+  /** Product name shown to the invitee */
+  app: string
+  /** Address the invitation went to, already validated by the route */
+  email: string
+  /** The app's own sign-in page, ideally prefilled with the address */
+  loginUrl: string
+  /** The app's normal password recovery entry */
+  setPasswordUrl: string
+  labels?: InvitationLandingLabels
+  submitClassName?: string
 }
 
 /**
  * Copy overrides for the sign-in screen. Every key is optional; what is not
- * given falls back to the French defaults, matching InvitationNotice and the
+ * given falls back to the French defaults, matching the
  * apps consuming this package. Pass a full set to render another language.
  */
 export interface LoginFormLabels {
@@ -73,7 +82,6 @@ export interface RegisterFormLabels {
   namePlaceholder?: string
   optional?: string
   emailPlaceholder?: string
-  emailLocked?: string
   passwordPlaceholder?: string
   passwordHint?: string
   confirmPlaceholder?: string
@@ -171,8 +179,7 @@ export interface AuthThemeProps {
  * Router link used for the navigation between auth screens.
  *
  * Every consuming app routes client-side, where a bare anchor triggers a full
- * document load: the app boots again, and an invitation held in the URL is
- * dropped on the way. Apps without a router pass nothing and get an anchor.
+ * document load: the app boots again and drops what the URL was carrying. Apps without a router pass nothing and get an anchor.
  */
 export type LinkComponent = React.ComponentType<{
   to: string
@@ -185,17 +192,9 @@ export interface AuthNavProps {
   linkComponent?: LinkComponent
 }
 
-export interface AuthInviteProps {
-  /**
-   * Invitation token carried by the URL. The screen surfaces it and keeps it on
-   * the links to its sibling screens and on the OAuth callback; redeeming it is
-   * the auth handler's job — a social sign-up leaves the browser, so no
-   * component is mounted to do it.
-   */
-  invite?: string
-}
-
-export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
+export interface LoginFormProps extends AuthThemeProps, AuthNavProps {
+  /** Fills the address field, e.g. from an invitation landing */
+  defaultEmail?: string
   /** Callback once the session cookie is set and the core token minted */
   onSuccess?: () => void
   /**
@@ -278,13 +277,7 @@ export interface EmailCodeSignInFormProps extends AuthThemeProps, AuthNavProps {
   authClient: EmailCodeSignInClientSurface
 }
 
-export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInviteProps {
-  /**
-   * Address the invitation was issued to. Given, it fills the email field and
-   * fixes it: an invitation grants its tier to one address, so signing up with
-   * another would drop the grant with nothing said about it.
-   */
-  lockedEmail?: string
+export interface RegisterFormProps extends AuthThemeProps, AuthNavProps {
   /** Callback on successful sign-up, receives the email to verify */
   onSuccess?: (email: string) => void
   /** Error raised outside the form, rendered in the same banner */

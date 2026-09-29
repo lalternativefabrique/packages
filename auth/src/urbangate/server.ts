@@ -8,17 +8,7 @@ import { forwardHeaders } from "../core-proxy.ts";
 export { forwardHeaders } from "../core-proxy.ts";
 export { createDevAuth } from "./dev.ts";
 export type { DevAuthConfig } from "./dev.ts";
-export {
-  claimInvitation,
-  completesSignup,
-  holdInviteTokenCookie,
-  invitationOutcomeCookie,
-  inviteTokenFrom,
-  isInvitationFailure,
-  pinInviteToken,
-  releaseInviteTokenCookie,
-} from "../invitation.ts";
-export type { ClaimOutcome, ClaimInvitationOptions } from "../invitation.ts";
+export { completesSignup } from "../completes-signup.ts";
 import {
   provisionIdentity,
   requestAccountDeletion,
