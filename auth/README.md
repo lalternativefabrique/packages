@@ -325,7 +325,7 @@ export const auth = createUrbangateAuth({
 | `coreProxy({ stripPrefix, forwardCookies })` | `coreUrl` defaults to the auth's. The prefix is cut at a segment boundary, and a path that does not start with it, or that would leave the core's origin, is a 404. The cookies named are the only ones the core sees; naming one of the auth's own is refused at build. An event stream is relayed unbuffered, every `Set-Cookie` of the core is kept, and the body's decoded `content-encoding` is dropped |
 | `coreFetch(headers, path, init)` | `ok` with the response and the cookies to set, `signed_out`, or `unavailable` with `cause` `identity_provider` or `core`; `coreRefusal(call)` answers 401, 503 or 502 |
 | `requireSession(headers)`, `requireAdmin(headers)` | `{ session, setCookies }`, or `{ response }`: 401 signed out, 403 not this product's admin, 503 while urbangate cannot answer, including when it cannot say which roles the person holds |
-| `onAccountOpened` | runs once an identity created here has proven its address: the code that verifies a password sign-up, or a code that signs an unknown address up; never on a sign-in, never before the proof, so an invitation claimed there went to its mailbox's owner |
+| `onAccountOpened` | runs once an identity created here has proven its address: the code that verifies a password sign-up, a code that signs an unknown address up, or a sign-up under an owned domain (1.11); never on a sign-in, never before the proof, so an invitation claimed there went to its mailbox's owner |
 
 `adminOnly` on the proxy follows the same rule: a 503, not a 403, while the
 roles cannot be read. A route guard in `beforeLoad` runs these through the
@@ -334,6 +334,38 @@ navigation only follows it.
 
 `EmailCodeSignInForm` is the sign-in by e-mail code, both steps, with a link
 back to the password form; an unknown address is signed up by the same code.
+
+### A domain the product owns (1.11)
+
+A product that mints its own mailboxes (messag on `@messag.eco`) has nowhere
+to send a sign-up code: the address does not exist until the account does.
+Declare the domain, and a sign-up under it takes another road, the one
+urbangate ADR 0013 describes:
+
+```ts
+export const auth = createUrbangateAuth({
+  // …
+  coreUrl: process.env.CORE_URL,
+  ownedDomains: ["messag.eco"],
+})
+```
+
+1. `GET <coreUrl>/api/v1/machine/identifiers/<local>` on the product's core,
+   which holds the members and the reserved names (`go/membership`): 409 is
+   `already_registered`, 400 is `identifier_refused` with the core's reason,
+   and nothing has been created.
+2. `POST /api/machine/identities` at urbangate with `email_verified: true`:
+   the identity is provisioned verified, no verification flow, no mail. An
+   address already enrolled is `already_registered`, and its password is
+   left alone — a sign-up never joins an existing identity under an owned
+   domain, or anyone could set the password of an address they do not own.
+3. The password is set through `PUT /api/machine/passwords`, the session is
+   opened by a Kratos login, and `onAccountOpened` runs at once: the address
+   is proven by construction.
+
+Any other address on the same product keeps the registration flow and its
+code. The core must be reachable during the sign-up; it answers 503
+`unavailable` otherwise, and the person retries.
 
 ### A dev stack without urbangate (1.8)
 

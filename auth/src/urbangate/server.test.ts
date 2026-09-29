@@ -1326,3 +1326,126 @@ test("a nakoda that cannot be reached does not stop the sign-up", async () => {
   const verified = await a.handler(post("email-otp/verify-email", { email: "ana@example", otp: "123456" }, `tornad_session=ory_st; ${flow}`));
   assert.equal(verified.status, 200);
 });
+
+function ownedStub(
+  overrides: Record<string, (init: RequestInit) => Response> = {},
+) {
+  resetProvisioningTokenCache();
+  return kratosStub({
+    "GET /api/v1/machine/identifiers/ana": () => new Response(null, { status: 204 }),
+    "POST /oauth2/token": () =>
+      Response.json({ access_token: "machine", expires_in: 900 }),
+    "POST /api/machine/identities": () =>
+      Response.json({ identity_id: "8f3a", created: true }),
+    "PUT /api/machine/passwords": () =>
+      Response.json({ identity_id: "8f3a", created: false }),
+    ...overrides,
+  });
+}
+
+test("a sign-up under an owned domain asks the core, provisions verified, signs in, and opens the account", async () => {
+  const { fetchImpl, calls } = ownedStub();
+  const opened: Array<{ email: string; verified: boolean }> = [];
+  const a = authWith(fetchImpl, {
+    ownedDomains: ["Messag.eco"],
+    onAccountOpened: ({ user }) => {
+      opened.push({ email: user.email, verified: user.emailVerified });
+    },
+  });
+  const res = await a.handler(
+    post("sign-up/email", { email: "Ana@messag.eco", password: "pw", name: "ana" }),
+  );
+  assert.equal(res.status, 200);
+  const cookies = res.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(!cookies.some((c) => c.startsWith("tornad_flow=verification")));
+  const keys = calls.map((c) => c.key);
+  assert.deepEqual(
+    keys.filter((k) => !k.startsWith("GET /.well-known")),
+    [
+      "GET /api/v1/machine/identifiers/ana",
+      "POST /oauth2/token",
+      "POST /api/machine/identities",
+      "PUT /api/machine/passwords",
+      "GET /self-service/login/api",
+      "POST /self-service/login?flow=L",
+    ],
+  );
+  assert.deepEqual(
+    calls.find((c) => c.key === "POST /api/machine/identities")?.body,
+    { email: "ana@messag.eco", email_verified: true, name: "ana", role: "tornad:user", product: "tornad" },
+  );
+  assert.deepEqual(
+    calls.find((c) => c.key === "PUT /api/machine/passwords")?.body,
+    { email: "ana@messag.eco", password: "pw" },
+  );
+  assert.deepEqual(opened, [{ email: "ana@example", verified: true }]);
+});
+
+test("the core refuses the identifier before anything is created", async () => {
+  for (const [status, body, code] of [
+    [409, { error: "taken" }, "already_registered"],
+    [400, { error: "reserved" }, "identifier_refused"],
+    [500, {}, "unavailable"],
+  ] as const) {
+    const { fetchImpl, calls } = ownedStub({
+      "GET /api/v1/machine/identifiers/ana": () => Response.json(body, { status }),
+    });
+    const res = await authWith(fetchImpl, { ownedDomains: ["messag.eco"] }).handler(
+      post("sign-up/email", { email: "ana@messag.eco", password: "pw" }),
+    );
+    assert.equal(res.status, status === 500 ? 503 : status);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+    assert.ok(!calls.some((c) => c.key.includes("/api/machine/identities") || c.key.includes("/self-service/")));
+  }
+});
+
+test("an owned address already enrolled is refused, and its password is left alone", async () => {
+  const { fetchImpl, calls } = ownedStub({
+    "POST /api/machine/identities": () =>
+      Response.json({ identity_id: "8f3a", created: false }),
+  });
+  const res = await authWith(fetchImpl, { ownedDomains: ["messag.eco"] }).handler(
+    post("sign-up/email", { email: "ana@messag.eco", password: "pw" }),
+  );
+  assert.equal(res.status, 409);
+  assert.ok(!calls.some((c) => c.key === "PUT /api/machine/passwords"));
+  assert.ok(!calls.some((c) => c.key.startsWith("POST /self-service/login")));
+});
+
+test("an unreachable core refuses the owned sign-up with 503", async () => {
+  const { fetchImpl } = ownedStub({
+    "GET /api/v1/machine/identifiers/ana": () => {
+      throw new Error("connection refused");
+    },
+  });
+  const res = await authWith(fetchImpl, { ownedDomains: ["messag.eco"] }).handler(
+    post("sign-up/email", { email: "ana@messag.eco", password: "pw" }),
+  );
+  assert.equal(res.status, 503);
+});
+
+test("an external address keeps the registration flow on a product with owned domains", async () => {
+  const { fetchImpl, calls } = ownedStub();
+  const res = await authWith(fetchImpl, { ownedDomains: ["messag.eco"] }).handler(
+    post("sign-up/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(calls.some((c) => c.key === "POST /self-service/registration?flow=R"));
+  assert.ok(!calls.some((c) => c.key.includes("/api/machine/")));
+});
+
+test("ownedDomains needs a coreUrl", () => {
+  assert.throws(() =>
+    createUrbangateAuth({
+      product: "tornad",
+      kratosUrl: "http://kratos:4433",
+      urbangate: {
+        issuerUrl: "https://id.urbangate.dev",
+        provisioner: { clientId: "p", clientSecret: "p" },
+        admin: { clientId: "a", clientSecret: "a" },
+      },
+      ownedDomains: ["messag.eco"],
+    }),
+  );
+});
