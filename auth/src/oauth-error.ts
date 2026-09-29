@@ -8,10 +8,10 @@ export type OAuthErrorLabels = {
  * Turns Better Auth's machine-readable OAuth failure code into something an
  * invitee can act on.
  *
- * `account_not_linked` is the one worth naming: createPlatformAuth disables
- * account linking on purpose, so "Continue with Google" on an address already
- * registered with a password is REFUSED. Better Auth's default error route
- * bounces the browser back with nothing shown, so without this the button
+ * `account_not_linked` is the one worth naming: account linking is off on
+ * purpose, so "Continue with Google" on an address already registered with a
+ * password is REFUSED. The provider's error route bounces the browser back
+ * with nothing shown, so without this the button
  * simply looks broken.
  */
 export function oauthErrorMessage(

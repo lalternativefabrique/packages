@@ -15,7 +15,7 @@ import {
   type DeleteAccountStepsProps,
 } from "./delete-account-steps"
 
-/** The slice of a Better Auth client the page calls; createPlatformAuthClient fits it. */
+/** The slice of the urbangate client the page calls. */
 export interface AccountSettingsClient {
   updateUser(input: { name: string }): Promise<AuthClientResult>
   changePassword(input: {

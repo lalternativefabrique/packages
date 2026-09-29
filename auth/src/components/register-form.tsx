@@ -31,7 +31,7 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   signUpFailed: "La création du compte a échoué",
   alreadyRegistered:
     "Tu as déjà un compte L'Alternative avec cette adresse. Connecte-toi avec ton mot de passe, ou reçois un code par e-mail.",
-  // accountLinking is disabled in createPlatformAuth, so signing up with Google
+  // Account linking is off, so signing up with Google
   // on an address already registered is refused rather than folded into the
   // existing account.
   accountNotLinked:
@@ -104,7 +104,7 @@ export function RegisterForm({
         )
         return
       }
-      // createPlatformAuth sets requireEmailVerification, so sign-up leaves the
+      // The address must be confirmed, so sign-up leaves the
       // account unverified and without a session: the caller routes to the OTP
       // step rather than into the app.
       onSuccess?.(email.trim())
