@@ -50,7 +50,7 @@ func newService(t *testing.T, res membership.Resources, opts ...func(*membership
 	p := membership.Product{
 		Name:       "messag",
 		Resources:  res,
-		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test", Reserved: []string{"sylvain", "codesyl"}},
+		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test", Reserved: []string{"postmaster", "sylvain", "codesyl"}},
 	}
 	for _, o := range opts {
 		o(&p)

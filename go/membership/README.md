@@ -18,7 +18,7 @@ svc, err := membership.New(mpgx.New(pool), membership.Product{
     Resources: stalwartResources,                       // or membership.NewNoop(store)
     Identifier: membership.IdentifierPolicy{            // only with an owned mail domain
         OwnedDomain: "messag.eco",
-        Reserved:    []string{"codesyl", "sylvain"},   // on top of StandardReserved
+        Reserved:    []string{"postmaster", "abuse", "codesyl"},
     },
     Open: func(ctx context.Context, id membership.Identity) (string, error) {
         tx, _ := mpgx.Tx(ctx)                            // same transaction as the member
