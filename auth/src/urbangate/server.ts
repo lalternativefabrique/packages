@@ -699,12 +699,14 @@ export function createUrbangateAuth(
     if (refused) return refused;
     const created = await provisionIdentity(
       provisioner,
-      { email, ...(name ? { name } : {}) },
+      { email, exclusive: true, ...(name ? { name } : {}) },
       config.fetch,
     );
     if (created.status === "unavailable") return failure("unavailable", 503);
     if (created.status === "rejected")
-      return failure("provisioning_refused", 422, created.reason);
+      return created.reason === "already_registered"
+        ? failure("already_registered", 409)
+        : failure("provisioning_refused", 422, created.reason);
     if (!created.created) return failure("already_registered", 409);
     const secured = await updateIdentityPassword(
       provisioner,

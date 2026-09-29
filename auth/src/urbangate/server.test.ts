@@ -1373,7 +1373,7 @@ test("a sign-up under an owned domain asks the core, provisions verified, signs 
   );
   assert.deepEqual(
     calls.find((c) => c.key === "POST /api/machine/identities")?.body,
-    { email: "ana@messag.eco", email_verified: true, name: "ana", role: "tornad:user", product: "tornad" },
+    { email: "ana@messag.eco", email_verified: true, name: "ana", role: "tornad:user", product: "tornad", exclusive: true },
   );
   assert.deepEqual(
     calls.find((c) => c.key === "PUT /api/machine/passwords")?.body,
@@ -1409,6 +1409,20 @@ test("an owned address already enrolled is refused, and its password is left alo
     post("sign-up/email", { email: "ana@messag.eco", password: "pw" }),
   );
   assert.equal(res.status, 409);
+  assert.ok(!calls.some((c) => c.key === "PUT /api/machine/passwords"));
+  assert.ok(!calls.some((c) => c.key.startsWith("POST /self-service/login")));
+});
+
+test("urbangate refusing the exclusive provisioning is already_registered, nothing else is called", async () => {
+  const { fetchImpl, calls } = ownedStub({
+    "POST /api/machine/identities": () =>
+      Response.json({ error: "already_registered" }, { status: 409 }),
+  });
+  const res = await authWith(fetchImpl, { ownedDomains: ["messag.eco"] }).handler(
+    post("sign-up/email", { email: "ana@messag.eco", password: "pw" }),
+  );
+  assert.equal(res.status, 409);
+  assert.equal(((await res.json()) as { error: { code: string } }).error.code, "already_registered");
   assert.ok(!calls.some((c) => c.key === "PUT /api/machine/passwords"));
   assert.ok(!calls.some((c) => c.key.startsWith("POST /self-service/login")));
 });

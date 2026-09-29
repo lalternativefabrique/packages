@@ -26,6 +26,12 @@ export interface ProvisionRequest {
    * credential and its owner sets one through recovery.
    */
   password?: string
+  /**
+   * The address is the product's own (a mailbox it mints, urbangate ADR
+   * 0013): an identity that already holds it is refused, `rejected` with
+   * reason `already_registered`, never joined.
+   */
+  exclusive?: boolean
 }
 
 interface TokenResponse {
@@ -124,6 +130,7 @@ export async function provisionIdentity(
         role: config.role,
         product: config.product,
         ...(request.password ? { password: request.password } : {}),
+        ...(request.exclusive ? { exclusive: true } : {}),
       }),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
