@@ -25,7 +25,7 @@ export interface FeedbackButtonProps {
   endpoint: string;
   /** Project API key (creates a feedback scoped to that project) */
   apiKey: string;
-  /** Project UUID (used in the URL: /api/projects/:projectId/feedback) */
+  /** Project UUID (used in the URL: /api/projects/:projectId/issues/submit) */
   projectId: string;
   /** Optional user identifier (email, user id…) attached to the feedback */
   userIdentifier?: string;

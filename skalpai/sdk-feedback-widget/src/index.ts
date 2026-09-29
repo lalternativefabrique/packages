@@ -559,7 +559,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     this.state = 'loading';
     this.render();
     try {
-      const url = `${this.endpoint.replace(/\/$/, '')}/api/projects/${encodeURIComponent(this.projectId)}/feedback`;
+      const url = `${this.endpoint.replace(/\/$/, '')}/api/projects/${encodeURIComponent(this.projectId)}/issues/submit`;
       const form = new FormData();
       form.append('type', this.type);
       form.append('message', this.message);
