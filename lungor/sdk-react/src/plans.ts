@@ -39,7 +39,8 @@ export interface PricingPlan {
    * Whether this plan can be bought right now.
    *
    * Defaults to true. Set it false for a tier withheld from sale, so the card
-   * stops short of a button that only leads to a refusal.
+   * stops short of a button that only leads to a refusal. A free plan is signed
+   * up for, not bought: its card keeps its sign-up button whatever this says.
    */
   purchasable?: boolean;
   /** Selling points, rendered under the allowance. */
