@@ -19,7 +19,11 @@ export {
   releaseInviteTokenCookie,
 } from "../invitation.ts";
 export type { ClaimOutcome, ClaimInvitationOptions } from "../invitation.ts";
-import { requestAccountDeletion } from "../identity-provisioning.ts";
+import {
+  provisionIdentity,
+  requestAccountDeletion,
+  updateIdentityPassword,
+} from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
@@ -81,6 +85,16 @@ export interface UrbangateAuthConfig {
    * browser it hands the token to any script on the page.
    */
   coreTokenInBody?: boolean;
+  /**
+   * Mail domains the product itself provides mailboxes on (urbangate ADR
+   * 0013). An address under one is the product's own identifier, and there is
+   * no mailbox yet to receive a code: the core is asked whether the local
+   * part is free before anything is created, the identity is provisioned
+   * through urbangate's machine API with the address verified by
+   * construction, and an address already enrolled is refused, never joined.
+   * Needs `coreUrl`. Other addresses keep the registration flow and its code.
+   */
+  ownedDomains?: Array<string>;
 }
 
 export interface UrbangateSsoConfig {
@@ -301,6 +315,16 @@ export function createUrbangateAuth(
   const secure =
     config.cookie?.secure ?? config.urbangate.issuerUrl.startsWith("https://");
   const domain = config.cookie?.domain;
+  const ownedDomains = (config.ownedDomains ?? []).map((d) => d.toLowerCase());
+  if (ownedDomains.length && !config.coreUrl)
+    throw new Error("ownedDomains needs the auth's coreUrl");
+  const provisioner = {
+    issuer: config.urbangate.issuerUrl,
+    clientId: config.urbangate.provisioner.clientId,
+    clientSecret: config.urbangate.provisioner.clientSecret,
+    role: `${product}:user`,
+    product,
+  };
 
   const cookie = (name: string, value: string, maxAge: number) =>
     serializeCookie(name, value, { maxAge, secure, domain });
@@ -636,12 +660,81 @@ export function createUrbangateAuth(
     );
   }
 
+  function ownedLocalPart(email: string): string | null {
+    const at = email.lastIndexOf("@");
+    if (at < 0) return null;
+    const domain = email.slice(at + 1).toLowerCase();
+    return ownedDomains.includes(domain) ? email.slice(0, at).toLowerCase() : null;
+  }
+
+  // The core owns the identifier under a domain the product provides: it
+  // holds the members and the reserved names, and answers before Kratos so
+  // no identity is created for an address the product would then refuse.
+  async function identifierFree(local: string): Promise<Response | null> {
+    const url = `${config.coreUrl!.replace(/\/$/, "")}/api/v1/machine/identifiers/${encodeURIComponent(local)}`;
+    let res: Response;
+    try {
+      res = await (config.fetch ?? fetch)(url, { signal: AbortSignal.timeout(5000) });
+    } catch {
+      return failure("unavailable", 503);
+    }
+    if (res.status === 204 || res.status === 200) return null;
+    const reason = ((await res.json().catch(() => ({}))) as { error?: string }).error;
+    if (res.status === 409) return failure("already_registered", 409);
+    if (res.status === 400) return failure("identifier_refused", 400, reason);
+    return failure("unavailable", 503);
+  }
+
+  // A sign-up under an owned domain: the address is the product's, verified
+  // by construction, and never joined to an identity that already exists —
+  // joining would let anyone set the password of an address they do not own.
+  async function signUpOwned(
+    request: Request,
+    email: string,
+    local: string,
+    password: string,
+    name: string,
+  ): Promise<Response> {
+    const refused = await identifierFree(local);
+    if (refused) return refused;
+    const created = await provisionIdentity(
+      provisioner,
+      { email, ...(name ? { name } : {}) },
+      config.fetch,
+    );
+    if (created.status === "unavailable") return failure("unavailable", 503);
+    if (created.status === "rejected")
+      return failure("provisioning_refused", 422, created.reason);
+    if (!created.created) return failure("already_registered", 409);
+    const secured = await updateIdentityPassword(
+      provisioner,
+      { email, password },
+      config.fetch,
+    );
+    if (secured.status === "unavailable") return failure("unavailable", 503);
+    if (secured.status === "rejected")
+      return failure("password_refused", 422, secured.reason);
+    const flow = await kratos.start("login");
+    const result = await kratos.submit<KratosSessionResult>("login", flow.id, {
+      method: "password",
+      identifier: email,
+      password,
+      ...brand,
+    });
+    const user = result.session ? userOf(result.session, [], product) : null;
+    const opened = await accountOpened(user, result.session_token, request);
+    return json(200, { user }, [...signedIn(result), ...opened]);
+  }
+
   async function signUpEmail(request: Request): Promise<Response> {
     const b = await body(request);
     const email = str(b, "email");
     const password = typeof b.password === "string" ? b.password : "";
     if (!email || !password)
       return failure("invalid_input", 400, "email and password are required");
+    const local = ownedLocalPart(email);
+    if (local !== null)
+      return signUpOwned(request, email.toLowerCase(), local, password, str(b, "name"));
     const flow = await kratos.start("registration");
     const result = await kratos.submit<KratosSessionResult>(
       "registration",

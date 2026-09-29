@@ -364,15 +364,7 @@ function withIdentityProvisioning(
     // would join them to the identity of whoever actually owns it. A social
     // sign-up whose provider reports the address unverified, and a password
     // sign-up before its OTP, are enrolled once the address is confirmed.
-    //
-    // TECHNICAL DEBT — need to override this properly. Messag mints its own
-    // @messag.eco mailboxes, so no external party can own one and there is no
-    // address to send an OTP to (the target audience has no other inbox). We
-    // hardcode the domain to treat it as verified. This does NOT belong in the
-    // shared lib: it must become a config option (owned/trusted domains per
-    // product) instead of a literal. Tracked in sklp issue 0ced3a25.
-    const selfProvisioned = record.email.toLowerCase().endsWith("@messag.eco")
-    if (record.emailVerified !== true && !selfProvisioned) return
+    if (record.emailVerified !== true) return
 
     const outcome = await provisionIdentity(config, {
       email: record.email,
