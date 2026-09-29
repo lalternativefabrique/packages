@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { SkalpaiFeedbackElement } from '@lalternative/skalpai-feedback-widget';
 import '@lalternative/skalpai-feedback-widget';
 
 export type FeedbackTheme = 'light' | 'dark' | 'auto';
@@ -18,6 +19,12 @@ export type FeedbackLabels = {
   capture?: string;
   capturing?: string;
   remove_screenshot?: string;
+  attach?: string;
+  remove_attachment?: string;
+  email_placeholder?: string;
+  email_invalid?: string;
+  hide?: string;
+  show?: string;
 };
 
 export interface FeedbackButtonProps {
@@ -40,6 +47,14 @@ export interface FeedbackButtonProps {
    * `--skalpai-fab-inset-block` / `--skalpai-fab-inset-inline` custom properties.
    */
   placement?: FeedbackPlacement;
+  /**
+   * Start with the launcher folded into an edge tab. Visitors can fold it
+   * themselves with the launcher's close affordance; that choice is remembered
+   * per project in localStorage and wins over this prop on later visits.
+   */
+  collapsed?: boolean;
+  /** Fired whenever the launcher folds or unfolds, by the visitor or the host. */
+  onCollapseChange?: (collapsed: boolean) => void;
 }
 
 export function FeedbackButton({
@@ -50,15 +65,28 @@ export function FeedbackButton({
   theme,
   labels,
   placement,
+  collapsed,
+  onCollapseChange,
 }: FeedbackButtonProps) {
-  const ref = useRef<HTMLElement | null>(null);
+  const ref = useRef<SkalpaiFeedbackElement | null>(null);
 
   useEffect(() => {
     if (ref.current && userIdentifier !== undefined) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (ref.current as any).userIdentifier = userIdentifier;
+      ref.current.userIdentifier = userIdentifier;
     }
   }, [userIdentifier]);
+
+  useEffect(() => {
+    if (ref.current && collapsed !== undefined) ref.current.collapsed = collapsed;
+  }, [collapsed]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onCollapseChange) return;
+    const handler = (e: Event) => onCollapseChange((e as CustomEvent<{ collapsed: boolean }>).detail.collapsed);
+    el.addEventListener('skalpai-feedback-collapse', handler);
+    return () => el.removeEventListener('skalpai-feedback-collapse', handler);
+  }, [onCollapseChange]);
 
   if (!endpoint || !apiKey || !projectId) return null;
 
@@ -73,6 +101,7 @@ export function FeedbackButton({
       {...(theme && theme !== 'auto' ? { theme } : {})}
       {...(labelsAttr ? { labels: labelsAttr } : {})}
       {...(placement && placement !== 'bottom-left' ? { placement } : {})}
+      {...(collapsed ? { collapsed: '' } : {})}
     />
   );
 }
@@ -88,8 +117,9 @@ declare module 'react' {
           theme?: 'light' | 'dark';
           labels?: string;
           placement?: FeedbackPlacement;
+          collapsed?: string;
         },
-        HTMLElement
+        SkalpaiFeedbackElement
       >;
     }
   }
