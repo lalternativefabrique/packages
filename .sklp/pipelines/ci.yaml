@@ -81,6 +81,10 @@ scopes:
     - "go/webhooks/**"
   busevents:
     - "go/busevents/**"
+  membership:
+    - "go/membership/**"
+    - "go/busevents/**"
+    - "go/eda/**"
   lungor-core:
     - "lungor/core/**"
   lungor-sdk:
@@ -215,6 +219,29 @@ steps:
       go build ./...
       go vet ./...
       go test -count=1 ./...
+
+  # The account lifecycle every core imports; replaces go/eda and go/busevents
+  # from the tree so a change there is tested against it before it is tagged.
+  - name: membership
+    scope: [membership]
+    tools: [go]
+    run: |
+      cd go/membership
+      go build ./...
+      go vet ./...
+      go vet -tags integration ./...
+      go test -count=1 ./...
+
+  - name: membership-integration
+    scope: [membership]
+    depends_on: [membership]
+    tools: [go]
+    services: [postgres-test]
+    env:
+      DATABASE_URL: "postgres://packages:packages@postgres-test:5432/packages_test?sslmode=disable"
+    run: |
+      cd go/membership
+      go test -count=1 -v -tags integration ./pgx/...
 
   - name: webhooks
     scope: [webhooks]
