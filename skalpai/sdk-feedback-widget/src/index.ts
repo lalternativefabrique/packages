@@ -19,6 +19,8 @@ type Labels = {
   remove_attachment: string;
   email_placeholder: string;
   email_invalid: string;
+  hide: string;
+  show: string;
 };
 
 const DEFAULT_LABELS: Labels = {
@@ -38,7 +40,11 @@ const DEFAULT_LABELS: Labels = {
   remove_attachment: 'Retirer la pièce jointe',
   email_placeholder: 'Votre email (pour une réponse)',
   email_invalid: 'Email invalide',
+  hide: 'Masquer le bouton',
+  show: 'Afficher le bouton feedback',
 };
+
+const COLLAPSE_STORAGE_PREFIX = 'skalpai-feedback:collapsed:';
 
 const MAX_ATTACHMENTS = 5;
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
@@ -84,19 +90,53 @@ const STYLES = `
     --skalpai-disabled-fg: rgba(255,255,255,.35);
   }
   *, *::before, *::after { box-sizing: border-box; }
-  .btn-fab {
+  .fab {
     position: fixed;
     bottom: var(--skalpai-fab-inset-block);
     left: var(--skalpai-fab-inset-inline);
     z-index: 2147483646;
+    display: inline-flex; align-items: center;
+  }
+  .btn-fab {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 8px 14px; border: 0; border-radius: 999px;
     background: var(--skalpai-fg); color: var(--skalpai-bg);
-    font-size: 13px; font-weight: 500; cursor: pointer;
+    font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,.25);
     transition: opacity .15s;
   }
   .btn-fab:hover { opacity: .9; }
+  .fab-hide {
+    position: absolute; top: -7px; right: -7px;
+    width: 20px; height: 20px; padding: 0;
+    border: 1px solid var(--skalpai-border); border-radius: 50%;
+    background: var(--skalpai-panel); color: var(--skalpai-muted);
+    font-size: 13px; line-height: 1; cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,.2);
+    opacity: 0; transform: scale(.8);
+    transition: opacity .15s, transform .15s, color .15s;
+  }
+  .fab:hover .fab-hide, .fab:focus-within .fab-hide { opacity: 1; transform: none; }
+  .fab-hide:hover { color: var(--skalpai-fg); }
+  .fab-tab {
+    position: fixed;
+    bottom: var(--skalpai-fab-inset-block);
+    left: 0;
+    z-index: 2147483646;
+    width: 44px; height: 40px; padding: 0 0 0 6px; border: 0;
+    border-radius: 0 999px 999px 0;
+    background: var(--skalpai-fg); color: var(--skalpai-bg);
+    font-size: 16px; line-height: 1; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    opacity: .7; transform: translateX(-50%);
+    transition: transform .2s, opacity .2s;
+  }
+  .fab-tab:hover, .fab-tab:focus-visible { opacity: 1; transform: none; }
+  @media (hover: none) {
+    .fab-hide { opacity: 1; transform: none; }
+    .fab-tab { opacity: .9; transform: translateX(-30%); }
+    .fab-tab:hover { transform: translateX(-30%); }
+  }
   .panel {
     position: fixed;
     bottom: calc(var(--skalpai-fab-inset-block) + var(--skalpai-panel-gap));
@@ -108,18 +148,34 @@ const STYLES = `
     box-shadow: 0 8px 32px rgba(0,0,0,.35); overflow: hidden;
   }
 
-  :host([placement="bottom-right"]) .btn-fab,
+  :host([placement="bottom-right"]) .fab,
   :host([placement="bottom-right"]) .panel {
     left: auto;
     right: var(--skalpai-fab-inset-inline);
+  }
+  :host([placement="bottom-right"]) .fab-hide { right: auto; left: -7px; }
+  :host([placement="bottom-right"]) .fab-tab {
+    left: auto; right: 0;
+    padding: 0 6px 0 0;
+    border-radius: 999px 0 0 999px;
+    transform: translateX(50%);
+  }
+  :host([placement="bottom-right"]) .fab-tab:hover,
+  :host([placement="bottom-right"]) .fab-tab:focus-visible { transform: none; }
+  @media (hover: none) {
+    :host([placement="bottom-right"]) .fab-tab,
+    :host([placement="bottom-right"]) .fab-tab:hover { transform: translateX(30%); }
   }
 
   :host([placement="inline"]) {
     position: relative;
     display: inline-flex;
   }
-  :host([placement="inline"]) .btn-fab {
+  :host([placement="inline"]) .fab {
     position: static;
+    width: 100%;
+  }
+  :host([placement="inline"]) .btn-fab {
     width: 100%;
     box-shadow: none;
   }
@@ -228,7 +284,7 @@ const HTMLElementCtor: typeof HTMLElement =
     : (class {} as unknown as typeof HTMLElement);
 
 export class SkalpaiFeedbackElement extends HTMLElementCtor {
-  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'theme', 'user-email', 'placement'];
+  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'theme', 'user-email', 'placement', 'collapsed'];
 
   private root: ShadowRoot;
   private open = false;
@@ -308,6 +364,48 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     else this.removeAttribute('placement');
   }
 
+  get collapsed(): boolean {
+    return this.hasAttribute('collapsed') && this.placement !== 'inline';
+  }
+  set collapsed(v: boolean) {
+    if (v) this.setAttribute('collapsed', '');
+    else this.removeAttribute('collapsed');
+  }
+
+  hide(): void {
+    this.collapsed = true;
+  }
+
+  show(): void {
+    this.collapsed = false;
+  }
+
+  private get collapseStorageKey(): string {
+    return COLLAPSE_STORAGE_PREFIX + (this.projectId || 'default');
+  }
+
+  private readStoredCollapse(): boolean {
+    try {
+      return localStorage.getItem(this.collapseStorageKey) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  private writeStoredCollapse(collapsed: boolean): void {
+    try {
+      if (collapsed) localStorage.setItem(this.collapseStorageKey, '1');
+      else localStorage.removeItem(this.collapseStorageKey);
+    } catch {
+      // storage unavailable (private mode, blocked): the choice lasts for this page only
+    }
+  }
+
+  private setCollapsed(collapsed: boolean): void {
+    this.writeStoredCollapse(collapsed);
+    this.collapsed = collapsed;
+  }
+
   constructor() {
     super();
     this.root = this.attachShadow({ mode: 'open' });
@@ -316,6 +414,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   connectedCallback(): void {
     const presetEmail = this.getAttribute('user-email');
     if (presetEmail && !this.userIdentifier) this.userIdentifier = presetEmail;
+    if (!this.hasAttribute('collapsed') && this.readStoredCollapse()) this.setAttribute('collapsed', '');
     this.applyTheme();
     this.setupThemeWatchers();
     this.render();
@@ -339,6 +438,12 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       const v = this.getAttribute('user-email');
       // Only adopt the attribute as long as the visitor hasn't typed their own.
       if (v && !this.emailTouched) this.userIdentifier = v;
+    }
+    if (name === 'collapsed') {
+      if (this.collapsed) this.open = false;
+      this.dispatchEvent(
+        new CustomEvent('skalpai-feedback-collapse', { detail: { collapsed: this.collapsed } }),
+      );
     }
     if (this.root.firstChild) this.render();
   }
@@ -598,11 +703,29 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     const L = this.labels;
     const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
 
+    if (this.collapsed) {
+      this.root.innerHTML = `
+        <style>${STYLES}</style>
+        <button class="fab-tab" type="button" aria-label="${L.show}" title="${L.show}">
+          <span aria-hidden="true">💬</span>
+        </button>
+      `;
+      this.root.querySelector('.fab-tab')?.addEventListener('click', () => this.setCollapsed(false));
+      return;
+    }
+
     this.root.innerHTML = `
       <style>${STYLES}</style>
-      <button class="btn-fab" type="button" aria-label="${L.title}">
-        <span aria-hidden="true">💬</span><span>${L.title}</span>
-      </button>
+      <div class="fab">
+        <button class="btn-fab" type="button" aria-label="${L.title}" aria-expanded="${this.open}">
+          <span aria-hidden="true">💬</span><span>${L.title}</span>
+        </button>
+        ${
+          this.placement !== 'inline' && !this.open
+            ? `<button class="fab-hide" type="button" aria-label="${L.hide}" title="${L.hide}">×</button>`
+            : ''
+        }
+      </div>
       ${
         this.open
           ? `
@@ -678,6 +801,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       this.open = !this.open;
       this.render();
     });
+    this.root.querySelector('.fab-hide')?.addEventListener('click', () => this.setCollapsed(true));
     this.root.querySelector('.close')?.addEventListener('click', () => {
       this.open = false;
       this.render();
