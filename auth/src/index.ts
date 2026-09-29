@@ -1,13 +1,5 @@
 // Types
 export type {
-  PlatformAuthConfig,
-  PlatformAuthClientConfig,
-  PlatformAuthMailer,
-  PlatformAuthMailerArgs,
-  PlatformAuthMailerType,
-  PlatformUser,
-  PlatformSession,
-  PlatformSessionData,
   LoginFormProps,
   LoginFormLabels,
   EmailCodeSignInFormProps,
@@ -17,14 +9,6 @@ export type {
   RegisterFormLabels,
   VerifyEmailFormProps,
   ForgotPasswordFormProps,
-  MagicLinkFormProps,
-  MagicLinkFormLabels,
-  MagicLinkClientSurface,
-  MagicLinkConfig,
-  PlatformRateLimitConfig,
-  PlatformRateLimitRule,
-  PlatformTwoFactorConfig,
-  TwoFactorClientSurface,
   ResetPasswordFormProps,
   AuthLayoutProps,
   InvitationNoticeProps,
@@ -32,19 +16,11 @@ export type {
   AuthClientSurface,
   AuthClientResult,
   AuthClientDataResult,
-  AdminClientSurface,
   AuthThemeProps,
-  PlatformSsoConfig,
-  SsoClientSurface,
   AuthNavProps,
   AuthInviteProps,
   LinkComponent,
-  PlatformKratosPasswordConfig,
 } from "./types"
-
-// Hooks
-export { useSession, useLogout } from "./hooks/use-session"
-export { startSso } from "./start-sso"
 
 // Components
 export { AuthField } from "./components/auth-field"
@@ -56,7 +32,6 @@ export { RegisterForm } from "./components/register-form"
 export { SocialButtons } from "./components/social-buttons"
 export { VerifyEmailForm } from "./components/verify-email-form"
 export { ForgotPasswordForm } from "./components/forgot-password-form"
-export { MagicLinkForm } from "./components/magic-link-form"
 export { ResetPasswordForm } from "./components/reset-password-form"
 export { AuthLayout } from "./components/auth-layout"
 export { InvitationNotice } from "./components/invitation-notice"
@@ -98,8 +73,8 @@ export type { MagicLinkErrorLabels } from "./magic-link-error"
 
 export { AuthLink } from "./components/auth-link"
 
-// Invitations. claimInvitation itself is server-only and lives in /server; what
-// is exported here is what a page rendering InvitationNotice needs.
+// Invitations. claimInvitation itself is server-only and lives in /urbangate;
+// what is exported here is what a page rendering InvitationNotice needs.
 export { isInvitationFailure } from "./invitation"
 export type { ClaimOutcome } from "./invitation"
 

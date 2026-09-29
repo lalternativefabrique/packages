@@ -1,7 +1,7 @@
 {
   "name": "@lalternative/auth",
-  "version": "1.11.1",
-  "description": "Shared Better Auth wrapper for L'Alternative apps (server + React client + auth UI)",
+  "version": "2.0.0",
+  "description": "The suite's sign-in on urbangate for L'Alternative apps: the product's server routes, the browser and Expo clients, and the auth UI",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -9,14 +9,6 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./server": {
-      "import": "./dist/server.js",
-      "types": "./dist/server.d.ts"
-    },
-    "./client": {
-      "import": "./dist/client.js",
-      "types": "./dist/client.d.ts"
     },
     "./urbangate": {
       "import": "./dist/urbangate.js",
@@ -43,14 +35,10 @@
     "playground": "vite --config playground/vite.config.ts"
   },
   "peerDependencies": {
-    "better-auth": ">=1.7.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
   "peerDependenciesMeta": {
-    "better-auth": {
-      "optional": true
-    },
     "react-dom": {
       "optional": true
     }
@@ -60,14 +48,12 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "better-auth": "^1.7.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.7.0",
-    "vite": "^7.1.7",
-    "zod": "^4.4.3"
+    "vite": "^7.1.7"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org",

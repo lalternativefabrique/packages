@@ -209,10 +209,21 @@ test("get-session reads whoami and the role off the token cookie; sign-out clear
   );
   assert.equal(await none.json(), null);
   const out = await a.handler(post("sign-out", {}, "tornad_session=ory_st"));
-  assert.equal(
-    out.headers.getSetCookie().filter((c) => c.includes("Max-Age=0")).length,
-    3,
+  const cleared = out.headers.getSetCookie().filter((c) => c.includes("Max-Age=0"));
+  assert.equal(cleared.length, 5);
+  assert.ok(cleared.some((c) => c.startsWith("__Secure-better-auth.session_token=;") && c.includes("Secure")));
+  assert.ok(cleared.some((c) => c.startsWith("better-auth.session_token=;") && !c.includes("Domain=")));
+});
+
+test("a sign-in expires the cookies the Better Auth server used to set", async () => {
+  const { fetchImpl } = kratosStub();
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
   );
+  const cookies = res.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(cookies.some((c) => c.startsWith("__Secure-better-auth.session_token=;") && c.includes("Max-Age=0")));
+  assert.ok(cookies.some((c) => c.startsWith("better-auth.session_token=;") && c.includes("Max-Age=0")));
 });
 
 test("accessToken exchanges when the cookie is missing or stale, and keeps a fresh one", async () => {
@@ -532,7 +543,7 @@ test("delete-account runs billing then data, drops the role, and signs out", asy
   assert.ok(calls.some((c) => c.key === "DELETE /self-service/logout/api"));
   assert.equal(
     res.headers.getSetCookie().filter((c) => c.includes("Max-Age=0")).length,
-    3,
+    5,
   );
 });
 

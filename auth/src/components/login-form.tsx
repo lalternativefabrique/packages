@@ -24,7 +24,7 @@ const DEFAULTS: Required<LoginFormLabels> = {
   invalidCredentials: "Adresse e-mail ou mot de passe incorrect",
   emailNotVerified:
     "Ton adresse e-mail n'est pas encore confirmée. Vérifie ta boîte de réception.",
-  // accountLinking is disabled in createPlatformAuth, so a social sign-in on an
+  // Account linking is off, so a social sign-in on an
   // address already registered with a password is refused with this code.
   // Without a message the button reads as broken rather than as a rejection.
   accountNotLinked:
@@ -89,9 +89,7 @@ export function LoginForm({
         )
         return
       }
-      // The better-auth session cookie alone does not authenticate a Go core:
-      // it verifies the EdDSA JWT minted here against the issuer's JWKS.
-      // Skipped when the app sets the token itself, or has no core at all.
+      // Skipped when the app sets the core's token itself, or has no core.
       if (coreTokenUrl) {
         await fetch(coreTokenUrl, { credentials: "include" })
       }

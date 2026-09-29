@@ -331,12 +331,20 @@ export function createUrbangateAuth(
 
   const clear = (name: string) => clearCookie(name, secure, domain);
 
+  // The cookies the product's Better Auth server used to set, expired on
+  // every sign-in and sign-out until no browser carries them any more.
+  const staleCookies = () => [
+    clearCookie("__Secure-better-auth.session_token", true),
+    clearCookie("better-auth.session_token", false),
+  ];
+
   const signedIn = (result: KratosSessionResult): Array<string> => {
     const token = result.session_token;
     if (!token) return [];
     return [
       cookie(names.session, token, SESSION_MAX_AGE),
       clear(names.flow),
+      ...staleCookies(),
     ];
   };
 
@@ -1071,6 +1079,7 @@ export function createUrbangateAuth(
     clear(names.session),
     clear(names.token),
     clear(names.flow),
+    ...staleCookies(),
     ...(sso
       ? [
           clear(names.admin),

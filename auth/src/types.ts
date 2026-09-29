@@ -1,308 +1,3 @@
-import type { BetterAuthOptions } from "better-auth"
-
-type SocialProviderOptions = NonNullable<BetterAuthOptions["socialProviders"]>
-
-/**
- * Session user shape exposed by the platform auth instance.
- *
- * The instance returned by {@link createPlatformAuth} is widened to the base
- * `Auth` type so the published `.d.ts` stays portable (inferring the full
- * plugin-augmented type triggers TS2742). That widening hides the fields the
- * email-otp/admin plugins add at runtime — notably `role` from `admin()`.
- *
- * This is the hand-maintained contract for what `api.getSession()` actually
- * returns. Consumers cast the session to {@link PlatformSession} to read these
- * fields with types. Keep it in sync with the enabled plugins.
- */
-export interface PlatformUser {
-  id: string
-  email: string
-  emailVerified: boolean
-  name: string
-  image?: string | null
-  createdAt: Date
-  updatedAt: Date
-  /** From the admin() plugin. Absent until a role is assigned. */
-  role?: string | null
-  /** From the admin() plugin. */
-  banned?: boolean | null
-  /** From the twoFactor() plugin, when enabled. */
-  twoFactorEnabled?: boolean | null
-}
-
-export interface PlatformSessionData {
-  id: string
-  userId: string
-  expiresAt: Date
-  token: string
-  createdAt: Date
-  updatedAt: Date
-  ipAddress?: string | null
-  userAgent?: string | null
-}
-
-/** Return shape of `auth.api.getSession()` for platform apps. */
-export interface PlatformSession {
-  user: PlatformUser
-  session: PlatformSessionData
-}
-
-export type PlatformAuthMailerType =
-  | "email-verification"
-  | "forget-password"
-  | "sign-in"
-  | "change-email"
-  | "magic-link"
-
-export interface PlatformAuthMailerArgs {
-  /** Recipient address */
-  to: string
-  /** Pre-rendered subject line */
-  subject: string
-  /** Pre-rendered HTML body */
-  html: string
-  /** Better Auth verification kind */
-  type: PlatformAuthMailerType
-  /**
-   * The OTP value, in case the consumer wants to render its own template.
-   * Absent on `magic-link`, which carries a URL rather than a code.
-   */
-  otp?: string
-  /**
-   * The sign-in URL, on `magic-link` only. Already signed and pointed at the
-   * app's callback — send it as given.
-   */
-  url?: string
-}
-
-export type PlatformAuthMailer = (args: PlatformAuthMailerArgs) => Promise<void>
-
-export interface MagicLinkConfig {
-  /** Seconds until the emailed link stops working. Defaults to 300 (5 min). */
-  expiresIn?: number
-  /**
-   * Whether an unknown address may create an account by following the link.
-   * Off by default, and deliberately so: `createPlatformAuth` requires a
-   * verified email and can be put behind an invite-only beta, both of which a
-   * self-signing-up magic link would walk straight past. Turn it on only for
-   * an app whose sign-up is open anyway.
-   */
-  allowSignUp?: boolean
-  /** Subject line. Defaults to `Your sign-in link - ${appName}`. */
-  subject?: string
-  /**
-   * Override the email HTML renderer. Receives the signed sign-in URL and the
-   * recipient. When omitted, the platform's default template is used.
-   */
-  render?: (url: string, email: string) => string
-}
-
-export interface PlatformRateLimitRule {
-  /** Length of the window, in seconds. */
-  window: number
-  /** Requests allowed per window, per client. */
-  max: number
-}
-
-export interface PlatformRateLimitConfig {
-  /**
-   * Off only when an app is certain something in front of it already limits
-   * the auth endpoints. Defaults to true, deliberately: Better Auth keys its
-   * own default on NODE_ENV, so a deployment missing the variable would serve
-   * sign-in with no brute-force protection and nothing would say so.
-   */
-  enabled?: boolean
-  /** Global window in seconds for paths without a rule. Defaults to 10. */
-  window?: number
-  /** Global max per window for paths without a rule. Defaults to 100. */
-  max?: number
-  /**
-   * Where counters live. "memory" (the default) is per-process, so it does not
-   * hold across replicas — an app running more than one must pass "database"
-   * or wire secondaryStorage.
-   */
-  storage?: "memory" | "database" | "secondary-storage"
-  /** Table name when storage is "database". */
-  modelName?: string
-  /**
-   * Per-path overrides, merged over the platform's. The platform already
-   * tightens sign-in, sign-up, OTP send/verify, password reset, magic link
-   * and two-factor verification; use this to go further, not to loosen.
-   */
-  customRules?: Record<string, PlatformRateLimitRule>
-}
-
-export interface PlatformTwoFactorConfig {
-  /** Mounts the two-factor endpoints. Off unless set. */
-  enabled: boolean
-  /** Label shown in the authenticator app. Defaults to appName. */
-  issuer?: string
-  /**
-   * Trust an enrolment before a first code is verified. Leave false: enabling
-   * on an unverified secret locks the account out when the authenticator was
-   * mis-scanned.
-   */
-  skipVerificationOnEnable?: boolean
-}
-
-export interface PlatformSsoConfig {
-  /** The provider's issuer URL, e.g. https://id.urbangate.dev */
-  issuer: string
-  clientId: string
-  clientSecret: string
-  /** The roles-claim value that grants this app's admin role, e.g. "tornade:admin". */
-  adminRole: string
-  /** Better Auth provider id, in the callback path. Defaults to "urbangate". */
-  providerId?: string
-  /** Lets a first visit create the local user. Defaults to true. */
-  allowSignUp?: boolean
-  /**
-   * The audience the access token asks Hydra for, i.e. the product whose
-   * core will verify it (ADR 0009 of urbangate). Omit for a token the core
-   * never sees.
-   */
-  audience?: string
-}
-
-export interface PlatformKratosPasswordConfig {
-  /** Kratos' public URL, e.g. https://id.urbangate.dev */
-  publicUrl: string
-  /** urbangate's issuer URL for the provisioning credential. */
-  issuer: string
-  /** The product's provisioner client, e.g. "spore-provisioner". */
-  clientId: string
-  clientSecret: string
-  /** The role granted to a customer of this product, e.g. "spore:user". */
-  role: string
-  /** The product id, e.g. "spore". */
-  product: string
-  /**
-   * Called when a sign-up could not reach the provider, so the app can queue
-   * the repair. The sign-up itself always succeeds: the hook runs after the
-   * insert commits, and a customer is never refused registration because the
-   * provider is down.
-   */
-  onProvisioningDeferred?: (input: { userId: string; email: string }) => void | Promise<void>
-}
-
-export interface SsoClientSurface {
-  signIn: {
-    social(args: {
-      provider: string
-      callbackURL?: string
-      errorCallbackURL?: string
-    }): Promise<unknown>
-  }
-}
-
-export interface PlatformAuthConfig {
-  /** PostgreSQL connection pool or connection string */
-  database: BetterAuthOptions["database"]
-  /** Base URL for Better Auth callbacks (e.g. http://localhost:3001) */
-  baseURL: string
-  /** Secret for signing sessions */
-  secret: string
-  /** Application name (used in emails) */
-  appName: string
-  /**
-   * Transactional mailer. Receives the fully-rendered subject and HTML body
-   * and is responsible for pushing the message onto the wire (e.g. via the
-   * @digstack/spore-sdk, SES, postfix, …). When omitted, OTPs are logged to
-   * stdout — useful in dev/test, useless in production.
-   */
-  mailer?: PlatformAuthMailer
-  /**
-   * Google OAuth config (omit to disable).
-   *
-   * Passed to Better Auth as given, so anything it accepts works here —
-   * `scope`, `mapProfileToUser`, `redirectURI`. The platform sets `prompt` and
-   * `accessType` first; pass either to override it.
-   */
-  google?: SocialProviderOptions["google"]
-  /** GitHub OAuth config (omit to disable). Passed to Better Auth as given. */
-  github?: SocialProviderOptions["github"]
-  /**
-   * Single sign-on through the suite's identity provider (urbangate). Mounts
-   * an OIDC client; a person whose roles claim carries `adminRole` signs in
-   * as admin, anyone else as a plain user. Omit to leave it off.
-   */
-  sso?: PlatformSsoConfig
-  /**
-   * Moves the customers' passwords to the suite's identity provider while the
-   * app keeps its own login screen, its own domain and its own session. The
-   * form posts to this app as before; the password is checked against Kratos
-   * instead of a local hash, and the person is never redirected.
-   *
-   * Each app keeps its own accounts: the same person signing up on two
-   * products has two local users and two passwords. They share one identity
-   * at the provider, which is what an app key is issued against — so an app
-   * dropping a local account must drop its role, never deactivate the
-   * identity, or the person loses every other product of the suite.
-   *
-   * Omit to leave passwords local, as before.
-   */
-  kratosPasswords?: PlatformKratosPasswordConfig
-  /**
-   * Override the OTP email subject line per verification type. Merged over
-   * the platform defaults — provide only the keys you want to change. The
-   * resulting subject is suffixed with ` - ${appName}` like the defaults.
-   */
-  emailSubjects?: Partial<Record<PlatformAuthMailerType, string>>
-  /**
-   * Override the OTP email HTML renderer. Receives the OTP code and the
-   * verification type, returns the HTML body. When omitted, the platform's
-   * default branded template is used.
-   */
-  renderOtpEmail?: (otp: string, type: PlatformAuthMailerType) => string
-  /**
-   * Passwordless sign-in by emailed link. Omit to leave it off — the endpoint
-   * is only mounted when this is given, so an app that does not render the
-   * form does not expose the route either.
-   */
-  magicLink?: MagicLinkConfig
-  /**
-   * Better Auth database hooks, passed through unchanged.
-   *
-   * `user.create.after` is the seam an app uses to react to a signup — record
-   * the invite token it carried, queue the work that puts the account on a
-   * plan. It runs AFTER the insert commits (Better Auth queues it as an
-   * after-transaction hook), so it cannot be made atomic with the user row:
-   * a crash between the two leaves an account nothing reacted to. Anything
-   * durable therefore needs its own repair path.
-   */
-  databaseHooks?: BetterAuthOptions["databaseHooks"]
-  /** Additional Better Auth plugins to append */
-  plugins?: BetterAuthOptions["plugins"]
-  /** Enable private beta mode (blocks public registration) */
-  betaMode?: boolean
-  /** Check if an email+token pair has been invited (required when betaMode is true) */
-  isInvited?: (email: string, inviteToken: string) => Promise<boolean>
-  /**
-   * Brute-force limits on the auth endpoints. The platform enables them with
-   * tightened per-path rules; pass this only to adjust.
-   */
-  rateLimit?: PlatformRateLimitConfig
-  /**
-   * TOTP second factor with backup codes. Requires the `twoFactor` table and
-   * the `user.twoFactorEnabled` column.
-   */
-  twoFactor?: PlatformTwoFactorConfig
-  /**
-   * Origins allowed to drive the auth endpoints, beyond baseURL. Better Auth
-   * checks Origin against this list, so it is what stands between a session
-   * cookie and a cross-site request that spends it.
-   */
-  trustedOrigins?: string[]
-}
-
-export interface PlatformAuthClientConfig {
-  /** Base URL override (defaults to window.location.origin in browser) */
-  baseURL?: string
-  /** Additional client plugins */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  plugins?: any[]
-}
-
 export interface VerifyEmailFormLabels {
   title?: string
   subtitle?: string
@@ -332,7 +27,7 @@ export interface VerifyEmailFormProps extends AuthThemeProps, AuthNavProps {
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: VerifyEmailFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
+  /** The urbangate client */
   authClient: AuthClientSurface
 }
 
@@ -417,13 +112,9 @@ export interface AuthHeadingProps {
  * whole look rather than an addition to it.
  */
 /**
- * The Better Auth client surface these screens actually call.
- *
- * Declared structurally rather than as the inferred client type: the plugin-
- * augmented instance cannot be named in a published .d.ts without TS2742, and
- * every consumer builds its client with its own plugin list. Typing what is
- * called keeps a client missing emailOtp a compile error instead of a runtime
- * one.
+ * The client surface these screens call, declared structurally: the urbangate
+ * clients provide it, and a client missing a call is a compile error instead
+ * of a runtime one.
  */
 export interface AuthClientResult {
   error?: { message?: string; code?: string; status?: number } | null
@@ -431,29 +122,6 @@ export interface AuthClientResult {
 
 export interface AuthClientDataResult<T> extends AuthClientResult {
   data?: T | null
-}
-
-/**
- * The admin() plugin's client half. Part of {@link AuthClientSurface} rather
- * than kept apart like {@link MagicLinkClientSurface}: createPlatformAuthClient
- * always mounts adminClient(), so a client built by it always answers here.
- *
- * The user shape is left open — each app stores its own columns, and this
- * surface exists to type the calls, not the rows they return.
- */
-export interface AdminClientSurface {
-  listUsers(input: {
-    query?: Record<string, unknown>
-  }): Promise<AuthClientDataResult<{ users?: unknown[]; total?: number }>>
-  banUser(input: {
-    userId: string
-    banReason?: string
-  }): Promise<AuthClientResult>
-  unbanUser(input: { userId: string }): Promise<AuthClientResult>
-  setRole(input: {
-    userId: string
-    role: "admin" | "user"
-  }): Promise<AuthClientResult>
 }
 
 export interface AuthClientSurface {
@@ -486,67 +154,10 @@ export interface AuthClientSurface {
       password: string
     }): Promise<AuthClientResult>
   }
-  /**
-   * Optional: the forms take an AuthClientSurface as a prop, and a client built
-   * by hand for a login screen has no reason to mount adminClient(). Required
-   * on PlatformAuthClient, which always does.
-   */
-  admin?: AdminClientSurface
-  /**
-   * The second step of a password reset for an identity holding a second
-   * factor. Only the urbangate client has it; without it the reset form
-   * reports the refusal as a failure.
-   */
+  /** The second step of a password reset for an identity holding a second factor. */
   secondFactor?: {
     verify(input: { code: string; password: string }): Promise<AuthClientResult>
   }
-}
-
-/**
- * The magic-link half of the client surface, kept apart from
- * {@link AuthClientSurface}: the plugin is opt-in server-side, so only the
- * screens that offer the flow require a client carrying it.
- */
-export interface MagicLinkClientSurface {
-  signIn: {
-    magicLink(input: {
-      email: string
-      callbackURL?: string
-      newUserCallbackURL?: string
-      errorCallbackURL?: string
-    }): Promise<AuthClientResult>
-  }
-}
-
-/**
- * The twoFactor() plugin's client half. Always mounted by
- * createPlatformAuthClient — which methods exist client-side costs nothing;
- * whether the routes answer is decided server-side by passing `twoFactor` to
- * createPlatformAuth.
- *
- * A sign-in against an account with 2FA on returns `twoFactorRedirect: true`
- * instead of a session, and the second factor is what completes it.
- */
-export interface TwoFactorClientSurface {
-  enable(input: {
-    password: string
-    issuer?: string
-  }): Promise<AuthClientDataResult<{ totpURI: string; backupCodes: string[] }>>
-  disable(input: { password: string }): Promise<AuthClientResult>
-  getTotpUri(input: {
-    password: string
-  }): Promise<AuthClientDataResult<{ totpURI: string }>>
-  verifyTotp(input: {
-    code: string
-    trustDevice?: boolean
-  }): Promise<AuthClientResult>
-  verifyBackupCode(input: {
-    code: string
-    trustDevice?: boolean
-  }): Promise<AuthClientResult>
-  generateBackupCodes(input: {
-    password: string
-  }): Promise<AuthClientDataResult<{ backupCodes: string[] }>>
 }
 
 export interface AuthThemeProps {
@@ -589,11 +200,10 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInvite
   onSuccess?: () => void
   /**
    * Called with the typed address when the credentials are right but the
-   * account never confirmed its email — `createPlatformAuth` sets
-   * `requireEmailVerification`, so that sign-in is refused and no session is
-   * created. Route to the OTP screen, as `RegisterForm.onSuccess` does. Left
-   * unset, the refusal is rendered as an error like any other, which reads as
-   * a wrong password.
+   * address was never confirmed, so the sign-in is refused without a session.
+   * Route to the OTP screen, as `RegisterForm.onSuccess` does. Left unset, the
+   * refusal is rendered as an error like any other, which reads as a wrong
+   * password.
    */
   onEmailNotVerified?: (email: string) => void
   /**
@@ -607,31 +217,26 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps, AuthInvite
   /** Link to the password recovery page */
   forgotPasswordUrl?: string
   /**
-   * Where Better Auth sends the browser back after a social sign-in. Social
-   * buttons are only rendered when at least one provider is passed.
+   * Where the browser comes back after a social sign-in. Social buttons are
+   * only rendered when at least one provider is passed.
    */
   socialCallbackUrl?: string
   /**
    * Where a social sign-in that did NOT work sends the browser, with `?error=`
-   * on it.
-   *
-   * Defaults to the page this form is on, which is the one that reads the code
-   * with `initialOAuthError` and renders it. Better Auth would otherwise keep
-   * the browser on its own error route, where nothing shows the code and the
-   * button reads as broken.
+   * on it. Defaults to the page this form is on, the one that reads the code
+   * with `initialOAuthError` and renders it.
    */
   errorCallbackUrl?: string
   /** Social providers to offer, in display order */
   socialProviders?: Array<"google" | "github">
   /**
-   * Endpoint trading the fresh better-auth session for the short-lived EdDSA
-   * token the Go core verifies. Called after a successful password sign-in;
-   * pass null to skip when the app has no core.
+   * Endpoint renewing the core's token once the session is open. Called after
+   * a successful password sign-in; pass null to skip when the app has no core.
    */
   coreTokenUrl?: string | null
   /** Copy overrides; anything omitted keeps the French default */
   labels?: LoginFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
+  /** The urbangate client */
   authClient: AuthClientSurface
 }
 
@@ -696,23 +301,19 @@ export interface RegisterFormProps extends AuthThemeProps, AuthNavProps, AuthInv
   collectName?: boolean
   /** Rendered under the submit button — typically terms and privacy links */
   legal?: React.ReactNode
-  /** Where Better Auth sends the browser back after a social sign-up */
+  /** Where the browser comes back after a social sign-up */
   socialCallbackUrl?: string
   /**
    * Where a social sign-up that did NOT work sends the browser, with `?error=`
-   * on it.
-   *
-   * Defaults to the page this form is on, which is the one that reads the code
-   * with `initialOAuthError` and renders it. Better Auth would otherwise keep
-   * the browser on its own error route, where nothing shows the code and the
-   * button reads as broken.
+   * on it. Defaults to the page this form is on, the one that reads the code
+   * with `initialOAuthError` and renders it.
    */
   errorCallbackUrl?: string
   /** Social providers to offer, in display order */
   socialProviders?: Array<"google" | "github">
   /** Copy overrides; anything omitted keeps the French default */
   labels?: RegisterFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
+  /** The urbangate client */
   authClient: AuthClientSurface
 }
 
@@ -735,55 +336,8 @@ export interface ForgotPasswordFormProps extends AuthThemeProps, AuthNavProps {
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: ForgotPasswordFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
+  /** The urbangate client */
   authClient: AuthClientSurface
-}
-
-export interface MagicLinkFormLabels {
-  title?: string
-  subtitle?: string
-  emailPlaceholder?: string
-  submit?: string
-  submitPending?: string
-  sent?: string
-  resend?: string
-  usePassword?: string
-  login?: string
-  emailRequired?: string
-  sendFailed?: string
-}
-
-export interface MagicLinkFormProps
-  extends AuthThemeProps,
-    AuthNavProps,
-    AuthInviteProps {
-  /** Callback once the link is on its way, receives the address it went to */
-  onSuccess?: (email: string) => void
-  /** Error raised outside the form, rendered in the same banner */
-  error?: string
-  /** Link to the password sign-in page */
-  loginUrl?: string
-  /** Where Better Auth sends the browser once the link is followed */
-  callbackUrl?: string
-  /**
-   * Where an existing account lands, when a first-time visitor should land
-   * elsewhere — an onboarding step, say. Defaults to `callbackUrl`.
-   */
-  newUserCallbackUrl?: string
-  /**
-   * Where a link that did NOT work sends the browser, with `?error=` on it.
-   *
-   * Defaults to the page this form is on, which is the one place asking for
-   * another link is possible. Better Auth would otherwise fall back to
-   * `callbackUrl` — typically a signed-in destination, where an auth guard
-   * bounces the visitor and drops the error on the way, leaving an expired
-   * link looking like nothing happened at all.
-   */
-  errorCallbackUrl?: string
-  /** Copy overrides; anything omitted keeps the French default */
-  labels?: MagicLinkFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
-  authClient: MagicLinkClientSurface
 }
 
 export interface ResetPasswordFormLabels {
@@ -822,7 +376,7 @@ export interface ResetPasswordFormProps extends AuthThemeProps, AuthNavProps {
   loginUrl?: string
   /** Copy overrides; anything omitted keeps the French default */
   labels?: ResetPasswordFormLabels
-  /** Auth client instance, e.g. from createPlatformAuthClient */
+  /** The urbangate client */
   authClient: AuthClientSurface
 }
 
