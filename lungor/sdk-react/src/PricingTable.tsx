@@ -135,7 +135,7 @@ export function PricingTable({
       plans.map((plan) => {
         const free = isFreePlan(plan);
         const isCurrent = currentPlanCode !== undefined && plan.code === currentPlanCode;
-        const isAvailable = (plan.purchasable ?? true) && !isCurrent;
+        const isAvailable = (free || (plan.purchasable ?? true)) && !isCurrent;
         const intent: PricingIntent = free || !authenticated ? 'signup' : 'checkout';
         return {
           plan,
