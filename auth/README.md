@@ -354,11 +354,12 @@ export const auth = createUrbangateAuth({
    which holds the members and the reserved names (`go/membership`): 409 is
    `already_registered`, 400 is `identifier_refused` with the core's reason,
    and nothing has been created.
-2. `POST /api/machine/identities` at urbangate with `email_verified: true`:
-   the identity is provisioned verified, no verification flow, no mail. An
-   address already enrolled is `already_registered`, and its password is
-   left alone — a sign-up never joins an existing identity under an owned
-   domain, or anyone could set the password of an address they do not own.
+2. `POST /api/machine/identities` at urbangate with `email_verified: true`
+   and `exclusive: true`: the identity is provisioned verified, no
+   verification flow, no mail. An address already enrolled is
+   `already_registered` before any role is added or password set — a
+   sign-up never joins an existing identity under an owned domain, or anyone
+   could set the password of an address they do not own.
 3. The password is set through `PUT /api/machine/passwords`, the session is
    opened by a Kratos login, and `onAccountOpened` runs at once: the address
    is proven by construction.
