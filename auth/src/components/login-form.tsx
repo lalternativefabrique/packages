@@ -6,7 +6,6 @@ import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
 import { AUTH_HINT_LINK_CLASS, AUTH_LINK_CLASS, AuthLink } from "./auth-link"
-import { withInviteToken } from "../invite-token"
 import { oauthErrorCallback } from "../oauth-error"
 
 const DEFAULTS: Required<LoginFormLabels> = {
@@ -47,11 +46,11 @@ export function LoginForm({
   fieldClassName,
   error: externalError,
   linkComponent,
-  invite,
+  defaultEmail,
   authClient,
 }: LoginFormProps) {
   const t = { ...DEFAULTS, ...labels }
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(defaultEmail ?? "")
   const [password, setPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
@@ -106,9 +105,7 @@ export function LoginForm({
     try {
       await authClient.signIn.social({
         provider,
-        // The invitation rides the callback: an OAuth sign-up leaves the
-        // browser, and the auth handler redeems the token on the way back.
-        callbackURL: withInviteToken(socialCallbackUrl, invite),
+        callbackURL: socialCallbackUrl,
         // Resolved here rather than at render: the default is the current page,
         // and this runs in the browser, where there is one.
         errorCallbackURL: oauthErrorCallback(
@@ -184,7 +181,7 @@ export function LoginForm({
         <p className="text-center text-sm text-muted-foreground">
           {t.noAccount}{" "}
           <AuthLink
-            to={withInviteToken(registerUrl, invite)}
+            to={registerUrl}
             as={linkComponent}
             className={AUTH_LINK_CLASS}
           >

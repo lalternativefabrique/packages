@@ -11,14 +11,13 @@ export type {
   ForgotPasswordFormProps,
   ResetPasswordFormProps,
   AuthLayoutProps,
-  InvitationNoticeProps,
-  InvitationFailure,
+  InvitationLandingProps,
+  InvitationLandingLabels,
   AuthClientSurface,
   AuthClientResult,
   AuthClientDataResult,
   AuthThemeProps,
   AuthNavProps,
-  AuthInviteProps,
   LinkComponent,
 } from "./types"
 
@@ -34,9 +33,7 @@ export { VerifyEmailForm } from "./components/verify-email-form"
 export { ForgotPasswordForm } from "./components/forgot-password-form"
 export { ResetPasswordForm } from "./components/reset-password-form"
 export { AuthLayout } from "./components/auth-layout"
-export { InvitationNotice } from "./components/invitation-notice"
-
-export { normalizeInviteToken, withInviteToken } from "./invite-token"
+export { InvitationLanding } from "./components/invitation-landing"
 
 // A route guarding on the same refusal outside the form needs the predicate.
 export { isEmailNotVerified } from "./email-not-verified"
@@ -72,11 +69,6 @@ export {
 export type { MagicLinkErrorLabels } from "./magic-link-error"
 
 export { AuthLink } from "./components/auth-link"
-
-// Invitations. claimInvitation itself is server-only and lives in /urbangate;
-// what is exported here is what a page rendering InvitationNotice needs.
-export { isInvitationFailure } from "./invitation"
-export type { ClaimOutcome } from "./invitation"
 
 export { mapSsoProfile } from "./sso-profile"
 export type { SsoProfile, SsoMappedUser } from "./sso-profile"

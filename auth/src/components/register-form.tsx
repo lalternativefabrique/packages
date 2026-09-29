@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from "react"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
-import { withInviteToken } from "../invite-token"
 import { withSignUpName } from "../signup-name"
 import { oauthErrorCallback } from "../oauth-error"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
@@ -17,7 +16,6 @@ const DEFAULTS: Required<RegisterFormLabels> = {
   namePlaceholder: "Nom complet",
   optional: "facultatif",
   emailPlaceholder: "Adresse e-mail",
-  emailLocked: "Ton invitation est liée à cette adresse.",
   passwordPlaceholder: "Mot de passe",
   passwordHint: `Au moins ${MIN_PASSWORD_LENGTH} caractères.`,
   confirmPlaceholder: "Confirme le mot de passe",
@@ -41,7 +39,6 @@ const DEFAULTS: Required<RegisterFormLabels> = {
 }
 
 export function RegisterForm({
-  lockedEmail,
   onSuccess,
   loginUrl = "/login",
   legal,
@@ -53,14 +50,12 @@ export function RegisterForm({
   fieldClassName,
   error: externalError,
   linkComponent,
-  invite,
   collectName = true,
   authClient,
 }: RegisterFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [name, setName] = useState("")
-  const [typedEmail, setTypedEmail] = useState("")
-  const email = lockedEmail ?? typedEmail
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
@@ -120,9 +115,7 @@ export function RegisterForm({
     try {
       await authClient.signIn.social({
         provider,
-        // The invitation rides the callback: an OAuth sign-up leaves the
-        // browser, and the auth handler redeems the token on the way back.
-        callbackURL: withInviteToken(socialCallbackUrl, invite),
+        callbackURL: socialCallbackUrl,
         // Resolved here rather than at render: the default is the current page,
         // and this runs in the browser, where there is one.
         errorCallbackURL: oauthErrorCallback(
@@ -163,17 +156,12 @@ export function RegisterForm({
           type="email"
           inputMode="email"
           value={email}
-          onChange={(e) => setTypedEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
           required
-          // readOnly rather than disabled: a disabled field is skipped by the
-          // tab order and drops out of the accessibility tree, so the address
-          // the account is being created for would go unread.
-          readOnly={!!lockedEmail}
           disabled={isPending}
           autoComplete="email"
           autoCapitalize="none"
           spellCheck={false}
-          description={lockedEmail ? t.emailLocked : undefined}
           fieldClassName={fieldClassName}
         />
 
@@ -229,7 +217,7 @@ export function RegisterForm({
       <p className="text-center text-sm text-muted-foreground">
         {t.haveAccount}{" "}
         <AuthLink
-          to={withInviteToken(loginUrl, invite)}
+          to={loginUrl}
           as={linkComponent}
           className={AUTH_LINK_CLASS}
         >

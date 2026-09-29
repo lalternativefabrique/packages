@@ -373,52 +373,26 @@ step. Whether the person has a password is read from `client.listAccounts`;
 without one, the row links to `setPasswordHref`. `pnpm playground` shows it
 under « Paramètres », with a deletion that fails once then succeeds.
 
-### Invitations
+### Invitations (2.0)
 
-An invitation link lands on the app's own sign-up page
-(`/register?invite=<token>`) and is redeemed once the account exists. Claim on
-the auth callback, not in the page: a sign-up completes through password + OTP,
-OAuth redirect or email verification, and only two of those return to the page
-that held the token.
-
-```ts
-// server — auth callback (e.g. routes/api/auth/$.ts)
-import {
-  claimInvitation,
-  completesSignup,
-  invitationOutcomeCookie,
-  inviteTokenFrom,
-} from "@lalternative/auth/urbangate"
-
-const response = await auth.handler(request)
-if (!response.ok || !completesSignup(new URL(request.url).pathname)) return response
-
-const setCookie = response.headers.get("set-cookie")
-const session = setCookie
-  ? await auth.getSession(new Headers({ cookie: setCookie })).catch(() => null)
-  : null
-
-const token = inviteTokenFrom(request)
-if (token && session?.user) {
-  // Best-effort: a sign-in must never fail because a claim did not go through.
-  const outcome = await claimInvitation({
-    endpoint: `${process.env.LUNGOR_API_URL}/invitations/claim`,
-    apiKey: process.env.LUNGOR_APP_API_KEY,
-    token,
-    externalUserId: session.user.id,
-  })
-  if (outcome !== "granted") {
-    response.headers.append("set-cookie", invitationOutcomeCookie(outcome))
-  }
-}
-```
+urbangate invites a person onto an app (its ADR 0014). The mail sends an
+existing identity to `https://<app>/invitation?email=<address>`; a new identity
+gets the recovery link on urbangate itself. The app's landing page never
+receives a token, so it only points to the app's own sign-in and recovery:
 
 ```tsx
-// UI — telling the invitee why a link did not work
-import { InvitationNotice, isInvitationFailure } from "@lalternative/auth"
+import { InvitationLanding } from "@lalternative/auth"
 
-if (isInvitationFailure(outcome)) return <InvitationNotice reason={outcome} />
+<InvitationLanding
+  app="Spore"
+  email={email}
+  loginUrl={`/login?email=${encodeURIComponent(email)}`}
+  setPasswordUrl="/forgot-password"
+  linkComponent={RouterLink}
+/>
 ```
 
-`endpoint` is any backend that redeems a token, so an app already claiming
-against its own API keeps doing so; `extra` adds fields to the request body.
+`LoginForm` takes `defaultEmail` to prefill the address. 2.0 removed the
+token-based invitation mechanism (`claimInvitation`, `InvitationNotice`, the
+`invite` and `lockedEmail` props and the invite-token helpers).
+
