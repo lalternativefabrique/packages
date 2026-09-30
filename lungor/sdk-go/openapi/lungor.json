@@ -3759,6 +3759,75 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/cost-items/import-llm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upserts tenant catalog items `<model>.input`, `<model>.cached` and `<model>.output` (supplier = provider, unit \"1M tokens\", unit_size 1000000). A price that differs from the one in force appends a version; an unchanged one writes nothing. Deactivated items stay deactivated. With `dry_run` nothing is written. Limit to some models with `models`.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Import or refresh LLM prices from a provider's public catalog",
+                "operationId": "importLLMPrices",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.importLLMPricesRequest"
+                            }
+                        }
+                    },
+                    "description": "Import",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.importLLMPricesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/cost-items/{item_id}": {
             "patch": {
                 "security": [
@@ -6060,131 +6129,6 @@
                     }
                 }
             }
-        },
-        "/invitations/claim": {
-            "post": {
-                "security": [
-                    {
-                        "AppKeyAuth": []
-                    }
-                ],
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Redeem an invitation token for a newly signed-up user",
-                "operationId": "claimInvitation",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/finance.claimReq"
-                            }
-                        }
-                    },
-                    "description": "Claim",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.claimResp"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "410": {
-                        "description": "Gone",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/invitations/{token}": {
-            "get": {
-                "security": [
-                    {
-                        "AppKeyAuth": []
-                    }
-                ],
-                "description": "Resolves a token to the address it was issued to and the tier it confers, so an app can greet the invitee and pre-fill the form before they sign up. Claiming is what burns the token; this never does.\n\nAnswers 200 for a claimed or expired invitation too, with the status saying so: an app that cannot tell a lapsed offer from a wrong link leaves a genuine invitee doubting the address they were invited at. 404 is reserved for a token that does not exist, or belongs to another app.",
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Read an invitation without consuming it",
-                "operationId": "lookupInvitation",
-                "parameters": [
-                    {
-                        "description": "Invitation token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.lookupResp"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "servers": [
@@ -6596,6 +6540,70 @@
                     "tokens": {
                         "type": "integer",
                         "example": 1204000
+                    }
+                }
+            },
+            "costtracking.importLLMPriceLineView": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "llama-3.3-70b-instruct.input"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "outcome": {
+                        "type": "string",
+                        "enum": [
+                            "unchanged",
+                            "created",
+                            "updated",
+                            "repriced"
+                        ],
+                        "example": "repriced"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer",
+                        "example": 200000
+                    }
+                }
+            },
+            "costtracking.importLLMPricesRequest": {
+                "type": "object",
+                "properties": {
+                    "dry_run": {
+                        "type": "boolean"
+                    },
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "provider": {
+                        "type": "string",
+                        "enum": [
+                            "ovh",
+                            "scaleway",
+                            "deepseek"
+                        ],
+                        "example": "scaleway"
+                    }
+                }
+            },
+            "costtracking.importLLMPricesResponse": {
+                "type": "object",
+                "properties": {
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.importLLMPriceLineView"
+                        }
                     }
                 }
             },
@@ -9070,49 +9078,6 @@
                         }
                     },
                     "url": {
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.lookupResp": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "description": "Status is claimable, claimed or expired. An app shows a different thing\nfor each: only the last two say the offer was real, which is what tells\nsomeone that asking for a new link is worth it rather than doubting the\naddress they were invited at.",
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.claimResp": {
-                "type": "object",
-                "properties": {
-                    "period_end": {
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.claimReq": {
-                "type": "object",
-                "properties": {
-                    "country": {
-                        "type": "string"
-                    },
-                    "external_user_id": {
-                        "type": "string"
-                    },
-                    "token": {
                         "type": "string"
                     }
                 }

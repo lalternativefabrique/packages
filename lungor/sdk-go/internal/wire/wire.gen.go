@@ -21,6 +21,21 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// Defines values for CosttrackingImportLLMPriceLineViewOutcome.
+const (
+	Created   CosttrackingImportLLMPriceLineViewOutcome = "created"
+	Repriced  CosttrackingImportLLMPriceLineViewOutcome = "repriced"
+	Unchanged CosttrackingImportLLMPriceLineViewOutcome = "unchanged"
+	Updated   CosttrackingImportLLMPriceLineViewOutcome = "updated"
+)
+
+// Defines values for CosttrackingImportLLMPricesRequestProvider.
+const (
+	Deepseek CosttrackingImportLLMPricesRequestProvider = "deepseek"
+	Ovh      CosttrackingImportLLMPricesRequestProvider = "ovh"
+	Scaleway CosttrackingImportLLMPricesRequestProvider = "scaleway"
+)
+
 // CosttrackingAppCustomerCostResponse defines model for costtracking.appCustomerCostResponse.
 type CosttrackingAppCustomerCostResponse struct {
 	ByModel       *[]CosttrackingAppCustomerModelCostResponse `json:"by_model,omitempty"`
@@ -98,6 +113,33 @@ type CosttrackingCostSummaryResponse struct {
 	Currency    *string                             `json:"currency,omitempty"`
 	PeriodEnd   *string                             `json:"period_end,omitempty"`
 	PeriodStart *string                             `json:"period_start,omitempty"`
+}
+
+// CosttrackingImportLLMPriceLineView defines model for costtracking.importLLMPriceLineView.
+type CosttrackingImportLLMPriceLineView struct {
+	Code               *string                                    `json:"code,omitempty"`
+	Currency           *string                                    `json:"currency,omitempty"`
+	Error              *string                                    `json:"error,omitempty"`
+	Outcome            *CosttrackingImportLLMPriceLineViewOutcome `json:"outcome,omitempty"`
+	PriceMicrosPerUnit *int                                       `json:"price_micros_per_unit,omitempty"`
+}
+
+// CosttrackingImportLLMPriceLineViewOutcome defines model for CosttrackingImportLLMPriceLineView.Outcome.
+type CosttrackingImportLLMPriceLineViewOutcome string
+
+// CosttrackingImportLLMPricesRequest defines model for costtracking.importLLMPricesRequest.
+type CosttrackingImportLLMPricesRequest struct {
+	DryRun   *bool                                       `json:"dry_run,omitempty"`
+	Models   *[]string                                   `json:"models,omitempty"`
+	Provider *CosttrackingImportLLMPricesRequestProvider `json:"provider,omitempty"`
+}
+
+// CosttrackingImportLLMPricesRequestProvider defines model for CosttrackingImportLLMPricesRequest.Provider.
+type CosttrackingImportLLMPricesRequestProvider string
+
+// CosttrackingImportLLMPricesResponse defines model for costtracking.importLLMPricesResponse.
+type CosttrackingImportLLMPricesResponse struct {
+	Lines *[]CosttrackingImportLLMPriceLineView `json:"lines,omitempty"`
 }
 
 // CosttrackingIngestRequest defines model for costtracking.ingestRequest.
@@ -354,19 +396,6 @@ type FinanceCheckoutSessionResponse struct {
 	SubscriptionStatus *string `json:"subscription_status,omitempty"`
 }
 
-// FinanceClaimReq defines model for finance.claimReq.
-type FinanceClaimReq struct {
-	Country        *string `json:"country,omitempty"`
-	ExternalUserId *string `json:"external_user_id,omitempty"`
-	Token          *string `json:"token,omitempty"`
-}
-
-// FinanceClaimResp defines model for finance.claimResp.
-type FinanceClaimResp struct {
-	PeriodEnd *string `json:"period_end,omitempty"`
-	PlanCode  *string `json:"plan_code,omitempty"`
-}
-
 // FinanceEntitlementResponse defines model for finance.entitlementResponse.
 type FinanceEntitlementResponse struct {
 	Balances *map[string]int64 `json:"balances,omitempty"`
@@ -398,19 +427,6 @@ type FinanceEntitlementResponse struct {
 	PlanCode               *string `json:"plan_code,omitempty"`
 	PlanRank               *int    `json:"plan_rank,omitempty"`
 	Status                 *string `json:"status,omitempty"`
-}
-
-// FinanceLookupResp defines model for finance.lookupResp.
-type FinanceLookupResp struct {
-	Email     *string `json:"email,omitempty"`
-	ExpiresAt *string `json:"expires_at,omitempty"`
-	PlanCode  *string `json:"plan_code,omitempty"`
-
-	// Status Status is claimable, claimed or expired. An app shows a different thing
-	// for each: only the last two say the offer was real, which is what tells
-	// someone that asking for a new link is worth it rather than doubting the
-	// address they were invited at.
-	Status *string `json:"status,omitempty"`
 }
 
 // FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
@@ -689,9 +705,6 @@ type AppRegisterCustomerJSONRequestBody = FinanceAppRegisterCustomerRequest
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
 
-// ClaimInvitationJSONRequestBody defines body for ClaimInvitation for application/json ContentType.
-type ClaimInvitationJSONRequestBody = FinanceClaimReq
-
 // RecordCostsJSONRequestBody defines body for RecordCosts for application/json ContentType.
 type RecordCostsJSONRequestBody = CosttrackingRecordCostsRequest
 
@@ -721,6 +734,9 @@ type BulkDeleteUsageUnitsJSONRequestBody = MeteringBulkDeleteUnitsRequest
 
 // UpdateUsageUnitJSONRequestBody defines body for UpdateUsageUnit for application/json ContentType.
 type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
+
+// ImportLLMPricesJSONRequestBody defines body for ImportLLMPrices for application/json ContentType.
+type ImportLLMPricesJSONRequestBody = CosttrackingImportLLMPricesRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -826,14 +842,6 @@ type ClientInterface interface {
 	// MollieWebhook request
 	MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ClaimInvitationWithBody request with any body
-	ClaimInvitationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// LookupInvitation request
-	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// RecordCostsWithBody request with any body
 	RecordCostsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -904,6 +912,11 @@ type ClientInterface interface {
 	UpdateUsageUnitWithBody(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ImportLLMPricesWithBody request with any body
+	ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ImportLLMPrices(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetCustomerUsage request
 	GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1029,42 +1042,6 @@ func (c *Client) GetCheckoutSession(ctx context.Context, sessionId string, reqEd
 
 func (c *Client) MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMollieWebhookRequest(c.Server, credId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ClaimInvitationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewClaimInvitationRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewClaimInvitationRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLookupInvitationRequest(c.Server, token)
 	if err != nil {
 		return nil, err
 	}
@@ -1389,6 +1366,30 @@ func (c *Client) UpdateUsageUnitWithBody(ctx context.Context, tenantId string, a
 
 func (c *Client) UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateUsageUnitRequest(c.Server, tenantId, appId, code, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportLLMPricesRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ImportLLMPrices(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportLLMPricesRequest(c.Server, tenantId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1788,80 +1789,6 @@ func NewMollieWebhookRequest(server string, credId string) (*http.Request, error
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewClaimInvitationRequest calls the generic ClaimInvitation builder with application/json body
-func NewClaimInvitationRequest(server string, body ClaimInvitationJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewClaimInvitationRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewClaimInvitationRequestWithBody generates requests for ClaimInvitation with any type of body
-func NewClaimInvitationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/invitations/claim")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewLookupInvitationRequest generates requests for LookupInvitation
-func NewLookupInvitationRequest(server string, token string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "token", runtime.ParamLocationPath, token)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/invitations/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2720,6 +2647,53 @@ func NewUpdateUsageUnitRequestWithBody(server string, tenantId string, appId str
 	return req, nil
 }
 
+// NewImportLLMPricesRequest calls the generic ImportLLMPrices builder with application/json body
+func NewImportLLMPricesRequest(server string, tenantId string, body ImportLLMPricesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewImportLLMPricesRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewImportLLMPricesRequestWithBody generates requests for ImportLLMPrices with any type of body
+func NewImportLLMPricesRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/import-llm", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetCustomerUsageRequest generates requests for GetCustomerUsage
 func NewGetCustomerUsageRequest(server string, tenantId string, customerId string, params *GetCustomerUsageParams) (*http.Request, error) {
 	var err error
@@ -3105,14 +3079,6 @@ type ClientWithResponsesInterface interface {
 	// MollieWebhookWithResponse request
 	MollieWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*MollieWebhookResponse, error)
 
-	// ClaimInvitationWithBodyWithResponse request with any body
-	ClaimInvitationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
-
-	ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
-
-	// LookupInvitationWithResponse request
-	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
-
 	// RecordCostsWithBodyWithResponse request with any body
 	RecordCostsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error)
 
@@ -3183,6 +3149,11 @@ type ClientWithResponsesInterface interface {
 	UpdateUsageUnitWithBodyWithResponse(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
 
 	UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
+
+	// ImportLLMPricesWithBodyWithResponse request with any body
+	ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
+
+	ImportLLMPricesWithResponse(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
 
 	// GetCustomerUsageWithResponse request
 	GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error)
@@ -3371,55 +3342,6 @@ func (r MollieWebhookResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r MollieWebhookResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ClaimInvitationResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *FinanceClaimResp
-	JSON404      *EchoHTTPError
-	JSON409      *EchoHTTPError
-	JSON410      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r ClaimInvitationResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ClaimInvitationResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type LookupInvitationResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *FinanceLookupResp
-	JSON401      *EchoHTTPError
-	JSON404      *EchoHTTPError
-}
-
-// Status returns HTTPResponse.Status
-func (r LookupInvitationResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r LookupInvitationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3833,6 +3755,30 @@ func (r UpdateUsageUnitResponse) StatusCode() int {
 	return 0
 }
 
+type ImportLLMPricesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingImportLLMPricesResponse
+	JSON400      *EchoHTTPError
+	JSON502      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ImportLLMPricesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ImportLLMPricesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetCustomerUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4079,32 +4025,6 @@ func (c *ClientWithResponses) MollieWebhookWithResponse(ctx context.Context, cre
 	return ParseMollieWebhookResponse(rsp)
 }
 
-// ClaimInvitationWithBodyWithResponse request with arbitrary body returning *ClaimInvitationResponse
-func (c *ClientWithResponses) ClaimInvitationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error) {
-	rsp, err := c.ClaimInvitationWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseClaimInvitationResponse(rsp)
-}
-
-func (c *ClientWithResponses) ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error) {
-	rsp, err := c.ClaimInvitation(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseClaimInvitationResponse(rsp)
-}
-
-// LookupInvitationWithResponse request returning *LookupInvitationResponse
-func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error) {
-	rsp, err := c.LookupInvitation(ctx, token, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseLookupInvitationResponse(rsp)
-}
-
 // RecordCostsWithBodyWithResponse request with arbitrary body returning *RecordCostsResponse
 func (c *ClientWithResponses) RecordCostsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error) {
 	rsp, err := c.RecordCostsWithBody(ctx, contentType, body, reqEditors...)
@@ -4336,6 +4256,23 @@ func (c *ClientWithResponses) UpdateUsageUnitWithResponse(ctx context.Context, t
 		return nil, err
 	}
 	return ParseUpdateUsageUnitResponse(rsp)
+}
+
+// ImportLLMPricesWithBodyWithResponse request with arbitrary body returning *ImportLLMPricesResponse
+func (c *ClientWithResponses) ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error) {
+	rsp, err := c.ImportLLMPricesWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportLLMPricesResponse(rsp)
+}
+
+func (c *ClientWithResponses) ImportLLMPricesWithResponse(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error) {
+	rsp, err := c.ImportLLMPrices(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportLLMPricesResponse(rsp)
 }
 
 // GetCustomerUsageWithResponse request returning *GetCustomerUsageResponse
@@ -4682,93 +4619,6 @@ func ParseMollieWebhookResponse(rsp *http.Response) (*MollieWebhookResponse, err
 	response := &MollieWebhookResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseClaimInvitationResponse parses an HTTP response from a ClaimInvitationWithResponse call
-func ParseClaimInvitationResponse(rsp *http.Response) (*ClaimInvitationResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ClaimInvitationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest FinanceClaimResp
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseLookupInvitationResponse parses an HTTP response from a LookupInvitationWithResponse call
-func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &LookupInvitationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest FinanceLookupResp
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
 	}
 
 	return response, nil
@@ -5441,6 +5291,46 @@ func ParseUpdateUsageUnitResponse(rsp *http.Response) (*UpdateUsageUnitResponse,
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseImportLLMPricesResponse parses an HTTP response from a ImportLLMPricesWithResponse call
+func ParseImportLLMPricesResponse(rsp *http.Response) (*ImportLLMPricesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ImportLLMPricesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingImportLLMPricesResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
 
 	}
 
