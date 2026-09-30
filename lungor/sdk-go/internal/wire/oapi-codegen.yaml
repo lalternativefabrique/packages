@@ -29,6 +29,10 @@ output-options:
   # both /metering/usage (app key) and /tenants/…/usage-units (console);
   # `costtracking` covers both /metering/llm-cost/me (app key) and the tenant
   # report + tariff admin under /tenants/…/llm-cost, /tenants/…/llm-tariffs
-  # (console, JWT) — the tag alone cannot separate either pair.
+  # (console, JWT); `costs` covers both /metering/costs (app key) and the
+  # tenant cost catalog under /tenants/… (console, JWT) — the tag alone cannot
+  # separate any of these.
   exclude-operation-ids:
-    [declareUsageUnit, listUsageUnits, getLLMCostReport, listLLMTariffs, upsertLLMTariff]
+    [declareUsageUnit, listUsageUnits, getLLMCostReport, listLLMTariffs, upsertLLMTariff,
+     listAppCostItems, attachAppCostItem, detachAppCostItem, recordAppCostsManual,
+     listCostItems, createCostItem, updateCostItem, listCostItemPrices, addCostItemPrice, getCostReport]

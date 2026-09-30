@@ -282,6 +282,68 @@ Signatures older than `DefaultTolerance` (5 min) are rejected, which is what
 stops a captured delivery from being replayed forever. `VerifyWebhookAt` takes
 the clock and the window explicitly, for tests and for unusual skew.
 
+## Declaring costs
+
+What the app spends — LLM tokens, kWh, API calls — is declared against the
+tenant's cost catalog. Lungor values each line at the item's price in force at
+`OccurredAt` and freezes that price on the record. This is expense accounting,
+never billed to the end user.
+
+```go
+res, err := client.RecordCost(ctx, []sdk.CostLine{{
+    Code:           "kwh",
+    Quantity:       1500, // in the item's unit
+    OccurredAt:     time.Now(),
+    IdempotencyKey: jobID + ".kwh",
+    ExternalUserID: userID, // optional
+    RunKey:         runID,  // optional
+}})
+```
+
+A batch is **all or nothing**: one bad line rejects every line, and the error
+names it. A replayed idempotency key is accepted and not inserted twice
+(`res.Inserted < res.Accepted`).
+
+| Error | Meaning |
+|---|---|
+| `ErrUnknownCostItem` | no item with that code in the catalog (404) |
+| `ErrCostItemNotUsable` | item not attached to the app, private to another app, or inactive (422) |
+| `ErrNoCostPrice` | item has no price in force at `OccurredAt` (422) |
+| `ErrBadRequest` | invalid line (400), or rejected before the call |
+
+### LLM usage
+
+LLM items are coded `<model>.input`, `<model>.cached` and `<model>.output`,
+priced per million tokens (`unit_size` 1000000), quantity in tokens.
+`RecordLLMUsage` expands one call into those lines, skipping zero counts, with
+keys `<IdempotencyKey>.input|.cached|.output`; `OccurredAt` defaults to now.
+
+```go
+_, err := client.RecordLLMUsage(ctx, sdk.LLMUsage{
+    Model:          "deepseek-v4",
+    InputTokens:    4200,
+    CachedTokens:   1000,
+    OutputTokens:   800,
+    ExternalUserID: userID,
+    IdempotencyKey: turnID,
+})
+```
+
+The emitter-priced path (`MyLLMCost`, `AppLLMCostSummary`,
+`AppLLMCostByCustomer`) is unchanged.
+
+### Reading it back
+
+```go
+r, err := client.CostReport(ctx, sdk.CostByItem, &from, nil) // CostByEndUser, CostByDay, CostByMonth
+for _, row := range r.Rows {
+    fmt.Println(row.Key, row.Currency, row.AmountMicros, row.Quantity)
+}
+```
+
+Amounts are micros (1 EUR = 1 000 000). Bounds are optional: from the 1st of
+the current month until now.
+
 ## Notes
 
 - `externalUserID` is your own user id, opaque to Lungor. Nothing needs
