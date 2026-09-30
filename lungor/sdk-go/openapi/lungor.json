@@ -50,20 +50,6 @@
                 }
             }
         },
-        "/auth/logout": {
-            "post": {
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Clear the session cookie",
-                "operationId": "logout",
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    }
-                }
-            }
-        },
         "/customers": {
             "post": {
                 "security": [
@@ -390,13 +376,13 @@
                 }
             }
         },
-        "/finance/webhooks/payplug/{cred_id}": {
+        "/finance/webhooks/mollie/{cred_id}": {
             "post": {
                 "tags": [
                     "webhooks"
                 ],
-                "summary": "Receive a gateway webhook (PayPlug or Mollie)",
-                "operationId": "payplugWebhook",
+                "summary": "Receive a Mollie webhook",
+                "operationId": "mollieWebhook",
                 "parameters": [
                     {
                         "description": "Credentials ID",
@@ -416,131 +402,6 @@
                         "description": "Bad Request",
                         "content": {
                             "*/*": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/invitations/claim": {
-            "post": {
-                "security": [
-                    {
-                        "AppKeyAuth": []
-                    }
-                ],
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Redeem an invitation token for a newly signed-up user",
-                "operationId": "claimInvitation",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/finance.claimReq"
-                            }
-                        }
-                    },
-                    "description": "Claim",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.claimResp"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "410": {
-                        "description": "Gone",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/invitations/{token}": {
-            "get": {
-                "security": [
-                    {
-                        "AppKeyAuth": []
-                    }
-                ],
-                "description": "Resolves a token to the address it was issued to and the tier it confers, so an app can greet the invitee and pre-fill the form before they sign up. Claiming is what burns the token; this never does.\n\nAnswers 200 for a claimed or expired invitation too, with the status saying so: an app that cannot tell a lapsed offer from a wrong link leaves a genuine invitee doubting the address they were invited at. 404 is reserved for a token that does not exist, or belongs to another app.",
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Read an invitation without consuming it",
-                "operationId": "lookupInvitation",
-                "parameters": [
-                    {
-                        "description": "Invitation token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.lookupResp"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -580,6 +441,130 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/costs": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nLLM usage is declared as one line per token kind, on items coded `<model>.input`, `<model>.cached` and `<model>.output`, with the quantity in tokens.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Declare what the app spent",
+                "operationId": "recordCosts",
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/costtracking.recordCostsRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recordCostsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/metering/costs/report": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Sums the app's recorded costs over [from, to), grouped by `item`, `end_user`, `day` or `month`, and by currency.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "The app's own cost report",
+                "operationId": "getAppCostReport",
+                "parameters": [
+                    {
+                        "description": "item | end_user | day | month",
+                        "name": "group_by",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the 1st of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costReportView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1694,6 +1679,7 @@
         },
         "/tenants/{tenant_id}/apps/plans": {
             "post": {
+                "description": "`credentials_id` is deprecated and ignored: the app's provider charges every plan.",
                 "tags": [
                     "plans"
                 ],
@@ -2165,6 +2151,261 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/apps/{app_id}/cost-items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The tenant catalog with `attached` set for this app, plus the items private to it.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Cost items an app can see",
+                "operationId": "listAppCostItems",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costItemView"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/cost-items/{item_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Attach a catalog cost item to an app",
+                "operationId": "attachAppCostItem",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Costs already recorded stay; the app can no longer declare new ones on it.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Detach a catalog cost item from an app",
+                "operationId": "detachAppCostItem",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/costs": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Same valuation and rules as the app-key POST /metering/costs, entered from the console.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Record costs by hand for an app",
+                "operationId": "recordAppCostsManual",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/costtracking.recordCostsRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recordCostsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/apps/{app_id}/export": {
             "get": {
                 "description": "Streams a ZIP of CSVs: customers, subscriptions, invoices, invoice lines, transactions, usage ledger, plans and usage units, plus a manifest with per-section row counts so a truncated download is recognisable.\n\nAvailable whether or not the app is being deleted — the tenant's data is its own to take at any time. Fetching it on an app under deletion marks the deletion `exported`.",
@@ -2228,58 +2469,6 @@
                 }
             }
         },
-        "/tenants/{tenant_id}/apps/{app_id}/invitations": {
-            "post": {
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Invite an end user to one of the tenant's apps",
-                "operationId": "inviteToApp",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "App ID",
-                        "name": "app_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/finance.inviteReq"
-                            }
-                        }
-                    },
-                    "description": "Invitation",
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.invitationView"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/tenants/{tenant_id}/apps/{app_id}/plans": {
             "get": {
                 "tags": [
@@ -2334,13 +2523,14 @@
                 }
             }
         },
-        "/tenants/{tenant_id}/apps/{app_id}/registration-url": {
+        "/tenants/{tenant_id}/apps/{app_id}/provider": {
             "patch": {
+                "description": "The app owns its PSP; the environment follows its test mode. Changing the provider only affects NEW checkouts: existing subscriptions keep rebilling and refunding through the credential they were created with, so their mandates stay valid.\n\nRefused with 409 when the tenant has no active credential of that provider for the app's current mode.",
                 "tags": [
                     "apps"
                 ],
-                "summary": "Set the app's sign-up page, which invitation links are built on",
-                "operationId": "setAppRegistrationURL",
+                "summary": "Set the payment provider an app charges through",
+                "operationId": "setAppProvider",
                 "parameters": [
                     {
                         "description": "Tenant ID",
@@ -2365,11 +2555,11 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/finance.setRegistrationURLReq"
+                                "$ref": "#/components/schemas/finance.setProviderReq"
                             }
                         }
                     },
-                    "description": "Registration URL",
+                    "description": "Provider",
                     "required": true
                 },
                 "responses": {
@@ -2379,6 +2569,101 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/finance.appView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/purge": {
+            "delete": {
+                "description": "Deletes the app row for good, with its plans, units, keys, webhook endpoints and deletion request. Only an app already taken out of service qualifies, and only one that holds no subscription, invoice or transaction: those are the tenant's accounting records and pin the app, which then stays out of service instead.",
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Erase an app that is out of service and never billed",
+                "operationId": "purgeApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
                                 }
                             }
                         }
@@ -2495,6 +2780,7 @@
         },
         "/tenants/{tenant_id}/apps/{app_id}/test-mode": {
             "patch": {
+                "description": "Switching mode switches the credential new checkouts charge through: the app provider's test key in test mode, its live key in live mode. Refused with 409 when the app's provider has no active credential for the target mode, so a toggle never leaves checkout broken.",
                 "tags": [
                     "apps"
                 ],
@@ -2544,6 +2830,16 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3355,6 +3651,467 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/cost-items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Every cost item of the tenant — catalog items and app-private ones — with the price in force now. Prices are micros (1 EUR = 1 000 000) per unit of measure.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "List the tenant cost catalog",
+                "operationId": "listCostItems",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costItemView"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds an item to the tenant catalog with its first price version. With `app_id`, the item is private to that app. `unit_size` and `currency` are fixed once created: recorded costs were valued in them.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Create a cost item",
+                "operationId": "createCostItem",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.createCostItemRequest"
+                            }
+                        }
+                    },
+                    "description": "Cost item",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costItemView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/cost-items/import-llm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Upserts tenant catalog items `<model>.input`, `<model>.cached` and `<model>.output` (supplier = provider, unit \"1M tokens\", unit_size 1000000). A price that differs from the one in force appends a version; an unchanged one writes nothing. Deactivated items stay deactivated. With `dry_run` nothing is written. Limit to some models with `models`.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Import or refresh LLM prices from a provider's public catalog",
+                "operationId": "importLLMPrices",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.importLLMPricesRequest"
+                            }
+                        }
+                    },
+                    "description": "Import",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.importLLMPricesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/cost-items/{item_id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The price is not changed here: append a version with POST /prices.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Update a cost item's description or deactivate it",
+                "operationId": "updateCostItem",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.updateCostItemRequest"
+                            }
+                        }
+                    },
+                    "description": "Fields to change",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costItemView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/cost-items/{item_id}/prices": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "A cost item's price history",
+                "operationId": "listCostItemPrices",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costPriceView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Appends a price version from `effective_from` (default now). Costs already recorded keep the price they were valued at.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Change a cost item's price",
+                "operationId": "addCostItemPrice",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.addCostPriceRequest"
+                            }
+                        }
+                    },
+                    "description": "New price",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costPriceView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/report": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sums recorded costs over [from, to), grouped by `app`, `item`, `end_user`, `day` or `month`, and by currency. Filter to one app with `app_id`.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Cost report",
+                "operationId": "getCostReport",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "app | item | end_user | day | month",
+                        "name": "group_by",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Only this app",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the 1st of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costReportView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/customers": {
             "get": {
                 "tags": [
@@ -4056,116 +4813,6 @@
                 }
             }
         },
-        "/tenants/{tenant_id}/invitations": {
-            "get": {
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "List the tenant's app invitations",
-                "operationId": "listInvitations",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/finance.invitationView"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/invitations/{id}": {
-            "delete": {
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Withdraw an invitation",
-                "operationId": "revokeInvitation",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Invitation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    }
-                }
-            }
-        },
-        "/tenants/{tenant_id}/invitations/{id}/regenerate": {
-            "post": {
-                "tags": [
-                    "invitations"
-                ],
-                "summary": "Mint a fresh token for an unclaimed invitation",
-                "operationId": "regenerateInvitation",
-                "parameters": [
-                    {
-                        "description": "Tenant ID",
-                        "name": "tenant_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "description": "Invitation ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/finance.invitationView"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/tenants/{tenant_id}/invoices": {
             "get": {
                 "tags": [
@@ -4218,6 +4865,58 @@
                         "description": "Unauthorized",
                         "content": {
                             "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/invoices/{invoice_id}/pdf": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Download the Factur-X PDF of an invoice",
+                "operationId": "downloadInvoicePDF",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Invoice ID",
+                        "name": "invoice_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/pdf": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -4950,7 +5649,7 @@
         },
         "/tenants/{tenant_id}/transactions/{transaction_id}/refund": {
             "post": {
-                "description": "Sends money back through the provider that took it, then records a `refund` transaction against the charge. `amount_cents` may be omitted to refund everything still refundable. The amount is bounded by what the charge has left after earlier refunds, pending ones included. Refunds are only recorded once the provider accepts them, so a 502 means nothing was refunded and nothing was written. Not every provider supports this: a PayPlug charge answers 501 and must be refunded from the PayPlug dashboard.",
+                "description": "Sends money back through the provider that took it, then records a `refund` transaction against the charge. `amount_cents` may be omitted to refund everything still refundable. The amount is bounded by what the charge has left after earlier refunds, pending ones included. Refunds are only recorded once the provider accepts them, so a 502 means nothing was refunded and nothing was written. A provider that cannot refund answers 501.",
                 "tags": [
                     "billing"
                 ],
@@ -5438,6 +6137,19 @@
         }
     ],
     "components": {
+        "requestBodies": {
+            "costtracking.recordCostsRequest": {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/costtracking.recordCostsRequest"
+                        }
+                    }
+                },
+                "description": "Cost lines",
+                "required": true
+            }
+        },
         "securitySchemes": {
             "AppKeyAuth": {
                 "type": "apiKey",
@@ -5446,6 +6158,18 @@
             }
         },
         "schemas": {
+            "costtracking.addCostPriceRequest": {
+                "type": "object",
+                "properties": {
+                    "effective_from": {
+                        "type": "string"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer",
+                        "example": 2000000
+                    }
+                }
+            },
             "costtracking.appCustomerCostResponse": {
                 "type": "object",
                 "properties": {
@@ -5528,6 +6252,100 @@
                     }
                 }
             },
+            "costtracking.costItemView": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "attached": {
+                        "description": "Attached is only meaningful on the per-app listing.",
+                        "type": "boolean"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "deepseek-v4.input"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "current_price": {
+                        "$ref": "#/components/schemas/costtracking.costPriceView"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "DeepSeek V4 — input tokens"
+                    },
+                    "owner_app_id": {
+                        "type": "string"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "scaleway"
+                    },
+                    "unit_label": {
+                        "type": "string",
+                        "example": "1M tokens"
+                    },
+                    "unit_size": {
+                        "type": "integer",
+                        "example": 1000000
+                    }
+                }
+            },
+            "costtracking.costLineRequest": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "deepseek-v4.input"
+                    },
+                    "external_user_id": {
+                        "type": "string",
+                        "example": "user-42"
+                    },
+                    "idempotency_key": {
+                        "description": "IdempotencyKey is unique per app: a retry with the same key records nothing twice.",
+                        "type": "string",
+                        "example": "turn-9f2c1e40.input"
+                    },
+                    "occurred_at": {
+                        "type": "string",
+                        "example": "2026-09-30T14:03:00Z"
+                    },
+                    "quantity": {
+                        "description": "Quantity is an integer in the item's declared unit: tokens for a\n\"1M tokens\" item of unit_size 1000000, grams for a \"kg\" item of unit_size 1000.",
+                        "type": "integer",
+                        "example": 4200
+                    },
+                    "run_key": {
+                        "type": "string",
+                        "example": "run-9f2c1e40"
+                    }
+                }
+            },
+            "costtracking.costPriceView": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "effective_from": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer",
+                        "example": 2500000
+                    }
+                }
+            },
             "costtracking.costReportResponse": {
                 "type": "object",
                 "properties": {
@@ -5550,6 +6368,52 @@
                     "total_cost_micros": {
                         "type": "integer",
                         "example": 1893400
+                    }
+                }
+            },
+            "costtracking.costReportRowView": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "type": "integer",
+                        "example": 42500
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "key": {
+                        "type": "string",
+                        "example": "deepseek-v4.input"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 128000
+                    },
+                    "records": {
+                        "type": "integer",
+                        "example": 12
+                    }
+                }
+            },
+            "costtracking.costReportView": {
+                "type": "object",
+                "properties": {
+                    "from": {
+                        "type": "string"
+                    },
+                    "group_by": {
+                        "type": "string",
+                        "example": "item"
+                    },
+                    "rows": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.costReportRowView"
+                        }
+                    },
+                    "to": {
+                        "type": "string"
                     }
                 }
             },
@@ -5603,6 +6467,47 @@
                     }
                 }
             },
+            "costtracking.createCostItemRequest": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "description": "AppID makes the item private to that app.",
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "deepseek-v4.input"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "effective_from": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "DeepSeek V4 — input tokens"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer",
+                        "example": 2500000
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "scaleway"
+                    },
+                    "unit_label": {
+                        "type": "string",
+                        "example": "1M tokens"
+                    },
+                    "unit_size": {
+                        "description": "UnitSize is how many declared quantities the price covers: 1000000 when\ntokens are declared against a \"1M tokens\" price, 1000 for grams against \"kg\".",
+                        "type": "integer",
+                        "example": 1000000
+                    }
+                }
+            },
             "costtracking.customerCostResponse": {
                 "type": "object",
                 "properties": {
@@ -5635,6 +6540,70 @@
                     "tokens": {
                         "type": "integer",
                         "example": 1204000
+                    }
+                }
+            },
+            "costtracking.importLLMPriceLineView": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "example": "llama-3.3-70b-instruct.input"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "outcome": {
+                        "type": "string",
+                        "enum": [
+                            "unchanged",
+                            "created",
+                            "updated",
+                            "repriced"
+                        ],
+                        "example": "repriced"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer",
+                        "example": 200000
+                    }
+                }
+            },
+            "costtracking.importLLMPricesRequest": {
+                "type": "object",
+                "properties": {
+                    "dry_run": {
+                        "type": "boolean"
+                    },
+                    "models": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "provider": {
+                        "type": "string",
+                        "enum": [
+                            "ovh",
+                            "scaleway",
+                            "deepseek"
+                        ],
+                        "example": "scaleway"
+                    }
+                }
+            },
+            "costtracking.importLLMPricesResponse": {
+                "type": "object",
+                "properties": {
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.importLLMPriceLineView"
+                        }
                     }
                 }
             },
@@ -5762,6 +6731,64 @@
                     }
                 }
             },
+            "costtracking.recordCostsRequest": {
+                "type": "object",
+                "properties": {
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.costLineRequest"
+                        }
+                    }
+                }
+            },
+            "costtracking.recordCostsResponse": {
+                "type": "object",
+                "properties": {
+                    "accepted": {
+                        "description": "Accepted counts the lines received; Inserted those that were new.\nA replayed idempotency key is accepted and not inserted.",
+                        "type": "integer"
+                    },
+                    "inserted": {
+                        "type": "integer"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.recordedCostView"
+                        }
+                    }
+                }
+            },
+            "costtracking.recordedCostView": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "type": "integer"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "idempotency_key": {
+                        "type": "string"
+                    },
+                    "price_id": {
+                        "type": "string"
+                    },
+                    "price_micros_per_unit": {
+                        "type": "integer"
+                    },
+                    "quantity": {
+                        "type": "integer"
+                    },
+                    "unit_size": {
+                        "type": "integer"
+                    }
+                }
+            },
             "costtracking.tariffResponse": {
                 "type": "object",
                 "properties": {
@@ -5795,6 +6822,23 @@
                     "provider": {
                         "type": "string",
                         "example": "anthropic"
+                    }
+                }
+            },
+            "costtracking.updateCostItemRequest": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "supplier": {
+                        "type": "string"
+                    },
+                    "unit_label": {
+                        "type": "string"
                     }
                 }
             },
@@ -6107,8 +7151,13 @@
                     "name": {
                         "type": "string"
                     },
-                    "registration_url": {
-                        "type": "string"
+                    "out_of_service": {
+                        "description": "OutOfService marks an app that was decommissioned: its keys are revoked,\nits row stays because its invoices pin it. Listed rather than hidden so\nthe operator can see what it was and export its data.",
+                        "type": "boolean"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "mollie"
                     },
                     "slug": {
                         "type": "string"
@@ -6385,31 +7434,6 @@
                     }
                 }
             },
-            "finance.claimReq": {
-                "type": "object",
-                "properties": {
-                    "country": {
-                        "type": "string"
-                    },
-                    "external_user_id": {
-                        "type": "string"
-                    },
-                    "token": {
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.claimResp": {
-                "type": "object",
-                "properties": {
-                    "period_end": {
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    }
-                }
-            },
             "finance.closePeriodRequest": {
                 "type": "object",
                 "properties": {
@@ -6458,7 +7482,7 @@
                         "type": "string"
                     },
                     "test_mode": {
-                        "description": "TestMode creates the app in test mode: checkouts route to the provider's\ntest-environment credential (PSP sandbox) and all resulting data is tagged\ntest so it never mixes with real data. Defaults to false (live).",
+                        "description": "TestMode creates the app in test mode: checkouts route to the provider's\ntest-environment credential (PSP sandbox) and all resulting data is tagged\ntest so it never mixes with real data. A pointer so an omitted field\ndefaults to test: going live promises real money and needs a live key, so\nit is an explicit step, never the side effect of a missing field.",
                         "type": "boolean"
                     }
                 }
@@ -6502,6 +7526,11 @@
                         "description": "flat fee",
                         "type": "integer"
                     },
+                    "amount_open_ended": {
+                        "description": "AmountOpenEnded lets the payer state the figure — a contribution, a tip.\nOnly a one_off may, and it needs both bounds; AmountCents is then ignored.",
+                        "type": "boolean",
+                        "example": false
+                    },
                     "app_id": {
                         "type": "string"
                     },
@@ -6513,7 +7542,9 @@
                         "type": "string"
                     },
                     "credentials_id": {
-                        "type": "string"
+                        "description": "Deprecated: the app owns its provider. Checked for tenant ownership, then\nignored.",
+                        "type": "string",
+                        "x-deprecated": "true"
                     },
                     "currency": {
                         "type": "string"
@@ -6524,6 +7555,14 @@
                     },
                     "interval_count": {
                         "type": "integer"
+                    },
+                    "max_amount_cents": {
+                        "type": "integer",
+                        "example": 500000
+                    },
+                    "min_amount_cents": {
+                        "type": "integer",
+                        "example": 100
                     },
                     "name": {
                         "type": "string"
@@ -6965,50 +8004,6 @@
                     }
                 }
             },
-            "finance.invitationView": {
-                "type": "object",
-                "properties": {
-                    "app_id": {
-                        "type": "string"
-                    },
-                    "claimed_at": {
-                        "type": "string"
-                    },
-                    "email": {
-                        "type": "string"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "id": {
-                        "type": "string"
-                    },
-                    "invited_at": {
-                        "type": "string"
-                    },
-                    "link": {
-                        "description": "Link is the URL to hand the invitee. Empty when the app declares no\nregistration URL, which is what makes that omission visible in the UI\ninstead of producing a link that goes nowhere.",
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.inviteReq": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    }
-                }
-            },
             "finance.invoiceLineView": {
                 "type": "object",
                 "properties": {
@@ -7047,6 +8042,9 @@
                     "customer_name": {
                         "type": "string"
                     },
+                    "has_pdf": {
+                        "type": "boolean"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -7057,24 +8055,6 @@
                         "type": "string"
                     },
                     "status": {
-                        "type": "string"
-                    }
-                }
-            },
-            "finance.lookupResp": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "expires_at": {
-                        "type": "string"
-                    },
-                    "plan_code": {
-                        "type": "string"
-                    },
-                    "status": {
-                        "description": "Status is claimable, claimed or expired. An app shows a different thing\nfor each: only the last two say the offer was real, which is what tells\nsomeone that asking for a new link is worth it rather than doubting the\naddress they were invited at.",
                         "type": "string"
                     }
                 }
@@ -7250,6 +8230,10 @@
                     "amount": {
                         "type": "integer"
                     },
+                    "amount_open_ended": {
+                        "description": "AmountOpenEnded marks a plan whose payer states the figure, within the\nbounds beside it. Both bounds are absent on a fixed-price plan.",
+                        "type": "boolean"
+                    },
                     "category": {
                         "type": "string"
                     },
@@ -7266,6 +8250,12 @@
                         "type": "string"
                     },
                     "interval_count": {
+                        "type": "integer"
+                    },
+                    "max_amount_cents": {
+                        "type": "integer"
+                    },
+                    "min_amount_cents": {
                         "type": "integer"
                     },
                     "name": {
@@ -7403,11 +8393,12 @@
                     }
                 }
             },
-            "finance.setRegistrationURLReq": {
+            "finance.setProviderReq": {
                 "type": "object",
                 "properties": {
-                    "registration_url": {
-                        "type": "string"
+                    "provider": {
+                        "type": "string",
+                        "example": "mollie"
                     }
                 }
             },

@@ -195,6 +195,9 @@ var (
 	// worth telling the invitee — that the offer was real and a fresh link is
 	// worth asking for.
 	ErrInvitationExpired = errors.New("lungor: invitation expired")
+	// ErrUnprocessable — Lungor understood the request but refuses it in the
+	// current state (422). Not transient: a retry gets the same answer.
+	ErrUnprocessable = errors.New("lungor: unprocessable")
 )
 
 // StatusNoSubscription is what Lungor reports for a user it has never seen.
@@ -552,6 +555,8 @@ func (c *Client) sendStatus(ctx context.Context, out any, call func() (*http.Res
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrBadRequest, snippet(resp.Body))
 	case resp.StatusCode == http.StatusConflict:
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrConflict, snippet(resp.Body))
+	case resp.StatusCode == http.StatusUnprocessableEntity:
+		return resp.StatusCode, fmt.Errorf("%w: %s", ErrUnprocessable, snippet(resp.Body))
 	case resp.StatusCode == http.StatusGone:
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrInvitationExpired, snippet(resp.Body))
 	case resp.StatusCode >= 500:

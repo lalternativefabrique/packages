@@ -21,6 +21,21 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// Defines values for CosttrackingImportLLMPriceLineViewOutcome.
+const (
+	Created   CosttrackingImportLLMPriceLineViewOutcome = "created"
+	Repriced  CosttrackingImportLLMPriceLineViewOutcome = "repriced"
+	Unchanged CosttrackingImportLLMPriceLineViewOutcome = "unchanged"
+	Updated   CosttrackingImportLLMPriceLineViewOutcome = "updated"
+)
+
+// Defines values for CosttrackingImportLLMPricesRequestProvider.
+const (
+	Deepseek CosttrackingImportLLMPricesRequestProvider = "deepseek"
+	Ovh      CosttrackingImportLLMPricesRequestProvider = "ovh"
+	Scaleway CosttrackingImportLLMPricesRequestProvider = "scaleway"
+)
+
 // CosttrackingAppCustomerCostResponse defines model for costtracking.appCustomerCostResponse.
 type CosttrackingAppCustomerCostResponse struct {
 	ByModel       *[]CosttrackingAppCustomerModelCostResponse `json:"by_model,omitempty"`
@@ -50,6 +65,38 @@ type CosttrackingAppModelCostResponse struct {
 	Tokens     *int    `json:"tokens,omitempty"`
 }
 
+// CosttrackingCostLineRequest defines model for costtracking.costLineRequest.
+type CosttrackingCostLineRequest struct {
+	Code           *string `json:"code,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// IdempotencyKey IdempotencyKey is unique per app: a retry with the same key records nothing twice.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	OccurredAt     *string `json:"occurred_at,omitempty"`
+
+	// Quantity Quantity is an integer in the item's declared unit: tokens for a
+	// "1M tokens" item of unit_size 1000000, grams for a "kg" item of unit_size 1000.
+	Quantity *int    `json:"quantity,omitempty"`
+	RunKey   *string `json:"run_key,omitempty"`
+}
+
+// CosttrackingCostReportRowView defines model for costtracking.costReportRowView.
+type CosttrackingCostReportRowView struct {
+	AmountMicros *int    `json:"amount_micros,omitempty"`
+	Currency     *string `json:"currency,omitempty"`
+	Key          *string `json:"key,omitempty"`
+	Quantity     *int    `json:"quantity,omitempty"`
+	Records      *int    `json:"records,omitempty"`
+}
+
+// CosttrackingCostReportView defines model for costtracking.costReportView.
+type CosttrackingCostReportView struct {
+	From    *string                          `json:"from,omitempty"`
+	GroupBy *string                          `json:"group_by,omitempty"`
+	Rows    *[]CosttrackingCostReportRowView `json:"rows,omitempty"`
+	To      *string                          `json:"to,omitempty"`
+}
+
 // CosttrackingCostSummaryByCustomerResponse defines model for costtracking.costSummaryByCustomerResponse.
 type CosttrackingCostSummaryByCustomerResponse struct {
 	CostMicros  *int                                   `json:"cost_micros,omitempty"`
@@ -66,6 +113,33 @@ type CosttrackingCostSummaryResponse struct {
 	Currency    *string                             `json:"currency,omitempty"`
 	PeriodEnd   *string                             `json:"period_end,omitempty"`
 	PeriodStart *string                             `json:"period_start,omitempty"`
+}
+
+// CosttrackingImportLLMPriceLineView defines model for costtracking.importLLMPriceLineView.
+type CosttrackingImportLLMPriceLineView struct {
+	Code               *string                                    `json:"code,omitempty"`
+	Currency           *string                                    `json:"currency,omitempty"`
+	Error              *string                                    `json:"error,omitempty"`
+	Outcome            *CosttrackingImportLLMPriceLineViewOutcome `json:"outcome,omitempty"`
+	PriceMicrosPerUnit *int                                       `json:"price_micros_per_unit,omitempty"`
+}
+
+// CosttrackingImportLLMPriceLineViewOutcome defines model for CosttrackingImportLLMPriceLineView.Outcome.
+type CosttrackingImportLLMPriceLineViewOutcome string
+
+// CosttrackingImportLLMPricesRequest defines model for costtracking.importLLMPricesRequest.
+type CosttrackingImportLLMPricesRequest struct {
+	DryRun   *bool                                       `json:"dry_run,omitempty"`
+	Models   *[]string                                   `json:"models,omitempty"`
+	Provider *CosttrackingImportLLMPricesRequestProvider `json:"provider,omitempty"`
+}
+
+// CosttrackingImportLLMPricesRequestProvider defines model for CosttrackingImportLLMPricesRequest.Provider.
+type CosttrackingImportLLMPricesRequestProvider string
+
+// CosttrackingImportLLMPricesResponse defines model for costtracking.importLLMPricesResponse.
+type CosttrackingImportLLMPricesResponse struct {
+	Lines *[]CosttrackingImportLLMPriceLineView `json:"lines,omitempty"`
 }
 
 // CosttrackingIngestRequest defines model for costtracking.ingestRequest.
@@ -117,6 +191,32 @@ type CosttrackingMyCostReportResponse struct {
 	Currency    *string `json:"currency,omitempty"`
 	PeriodEnd   *string `json:"period_end,omitempty"`
 	PeriodStart *string `json:"period_start,omitempty"`
+}
+
+// CosttrackingRecordCostsRequest defines model for costtracking.recordCostsRequest.
+type CosttrackingRecordCostsRequest struct {
+	Lines *[]CosttrackingCostLineRequest `json:"lines,omitempty"`
+}
+
+// CosttrackingRecordCostsResponse defines model for costtracking.recordCostsResponse.
+type CosttrackingRecordCostsResponse struct {
+	// Accepted Accepted counts the lines received; Inserted those that were new.
+	// A replayed idempotency key is accepted and not inserted.
+	Accepted *int                            `json:"accepted,omitempty"`
+	Inserted *int                            `json:"inserted,omitempty"`
+	Lines    *[]CosttrackingRecordedCostView `json:"lines,omitempty"`
+}
+
+// CosttrackingRecordedCostView defines model for costtracking.recordedCostView.
+type CosttrackingRecordedCostView struct {
+	AmountMicros       *int    `json:"amount_micros,omitempty"`
+	Code               *string `json:"code,omitempty"`
+	Currency           *string `json:"currency,omitempty"`
+	IdempotencyKey     *string `json:"idempotency_key,omitempty"`
+	PriceId            *string `json:"price_id,omitempty"`
+	PriceMicrosPerUnit *int    `json:"price_micros_per_unit,omitempty"`
+	Quantity           *int    `json:"quantity,omitempty"`
+	UnitSize           *int    `json:"unit_size,omitempty"`
 }
 
 // CreateEndpointCreateEndpointRequest defines model for create_endpoint.CreateEndpointRequest.
@@ -296,19 +396,6 @@ type FinanceCheckoutSessionResponse struct {
 	SubscriptionStatus *string `json:"subscription_status,omitempty"`
 }
 
-// FinanceClaimReq defines model for finance.claimReq.
-type FinanceClaimReq struct {
-	Country        *string `json:"country,omitempty"`
-	ExternalUserId *string `json:"external_user_id,omitempty"`
-	Token          *string `json:"token,omitempty"`
-}
-
-// FinanceClaimResp defines model for finance.claimResp.
-type FinanceClaimResp struct {
-	PeriodEnd *string `json:"period_end,omitempty"`
-	PlanCode  *string `json:"plan_code,omitempty"`
-}
-
 // FinanceEntitlementResponse defines model for finance.entitlementResponse.
 type FinanceEntitlementResponse struct {
 	Balances *map[string]int64 `json:"balances,omitempty"`
@@ -340,42 +427,6 @@ type FinanceEntitlementResponse struct {
 	PlanCode               *string `json:"plan_code,omitempty"`
 	PlanRank               *int    `json:"plan_rank,omitempty"`
 	Status                 *string `json:"status,omitempty"`
-}
-
-// FinanceInvitationView defines model for finance.invitationView.
-type FinanceInvitationView struct {
-	AppId     *string `json:"app_id,omitempty"`
-	ClaimedAt *string `json:"claimed_at,omitempty"`
-	Email     *string `json:"email,omitempty"`
-	ExpiresAt *string `json:"expires_at,omitempty"`
-	Id        *string `json:"id,omitempty"`
-	InvitedAt *string `json:"invited_at,omitempty"`
-
-	// Link Link is the URL to hand the invitee. Empty when the app declares no
-	// registration URL, which is what makes that omission visible in the UI
-	// instead of producing a link that goes nowhere.
-	Link     *string `json:"link,omitempty"`
-	PlanCode *string `json:"plan_code,omitempty"`
-	Status   *string `json:"status,omitempty"`
-}
-
-// FinanceInviteReq defines model for finance.inviteReq.
-type FinanceInviteReq struct {
-	Email    *string `json:"email,omitempty"`
-	PlanCode *string `json:"plan_code,omitempty"`
-}
-
-// FinanceLookupResp defines model for finance.lookupResp.
-type FinanceLookupResp struct {
-	Email     *string `json:"email,omitempty"`
-	ExpiresAt *string `json:"expires_at,omitempty"`
-	PlanCode  *string `json:"plan_code,omitempty"`
-
-	// Status Status is claimable, claimed or expired. An app shows a different thing
-	// for each: only the last two say the offer was real, which is what tells
-	// someone that asking for a new link is worth it rather than doubting the
-	// address they were invited at.
-	Status *string `json:"status,omitempty"`
 }
 
 // FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
@@ -582,6 +633,18 @@ type ListCheckoutMethodsParams struct {
 	PlanId string `form:"plan_id" json:"plan_id"`
 }
 
+// GetAppCostReportParams defines parameters for GetAppCostReport.
+type GetAppCostReportParams struct {
+	// GroupBy item | end_user | day | month
+	GroupBy string `form:"group_by" json:"group_by"`
+
+	// From Start (RFC3339). Defaults to the 1st of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
 // GetAppLLMCostSummaryByCustomerParams defines parameters for GetAppLLMCostSummaryByCustomer.
 type GetAppLLMCostSummaryByCustomerParams struct {
 	// From Start (RFC3339). Defaults to the 1st of the current month.
@@ -642,8 +705,8 @@ type AppRegisterCustomerJSONRequestBody = FinanceAppRegisterCustomerRequest
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
 
-// ClaimInvitationJSONRequestBody defines body for ClaimInvitation for application/json ContentType.
-type ClaimInvitationJSONRequestBody = FinanceClaimReq
+// RecordCostsJSONRequestBody defines body for RecordCosts for application/json ContentType.
+type RecordCostsJSONRequestBody = CosttrackingRecordCostsRequest
 
 // RecordLLMUsageJSONRequestBody defines body for RecordLLMUsage for application/json ContentType.
 type RecordLLMUsageJSONRequestBody = CosttrackingIngestRequest
@@ -666,14 +729,14 @@ type AppGrantSubscriptionJSONRequestBody = FinanceAppGrantRequest
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
 
-// InviteToAppJSONRequestBody defines body for InviteToApp for application/json ContentType.
-type InviteToAppJSONRequestBody = FinanceInviteReq
-
 // BulkDeleteUsageUnitsJSONRequestBody defines body for BulkDeleteUsageUnits for application/json ContentType.
 type BulkDeleteUsageUnitsJSONRequestBody = MeteringBulkDeleteUnitsRequest
 
 // UpdateUsageUnitJSONRequestBody defines body for UpdateUsageUnit for application/json ContentType.
 type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
+
+// ImportLLMPricesJSONRequestBody defines body for ImportLLMPrices for application/json ContentType.
+type ImportLLMPricesJSONRequestBody = CosttrackingImportLLMPricesRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -776,16 +839,16 @@ type ClientInterface interface {
 	// GetCheckoutSession request
 	GetCheckoutSession(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PayplugWebhook request
-	PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// MollieWebhook request
+	MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ClaimInvitationWithBody request with any body
-	ClaimInvitationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// RecordCostsWithBody request with any body
+	RecordCostsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	RecordCosts(ctx context.Context, body RecordCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// LookupInvitation request
-	LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetAppCostReport request
+	GetAppCostReport(ctx context.Context, params *GetAppCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAppLLMCostSummaryByCustomer request
 	GetAppLLMCostSummaryByCustomer(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -837,11 +900,6 @@ type ClientInterface interface {
 
 	AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// InviteToAppWithBody request with any body
-	InviteToAppWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	InviteToApp(ctx context.Context, tenantId string, appId string, body InviteToAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// BulkDeleteUsageUnitsWithBody request with any body
 	BulkDeleteUsageUnitsWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -855,17 +913,13 @@ type ClientInterface interface {
 
 	UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ImportLLMPricesWithBody request with any body
+	ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ImportLLMPrices(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetCustomerUsage request
 	GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListInvitations request
-	ListInvitations(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RevokeInvitation request
-	RevokeInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RegenerateInvitation request
-	RegenerateInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -986,8 +1040,8 @@ func (c *Client) GetCheckoutSession(ctx context.Context, sessionId string, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) PayplugWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPayplugWebhookRequest(c.Server, credId)
+func (c *Client) MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMollieWebhookRequest(c.Server, credId)
 	if err != nil {
 		return nil, err
 	}
@@ -998,8 +1052,8 @@ func (c *Client) PayplugWebhook(ctx context.Context, credId string, reqEditors .
 	return c.Client.Do(req)
 }
 
-func (c *Client) ClaimInvitationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewClaimInvitationRequestWithBody(c.Server, contentType, body)
+func (c *Client) RecordCostsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordCostsRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,8 +1064,8 @@ func (c *Client) ClaimInvitationWithBody(ctx context.Context, contentType string
 	return c.Client.Do(req)
 }
 
-func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewClaimInvitationRequest(c.Server, body)
+func (c *Client) RecordCosts(ctx context.Context, body RecordCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordCostsRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1022,8 +1076,8 @@ func (c *Client) ClaimInvitation(ctx context.Context, body ClaimInvitationJSONRe
 	return c.Client.Do(req)
 }
 
-func (c *Client) LookupInvitation(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewLookupInvitationRequest(c.Server, token)
+func (c *Client) GetAppCostReport(ctx context.Context, params *GetAppCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAppCostReportRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1262,30 +1316,6 @@ func (c *Client) AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPen
 	return c.Client.Do(req)
 }
 
-func (c *Client) InviteToAppWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewInviteToAppRequestWithBody(c.Server, tenantId, appId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) InviteToApp(ctx context.Context, tenantId string, appId string, body InviteToAppJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewInviteToAppRequest(c.Server, tenantId, appId, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) BulkDeleteUsageUnitsWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBulkDeleteUsageUnitsRequestWithBody(c.Server, tenantId, appId, contentType, body)
 	if err != nil {
@@ -1346,44 +1376,32 @@ func (c *Client) UpdateUsageUnit(ctx context.Context, tenantId string, appId str
 	return c.Client.Do(req)
 }
 
+func (c *Client) ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportLLMPricesRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ImportLLMPrices(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewImportLLMPricesRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetCustomerUsageRequest(c.Server, tenantId, customerId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListInvitations(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListInvitationsRequest(c.Server, tenantId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RevokeInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRevokeInvitationRequest(c.Server, tenantId, id)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) RegenerateInvitation(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRegenerateInvitationRequest(c.Server, tenantId, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1744,8 +1762,8 @@ func NewGetCheckoutSessionRequest(server string, sessionId string) (*http.Reques
 	return req, nil
 }
 
-// NewPayplugWebhookRequest generates requests for PayplugWebhook
-func NewPayplugWebhookRequest(server string, credId string) (*http.Request, error) {
+// NewMollieWebhookRequest generates requests for MollieWebhook
+func NewMollieWebhookRequest(server string, credId string) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -1760,7 +1778,7 @@ func NewPayplugWebhookRequest(server string, credId string) (*http.Request, erro
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/finance/webhooks/payplug/%s", pathParam0)
+	operationPath := fmt.Sprintf("/finance/webhooks/mollie/%s", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1778,19 +1796,19 @@ func NewPayplugWebhookRequest(server string, credId string) (*http.Request, erro
 	return req, nil
 }
 
-// NewClaimInvitationRequest calls the generic ClaimInvitation builder with application/json body
-func NewClaimInvitationRequest(server string, body ClaimInvitationJSONRequestBody) (*http.Request, error) {
+// NewRecordCostsRequest calls the generic RecordCosts builder with application/json body
+func NewRecordCostsRequest(server string, body RecordCostsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewClaimInvitationRequestWithBody(server, "application/json", bodyReader)
+	return NewRecordCostsRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewClaimInvitationRequestWithBody generates requests for ClaimInvitation with any type of body
-func NewClaimInvitationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewRecordCostsRequestWithBody generates requests for RecordCosts with any type of body
+func NewRecordCostsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -1798,7 +1816,7 @@ func NewClaimInvitationRequestWithBody(server string, contentType string, body i
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/invitations/claim")
+	operationPath := fmt.Sprintf("/metering/costs")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1818,23 +1836,16 @@ func NewClaimInvitationRequestWithBody(server string, contentType string, body i
 	return req, nil
 }
 
-// NewLookupInvitationRequest generates requests for LookupInvitation
-func NewLookupInvitationRequest(server string, token string) (*http.Request, error) {
+// NewGetAppCostReportRequest generates requests for GetAppCostReport
+func NewGetAppCostReportRequest(server string, params *GetAppCostReportParams) (*http.Request, error) {
 	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "token", runtime.ParamLocationPath, token)
-	if err != nil {
-		return nil, err
-	}
 
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/invitations/%s", pathParam0)
+	operationPath := fmt.Sprintf("/metering/costs/report")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -1842,6 +1853,56 @@ func NewLookupInvitationRequest(server string, token string) (*http.Request, err
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group_by", runtime.ParamLocationQuery, params.GroupBy); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -2423,60 +2484,6 @@ func NewAppWithdrawPendingPlanRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
-// NewInviteToAppRequest calls the generic InviteToApp builder with application/json body
-func NewInviteToAppRequest(server string, tenantId string, appId string, body InviteToAppJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewInviteToAppRequestWithBody(server, tenantId, appId, "application/json", bodyReader)
-}
-
-// NewInviteToAppRequestWithBody generates requests for InviteToApp with any type of body
-func NewInviteToAppRequestWithBody(server string, tenantId string, appId string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/invitations", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewBulkDeleteUsageUnitsRequest calls the generic BulkDeleteUsageUnits builder with application/json body
 func NewBulkDeleteUsageUnitsRequest(server string, tenantId string, appId string, body BulkDeleteUsageUnitsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2640,6 +2647,53 @@ func NewUpdateUsageUnitRequestWithBody(server string, tenantId string, appId str
 	return req, nil
 }
 
+// NewImportLLMPricesRequest calls the generic ImportLLMPrices builder with application/json body
+func NewImportLLMPricesRequest(server string, tenantId string, body ImportLLMPricesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewImportLLMPricesRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewImportLLMPricesRequestWithBody generates requests for ImportLLMPrices with any type of body
+func NewImportLLMPricesRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/import-llm", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetCustomerUsageRequest generates requests for GetCustomerUsage
 func NewGetCustomerUsageRequest(server string, tenantId string, customerId string, params *GetCustomerUsageParams) (*http.Request, error) {
 	var err error
@@ -2696,122 +2750,6 @@ func NewGetCustomerUsageRequest(server string, tenantId string, customerId strin
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewListInvitationsRequest generates requests for ListInvitations
-func NewListInvitationsRequest(server string, tenantId string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/invitations", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewRevokeInvitationRequest generates requests for RevokeInvitation
-func NewRevokeInvitationRequest(server string, tenantId string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/invitations/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewRegenerateInvitationRequest generates requests for RegenerateInvitation
-func NewRegenerateInvitationRequest(server string, tenantId string, id string) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/tenants/%s/invitations/%s/regenerate", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -3138,16 +3076,16 @@ type ClientWithResponsesInterface interface {
 	// GetCheckoutSessionWithResponse request
 	GetCheckoutSessionWithResponse(ctx context.Context, sessionId string, reqEditors ...RequestEditorFn) (*GetCheckoutSessionResponse, error)
 
-	// PayplugWebhookWithResponse request
-	PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error)
+	// MollieWebhookWithResponse request
+	MollieWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*MollieWebhookResponse, error)
 
-	// ClaimInvitationWithBodyWithResponse request with any body
-	ClaimInvitationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
+	// RecordCostsWithBodyWithResponse request with any body
+	RecordCostsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error)
 
-	ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error)
+	RecordCostsWithResponse(ctx context.Context, body RecordCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error)
 
-	// LookupInvitationWithResponse request
-	LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error)
+	// GetAppCostReportWithResponse request
+	GetAppCostReportWithResponse(ctx context.Context, params *GetAppCostReportParams, reqEditors ...RequestEditorFn) (*GetAppCostReportResponse, error)
 
 	// GetAppLLMCostSummaryByCustomerWithResponse request
 	GetAppLLMCostSummaryByCustomerWithResponse(ctx context.Context, params *GetAppLLMCostSummaryByCustomerParams, reqEditors ...RequestEditorFn) (*GetAppLLMCostSummaryByCustomerResponse, error)
@@ -3199,11 +3137,6 @@ type ClientWithResponsesInterface interface {
 
 	AppWithdrawPendingPlanWithResponse(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
-	// InviteToAppWithBodyWithResponse request with any body
-	InviteToAppWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InviteToAppResponse, error)
-
-	InviteToAppWithResponse(ctx context.Context, tenantId string, appId string, body InviteToAppJSONRequestBody, reqEditors ...RequestEditorFn) (*InviteToAppResponse, error)
-
 	// BulkDeleteUsageUnitsWithBodyWithResponse request with any body
 	BulkDeleteUsageUnitsWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkDeleteUsageUnitsResponse, error)
 
@@ -3217,17 +3150,13 @@ type ClientWithResponsesInterface interface {
 
 	UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
 
+	// ImportLLMPricesWithBodyWithResponse request with any body
+	ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
+
+	ImportLLMPricesWithResponse(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
+
 	// GetCustomerUsageWithResponse request
 	GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error)
-
-	// ListInvitationsWithResponse request
-	ListInvitationsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListInvitationsResponse, error)
-
-	// RevokeInvitationWithResponse request
-	RevokeInvitationWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*RevokeInvitationResponse, error)
-
-	// RegenerateInvitationWithResponse request
-	RegenerateInvitationWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*RegenerateInvitationResponse, error)
 
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
@@ -3398,13 +3327,13 @@ func (r GetCheckoutSessionResponse) StatusCode() int {
 	return 0
 }
 
-type PayplugWebhookResponse struct {
+type MollieWebhookResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r PayplugWebhookResponse) Status() string {
+func (r MollieWebhookResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3412,24 +3341,24 @@ func (r PayplugWebhookResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PayplugWebhookResponse) StatusCode() int {
+func (r MollieWebhookResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type ClaimInvitationResponse struct {
+type RecordCostsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *FinanceClaimResp
+	JSON200      *CosttrackingRecordCostsResponse
+	JSON400      *EchoHTTPError
 	JSON404      *EchoHTTPError
-	JSON409      *EchoHTTPError
-	JSON410      *EchoHTTPError
+	JSON422      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
-func (r ClaimInvitationResponse) Status() string {
+func (r RecordCostsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3437,23 +3366,22 @@ func (r ClaimInvitationResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ClaimInvitationResponse) StatusCode() int {
+func (r RecordCostsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type LookupInvitationResponse struct {
+type GetAppCostReportResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *FinanceLookupResp
-	JSON401      *EchoHTTPError
-	JSON404      *EchoHTTPError
+	JSON200      *CosttrackingCostReportView
+	JSON400      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
-func (r LookupInvitationResponse) Status() string {
+func (r GetAppCostReportResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -3461,7 +3389,7 @@ func (r LookupInvitationResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r LookupInvitationResponse) StatusCode() int {
+func (r GetAppCostReportResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -3758,28 +3686,6 @@ func (r AppWithdrawPendingPlanResponse) StatusCode() int {
 	return 0
 }
 
-type InviteToAppResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *FinanceInvitationView
-}
-
-// Status returns HTTPResponse.Status
-func (r InviteToAppResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r InviteToAppResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type BulkDeleteUsageUnitsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3849,6 +3755,30 @@ func (r UpdateUsageUnitResponse) StatusCode() int {
 	return 0
 }
 
+type ImportLLMPricesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingImportLLMPricesResponse
+	JSON400      *EchoHTTPError
+	JSON502      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ImportLLMPricesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ImportLLMPricesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetCustomerUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3867,71 +3797,6 @@ func (r GetCustomerUsageResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetCustomerUsageResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListInvitationsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]FinanceInvitationView
-}
-
-// Status returns HTTPResponse.Status
-func (r ListInvitationsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListInvitationsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type RevokeInvitationResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r RevokeInvitationResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RevokeInvitationResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type RegenerateInvitationResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *FinanceInvitationView
-}
-
-// Status returns HTTPResponse.Status
-func (r RegenerateInvitationResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RegenerateInvitationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4151,39 +4016,39 @@ func (c *ClientWithResponses) GetCheckoutSessionWithResponse(ctx context.Context
 	return ParseGetCheckoutSessionResponse(rsp)
 }
 
-// PayplugWebhookWithResponse request returning *PayplugWebhookResponse
-func (c *ClientWithResponses) PayplugWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*PayplugWebhookResponse, error) {
-	rsp, err := c.PayplugWebhook(ctx, credId, reqEditors...)
+// MollieWebhookWithResponse request returning *MollieWebhookResponse
+func (c *ClientWithResponses) MollieWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*MollieWebhookResponse, error) {
+	rsp, err := c.MollieWebhook(ctx, credId, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePayplugWebhookResponse(rsp)
+	return ParseMollieWebhookResponse(rsp)
 }
 
-// ClaimInvitationWithBodyWithResponse request with arbitrary body returning *ClaimInvitationResponse
-func (c *ClientWithResponses) ClaimInvitationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error) {
-	rsp, err := c.ClaimInvitationWithBody(ctx, contentType, body, reqEditors...)
+// RecordCostsWithBodyWithResponse request with arbitrary body returning *RecordCostsResponse
+func (c *ClientWithResponses) RecordCostsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error) {
+	rsp, err := c.RecordCostsWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseClaimInvitationResponse(rsp)
+	return ParseRecordCostsResponse(rsp)
 }
 
-func (c *ClientWithResponses) ClaimInvitationWithResponse(ctx context.Context, body ClaimInvitationJSONRequestBody, reqEditors ...RequestEditorFn) (*ClaimInvitationResponse, error) {
-	rsp, err := c.ClaimInvitation(ctx, body, reqEditors...)
+func (c *ClientWithResponses) RecordCostsWithResponse(ctx context.Context, body RecordCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error) {
+	rsp, err := c.RecordCosts(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseClaimInvitationResponse(rsp)
+	return ParseRecordCostsResponse(rsp)
 }
 
-// LookupInvitationWithResponse request returning *LookupInvitationResponse
-func (c *ClientWithResponses) LookupInvitationWithResponse(ctx context.Context, token string, reqEditors ...RequestEditorFn) (*LookupInvitationResponse, error) {
-	rsp, err := c.LookupInvitation(ctx, token, reqEditors...)
+// GetAppCostReportWithResponse request returning *GetAppCostReportResponse
+func (c *ClientWithResponses) GetAppCostReportWithResponse(ctx context.Context, params *GetAppCostReportParams, reqEditors ...RequestEditorFn) (*GetAppCostReportResponse, error) {
+	rsp, err := c.GetAppCostReport(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseLookupInvitationResponse(rsp)
+	return ParseGetAppCostReportResponse(rsp)
 }
 
 // GetAppLLMCostSummaryByCustomerWithResponse request returning *GetAppLLMCostSummaryByCustomerResponse
@@ -4350,23 +4215,6 @@ func (c *ClientWithResponses) AppWithdrawPendingPlanWithResponse(ctx context.Con
 	return ParseAppWithdrawPendingPlanResponse(rsp)
 }
 
-// InviteToAppWithBodyWithResponse request with arbitrary body returning *InviteToAppResponse
-func (c *ClientWithResponses) InviteToAppWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*InviteToAppResponse, error) {
-	rsp, err := c.InviteToAppWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseInviteToAppResponse(rsp)
-}
-
-func (c *ClientWithResponses) InviteToAppWithResponse(ctx context.Context, tenantId string, appId string, body InviteToAppJSONRequestBody, reqEditors ...RequestEditorFn) (*InviteToAppResponse, error) {
-	rsp, err := c.InviteToApp(ctx, tenantId, appId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseInviteToAppResponse(rsp)
-}
-
 // BulkDeleteUsageUnitsWithBodyWithResponse request with arbitrary body returning *BulkDeleteUsageUnitsResponse
 func (c *ClientWithResponses) BulkDeleteUsageUnitsWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkDeleteUsageUnitsResponse, error) {
 	rsp, err := c.BulkDeleteUsageUnitsWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
@@ -4410,6 +4258,23 @@ func (c *ClientWithResponses) UpdateUsageUnitWithResponse(ctx context.Context, t
 	return ParseUpdateUsageUnitResponse(rsp)
 }
 
+// ImportLLMPricesWithBodyWithResponse request with arbitrary body returning *ImportLLMPricesResponse
+func (c *ClientWithResponses) ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error) {
+	rsp, err := c.ImportLLMPricesWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportLLMPricesResponse(rsp)
+}
+
+func (c *ClientWithResponses) ImportLLMPricesWithResponse(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error) {
+	rsp, err := c.ImportLLMPrices(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseImportLLMPricesResponse(rsp)
+}
+
 // GetCustomerUsageWithResponse request returning *GetCustomerUsageResponse
 func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error) {
 	rsp, err := c.GetCustomerUsage(ctx, tenantId, customerId, params, reqEditors...)
@@ -4417,33 +4282,6 @@ func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetCustomerUsageResponse(rsp)
-}
-
-// ListInvitationsWithResponse request returning *ListInvitationsResponse
-func (c *ClientWithResponses) ListInvitationsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListInvitationsResponse, error) {
-	rsp, err := c.ListInvitations(ctx, tenantId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListInvitationsResponse(rsp)
-}
-
-// RevokeInvitationWithResponse request returning *RevokeInvitationResponse
-func (c *ClientWithResponses) RevokeInvitationWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*RevokeInvitationResponse, error) {
-	rsp, err := c.RevokeInvitation(ctx, tenantId, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRevokeInvitationResponse(rsp)
-}
-
-// RegenerateInvitationWithResponse request returning *RegenerateInvitationResponse
-func (c *ClientWithResponses) RegenerateInvitationWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*RegenerateInvitationResponse, error) {
-	rsp, err := c.RegenerateInvitation(ctx, tenantId, id, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRegenerateInvitationResponse(rsp)
 }
 
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
@@ -4770,15 +4608,15 @@ func ParseGetCheckoutSessionResponse(rsp *http.Response) (*GetCheckoutSessionRes
 	return response, nil
 }
 
-// ParsePayplugWebhookResponse parses an HTTP response from a PayplugWebhookWithResponse call
-func ParsePayplugWebhookResponse(rsp *http.Response) (*PayplugWebhookResponse, error) {
+// ParseMollieWebhookResponse parses an HTTP response from a MollieWebhookWithResponse call
+func ParseMollieWebhookResponse(rsp *http.Response) (*MollieWebhookResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PayplugWebhookResponse{
+	response := &MollieWebhookResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -4786,26 +4624,33 @@ func ParsePayplugWebhookResponse(rsp *http.Response) (*PayplugWebhookResponse, e
 	return response, nil
 }
 
-// ParseClaimInvitationResponse parses an HTTP response from a ClaimInvitationWithResponse call
-func ParseClaimInvitationResponse(rsp *http.Response) (*ClaimInvitationResponse, error) {
+// ParseRecordCostsResponse parses an HTTP response from a RecordCostsWithResponse call
+func ParseRecordCostsResponse(rsp *http.Response) (*RecordCostsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ClaimInvitationResponse{
+	response := &RecordCostsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest FinanceClaimResp
+		var dest CosttrackingRecordCostsResponse
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest EchoHTTPError
@@ -4814,59 +4659,45 @@ func ParseClaimInvitationResponse(rsp *http.Response) (*ClaimInvitationResponse,
 		}
 		response.JSON404 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
 		var dest EchoHTTPError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON409 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 410:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON410 = &dest
+		response.JSON422 = &dest
 
 	}
 
 	return response, nil
 }
 
-// ParseLookupInvitationResponse parses an HTTP response from a LookupInvitationWithResponse call
-func ParseLookupInvitationResponse(rsp *http.Response) (*LookupInvitationResponse, error) {
+// ParseGetAppCostReportResponse parses an HTTP response from a GetAppCostReportWithResponse call
+func ParseGetAppCostReportResponse(rsp *http.Response) (*GetAppCostReportResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &LookupInvitationResponse{
+	response := &GetAppCostReportResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest FinanceLookupResp
+		var dest CosttrackingCostReportView
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
 
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
 		var dest EchoHTTPError
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest EchoHTTPError
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
+		response.JSON400 = &dest
 
 	}
 
@@ -5367,32 +5198,6 @@ func ParseAppWithdrawPendingPlanResponse(rsp *http.Response) (*AppWithdrawPendin
 	return response, nil
 }
 
-// ParseInviteToAppResponse parses an HTTP response from a InviteToAppWithResponse call
-func ParseInviteToAppResponse(rsp *http.Response) (*InviteToAppResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &InviteToAppResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest FinanceInvitationView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseBulkDeleteUsageUnitsResponse parses an HTTP response from a BulkDeleteUsageUnitsWithResponse call
 func ParseBulkDeleteUsageUnitsResponse(rsp *http.Response) (*BulkDeleteUsageUnitsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5492,6 +5297,46 @@ func ParseUpdateUsageUnitResponse(rsp *http.Response) (*UpdateUsageUnitResponse,
 	return response, nil
 }
 
+// ParseImportLLMPricesResponse parses an HTTP response from a ImportLLMPricesWithResponse call
+func ParseImportLLMPricesResponse(rsp *http.Response) (*ImportLLMPricesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ImportLLMPricesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingImportLLMPricesResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetCustomerUsageResponse parses an HTTP response from a GetCustomerUsageWithResponse call
 func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5526,74 +5371,6 @@ func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageRespons
 			return nil, err
 		}
 		response.JSON403 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListInvitationsResponse parses an HTTP response from a ListInvitationsWithResponse call
-func ParseListInvitationsResponse(rsp *http.Response) (*ListInvitationsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListInvitationsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []FinanceInvitationView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRevokeInvitationResponse parses an HTTP response from a RevokeInvitationWithResponse call
-func ParseRevokeInvitationResponse(rsp *http.Response) (*RevokeInvitationResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RevokeInvitationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseRegenerateInvitationResponse parses an HTTP response from a RegenerateInvitationWithResponse call
-func ParseRegenerateInvitationResponse(rsp *http.Response) (*RegenerateInvitationResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RegenerateInvitationResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest FinanceInvitationView
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
 
 	}
 
