@@ -25,8 +25,11 @@ func TestSearchSendsTheQueryAndReadsResults(t *testing.T) {
 		if r.URL.Path != "/search" {
 			t.Errorf("path = %s, want /search", r.URL.Path)
 		}
-		if k := r.Header.Get("X-Tornad-Key"); k != "app-key" {
-			t.Errorf("key header = %q, want app-key", k)
+		if k := r.Header.Get("Authorization"); k != "Bearer app-key" {
+			t.Errorf("Authorization = %q, want Bearer app-key", k)
+		}
+		if r.Header.Get("X-Tornad-Key") != "" {
+			t.Error("tornad reads no X-Tornad-Key: the key must travel as a Bearer only")
 		}
 		json.NewDecoder(r.Body).Decode(&got)
 		w.Header().Set("Content-Type", "application/json")
