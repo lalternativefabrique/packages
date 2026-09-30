@@ -459,7 +459,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nLLM usage is declared as one line per token kind, on items coded `<model>.input`, `<model>.cached` and `<model>.output`, with the quantity in tokens.",
+                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nLLM usage is declared as one line per token kind, on items coded `<provider>/<model>.input`, `.cached` and `.output` (imported prices) or `<model>.<kind>` (items created by hand), with the quantity in tokens.",
                 "tags": [
                     "costs"
                 ],
@@ -3766,7 +3766,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Upserts tenant catalog items `<model>.input`, `<model>.cached` and `<model>.output` (supplier = provider, unit \"1M tokens\", unit_size 1000000). A price that differs from the one in force appends a version; an unchanged one writes nothing. Deactivated items stay deactivated. With `dry_run` nothing is written. Limit to some models with `models`.",
+                "description": "Upserts tenant catalog items `<provider>/<model>.input`, `.cached` and `.output` (supplier = provider, unit \"1M tokens\", unit_size 1000000). A price that differs from the one in force appends a version; an unchanged one writes nothing; a zero or unpublished price creates no item. Deactivated items stay deactivated. With `dry_run` nothing is written. Limit to some models with `models`.",
                 "tags": [
                     "costs"
                 ],

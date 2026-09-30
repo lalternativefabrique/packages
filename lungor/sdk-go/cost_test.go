@@ -190,3 +190,16 @@ func TestCostReport_ParsesRows(t *testing.T) {
 		t.Fatalf("row = %+v", row)
 	}
 }
+
+func TestLLMUsage_PrefixesTheProviderWhenSet(t *testing.T) {
+	cases := map[string]string{"scaleway": "scaleway/m.input", "": "m.input"}
+	for provider, want := range cases {
+		lines, err := LLMUsage{Provider: provider, Model: "m", InputTokens: 1, IdempotencyKey: "k"}.lines(time.Now())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(lines) != 1 || lines[0].Code != want || lines[0].IdempotencyKey != "k.input" {
+			t.Errorf("provider %q: lines = %+v, want code %s", provider, lines, want)
+		}
+	}
+}

@@ -52,8 +52,12 @@ type CostResult struct {
 }
 
 // LLMUsage is one LLM call's token counts, declared on the items
-// `<Model>.input`, `<Model>.cached` and `<Model>.output`.
+// `<Provider>/<Model>.input|.cached|.output`, or `<Model>.<kind>` when
+// Provider is empty.
 type LLMUsage struct {
+	// Provider is the supplier the prices were imported from ("ovh",
+	// "scaleway", "deepseek"). Leave empty for items created by hand.
+	Provider       string
 	Model          string
 	InputTokens    int64
 	CachedTokens   int64
@@ -108,13 +112,17 @@ func (u LLMUsage) lines(now time.Time) ([]CostLine, error) {
 		kind   string
 		tokens int64
 	}{{"input", u.InputTokens}, {"cached", u.CachedTokens}, {"output", u.OutputTokens}}
+	prefix := u.Model
+	if u.Provider != "" {
+		prefix = u.Provider + "/" + u.Model
+	}
 	lines := make([]CostLine, 0, len(kinds))
 	for _, k := range kinds {
 		if k.tokens == 0 {
 			continue
 		}
 		lines = append(lines, CostLine{
-			Code:           u.Model + "." + k.kind,
+			Code:           prefix + "." + k.kind,
 			Quantity:       k.tokens,
 			OccurredAt:     at,
 			IdempotencyKey: u.IdempotencyKey + "." + k.kind,

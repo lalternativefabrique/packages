@@ -313,13 +313,17 @@ names it. A replayed idempotency key is accepted and not inserted twice
 
 ### LLM usage
 
-LLM items are coded `<model>.input`, `<model>.cached` and `<model>.output`,
+LLM items imported from a provider's price list are coded
+`<provider>/<model>.input`, `.cached` and `.output` (e.g.
+`ovh/qwen-3-32b.input`); items created by hand are `<model>.<kind>`. Set
+`Provider` to get the first form, leave it empty for the second. Both are
 priced per million tokens (`unit_size` 1000000), quantity in tokens.
 `RecordLLMUsage` expands one call into those lines, skipping zero counts, with
 keys `<IdempotencyKey>.input|.cached|.output`; `OccurredAt` defaults to now.
 
 ```go
 _, err := client.RecordLLMUsage(ctx, sdk.LLMUsage{
+    Provider:       "scaleway",
     Model:          "deepseek-v4",
     InputTokens:    4200,
     CachedTokens:   1000,
