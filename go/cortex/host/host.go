@@ -41,6 +41,10 @@ const (
 	// checked against the schema, and it is returned as one data part of the
 	// "answer" artifact instead of text.
 	OutputSchemaKey = "outputSchema"
+	// SkillKey names the declared skill a message runs: the host applies
+	// its instructions and output schema, and checks the message text, the
+	// skill's input as JSON, against its input schema.
+	SkillKey = "skill"
 )
 
 // Agent is what the container declares itself to be.
@@ -57,6 +61,9 @@ type Config struct {
 	// Tools are offered on every turn beside the MCP servers' tools: what
 	// the host itself can do, such as reading the web.
 	Tools []agent.Tool
+	// Skills are the actions the app declared for this agent (skills.json):
+	// listed on the Agent Card and at /skills, run by name.
+	Skills []Skill
 	// Recall nil keeps no memory; recall_memory is offered only with it.
 	Recall recall.Store
 	// Token is what every caller of /a2a presents as Bearer. Empty refuses
@@ -75,6 +82,7 @@ type Config struct {
 
 type Host struct {
 	cfg           Config
+	skills        map[string]declaredSkill
 	servers       *servers
 	conversations *conversations
 	handler       http.Handler
@@ -87,7 +95,11 @@ func New(ctx context.Context, cfg Config) (*Host, error) {
 	if strings.TrimSpace(cfg.Provider.BaseURL) == "" {
 		return nil, fmt.Errorf("host: a model endpoint is required")
 	}
-	h := &Host{cfg: cfg, servers: startServers(ctx, cfg.MCP), conversations: newConversations(maxConversations)}
+	skills, err := compileSkills(cfg.Skills)
+	if err != nil {
+		return nil, err
+	}
+	h := &Host{cfg: cfg, skills: skills, servers: startServers(ctx, cfg.MCP), conversations: newConversations(maxConversations)}
 	h.handler = a2asrv.NewJSONRPCHandler(a2asrv.NewHandler(&executor{host: h}))
 	return h, nil
 }
@@ -107,6 +119,7 @@ func (h *Host) Handler() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(h.Card())
 	})
+	mux.HandleFunc("GET /skills", h.serveSkills)
 	mux.Handle("POST /a2a", h.authorized(h.handler))
 	return mux
 }
@@ -134,7 +147,10 @@ func (h *Host) accepts(ctx context.Context, bearer string) bool {
 // can call, its own and those its reachable MCP servers offer.
 func (h *Host) Card() a2a.AgentCard {
 	tools := append(append([]agent.Tool(nil), h.cfg.Tools...), h.servers.offered()...)
-	skills := make([]a2a.AgentSkill, 0, len(tools)+1)
+	skills := make([]a2a.AgentSkill, 0, len(h.cfg.Skills)+len(tools)+1)
+	for _, s := range h.cfg.Skills {
+		skills = append(skills, h.skills[s.ID].skill())
+	}
 	for _, t := range tools {
 		skills = append(skills, a2a.AgentSkill{ID: t.Name(), Name: t.Name(), Description: firstLine(t.Description()), Tags: []string{"tool"}})
 	}
@@ -151,7 +167,7 @@ func (h *Host) Card() a2a.AgentCard {
 		URL:                strings.TrimSuffix(h.cfg.PublicURL, "/") + "/a2a",
 		Version:            version,
 		PreferredTransport: a2a.TransportProtocolJSONRPC,
-		Capabilities:       a2a.AgentCapabilities{Streaming: true},
+		Capabilities:       a2a.AgentCapabilities{Streaming: true, Extensions: []a2a.AgentExtension{cortexExtension()}},
 		SecuritySchemes: a2a.NamedSecuritySchemes{
 			"bearer": a2a.HTTPAuthSecurityScheme{Scheme: "Bearer", Description: "The token this container was started with."},
 		},
@@ -167,4 +183,32 @@ func firstLine(s string) string {
 		s = s[:i]
 	}
 	return strings.TrimSpace(s)
+}
+
+// ExtensionURI names what cortex adds to A2A. A standard client can call the
+// agent without it; one that knows it can run a declared skill, ask for an
+// output format and lend the turn an identity.
+const ExtensionURI = "https://lalter.fr/a2a/ext/cortex/v1"
+
+func cortexExtension() a2a.AgentExtension {
+	return a2a.AgentExtension{
+		URI:         ExtensionURI,
+		Description: "Message metadata cortex reads, the artifacts it adds, and where its skills are declared in full.",
+		Params: map[string]any{
+			"metadata": map[string]string{
+				SkillKey:        "the declared skill the message runs; the message text is then its input, as JSON",
+				OutputSchemaKey: "a JSON Schema the answer must match; the answer then comes as one data part of the answer artifact",
+				SubjectKey:      "the person the run acts for, its memory scope",
+				TurnContextKey:  "text added to the agent's instructions for this run only",
+				MCPHeadersKey:   "headers every MCP call of the run sends, never shown to the model",
+				TurnTokenKey:    "the Bearer the run's model and memory calls present",
+			},
+			"artifacts": map[string]string{
+				"answer":    "the answer: text chunks, or one data part under an output schema",
+				"tool-call": "one per tool call: the tool, its arguments, its result or error",
+				"step":      "one per model call: its reasoning, the tools it asked for, its tokens and duration",
+			},
+			"skills": "/skills serves every declared skill in full: instructions, input and output JSON Schemas, examples",
+		},
+	}
 }
