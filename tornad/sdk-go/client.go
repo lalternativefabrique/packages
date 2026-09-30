@@ -96,7 +96,7 @@ func newWire(baseURL, key string, doer wire.HttpRequestDoer) *wire.ClientWithRes
 	}
 	auth := wire.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 		if key != "" {
-			req.Header.Set("X-Tornad-Key", key)
+			req.Header.Set("Authorization", "Bearer "+key)
 		}
 		return nil
 	})
