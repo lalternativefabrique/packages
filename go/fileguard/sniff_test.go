@@ -172,3 +172,70 @@ func TestReadHeader_SniffsThenReplaysLongBody(t *testing.T) {
 		t.Errorf("replayed %d bytes, want %d", len(all), len(payload))
 	}
 }
+
+func TestSniff_ImagesAndArchives(t *testing.T) {
+	for name, tc := range map[string]struct {
+		head string
+		mime string
+	}{
+		"png":  {"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR", "image/png"},
+		"jpeg": {"\xff\xd8\xff\xe0\x00\x10JFIF", "image/jpeg"},
+		"gif":  {"GIF89a\x01\x00", "image/gif"},
+		"webp": {"RIFF\x24\x00\x00\x00WEBPVP8 ", "image/webp"},
+		"docx": {"PK\x03\x04\x14\x00\x06\x00", "application/zip"},
+	} {
+		got, err := Sniff([]byte(tc.head))
+		if err != nil || got.MIME != tc.mime {
+			t.Errorf("%s: got %+v, %v", name, got, err)
+		}
+	}
+}
+
+func TestSniffMatching_OfficeDocumentsAreZip(t *testing.T) {
+	docx := "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+	if _, err := SniffMatching([]byte("PK\x03\x04rest"), docx); err != nil {
+		t.Fatalf("a docx is a zip: %v", err)
+	}
+	if _, err := SniffMatching([]byte("MZ\x90\x00"), docx); err == nil {
+		t.Fatal("an executable passed for a docx")
+	}
+	if _, err := SniffMatching([]byte("\xff\xd8\xff\xe0"), "image/png"); !errors.Is(err, ErrTypeMismatch) {
+		t.Fatalf("a jpeg declared as png: %v", err)
+	}
+}
+
+func TestSniffable(t *testing.T) {
+	for declared, want := range map[string]bool{
+		"application/pdf":          true,
+		"image/jpeg":               true,
+		"video/mp4":                true,
+		"application/zip":          true,
+		"text/plain":               false,
+		"text/csv":                 false,
+		"application/octet-stream": false,
+		"":                         false,
+	} {
+		if got := Sniffable(declared); got != want {
+			t.Errorf("Sniffable(%q) = %v", declared, got)
+		}
+	}
+}
+
+func TestExecutable(t *testing.T) {
+	for head, want := range map[string]string{
+		"MZ\x90\x00\x03":       "windows",
+		"\x7fELF\x02\x01":      "elf",
+		"\xcf\xfa\xed\xfe\x07": "macho",
+		"\xca\xfe\xba\xbe\x00": "macho",
+		"#!/bin/sh\necho":      "script",
+	} {
+		if kind, ok := Executable([]byte(head)); !ok || kind != want {
+			t.Errorf("Executable(%q) = %q, %v", head, kind, ok)
+		}
+	}
+	for _, head := range []string{"%PDF-1.7", "PK\x03\x04", "hello", "", "M"} {
+		if kind, ok := Executable([]byte(head)); ok {
+			t.Errorf("Executable(%q) = %q", head, kind)
+		}
+	}
+}

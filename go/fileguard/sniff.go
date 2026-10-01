@@ -80,6 +80,18 @@ func Sniff(head []byte) (Container, error) {
 		return Container{MIME: "video/webm", Ext: ".webm"}, nil
 	case len(head) >= 5 && string(head[:5]) == "%PDF-":
 		return Container{MIME: "application/pdf", Ext: ".pdf"}, nil
+	case len(head) >= 8 && string(head[:8]) == "\x89PNG\r\n\x1a\n":
+		return Container{MIME: "image/png", Ext: ".png"}, nil
+	case len(head) >= 3 && head[0] == 0xFF && head[1] == 0xD8 && head[2] == 0xFF:
+		return Container{MIME: "image/jpeg", Ext: ".jpg"}, nil
+	case len(head) >= 6 && (string(head[:6]) == "GIF87a" || string(head[:6]) == "GIF89a"):
+		return Container{MIME: "image/gif", Ext: ".gif"}, nil
+	case len(head) >= 12 && string(head[:4]) == "RIFF" && string(head[8:12]) == "WEBP":
+		return Container{MIME: "image/webp", Ext: ".webp"}, nil
+	case len(head) >= 4 && string(head[:4]) == "PK\x03\x04":
+		// Every zip-based format — docx, xlsx, odt, epub, jar — opens this way;
+		// telling them apart means reading the archive, not its first bytes.
+		return Container{MIME: "application/zip", Ext: ".zip"}, nil
 	}
 	return Container{}, ErrUnknownContainer
 }
@@ -129,6 +141,55 @@ func containerOf(mime string) string {
 		return "ebml"
 	case "application/pdf":
 		return "pdf"
+	case "image/png":
+		return "png"
+	case "image/jpeg", "image/jpg", "image/pjpeg":
+		return "jpeg"
+	case "image/gif":
+		return "gif"
+	case "image/webp":
+		return "webp"
+	case "application/zip", "application/x-zip-compressed", "application/epub+zip", "application/java-archive",
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+		"application/vnd.oasis.opendocument.text",
+		"application/vnd.oasis.opendocument.spreadsheet",
+		"application/vnd.oasis.opendocument.presentation":
+		return "zip"
 	}
 	return "unknown:" + base
+}
+
+// Sniffable reports whether a declared type names a container Sniff can
+// recognise, which is when SniffMatching can hold the bytes to the claim. A
+// store that accepts any file checks only those and lets the rest through.
+func Sniffable(declared string) bool {
+	return !strings.HasPrefix(containerOf(declared), "unknown:")
+}
+
+// Executable reports a program by its leading bytes: a Windows PE, an ELF
+// binary, a Mach-O binary or a script with an interpreter line. It names
+// the kind, so a caller can say what was found. A program is not malware;
+// this exists for the case where it hides behind another file's name.
+func Executable(head []byte) (string, bool) {
+	switch {
+	case len(head) >= 2 && head[0] == 'M' && head[1] == 'Z':
+		return "windows", true
+	case len(head) >= 4 && string(head[:4]) == "\x7fELF":
+		return "elf", true
+	case len(head) >= 4 && isMachO(head[:4]):
+		return "macho", true
+	case len(head) >= 2 && head[0] == '#' && head[1] == '!':
+		return "script", true
+	}
+	return "", false
+}
+
+func isMachO(magic []byte) bool {
+	switch string(magic) {
+	case "\xfe\xed\xfa\xce", "\xfe\xed\xfa\xcf", "\xce\xfa\xed\xfe", "\xcf\xfa\xed\xfe", "\xca\xfe\xba\xbe":
+		return true
+	}
+	return false
 }
