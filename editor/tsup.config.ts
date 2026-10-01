@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: "src/index.ts",
     revisions: "src/revisions.ts",
+    native: "src/native.ts",
   },
   format: ["esm"],
   dts: true,
@@ -17,6 +18,7 @@ export default defineConfig({
     "@tiptap/react",
     "@tiptap/starter-kit",
     "@tiptap/suggestion",
+    "react-native",
   ],
   async onSuccess() {
     const { copyFile } = await import("node:fs/promises");

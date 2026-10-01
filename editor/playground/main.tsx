@@ -11,6 +11,13 @@ import { blockFormats } from "../src/formats"
 import { SlashCommands } from "../src/SlashCommands"
 import { defaultSlashItems } from "../src/slash"
 import { EditorScreen, type SaveState } from "../src/EditorScreen"
+import { RevisionPrompt } from "../src/RevisionPrompt"
+import { SourcesPanel } from "../src/SourcesPanel"
+import { DictationButton } from "../src/DictationButton"
+import { insertTranscript } from "../src/dictation"
+import { answerToNodes, webSourceToNodes } from "../src/answer"
+import { canAssist } from "../src/writing"
+import { fakeFindSources, fakeRevise, fakeTranscribe, SAMPLE_ANSWER } from "./writing"
 import { KEYBOARD_HEIGHT, KeyboardOverlay, useSimulatedKeyboard } from "./keyboard"
 import { SAMPLE } from "./sample"
 import "./styles.css"
@@ -46,6 +53,13 @@ function Playground() {
   })
 
   const selection = useSelectionToolbar(editor)
+  const [assist, setAssist] = useState<{ kind: "revise" | "sources"; passage: string; from: number; to: number } | null>(null)
+
+  const openAssist = (kind: "revise" | "sources", passage: string) => {
+    if (!editor || !canAssist(passage)) return
+    const { from, to } = editor.state.selection
+    setAssist({ kind, passage, from, to })
+  }
 
   return (
     <>
@@ -75,6 +89,25 @@ function Playground() {
             status={`${editor?.storage.characterCount?.characters?.() ?? 0}`}
             actions={
               <>
+                {editor && (
+                  <DictationButton
+                    transcribe={fakeTranscribe}
+                    onTranscript={(text) => insertTranscript(editor, text)}
+                  />
+                )}
+                <button
+                  type="button"
+                  className="pg-btn"
+                  onClick={() =>
+                    editor
+                      ?.chain()
+                      .focus()
+                      .insertContent(answerToNodes({ ...SAMPLE_ANSWER, sourcesLabel: "Sources" }))
+                      .run()
+                  }
+                >
+                  Réponse
+                </button>
                 <button type="button" className="pg-btn pg-btn--primary">
                   Programmer
                 </button>
@@ -108,7 +141,12 @@ function Playground() {
               id: "revise",
               label: "Corriger",
               icon: <span aria-hidden>✦</span>,
-              onSelect: () => undefined,
+              onSelect: (text) => openAssist("revise", text),
+            },
+            {
+              id: "sources",
+              label: "Sources",
+              onSelect: (text) => openAssist("sources", text),
             },
             {
               id: "bold",
@@ -123,6 +161,30 @@ function Playground() {
           ]}
           formats={blockFormats(editor)}
           formatsLabel="Format"
+        />
+      )}
+
+      {assist?.kind === "revise" && (
+        <RevisionPrompt
+          passage={assist.passage}
+          revise={fakeRevise}
+          onClose={() => setAssist(null)}
+          onAccept={(proposal) => {
+            editor?.chain().focus().insertContentAt({ from: assist.from, to: assist.to }, proposal).run()
+            setAssist(null)
+          }}
+        />
+      )}
+
+      {assist?.kind === "sources" && (
+        <SourcesPanel
+          passage={assist.passage}
+          findSources={fakeFindSources}
+          onClose={() => setAssist(null)}
+          onInsert={(source) => {
+            editor?.chain().focus().insertContentAt(assist.to, webSourceToNodes(source)).run()
+            setAssist(null)
+          }}
         />
       )}
 

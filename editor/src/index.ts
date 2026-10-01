@@ -32,3 +32,31 @@ export type { InlineSuggestion, SuggestionActions } from "./InlineSuggestions";
 export { expandToWords, splitRevision } from "./passage";
 export type { RevisionPart, TextRange } from "./passage";
 export { docToMarkdown } from "./markdown";
+export {
+  canAssist,
+  defaultRevisionPresets,
+  hostOf,
+  MIN_PASSAGE_CHARS,
+  normalizeInstruction,
+  proposalChanges,
+  WritingNotAvailableError,
+} from "./writing";
+export type { FindSources, FoundSource, Revise } from "./writing";
+export { RevisionPrompt, defaultRevisionPromptLabels } from "./RevisionPrompt";
+export type { RevisionPromptLabels, RevisionPromptProps } from "./RevisionPrompt";
+export { SourcesPanel, defaultSourcesPanelLabels } from "./SourcesPanel";
+export type { SourcesPanelLabels, SourcesPanelProps } from "./SourcesPanel";
+export { insertTranscript, isDictationSupported, pickMimeType, spacedTranscript } from "./dictation";
+export type { DictationEnvironment } from "./dictation";
+export { useDictation } from "./useDictation";
+export type { DictationState, UseDictation, UseDictationOptions } from "./useDictation";
+export { DictationButton, defaultDictationLabels } from "./DictationButton";
+export type { DictationButtonProps, DictationLabels } from "./DictationButton";
+export {
+  answerToNodes,
+  conversationToNodes,
+  headingFromQuestion,
+  linkMarkers,
+  webSourceToNodes,
+} from "./answer";
+export type { Citation, ConversationTurn, WebSource } from "./answer";
