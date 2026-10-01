@@ -73,6 +73,30 @@ equality would refuse correct uploads while catching nothing.
 recognises: a media path has to ask rather than assume the absence of an error
 means what it wants.
 
+## Scan
+
+```go
+scanner, err := fileguard.NewScanner("tcp://clamd:3310", fileguard.ScannerOptions{})
+verdict, err := scanner.Scan(ctx, body)
+switch {
+case errors.Is(err, fileguard.ErrScanTooLarge), errors.Is(err, fileguard.ErrScannerUnavailable):
+    // not scanned: never treat as clean
+case err != nil:
+    // body failed to read
+case verdict.Infected:
+    // quarantine; verdict.Signature names the finding
+}
+```
+
+Streams the bytes to `clamd` with `INSTREAM`, on the connection, so the scanner
+and the caller share no filesystem — the same reason a deposit hands a worker a
+key rather than a path. Run it on bytes at rest, before any parser opens them.
+
+Only a nil error carries a verdict. An unreachable clamd and a stream past its
+`StreamMaxLength` both come back as errors, because the bytes were not looked
+at: a scanner that reports clean when it could not scan is not a gate.
+`Ping` answers readiness checks.
+
 ## Size
 
 ```go
