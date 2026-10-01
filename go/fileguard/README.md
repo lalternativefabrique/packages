@@ -73,6 +73,20 @@ equality would refuse correct uploads while catching nothing.
 recognises: a media path has to ask rather than assume the absence of an error
 means what it wants.
 
+`Sniff` knows audio, video, PDF, the common images and zip — every
+zip-based format (docx, xlsx, odt, epub) opens the same way, and telling
+them apart means reading the archive. A store that accepts any file checks
+only what it can: `Sniffable(declared)` says whether `SniffMatching` can
+hold the bytes to the declared type, and the rest goes through.
+
+```go
+if kind, ok := fileguard.Executable(head); ok { /* a program: windows, elf, macho, script */ }
+```
+
+`Executable` recognises a program by its bytes. A program is not malware;
+it matters when it hides behind another file's name, which only the caller,
+holding the name, can judge.
+
 ## Scan
 
 ```go
