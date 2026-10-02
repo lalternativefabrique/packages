@@ -309,7 +309,29 @@ names it. A replayed idempotency key is accepted and not inserted twice
 | `ErrUnknownCostItem` | no item with that code in the catalog (404) |
 | `ErrCostItemNotUsable` | item not attached to the app, private to another app, or inactive (422) |
 | `ErrNoCostPrice` | item has no price in force at `OccurredAt` (422) |
+| `ErrCostDelegationDenied` | a line's `AppID` names an app that has not delegated to the caller, or is in another tenant (403 `cost_delegation_denied`) |
 | `ErrBadRequest` | invalid line (400), or rejected before the call |
+
+### Declaring on behalf of another app
+
+An app that pays a cost another app caused (an LLM gateway serving several
+apps) records it against that app by setting `AppID` on the line, or on
+`LLMUsage`. The target app must be in the same tenant and list the caller under
+"Coûts déclarés par" in the console (or `cost_declarers` in the tenant file).
+Every rule then applies to the target: its attached and private items, its
+customers for `ExternalUserID`, and idempotency keys unique within it.
+`RecordedCost.AppID` tells which app each line was recorded against.
+
+```go
+_, err := client.RecordLLMUsage(ctx, sdk.LLMUsage{
+    AppID:          partageAppID, // the Lungor app that caused the call
+    Provider:       "scaleway",
+    Model:          "deepseek-v4",
+    InputTokens:    4200,
+    ExternalUserID: partageUserID,
+    IdempotencyKey: turnID,
+})
+```
 
 ### LLM usage
 

@@ -19,7 +19,13 @@ var (
 	ErrCostItemNotUsable = errors.New("lungor: cost item not usable by this app")
 	// ErrNoCostPrice — the item has no price in force at the line's occurred_at (422).
 	ErrNoCostPrice = errors.New("lungor: cost item has no price at that date")
+	// ErrCostDelegationDenied — a line's AppID names an app that is not in the
+	// caller's tenant or has not delegated cost declaration to it (403
+	// cost_delegation_denied). The whole batch is refused.
+	ErrCostDelegationDenied = errors.New("lungor: cost delegation denied")
 )
+
+const codeCostDelegationDenied = "cost_delegation_denied"
 
 // CostLine is one cost the app declares, in the item's own unit (tokens for an LLM item).
 type CostLine struct {
@@ -29,10 +35,17 @@ type CostLine struct {
 	IdempotencyKey string
 	ExternalUserID string
 	RunKey         string
+	// AppID records the line against another Lungor app of the same tenant,
+	// on its behalf; empty means the calling app. That app must have delegated
+	// cost declaration to the caller, and Code, the price and ExternalUserID
+	// are then read in that app.
+	AppID string
 }
 
 // RecordedCost is a line as Lungor valued it, with the price frozen on the record.
 type RecordedCost struct {
+	// AppID is the app the cost was recorded against.
+	AppID              string
 	Code               string
 	IdempotencyKey     string
 	Quantity           int64
@@ -66,6 +79,8 @@ type LLMUsage struct {
 	ExternalUserID string
 	RunKey         string
 	IdempotencyKey string
+	// AppID declares the call on behalf of another app, as CostLine.AppID.
+	AppID string
 }
 
 // RecordCost declares a batch of costs. The batch is all or nothing: one bad
@@ -128,6 +143,7 @@ func (u LLMUsage) lines(now time.Time) ([]CostLine, error) {
 			IdempotencyKey: u.IdempotencyKey + "." + k.kind,
 			ExternalUserID: u.ExternalUserID,
 			RunKey:         u.RunKey,
+			AppID:          u.AppID,
 		})
 	}
 	if len(lines) == 0 {
@@ -164,6 +180,10 @@ func costRequest(lines []CostLine) (wire.CosttrackingRecordCostsRequest, error) 
 			r := l.RunKey
 			w.RunKey = &r
 		}
+		if l.AppID != "" {
+			a := l.AppID
+			w.AppId = &a
+		}
 		out = append(out, w)
 	}
 	return wire.CosttrackingRecordCostsRequest{Lines: &out}, nil
@@ -195,6 +215,9 @@ func costResultFrom(w wire.CosttrackingRecordCostsResponse) CostResult {
 		r.Lines = make([]RecordedCost, 0, len(*w.Lines))
 		for _, l := range *w.Lines {
 			rc := RecordedCost{}
+			if l.AppId != nil {
+				rc.AppID = *l.AppId
+			}
 			if l.Code != nil {
 				rc.Code = *l.Code
 			}

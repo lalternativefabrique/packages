@@ -65,8 +65,18 @@ type CosttrackingAppModelCostResponse struct {
 	Tokens     *int    `json:"tokens,omitempty"`
 }
 
+// CosttrackingCostDeclarerView defines model for costtracking.costDeclarerView.
+type CosttrackingCostDeclarerView struct {
+	CreatedAt     *string `json:"created_at,omitempty"`
+	DeclarerAppId *string `json:"declarer_app_id,omitempty"`
+}
+
 // CosttrackingCostLineRequest defines model for costtracking.costLineRequest.
 type CosttrackingCostLineRequest struct {
+	// AppId AppID records the line against another app of the same tenant, on its
+	// behalf: that app must have delegated cost declaration to the caller, and
+	// code, price and external_user_id are then read in that app.
+	AppId          *string `json:"app_id,omitempty"`
 	Code           *string `json:"code,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
 
@@ -210,6 +220,7 @@ type CosttrackingRecordCostsResponse struct {
 // CosttrackingRecordedCostView defines model for costtracking.recordedCostView.
 type CosttrackingRecordedCostView struct {
 	AmountMicros       *int    `json:"amount_micros,omitempty"`
+	AppId              *string `json:"app_id,omitempty"`
 	Code               *string `json:"code,omitempty"`
 	Currency           *string `json:"currency,omitempty"`
 	IdempotencyKey     *string `json:"idempotency_key,omitempty"`
@@ -900,6 +911,15 @@ type ClientInterface interface {
 
 	AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAppCostDeclarers request
+	ListAppCostDeclarers(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveAppCostDeclarer request
+	RemoveAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddAppCostDeclarer request
+	AddAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// BulkDeleteUsageUnitsWithBody request with any body
 	BulkDeleteUsageUnitsWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1306,6 +1326,42 @@ func (c *Client) AppWithdrawPendingPlanWithBody(ctx context.Context, contentType
 
 func (c *Client) AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppWithdrawPendingPlanRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAppCostDeclarers(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAppCostDeclarersRequest(c.Server, tenantId, appId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveAppCostDeclarerRequest(c.Server, tenantId, appId, declarerAppId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddAppCostDeclarerRequest(c.Server, tenantId, appId, declarerAppId)
 	if err != nil {
 		return nil, err
 	}
@@ -2484,6 +2540,143 @@ func NewAppWithdrawPendingPlanRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
+// NewListAppCostDeclarersRequest generates requests for ListAppCostDeclarers
+func NewListAppCostDeclarersRequest(server string, tenantId string, appId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-declarers", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRemoveAppCostDeclarerRequest generates requests for RemoveAppCostDeclarer
+func NewRemoveAppCostDeclarerRequest(server string, tenantId string, appId string, declarerAppId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "declarer_app_id", runtime.ParamLocationPath, declarerAppId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-declarers/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddAppCostDeclarerRequest generates requests for AddAppCostDeclarer
+func NewAddAppCostDeclarerRequest(server string, tenantId string, appId string, declarerAppId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "declarer_app_id", runtime.ParamLocationPath, declarerAppId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-declarers/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewBulkDeleteUsageUnitsRequest calls the generic BulkDeleteUsageUnits builder with application/json body
 func NewBulkDeleteUsageUnitsRequest(server string, tenantId string, appId string, body BulkDeleteUsageUnitsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3137,6 +3330,15 @@ type ClientWithResponsesInterface interface {
 
 	AppWithdrawPendingPlanWithResponse(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
+	// ListAppCostDeclarersWithResponse request
+	ListAppCostDeclarersWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostDeclarersResponse, error)
+
+	// RemoveAppCostDeclarerWithResponse request
+	RemoveAppCostDeclarerWithResponse(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*RemoveAppCostDeclarerResponse, error)
+
+	// AddAppCostDeclarerWithResponse request
+	AddAppCostDeclarerWithResponse(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*AddAppCostDeclarerResponse, error)
+
 	// BulkDeleteUsageUnitsWithBodyWithResponse request with any body
 	BulkDeleteUsageUnitsWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkDeleteUsageUnitsResponse, error)
 
@@ -3353,6 +3555,7 @@ type RecordCostsResponse struct {
 	HTTPResponse *http.Response
 	JSON200      *CosttrackingRecordCostsResponse
 	JSON400      *EchoHTTPError
+	JSON403      *EchoHTTPError
 	JSON404      *EchoHTTPError
 	JSON422      *EchoHTTPError
 }
@@ -3680,6 +3883,70 @@ func (r AppWithdrawPendingPlanResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AppWithdrawPendingPlanResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAppCostDeclarersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostDeclarerView
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAppCostDeclarersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAppCostDeclarersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RemoveAppCostDeclarerResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveAppCostDeclarerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveAppCostDeclarerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddAppCostDeclarerResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddAppCostDeclarerResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddAppCostDeclarerResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4215,6 +4482,33 @@ func (c *ClientWithResponses) AppWithdrawPendingPlanWithResponse(ctx context.Con
 	return ParseAppWithdrawPendingPlanResponse(rsp)
 }
 
+// ListAppCostDeclarersWithResponse request returning *ListAppCostDeclarersResponse
+func (c *ClientWithResponses) ListAppCostDeclarersWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostDeclarersResponse, error) {
+	rsp, err := c.ListAppCostDeclarers(ctx, tenantId, appId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAppCostDeclarersResponse(rsp)
+}
+
+// RemoveAppCostDeclarerWithResponse request returning *RemoveAppCostDeclarerResponse
+func (c *ClientWithResponses) RemoveAppCostDeclarerWithResponse(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*RemoveAppCostDeclarerResponse, error) {
+	rsp, err := c.RemoveAppCostDeclarer(ctx, tenantId, appId, declarerAppId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveAppCostDeclarerResponse(rsp)
+}
+
+// AddAppCostDeclarerWithResponse request returning *AddAppCostDeclarerResponse
+func (c *ClientWithResponses) AddAppCostDeclarerWithResponse(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*AddAppCostDeclarerResponse, error) {
+	rsp, err := c.AddAppCostDeclarer(ctx, tenantId, appId, declarerAppId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddAppCostDeclarerResponse(rsp)
+}
+
 // BulkDeleteUsageUnitsWithBodyWithResponse request with arbitrary body returning *BulkDeleteUsageUnitsResponse
 func (c *ClientWithResponses) BulkDeleteUsageUnitsWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkDeleteUsageUnitsResponse, error) {
 	rsp, err := c.BulkDeleteUsageUnitsWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
@@ -4651,6 +4945,13 @@ func ParseRecordCostsResponse(rsp *http.Response) (*RecordCostsResponse, error) 
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest EchoHTTPError
@@ -5193,6 +5494,64 @@ func ParseAppWithdrawPendingPlanResponse(rsp *http.Response) (*AppWithdrawPendin
 		}
 		response.JSON404 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListAppCostDeclarersResponse parses an HTTP response from a ListAppCostDeclarersWithResponse call
+func ParseListAppCostDeclarersResponse(rsp *http.Response) (*ListAppCostDeclarersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAppCostDeclarersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostDeclarerView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRemoveAppCostDeclarerResponse parses an HTTP response from a RemoveAppCostDeclarerWithResponse call
+func ParseRemoveAppCostDeclarerResponse(rsp *http.Response) (*RemoveAppCostDeclarerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveAppCostDeclarerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseAddAppCostDeclarerResponse parses an HTTP response from a AddAppCostDeclarerWithResponse call
+func ParseAddAppCostDeclarerResponse(rsp *http.Response) (*AddAppCostDeclarerResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddAppCostDeclarerResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

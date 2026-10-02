@@ -203,3 +203,55 @@ func TestLLMUsage_PrefixesTheProviderWhenSet(t *testing.T) {
 		}
 	}
 }
+
+func TestRecordLLMUsage_DeclaresOnBehalfOfAnotherApp(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"accepted": 1, "inserted": 1, "lines": []map[string]any{{"app_id": "app-partage", "code": "m.input"}},
+	})
+	defer srv.Close()
+
+	res, err := New(srv.URL, "k").RecordLLMUsage(ctx(), LLMUsage{
+		Model: "m", InputTokens: 1, OccurredAt: costAt, IdempotencyKey: "t", AppID: "app-partage", ExternalUserID: "u1",
+	})
+	if err != nil {
+		t.Fatalf("record: %v", err)
+	}
+	line := rec.body["lines"].([]any)[0].(map[string]any)
+	if line["app_id"] != "app-partage" || line["external_user_id"] != "u1" {
+		t.Fatalf("line = %v", line)
+	}
+	if res.Lines[0].AppID != "app-partage" {
+		t.Fatalf("result = %+v", res)
+	}
+}
+
+func TestRecordCost_OmitsAppIDForTheCallingApp(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{"accepted": 1, "inserted": 1})
+	defer srv.Close()
+
+	if _, err := New(srv.URL, "k").RecordCost(ctx(), []CostLine{{Code: "kwh", Quantity: 1, OccurredAt: costAt, IdempotencyKey: "k"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := rec.body["lines"].([]any)[0].(map[string]any)["app_id"]; ok {
+		t.Fatal("a self line must not carry app_id")
+	}
+}
+
+func TestRecordCost_MapsARefusedDelegation(t *testing.T) {
+	srv, _ := server(t, http.StatusForbidden, map[string]any{
+		"code": "cost_delegation_denied", "message": "line 1 (m.input): the target app has not delegated cost declaration to this app",
+	})
+	defer srv.Close()
+
+	_, err := New(srv.URL, "k").RecordCost(ctx(), []CostLine{{Code: "m.input", Quantity: 1, OccurredAt: costAt, IdempotencyKey: "k", AppID: "app-x"}})
+	if !errors.Is(err, ErrCostDelegationDenied) || errors.Is(err, ErrUnauthorized) || !strings.Contains(err.Error(), "line 1 (m.input)") {
+		t.Fatalf("err = %v", err)
+	}
+
+	plain, _ := server(t, http.StatusForbidden, map[string]any{"message": "forbidden"})
+	defer plain.Close()
+	_, err = New(plain.URL, "k").RecordCost(ctx(), []CostLine{{Code: "m.input", Quantity: 1, OccurredAt: costAt, IdempotencyKey: "k"}})
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("a plain 403 stays ErrUnauthorized: %v", err)
+	}
+}
