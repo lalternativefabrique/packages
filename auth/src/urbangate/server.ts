@@ -4,6 +4,7 @@ export type {
   AccountDeletionReport,
   AccountDeletionSteps,
 } from "../account-deletion.ts";
+import { earlyAccessOf } from "../sso-profile.ts";
 import { forwardHeaders } from "../core-proxy.ts";
 export { forwardHeaders } from "../core-proxy.ts";
 export { createDevAuth } from "./dev.ts";
@@ -121,6 +122,9 @@ export interface UrbangateUser {
   emailVerified: boolean;
   name: string;
   role: "admin" | "user";
+  /** urbangate writes `<product>:beta` for a collaborator too, so `beta` covers both. */
+  beta: boolean;
+  collab: boolean;
 }
 
 export interface UrbangateSession {
@@ -256,6 +260,7 @@ function userOf(
     emailVerified: address?.verified ?? false,
     name: identity.traits?.name ?? "",
     role: adminHere && roles.includes(`${product}:admin`) ? "admin" : "user",
+    ...earlyAccessOf(roles, product),
   };
 }
 
@@ -472,6 +477,7 @@ export function createUrbangateAuth(
           identityId: token.identityId,
           ...profile,
           role: token.roles.includes(`${product}:admin`) ? "admin" : "user",
+          ...earlyAccessOf(token.roles, product),
         },
         session: { expiresAt: new Date(token.expiresAt).toISOString() },
       },
@@ -1214,6 +1220,8 @@ export function createUrbangateAuth(
         name: u.name,
         avatar_url: "",
         roles: [u.role],
+        beta: u.beta,
+        collab: u.collab,
       },
       resolved.setCookies,
     );

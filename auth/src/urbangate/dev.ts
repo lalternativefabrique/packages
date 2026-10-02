@@ -24,6 +24,10 @@ export interface DevAuthConfig {
   coreUrl?: string;
   /** Addresses that sign in as this product's admin. */
   admins?: Array<string>;
+  /** Addresses that sign in as this product's beta testers. */
+  betas?: Array<string>;
+  /** Addresses that sign in as this product's collaborators, beta included. */
+  collabs?: Array<string>;
   cookie?: { name?: string; secure?: boolean; domain?: string };
   onAccountOpened?: UrbangateAuthConfig["onAccountOpened"];
   accountDeletion?: UrbangateAuthConfig["accountDeletion"];
@@ -126,7 +130,15 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
   const sessionCookie = config.cookie?.name ?? `${product}_session`;
   const secure = config.cookie?.secure ?? issuer.startsWith("https://");
   const domain = config.cookie?.domain;
-  const admins = new Set(config.admins?.map((a) => a.trim().toLowerCase()));
+  const listed = (list?: Array<string>) => new Set(list?.map((a) => a.trim().toLowerCase()));
+  const admins = listed(config.admins);
+  const collabs = listed(config.collabs);
+  const betas = new Set([...listed(config.betas), ...collabs]);
+  const rolesOfUser = (user: UrbangateUser) => [
+    `${product}:${user.role}`,
+    ...(user.beta ? [`${product}:beta`] : []),
+    ...(user.collab ? [`${product}:collab`] : []),
+  ];
   const keys = keysFor(product);
 
   async function sign(user: UrbangateUser, maxAge: number): Promise<string> {
@@ -142,6 +154,7 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
           email: user.email,
           name: user.name,
           role: user.role,
+          roles: rolesOfUser(user),
           iat: now,
           exp: now + maxAge,
         }),
@@ -176,6 +189,8 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
       emailVerified: true,
       name: claims.name,
       role: claims.role === "admin" ? "admin" : "user",
+      beta: claims.roles?.includes(`${product}:beta`) ?? false,
+      collab: claims.roles?.includes(`${product}:collab`) ?? false,
       exp: claims.exp,
     };
   }
@@ -190,6 +205,8 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
       emailVerified: true,
       name: name ?? address.split("@")[0],
       role: admins.has(address) ? "admin" : "user",
+      beta: betas.has(address),
+      collab: collabs.has(address),
     };
   }
 
@@ -316,6 +333,8 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
         name: u.name,
         avatar_url: "",
         roles: [u.role],
+        beta: u.beta,
+        collab: u.collab,
       });
     },
     "GET jwks": async () => json(200, { keys: [(await keys).jwk] }),
