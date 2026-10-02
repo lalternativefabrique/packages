@@ -18,19 +18,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
+from spore_email.models.get_catalogue_plan import GetCataloguePlan
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ClaimInvitationRegisterCustomerRequest(BaseModel):
+class GetCatalogueCatalogue(BaseModel):
     """
-    ClaimInvitationRegisterCustomerRequest
+    GetCatalogueCatalogue
     """ # noqa: E501
-    email: Optional[StrictStr] = None
-    tenant_id: Optional[StrictStr] = Field(default=None, alias="tenantId")
-    __properties: ClassVar[List[str]] = ["email", "tenantId"]
+    degraded: Optional[StrictBool] = Field(default=None, description="Degraded reports that Lungor could not be reached and nothing here can be bought.")
+    plans: Optional[List[GetCataloguePlan]] = None
+    __properties: ClassVar[List[str]] = ["degraded", "plans"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -50,7 +51,7 @@ class ClaimInvitationRegisterCustomerRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ClaimInvitationRegisterCustomerRequest from a JSON string"""
+        """Create an instance of GetCatalogueCatalogue from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -71,11 +72,18 @@ class ClaimInvitationRegisterCustomerRequest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in plans (list)
+        _items = []
+        if self.plans:
+            for _item_plans in self.plans:
+                if _item_plans:
+                    _items.append(_item_plans.to_dict())
+            _dict['plans'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ClaimInvitationRegisterCustomerRequest from a dict"""
+        """Create an instance of GetCatalogueCatalogue from a dict"""
         if obj is None:
             return None
 
@@ -83,7 +91,7 @@ class ClaimInvitationRegisterCustomerRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "email": obj.get("email"),
-            "tenantId": obj.get("tenantId")
+            "degraded": obj.get("degraded"),
+            "plans": [GetCataloguePlan.from_dict(_item) for _item in obj["plans"]] if obj.get("plans") is not None else None
         })
         return _obj

@@ -14,14 +14,13 @@ require 'date'
 require 'time'
 
 module SporeEmail
-  class ClaimInvitationRegisterCustomerResponse < ApiModelBase
-    # Created is false when the billing service already knew the address, so a re-run of an import reports what it actually added rather than what it sent.
-    attr_accessor :created
+  class ListCheckoutMethodsResult < ApiModelBase
+    attr_accessor :methods
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'created' => :'created'
+        :'methods' => :'methods'
       }
     end
 
@@ -38,7 +37,7 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'created' => :'Boolean'
+        :'methods' => :'Array<ListCheckoutMethodsMethod>'
       }
     end
 
@@ -52,20 +51,22 @@ module SporeEmail
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ClaimInvitationRegisterCustomerResponse` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ListCheckoutMethodsResult` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ClaimInvitationRegisterCustomerResponse`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ListCheckoutMethodsResult`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'created')
-        self.created = attributes[:'created']
+      if attributes.key?(:'methods')
+        if (value = attributes[:'methods']).is_a?(Array)
+          self.methods = value
+        end
       end
     end
 
@@ -89,7 +90,7 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          created == o.created
+          methods == o.methods
     end
 
     # @see the `==` method
@@ -101,7 +102,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [created].hash
+      [methods].hash
     end
 
     # Builds the object from hash

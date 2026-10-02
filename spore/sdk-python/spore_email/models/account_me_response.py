@@ -18,18 +18,19 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ClaimInvitationRegisterCustomerResponse(BaseModel):
+class AccountMeResponse(BaseModel):
     """
-    ClaimInvitationRegisterCustomerResponse
+    AccountMeResponse
     """ # noqa: E501
-    created: Optional[StrictBool] = Field(default=None, description="Created is false when the billing service already knew the address, so a re-run of an import reports what it actually added rather than what it sent.")
-    __properties: ClassVar[List[str]] = ["created"]
+    role: Optional[StrictStr] = None
+    tenant_id: Optional[StrictStr] = Field(default=None, description="TenantID is the account the person's data lives under: the id an account opened before the identity provider kept, their identity id otherwise.", alias="tenantId")
+    __properties: ClassVar[List[str]] = ["role", "tenantId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -49,7 +50,7 @@ class ClaimInvitationRegisterCustomerResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ClaimInvitationRegisterCustomerResponse from a JSON string"""
+        """Create an instance of AccountMeResponse from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,7 +75,7 @@ class ClaimInvitationRegisterCustomerResponse(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ClaimInvitationRegisterCustomerResponse from a dict"""
+        """Create an instance of AccountMeResponse from a dict"""
         if obj is None:
             return None
 
@@ -82,6 +83,7 @@ class ClaimInvitationRegisterCustomerResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "created": obj.get("created")
+            "role": obj.get("role"),
+            "tenantId": obj.get("tenantId")
         })
         return _obj

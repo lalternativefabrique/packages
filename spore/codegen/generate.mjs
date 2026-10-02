@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -20,6 +20,18 @@ const generatedScaffolding = {
   php: ['.travis.yml', 'git_push.sh'],
   ruby: ['.gitlab-ci.yml', '.travis.yml', 'git_push.sh'],
   rust: ['.travis.yml', 'git_push.sh'],
+}
+
+function replaceInstallSection(name, output) {
+  const readme = resolve(output, 'README.md')
+  const source = readFileSync(readme, 'utf8')
+  const start = source.search(/^## Installation/m)
+  const end = source.search(/^## Getting Started/m)
+  if (start < 0 || end < start) {
+    throw new Error(`no installation section to replace in ${readme}`)
+  }
+  const section = readFileSync(resolve(codegen, 'install', `${name}.md`), 'utf8')
+  writeFileSync(readme, source.slice(0, start) + section + source.slice(end))
 }
 
 function normalizeGeneratedFiles(directory) {
@@ -61,12 +73,15 @@ for (const [name, generator] of clients) {
     '--global-property',
     'apiDocs=false,modelDocs=false,apiTests=false,modelTests=false',
   ]
-  if (name === 'python') {
+  if (name !== 'php') {
     args.push('--git-user-id', 'lalternativefabrique', '--git-repo-id', 'packages')
   }
   execFileSync(cli, args, { cwd: codegen, stdio: 'inherit' })
   for (const relativePath of generatedScaffolding[name]) {
     rmSync(resolve(output, relativePath), { recursive: true, force: true })
+  }
+  if (existsSync(resolve(codegen, 'install', `${name}.md`))) {
+    replaceInstallSection(name, output)
   }
   normalizeGeneratedFiles(output)
 }

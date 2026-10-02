@@ -11,6 +11,7 @@ setup.cfg
 setup.py
 spore_email/__init__.py
 spore_email/api/__init__.py
+spore_email/api/account_api.py
 spore_email/api/api_keys_api.py
 spore_email/api/billing_api.py
 spore_email/api/branding_api.py
@@ -31,6 +32,7 @@ spore_email/api_response.py
 spore_email/configuration.py
 spore_email/exceptions.py
 spore_email/models/__init__.py
+spore_email/models/account_me_response.py
 spore_email/models/add_address_add_address_request.py
 spore_email/models/add_address_add_address_result.py
 spore_email/models/add_suppression_add_suppression_request.py
@@ -40,11 +42,6 @@ spore_email/models/apikeys_created_key.py
 spore_email/models/apikeys_list_api_keys_response.py
 spore_email/models/apikeys_view.py
 spore_email/models/cancel_subscription_result.py
-spore_email/models/claim_invitation_claim_invitation_request.py
-spore_email/models/claim_invitation_claim_invitation_response.py
-spore_email/models/claim_invitation_lookup_invitation_response.py
-spore_email/models/claim_invitation_register_customer_request.py
-spore_email/models/claim_invitation_register_customer_response.py
 spore_email/models/confirm_unsubscribe_confirm_unsubscribe_request.py
 spore_email/models/confirm_unsubscribe_response.py
 spore_email/models/create_endpoint_create_endpoint_request.py
@@ -65,12 +62,17 @@ spore_email/models/events_record_check.py
 spore_email/models/extract_brand_extract_brand_request.py
 spore_email/models/extract_brand_response.py
 spore_email/models/get_billing_state_state.py
+spore_email/models/get_catalogue_catalogue.py
+spore_email/models/get_catalogue_plan.py
+spore_email/models/get_checkout_session_result.py
 spore_email/models/get_usage_current_period_view.py
 spore_email/models/get_usage_history_entry.py
 spore_email/models/get_usage_identity_breakdown.py
 spore_email/models/get_usage_usage_response.py
 spore_email/models/ingest_bounce_response.py
 spore_email/models/ingest_inbound_message_response.py
+spore_email/models/list_checkout_methods_method.py
+spore_email/models/list_checkout_methods_result.py
 spore_email/models/list_endpoints_result.py
 spore_email/models/list_identities_response.py
 spore_email/models/list_inbound_messages_response.py

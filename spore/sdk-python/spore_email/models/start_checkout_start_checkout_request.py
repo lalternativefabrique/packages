@@ -30,9 +30,10 @@ class StartCheckoutStartCheckoutRequest(BaseModel):
     """ # noqa: E501
     email: Optional[StrictStr] = Field(default=None, description="Email and Name are optional; the server resolves the billing contact when they are absent.")
     name: Optional[StrictStr] = None
+    payment_method: Optional[StrictStr] = Field(default=None, description="PaymentMethod is one of the ids GET /billing/checkout/methods returned for this tier. Omitted, the provider's own selection screen decides.", alias="paymentMethod")
     plan: Optional[StrictStr] = Field(default=None, description="Plan is the tier being bought. Only purchasable tiers are accepted: reaching the free tier is a cancellation, not a purchase.")
     success_url: Optional[StrictStr] = Field(default=None, description="SuccessURL overrides where the customer lands after paying.", alias="successUrl")
-    __properties: ClassVar[List[str]] = ["email", "name", "plan", "successUrl"]
+    __properties: ClassVar[List[str]] = ["email", "name", "paymentMethod", "plan", "successUrl"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -87,6 +88,7 @@ class StartCheckoutStartCheckoutRequest(BaseModel):
         _obj = cls.model_validate({
             "email": obj.get("email"),
             "name": obj.get("name"),
+            "paymentMethod": obj.get("paymentMethod"),
             "plan": obj.get("plan"),
             "successUrl": obj.get("successUrl")
         })

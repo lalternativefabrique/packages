@@ -14,16 +14,18 @@ require 'date'
 require 'time'
 
 module SporeEmail
-  class ClaimInvitationRegisterCustomerRequest < ApiModelBase
-    attr_accessor :email
+  class ListCheckoutMethodsMethod < ApiModelBase
+    # ID travels back as the checkout's paymentMethod.
+    attr_accessor :id
 
-    attr_accessor :tenant_id
+    # Label names the method for the buyer.
+    attr_accessor :label
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'email' => :'email',
-        :'tenant_id' => :'tenantId'
+        :'id' => :'id',
+        :'label' => :'label'
       }
     end
 
@@ -40,8 +42,8 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'email' => :'String',
-        :'tenant_id' => :'String'
+        :'id' => :'String',
+        :'label' => :'String'
       }
     end
 
@@ -55,24 +57,24 @@ module SporeEmail
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ClaimInvitationRegisterCustomerRequest` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ListCheckoutMethodsMethod` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ClaimInvitationRegisterCustomerRequest`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ListCheckoutMethodsMethod`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'email')
-        self.email = attributes[:'email']
+      if attributes.key?(:'id')
+        self.id = attributes[:'id']
       end
 
-      if attributes.key?(:'tenant_id')
-        self.tenant_id = attributes[:'tenant_id']
+      if attributes.key?(:'label')
+        self.label = attributes[:'label']
       end
     end
 
@@ -96,8 +98,8 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          email == o.email &&
-          tenant_id == o.tenant_id
+          id == o.id &&
+          label == o.label
     end
 
     # @see the `==` method
@@ -109,7 +111,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [email, tenant_id].hash
+      [id, label].hash
     end
 
     # Builds the object from hash

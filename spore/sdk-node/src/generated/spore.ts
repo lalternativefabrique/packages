@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type {
+  AccountMeResponse,
   AddAddressAddAddressRequest,
   AddAddressAddAddressResult,
   AddSuppressionAddSuppressionRequest,
@@ -14,11 +15,6 @@ import type {
   ApikeysCreatedKey,
   ApikeysListAPIKeysResponse,
   CancelSubscriptionResult,
-  ClaimInvitationClaimInvitationRequest,
-  ClaimInvitationClaimInvitationResponse,
-  ClaimInvitationLookupInvitationResponse,
-  ClaimInvitationRegisterCustomerRequest,
-  ClaimInvitationRegisterCustomerResponse,
   ConfirmUnsubscribeConfirmUnsubscribeRequest,
   ConfirmUnsubscribeParams,
   ConfirmUnsubscribeResponse,
@@ -34,9 +30,13 @@ import type {
   ExtractBrandExtractBrandRequest,
   ExtractBrandResponse,
   GetBillingStateState,
+  GetCatalogueCatalogue,
+  GetCheckoutSessionResult,
   GetUsageUsageResponse,
   IngestBounceResponse,
   IngestInboundMessageResponse,
+  ListBillingCheckoutMethodsParams,
+  ListCheckoutMethodsResult,
   ListEmailsParams,
   ListEndpointsResult,
   ListIdentitiesParams,
@@ -87,6 +87,19 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
   export const getSporeAPI = () => {
 /**
+ * Cancels the subscription, stops every webhook endpoint and asks for the erasure: the membership worker then erases every row the tenant owns and removes the login (urbangate ADR 0013). Irreversible. Suppressions and unsubscribes are deliberately KEPT: they are the record of who asked not to be emailed, and losing them would resume sending to addresses that bounced or opted out. Session-only — an API key cannot destroy the account it belongs to.
+ * @summary Delete your own account
+ */
+const deleteAccount = (
+
+ options?: SecondParameter<typeof sporeHttp<void>>,) => {
+      return sporeHttp<void>(
+      {url: `/account`, method: 'DELETE'
+    },
+      options);
+    }
+
+/**
  * @summary List API keys
  */
 const listApiKeys = (
@@ -125,6 +138,19 @@ const revokeApiKey = (
     }
 
 /**
+ * Returns the plans on offer, priced and allocated by the billing hub rather than restated here, so the page shown and the amount charged come from the same read. Unauthenticated: the pricing page is a marketing surface with no tenant. A plan the hub does not sell is absent, and one it prices at zero is present but not purchasable — the free tier is signed up for and the granted tier is handed out from the back-office. When the hub cannot be reached the last catalogue served is replayed with degraded=true, every plan unpurchasable and every price id dropped.
+ * @summary Read the public plan catalogue
+ */
+const getBillingCatalogue = (
+
+ options?: SecondParameter<typeof sporeHttp<GetCatalogueCatalogue>>,) => {
+      return sporeHttp<GetCatalogueCatalogue>(
+      {url: `/billing/catalogue`, method: 'GET'
+    },
+      options);
+    }
+
+/**
  * Opens a hosted payment that collects the first period and establishes the mandate future charges ride on. Returns the URL to redirect the customer to. Entitlement is granted only once the payment is confirmed by the provider webhook — this endpoint grants nothing.
  * @summary Open a checkout for a paid plan
  */
@@ -135,6 +161,33 @@ const startBillingCheckout = (
       {url: `/billing/checkout`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: startCheckoutStartCheckoutRequest
+    },
+      options);
+    }
+
+/**
+ * Returns the payment methods the provider accepts for this tier, in the order to offer them, each id being what the checkout takes as paymentMethod. The list is asked rather than assumed: a tier billed monthly drops every method that leaves no mandate behind, and the provider refuses at checkout what it omits here. An empty list means no choice to present — check out with no preselection.
+ * @summary List how a plan may be paid for
+ */
+const listBillingCheckoutMethods = (
+    params: ListBillingCheckoutMethodsParams,
+ options?: SecondParameter<typeof sporeHttp<ListCheckoutMethodsResult>>,) => {
+      return sporeHttp<ListCheckoutMethodsResult>(
+      {url: `/billing/checkout/methods`, method: 'GET',
+        params
+    },
+      options);
+    }
+
+/**
+ * The provider's redirect carries no outcome — a refused card lands on the same URL as a paid one — so the return page polls this while `status` is `pending` or `redirected`, and opens access on `paid`. Someone else's session reads as not found.
+ * @summary Read how a checkout ended
+ */
+const getBillingCheckoutSession = (
+    sessionId: string,
+ options?: SecondParameter<typeof sporeHttp<GetCheckoutSessionResult>>,) => {
+      return sporeHttp<GetCheckoutSessionResult>(
+      {url: `/billing/checkout/${sessionId}`, method: 'GET'
     },
       options);
     }
@@ -232,19 +285,6 @@ const lungorWebhook = (
  options?: SecondParameter<typeof sporeHttp<string>>,) => {
       return sporeHttp<string>(
       {url: `/billing/webhook/lungor`, method: 'POST'
-    },
-      options);
-    }
-
-/**
- * Receives payment notifications from Mollie. The body is unsigned and carries only a payment id, so the payment is re-fetched with the API key before anything is applied — the authenticated read is the security boundary. Idempotent: replayed notifications are acknowledged without being re-applied.
- * @summary Payment provider webhook
- */
-const handleMollieWebhook = (
-
- options?: SecondParameter<typeof sporeHttp<void>>,) => {
-      return sporeHttp<void>(
-      {url: `/billing/webhook/mollie`, method: 'POST'
     },
       options);
     }
@@ -522,51 +562,6 @@ const unfreezeTenantReputation = (
     }
 
 /**
- * Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.
-
-Distinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.
- * @summary Declare a tenant to the billing service (service-to-service)
- */
-const registerBillingCustomer = (
-    claimInvitationRegisterCustomerRequest: ClaimInvitationRegisterCustomerRequest,
- options?: SecondParameter<typeof sporeHttp<ClaimInvitationRegisterCustomerResponse>>,) => {
-      return sporeHttp<ClaimInvitationRegisterCustomerResponse>(
-      {url: `/internal/tenant/billing-customer`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: claimInvitationRegisterCustomerRequest
-    },
-      options);
-    }
-
-/**
- * Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.
- * @summary Redeem an invitation onto a tenant (service-to-service)
- */
-const claimTenantInvitation = (
-    claimInvitationClaimInvitationRequest: ClaimInvitationClaimInvitationRequest,
- options?: SecondParameter<typeof sporeHttp<ClaimInvitationClaimInvitationResponse>>,) => {
-      return sporeHttp<ClaimInvitationClaimInvitationResponse>(
-      {url: `/internal/tenant/invitation/claim`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: claimInvitationClaimInvitationRequest
-    },
-      options);
-    }
-
-/**
- * Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.
- * @summary Read an invitation without consuming it (service-to-service)
- */
-const lookupTenantInvitation = (
-    token: string,
- options?: SecondParameter<typeof sporeHttp<ClaimInvitationLookupInvitationResponse>>,) => {
-      return sporeHttp<ClaimInvitationLookupInvitationResponse>(
-      {url: `/internal/tenant/invitation/${token}`, method: 'GET'
-    },
-      options);
-    }
-
-/**
  * Internal endpoint used by the Stripe webhook bridge. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme.
  * @summary Assign a plan to a tenant (service-to-service)
  */
@@ -577,6 +572,19 @@ const setTenantPlan = (
       {url: `/internal/tenant/plan`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: setTenantPlanSetTenantPlanRequest
+    },
+      options);
+    }
+
+/**
+ * An admin session is put on the admin tier the first time it is seen.
+ * @summary The account the caller acts on
+ */
+const getMe = (
+
+ options?: SecondParameter<typeof sporeHttp<AccountMeResponse>>,) => {
+      return sporeHttp<AccountMeResponse>(
+      {url: `/me`, method: 'GET'
     },
       options);
     }
@@ -813,11 +821,15 @@ const rotateWebhookSecret = (
       options);
     }
 
-return {listApiKeys,createApiKey,revokeApiKey,startBillingCheckout,downgradeBillingSubscription,cancelBillingPendingChange,getBillingState,cancelBillingSubscription,upgradeBillingSubscription,quoteBillingUpgrade,lungorWebhook,handleMollieWebhook,listEmails,sendEmail,sendTestEmail,getEmail,listIdentities,createIdentity,getIdentity,deleteIdentity,addIdentityAddress,removeIdentityAddress,disableIdentityAddress,getBrand,setBrand,extractBrand,verifyIdentity,listInboundMessages,getInboundMessage,ingestBounce,ingestInboundMessage,unfreezeTenantReputation,registerBillingCustomer,claimTenantInvitation,lookupTenantInvitation,setTenantPlan,getReputation,listSuppressions,addSuppression,removeSuppression,listTemplates,previewTemplate,getTenantPlan,viewUnsubscribe,confirmUnsubscribe,listUnsubscribes,getUsage,listWebhookEndpoints,createWebhookEndpoint,getWebhookEndpoint,deleteWebhookEndpoint,updateWebhookEndpoint,rotateWebhookSecret}};
+return {deleteAccount,listApiKeys,createApiKey,revokeApiKey,getBillingCatalogue,startBillingCheckout,listBillingCheckoutMethods,getBillingCheckoutSession,downgradeBillingSubscription,cancelBillingPendingChange,getBillingState,cancelBillingSubscription,upgradeBillingSubscription,quoteBillingUpgrade,lungorWebhook,listEmails,sendEmail,sendTestEmail,getEmail,listIdentities,createIdentity,getIdentity,deleteIdentity,addIdentityAddress,removeIdentityAddress,disableIdentityAddress,getBrand,setBrand,extractBrand,verifyIdentity,listInboundMessages,getInboundMessage,ingestBounce,ingestInboundMessage,unfreezeTenantReputation,setTenantPlan,getMe,getReputation,listSuppressions,addSuppression,removeSuppression,listTemplates,previewTemplate,getTenantPlan,viewUnsubscribe,confirmUnsubscribe,listUnsubscribes,getUsage,listWebhookEndpoints,createWebhookEndpoint,getWebhookEndpoint,deleteWebhookEndpoint,updateWebhookEndpoint,rotateWebhookSecret}};
+export type DeleteAccountResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['deleteAccount']>>>
 export type ListApiKeysResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listApiKeys']>>>
 export type CreateApiKeyResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['createApiKey']>>>
 export type RevokeApiKeyResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['revokeApiKey']>>>
+export type GetBillingCatalogueResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getBillingCatalogue']>>>
 export type StartBillingCheckoutResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['startBillingCheckout']>>>
+export type ListBillingCheckoutMethodsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listBillingCheckoutMethods']>>>
+export type GetBillingCheckoutSessionResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getBillingCheckoutSession']>>>
 export type DowngradeBillingSubscriptionResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['downgradeBillingSubscription']>>>
 export type CancelBillingPendingChangeResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['cancelBillingPendingChange']>>>
 export type GetBillingStateResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getBillingState']>>>
@@ -825,7 +837,6 @@ export type CancelBillingSubscriptionResult = NonNullable<Awaited<ReturnType<Ret
 export type UpgradeBillingSubscriptionResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['upgradeBillingSubscription']>>>
 export type QuoteBillingUpgradeResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['quoteBillingUpgrade']>>>
 export type LungorWebhookResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['lungorWebhook']>>>
-export type HandleMollieWebhookResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['handleMollieWebhook']>>>
 export type ListEmailsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listEmails']>>>
 export type SendEmailResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['sendEmail']>>>
 export type SendTestEmailResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['sendTestEmail']>>>
@@ -846,10 +857,8 @@ export type GetInboundMessageResult = NonNullable<Awaited<ReturnType<ReturnType<
 export type IngestBounceResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['ingestBounce']>>>
 export type IngestInboundMessageResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['ingestInboundMessage']>>>
 export type UnfreezeTenantReputationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['unfreezeTenantReputation']>>>
-export type RegisterBillingCustomerResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['registerBillingCustomer']>>>
-export type ClaimTenantInvitationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['claimTenantInvitation']>>>
-export type LookupTenantInvitationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['lookupTenantInvitation']>>>
 export type SetTenantPlanResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['setTenantPlan']>>>
+export type GetMeResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getMe']>>>
 export type GetReputationResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['getReputation']>>>
 export type ListSuppressionsResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['listSuppressions']>>>
 export type AddSuppressionResult = NonNullable<Awaited<ReturnType<ReturnType<typeof getSporeAPI>['addSuppression']>>>

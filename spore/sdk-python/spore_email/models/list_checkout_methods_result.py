@@ -18,21 +18,19 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
+from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List, Optional
+from spore_email.models.list_checkout_methods_method import ListCheckoutMethodsMethod
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ClaimInvitationLookupInvitationResponse(BaseModel):
+class ListCheckoutMethodsResult(BaseModel):
     """
-    ClaimInvitationLookupInvitationResponse
+    ListCheckoutMethodsResult
     """ # noqa: E501
-    claimable: Optional[StrictBool] = None
-    email: Optional[StrictStr] = Field(default=None, description="Email is the address the offer was issued to, so the form can pre-fill it.")
-    plan: Optional[StrictStr] = Field(default=None, description="Plan is the tier it confers, for telling the invitee what is on the table.")
-    status: Optional[StrictStr] = Field(default=None, description="Status is claimable, claimed or expired. Only the last two say the offer was real, which is what tells someone whether asking for a new link is worth it rather than doubting the address they were invited at.")
-    __properties: ClassVar[List[str]] = ["claimable", "email", "plan", "status"]
+    methods: Optional[List[ListCheckoutMethodsMethod]] = None
+    __properties: ClassVar[List[str]] = ["methods"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -52,7 +50,7 @@ class ClaimInvitationLookupInvitationResponse(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ClaimInvitationLookupInvitationResponse from a JSON string"""
+        """Create an instance of ListCheckoutMethodsResult from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -73,11 +71,18 @@ class ClaimInvitationLookupInvitationResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in methods (list)
+        _items = []
+        if self.methods:
+            for _item_methods in self.methods:
+                if _item_methods:
+                    _items.append(_item_methods.to_dict())
+            _dict['methods'] = _items
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ClaimInvitationLookupInvitationResponse from a dict"""
+        """Create an instance of ListCheckoutMethodsResult from a dict"""
         if obj is None:
             return None
 
@@ -85,9 +90,6 @@ class ClaimInvitationLookupInvitationResponse(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "claimable": obj.get("claimable"),
-            "email": obj.get("email"),
-            "plan": obj.get("plan"),
-            "status": obj.get("status")
+            "methods": [ListCheckoutMethodsMethod.from_dict(_item) for _item in obj["methods"]] if obj.get("methods") is not None else None
         })
         return _obj

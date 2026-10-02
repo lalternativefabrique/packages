@@ -1,6 +1,6 @@
 [package]
 name = "spore-email"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["contact@sporee.fr"]
 description = "Control plane for the Spore transactional email platform."
 license = "Proprietary"

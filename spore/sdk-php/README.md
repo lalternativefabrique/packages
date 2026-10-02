@@ -4,40 +4,52 @@ Control plane for the Spore transactional email platform.
 
 For more information, please visit [https://sporee.fr](https://sporee.fr).
 
-## Installation & Usage
+## Installation
 
-### Requirements
+PHP 8.1+ with the `curl`, `json` and `mbstring` extensions.
 
-PHP 8.1 and later.
+```sh
+composer require lalternative/spore
+```
 
-### Composer
-
-To install the bindings via [Composer](https://getcomposer.org/), add the following to `composer.json`:
+Until `lalternative/spore` is on Packagist, declare it from the monorepo in
+`composer.json` (Composer reads `composer.json` only at a repository root, so a
+plain `vcs` repository cannot point at `spore/sdk-php`):
 
 ```json
 {
   "repositories": [
     {
-      "type": "vcs",
-      "url": "https://github.com/GIT_USER_ID/GIT_REPO_ID.git"
+      "type": "package",
+      "package": {
+        "name": "lalternative/spore",
+        "version": "dev-main",
+        "source": {
+          "type": "git",
+          "url": "https://github.com/lalternativefabrique/packages.git",
+          "reference": "main"
+        },
+        "require": {
+          "php": "^8.1",
+          "ext-curl": "*",
+          "ext-json": "*",
+          "ext-mbstring": "*",
+          "guzzlehttp/guzzle": "^7.3",
+          "guzzlehttp/psr7": "^1.7 || ^2.0"
+        },
+        "autoload": {
+          "psr-4": { "Lalternative\\Spore\\": "spore/sdk-php/lib/" }
+        }
+      }
     }
   ],
   "require": {
-    "GIT_USER_ID/GIT_REPO_ID": "*@dev"
+    "lalternative/spore": "dev-main"
   }
 }
 ```
 
-Then run `composer install`
-
-### Manual Installation
-
-Download the files and include `autoload.php`:
-
-```php
-<?php
-require_once('/path/to/Spore/vendor/autoload.php');
-```
+Then run `composer install`.
 
 ## Getting Started
 
@@ -55,19 +67,17 @@ $config = Lalternative\Spore\Configuration::getDefaultConfiguration()->setApiKey
 // $config = Lalternative\Spore\Configuration::getDefaultConfiguration()->setApiKeyPrefix('Authorization', 'Bearer');
 
 
-$apiInstance = new Lalternative\Spore\Api\ApiKeysApi(
+$apiInstance = new Lalternative\Spore\Api\AccountApi(
     // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
     // This is optional, `GuzzleHttp\Client` will be used as default.
     new GuzzleHttp\Client(),
     $config
 );
-$apikeys_create_api_key_request = new \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest(); // \Lalternative\Spore\Model\ApikeysCreateAPIKeyRequest | API key to create
 
 try {
-    $result = $apiInstance->createApiKey($apikeys_create_api_key_request);
-    print_r($result);
+    $apiInstance->deleteAccount();
 } catch (Exception $e) {
-    echo 'Exception when calling ApiKeysApi->createApiKey: ', $e->getMessage(), PHP_EOL;
+    echo 'Exception when calling AccountApi->deleteAccount: ', $e->getMessage(), PHP_EOL;
 }
 
 ```
@@ -78,13 +88,18 @@ All URIs are relative to *https://api.sporee.fr*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*AccountApi* | [**deleteAccount**](docs/Api/AccountApi.md#deleteaccount) | **DELETE** /account | Delete your own account
+*AccountApi* | [**getMe**](docs/Api/AccountApi.md#getme) | **GET** /me | The account the caller acts on
 *ApiKeysApi* | [**createApiKey**](docs/Api/ApiKeysApi.md#createapikey) | **POST** /api-keys | Create an API key
 *ApiKeysApi* | [**listApiKeys**](docs/Api/ApiKeysApi.md#listapikeys) | **GET** /api-keys | List API keys
 *ApiKeysApi* | [**revokeApiKey**](docs/Api/ApiKeysApi.md#revokeapikey) | **DELETE** /api-keys/{id} | Revoke an API key
 *BillingApi* | [**cancelBillingPendingChange**](docs/Api/BillingApi.md#cancelbillingpendingchange) | **DELETE** /billing/pending-change | Withdraw a scheduled plan change
 *BillingApi* | [**cancelBillingSubscription**](docs/Api/BillingApi.md#cancelbillingsubscription) | **DELETE** /billing/subscription | Cancel the subscription
 *BillingApi* | [**downgradeBillingSubscription**](docs/Api/BillingApi.md#downgradebillingsubscription) | **POST** /billing/downgrade | Schedule a downgrade to a smaller plan
+*BillingApi* | [**getBillingCatalogue**](docs/Api/BillingApi.md#getbillingcatalogue) | **GET** /billing/catalogue | Read the public plan catalogue
+*BillingApi* | [**getBillingCheckoutSession**](docs/Api/BillingApi.md#getbillingcheckoutsession) | **GET** /billing/checkout/{session_id} | Read how a checkout ended
 *BillingApi* | [**getBillingState**](docs/Api/BillingApi.md#getbillingstate) | **GET** /billing/state | Get the calling tenant&#39;s billing state
+*BillingApi* | [**listBillingCheckoutMethods**](docs/Api/BillingApi.md#listbillingcheckoutmethods) | **GET** /billing/checkout/methods | List how a plan may be paid for
 *BillingApi* | [**lungorWebhook**](docs/Api/BillingApi.md#lungorwebhook) | **POST** /billing/webhook/lungor | Lungor subscription webhook
 *BillingApi* | [**quoteBillingUpgrade**](docs/Api/BillingApi.md#quotebillingupgrade) | **POST** /billing/upgrade/quote | Quote what an upgrade would cost
 *BillingApi* | [**startBillingCheckout**](docs/Api/BillingApi.md#startbillingcheckout) | **POST** /billing/checkout | Open a checkout for a paid plan
@@ -102,12 +117,8 @@ Class | Method | HTTP request | Description
 *IdentitiesApi* | [**verifyIdentity**](docs/Api/IdentitiesApi.md#verifyidentity) | **POST** /identities/{id}/verify | Verify a sending identity&#39;s DNS records
 *InboundApi* | [**getInboundMessage**](docs/Api/InboundApi.md#getinboundmessage) | **GET** /inbound/messages/{id} | Get one inbound message
 *InboundApi* | [**listInboundMessages**](docs/Api/InboundApi.md#listinboundmessages) | **GET** /inbound/messages | List inbound messages
-*InternalApi* | [**claimTenantInvitation**](docs/Api/InternalApi.md#claimtenantinvitation) | **POST** /internal/tenant/invitation/claim | Redeem an invitation onto a tenant (service-to-service)
-*InternalApi* | [**handleMollieWebhook**](docs/Api/InternalApi.md#handlemolliewebhook) | **POST** /billing/webhook/mollie | Payment provider webhook
 *InternalApi* | [**ingestBounce**](docs/Api/InternalApi.md#ingestbounce) | **POST** /internal/bounces | Ingest a raw RFC 3464 bounce DSN
 *InternalApi* | [**ingestInboundMessage**](docs/Api/InternalApi.md#ingestinboundmessage) | **POST** /internal/inbound | Ingest a raw RFC 5322 inbound message
-*InternalApi* | [**lookupTenantInvitation**](docs/Api/InternalApi.md#lookuptenantinvitation) | **GET** /internal/tenant/invitation/{token} | Read an invitation without consuming it (service-to-service)
-*InternalApi* | [**registerBillingCustomer**](docs/Api/InternalApi.md#registerbillingcustomer) | **POST** /internal/tenant/billing-customer | Declare a tenant to the billing service (service-to-service)
 *InternalApi* | [**setTenantPlan**](docs/Api/InternalApi.md#settenantplan) | **POST** /internal/tenant/plan | Assign a plan to a tenant (service-to-service)
 *MessagingApi* | [**getEmail**](docs/Api/MessagingApi.md#getemail) | **GET** /emails/{id} | Get a message
 *MessagingApi* | [**listEmails**](docs/Api/MessagingApi.md#listemails) | **GET** /emails | List enqueued/sent messages
@@ -134,6 +145,7 @@ Class | Method | HTTP request | Description
 
 ## Models
 
+- [AccountMeResponse](docs/Model/AccountMeResponse.md)
 - [AddAddressAddAddressRequest](docs/Model/AddAddressAddAddressRequest.md)
 - [AddAddressAddAddressResult](docs/Model/AddAddressAddAddressResult.md)
 - [AddSuppressionAddSuppressionRequest](docs/Model/AddSuppressionAddSuppressionRequest.md)
@@ -143,11 +155,6 @@ Class | Method | HTTP request | Description
 - [ApikeysListAPIKeysResponse](docs/Model/ApikeysListAPIKeysResponse.md)
 - [ApikeysView](docs/Model/ApikeysView.md)
 - [CancelSubscriptionResult](docs/Model/CancelSubscriptionResult.md)
-- [ClaimInvitationClaimInvitationRequest](docs/Model/ClaimInvitationClaimInvitationRequest.md)
-- [ClaimInvitationClaimInvitationResponse](docs/Model/ClaimInvitationClaimInvitationResponse.md)
-- [ClaimInvitationLookupInvitationResponse](docs/Model/ClaimInvitationLookupInvitationResponse.md)
-- [ClaimInvitationRegisterCustomerRequest](docs/Model/ClaimInvitationRegisterCustomerRequest.md)
-- [ClaimInvitationRegisterCustomerResponse](docs/Model/ClaimInvitationRegisterCustomerResponse.md)
 - [ConfirmUnsubscribeConfirmUnsubscribeRequest](docs/Model/ConfirmUnsubscribeConfirmUnsubscribeRequest.md)
 - [ConfirmUnsubscribeResponse](docs/Model/ConfirmUnsubscribeResponse.md)
 - [CreateEndpointCreateEndpointRequest](docs/Model/CreateEndpointCreateEndpointRequest.md)
@@ -168,12 +175,17 @@ Class | Method | HTTP request | Description
 - [ExtractBrandExtractBrandRequest](docs/Model/ExtractBrandExtractBrandRequest.md)
 - [ExtractBrandResponse](docs/Model/ExtractBrandResponse.md)
 - [GetBillingStateState](docs/Model/GetBillingStateState.md)
+- [GetCatalogueCatalogue](docs/Model/GetCatalogueCatalogue.md)
+- [GetCataloguePlan](docs/Model/GetCataloguePlan.md)
+- [GetCheckoutSessionResult](docs/Model/GetCheckoutSessionResult.md)
 - [GetUsageCurrentPeriodView](docs/Model/GetUsageCurrentPeriodView.md)
 - [GetUsageHistoryEntry](docs/Model/GetUsageHistoryEntry.md)
 - [GetUsageIdentityBreakdown](docs/Model/GetUsageIdentityBreakdown.md)
 - [GetUsageUsageResponse](docs/Model/GetUsageUsageResponse.md)
 - [IngestBounceResponse](docs/Model/IngestBounceResponse.md)
 - [IngestInboundMessageResponse](docs/Model/IngestInboundMessageResponse.md)
+- [ListCheckoutMethodsMethod](docs/Model/ListCheckoutMethodsMethod.md)
+- [ListCheckoutMethodsResult](docs/Model/ListCheckoutMethodsResult.md)
 - [ListEndpointsResult](docs/Model/ListEndpointsResult.md)
 - [ListIdentitiesResponse](docs/Model/ListIdentitiesResponse.md)
 - [ListInboundMessagesResponse](docs/Model/ListInboundMessagesResponse.md)
@@ -252,6 +264,6 @@ contact@sporee.fr
 This PHP package is automatically generated by the [OpenAPI Generator](https://openapi-generator.tech) project:
 
 - API version: `0.1.0`
-    - Package version: `0.1.0`
+    - Package version: `0.2.0`
     - Generator version: `7.24.0`
 - Build package: `org.openapitools.codegen.languages.PhpClientCodegen`

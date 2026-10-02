@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ClaimInvitationClaimInvitationRequest {
-  email?: string;
-  tenantId?: string;
-  token?: string;
-}
+export type ListBillingCheckoutMethodsParams = {
+/**
+ * Plan to be paid for
+ */
+plan: string;
+};

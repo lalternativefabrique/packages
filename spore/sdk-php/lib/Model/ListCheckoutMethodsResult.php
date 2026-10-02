@@ -1,6 +1,6 @@
 <?php
 /**
- * ClaimInvitationRegisterCustomerResponse
+ * ListCheckoutMethodsResult
  *
  * PHP version 8.1
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \Lalternative\Spore\ObjectSerializer;
 
 /**
- * ClaimInvitationRegisterCustomerResponse Class Doc Comment
+ * ListCheckoutMethodsResult Class Doc Comment
  *
  * @category Class
  * @package  Lalternative\Spore
@@ -41,7 +41,7 @@ use \Lalternative\Spore\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAccess, \JsonSerializable
+class ListCheckoutMethodsResult implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      *
      * @var string
      */
-    protected static $openAPIModelName = 'claim_invitation.RegisterCustomerResponse';
+    protected static $openAPIModelName = 'list_checkout_methods.Result';
 
     /**
      * Array of property to type mappings. Used for (de)serialization
@@ -58,7 +58,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $openAPITypes = [
-        'created' => 'bool'
+        'methods' => '\Lalternative\Spore\Model\ListCheckoutMethodsMethod[]'
     ];
 
     /**
@@ -69,7 +69,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
-        'created' => null
+        'methods' => null
     ];
 
     /**
@@ -78,7 +78,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'created' => false
+        'methods' => false
     ];
 
     /**
@@ -167,7 +167,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $attributeMap = [
-        'created' => 'created'
+        'methods' => 'methods'
     ];
 
     /**
@@ -176,7 +176,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $setters = [
-        'created' => 'setCreated'
+        'methods' => 'setMethods'
     ];
 
     /**
@@ -185,7 +185,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $getters = [
-        'created' => 'getCreated'
+        'methods' => 'getMethods'
     ];
 
     /**
@@ -245,7 +245,7 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('created', $data ?? [], null);
+        $this->setIfExists('methods', $data ?? [], null);
     }
 
     /**
@@ -291,28 +291,28 @@ class ClaimInvitationRegisterCustomerResponse implements ModelInterface, ArrayAc
 
 
     /**
-     * Gets created
+     * Gets methods
      *
-     * @return bool|null
+     * @return \Lalternative\Spore\Model\ListCheckoutMethodsMethod[]|null
      */
-    public function getCreated()
+    public function getMethods()
     {
-        return $this->container['created'];
+        return $this->container['methods'];
     }
 
     /**
-     * Sets created
+     * Sets methods
      *
-     * @param bool|null $created Created is false when the billing service already knew the address, so a re-run of an import reports what it actually added rather than what it sent.
+     * @param \Lalternative\Spore\Model\ListCheckoutMethodsMethod[]|null $methods methods
      *
      * @return self
      */
-    public function setCreated($created)
+    public function setMethods($methods)
     {
-        if (is_null($created)) {
-            throw new \InvalidArgumentException('non-nullable created cannot be null');
+        if (is_null($methods)) {
+            throw new \InvalidArgumentException('non-nullable methods cannot be null');
         }
-        $this->container['created'] = $created;
+        $this->container['methods'] = $methods;
 
         return $this;
     }

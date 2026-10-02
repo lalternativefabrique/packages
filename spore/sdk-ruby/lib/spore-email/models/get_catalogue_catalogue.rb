@@ -14,25 +14,17 @@ require 'date'
 require 'time'
 
 module SporeEmail
-  class ClaimInvitationLookupInvitationResponse < ApiModelBase
-    attr_accessor :claimable
+  class GetCatalogueCatalogue < ApiModelBase
+    # Degraded reports that Lungor could not be reached and nothing here can be bought.
+    attr_accessor :degraded
 
-    # Email is the address the offer was issued to, so the form can pre-fill it.
-    attr_accessor :email
-
-    # Plan is the tier it confers, for telling the invitee what is on the table.
-    attr_accessor :plan
-
-    # Status is claimable, claimed or expired. Only the last two say the offer was real, which is what tells someone whether asking for a new link is worth it rather than doubting the address they were invited at.
-    attr_accessor :status
+    attr_accessor :plans
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'claimable' => :'claimable',
-        :'email' => :'email',
-        :'plan' => :'plan',
-        :'status' => :'status'
+        :'degraded' => :'degraded',
+        :'plans' => :'plans'
       }
     end
 
@@ -49,10 +41,8 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'claimable' => :'Boolean',
-        :'email' => :'String',
-        :'plan' => :'String',
-        :'status' => :'String'
+        :'degraded' => :'Boolean',
+        :'plans' => :'Array<GetCataloguePlan>'
       }
     end
 
@@ -66,32 +56,26 @@ module SporeEmail
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ClaimInvitationLookupInvitationResponse` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::GetCatalogueCatalogue` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ClaimInvitationLookupInvitationResponse`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::GetCatalogueCatalogue`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'claimable')
-        self.claimable = attributes[:'claimable']
+      if attributes.key?(:'degraded')
+        self.degraded = attributes[:'degraded']
       end
 
-      if attributes.key?(:'email')
-        self.email = attributes[:'email']
-      end
-
-      if attributes.key?(:'plan')
-        self.plan = attributes[:'plan']
-      end
-
-      if attributes.key?(:'status')
-        self.status = attributes[:'status']
+      if attributes.key?(:'plans')
+        if (value = attributes[:'plans']).is_a?(Array)
+          self.plans = value
+        end
       end
     end
 
@@ -115,10 +99,8 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          claimable == o.claimable &&
-          email == o.email &&
-          plan == o.plan &&
-          status == o.status
+          degraded == o.degraded &&
+          plans == o.plans
     end
 
     # @see the `==` method
@@ -130,7 +112,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [claimable, email, plan, status].hash
+      [degraded, plans].hash
     end
 
     # Builds the object from hash

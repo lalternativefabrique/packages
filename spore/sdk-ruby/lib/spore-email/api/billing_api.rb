@@ -201,6 +201,126 @@ module SporeEmail
       return data, status_code, headers
     end
 
+    # Read the public plan catalogue
+    # Returns the plans on offer, priced and allocated by the billing hub rather than restated here, so the page shown and the amount charged come from the same read. Unauthenticated: the pricing page is a marketing surface with no tenant. A plan the hub does not sell is absent, and one it prices at zero is present but not purchasable — the free tier is signed up for and the granted tier is handed out from the back-office. When the hub cannot be reached the last catalogue served is replayed with degraded=true, every plan unpurchasable and every price id dropped.
+    # @param [Hash] opts the optional parameters
+    # @return [GetCatalogueCatalogue]
+    def get_billing_catalogue(opts = {})
+      data, _status_code, _headers = get_billing_catalogue_with_http_info(opts)
+      data
+    end
+
+    # Read the public plan catalogue
+    # Returns the plans on offer, priced and allocated by the billing hub rather than restated here, so the page shown and the amount charged come from the same read. Unauthenticated: the pricing page is a marketing surface with no tenant. A plan the hub does not sell is absent, and one it prices at zero is present but not purchasable — the free tier is signed up for and the granted tier is handed out from the back-office. When the hub cannot be reached the last catalogue served is replayed with degraded&#x3D;true, every plan unpurchasable and every price id dropped.
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(GetCatalogueCatalogue, Integer, Hash)>] GetCatalogueCatalogue data, response status code and response headers
+    def get_billing_catalogue_with_http_info(opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: BillingApi.get_billing_catalogue ...'
+      end
+      # resource path
+      local_var_path = '/billing/catalogue'
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body]
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'GetCatalogueCatalogue'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || []
+
+      new_options = opts.merge(
+        :operation => :"BillingApi.get_billing_catalogue",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:GET, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: BillingApi#get_billing_catalogue\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
+    # Read how a checkout ended
+    # The provider's redirect carries no outcome — a refused card lands on the same URL as a paid one — so the return page polls this while `status` is `pending` or `redirected`, and opens access on `paid`. Someone else's session reads as not found.
+    # @param session_id [String] Checkout session id, from the lungor_session_id query parameter on the return URL
+    # @param [Hash] opts the optional parameters
+    # @return [GetCheckoutSessionResult]
+    def get_billing_checkout_session(session_id, opts = {})
+      data, _status_code, _headers = get_billing_checkout_session_with_http_info(session_id, opts)
+      data
+    end
+
+    # Read how a checkout ended
+    # The provider&#39;s redirect carries no outcome — a refused card lands on the same URL as a paid one — so the return page polls this while &#x60;status&#x60; is &#x60;pending&#x60; or &#x60;redirected&#x60;, and opens access on &#x60;paid&#x60;. Someone else&#39;s session reads as not found.
+    # @param session_id [String] Checkout session id, from the lungor_session_id query parameter on the return URL
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(GetCheckoutSessionResult, Integer, Hash)>] GetCheckoutSessionResult data, response status code and response headers
+    def get_billing_checkout_session_with_http_info(session_id, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: BillingApi.get_billing_checkout_session ...'
+      end
+      # verify the required parameter 'session_id' is set
+      if @api_client.config.client_side_validation && session_id.nil?
+        fail ArgumentError, "Missing the required parameter 'session_id' when calling BillingApi.get_billing_checkout_session"
+      end
+      # resource path
+      local_var_path = '/billing/checkout/{session_id}'.sub('{session_id}', CGI.escape(session_id.to_s))
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body]
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'GetCheckoutSessionResult'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['BearerAuth']
+
+      new_options = opts.merge(
+        :operation => :"BillingApi.get_billing_checkout_session",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:GET, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: BillingApi#get_billing_checkout_session\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
     # Get the calling tenant's billing state
     # Returns the subscription's health: which tier is paid for, whether a payment failed and until when it can still be fixed, and any scheduled change. A tenant who never subscribed is reported healthy with hasSubscription=false — the free tier is not a degraded state.
     # @param [Hash] opts the optional parameters
@@ -254,6 +374,70 @@ module SporeEmail
       data, status_code, headers = @api_client.call_api(:GET, local_var_path, new_options)
       if @api_client.config.debugging
         @api_client.config.logger.debug "API called: BillingApi#get_billing_state\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
+      end
+      return data, status_code, headers
+    end
+
+    # List how a plan may be paid for
+    # Returns the payment methods the provider accepts for this tier, in the order to offer them, each id being what the checkout takes as paymentMethod. The list is asked rather than assumed: a tier billed monthly drops every method that leaves no mandate behind, and the provider refuses at checkout what it omits here. An empty list means no choice to present — check out with no preselection.
+    # @param plan [String] Plan to be paid for
+    # @param [Hash] opts the optional parameters
+    # @return [ListCheckoutMethodsResult]
+    def list_billing_checkout_methods(plan, opts = {})
+      data, _status_code, _headers = list_billing_checkout_methods_with_http_info(plan, opts)
+      data
+    end
+
+    # List how a plan may be paid for
+    # Returns the payment methods the provider accepts for this tier, in the order to offer them, each id being what the checkout takes as paymentMethod. The list is asked rather than assumed: a tier billed monthly drops every method that leaves no mandate behind, and the provider refuses at checkout what it omits here. An empty list means no choice to present — check out with no preselection.
+    # @param plan [String] Plan to be paid for
+    # @param [Hash] opts the optional parameters
+    # @return [Array<(ListCheckoutMethodsResult, Integer, Hash)>] ListCheckoutMethodsResult data, response status code and response headers
+    def list_billing_checkout_methods_with_http_info(plan, opts = {})
+      if @api_client.config.debugging
+        @api_client.config.logger.debug 'Calling API: BillingApi.list_billing_checkout_methods ...'
+      end
+      # verify the required parameter 'plan' is set
+      if @api_client.config.client_side_validation && plan.nil?
+        fail ArgumentError, "Missing the required parameter 'plan' when calling BillingApi.list_billing_checkout_methods"
+      end
+      # resource path
+      local_var_path = '/billing/checkout/methods'
+
+      # query parameters
+      query_params = opts[:query_params] || {}
+      query_params[:'plan'] = plan
+
+      # header parameters
+      header_params = opts[:header_params] || {}
+      # HTTP header 'Accept' (if needed)
+      header_params['Accept'] = @api_client.select_header_accept(['application/json']) unless header_params['Accept']
+
+      # form parameters
+      form_params = opts[:form_params] || {}
+
+      # http body (model)
+      post_body = opts[:debug_body]
+
+      # return_type
+      return_type = opts[:debug_return_type] || 'ListCheckoutMethodsResult'
+
+      # auth_names
+      auth_names = opts[:debug_auth_names] || ['BearerAuth']
+
+      new_options = opts.merge(
+        :operation => :"BillingApi.list_billing_checkout_methods",
+        :header_params => header_params,
+        :query_params => query_params,
+        :form_params => form_params,
+        :body => post_body,
+        :auth_names => auth_names,
+        :return_type => return_type
+      )
+
+      data, status_code, headers = @api_client.call_api(:GET, local_var_path, new_options)
+      if @api_client.config.debugging
+        @api_client.config.logger.debug "API called: BillingApi#list_billing_checkout_methods\nData: #{data.inspect}\nStatus code: #{status_code}\nHeaders: #{headers}"
       end
       return data, status_code, headers
     end

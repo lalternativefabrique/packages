@@ -18,20 +18,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ClaimInvitationClaimInvitationRequest(BaseModel):
+class GetCheckoutSessionResult(BaseModel):
     """
-    ClaimInvitationClaimInvitationRequest
+    GetCheckoutSessionResult
     """ # noqa: E501
-    email: Optional[StrictStr] = None
-    tenant_id: Optional[StrictStr] = Field(default=None, alias="tenantId")
-    token: Optional[StrictStr] = None
-    __properties: ClassVar[List[str]] = ["email", "tenantId", "token"]
+    failure_reason: Optional[StrictStr] = Field(default=None, description="FailureReason is the provider's own word for a refusal. Set on failed only.", alias="failureReason", json_schema_extra={"examples": ["insufficient_funds"]})
+    paid: Optional[StrictBool] = Field(default=None, description="Paid is the one field to open access on.")
+    session_id: Optional[StrictStr] = Field(default=None, alias="sessionId")
+    status: Optional[StrictStr] = Field(default=None, description="Status is pending, redirected, completed, failed, canceled or expired. The first two are still in flight and worth asking again; the rest are final.", json_schema_extra={"examples": ["failed"]})
+    subscription_status: Optional[StrictStr] = Field(default=None, alias="subscriptionStatus")
+    __properties: ClassVar[List[str]] = ["failureReason", "paid", "sessionId", "status", "subscriptionStatus"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +53,7 @@ class ClaimInvitationClaimInvitationRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ClaimInvitationClaimInvitationRequest from a JSON string"""
+        """Create an instance of GetCheckoutSessionResult from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -76,7 +78,7 @@ class ClaimInvitationClaimInvitationRequest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ClaimInvitationClaimInvitationRequest from a dict"""
+        """Create an instance of GetCheckoutSessionResult from a dict"""
         if obj is None:
             return None
 
@@ -84,8 +86,10 @@ class ClaimInvitationClaimInvitationRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "email": obj.get("email"),
-            "tenantId": obj.get("tenantId"),
-            "token": obj.get("token")
+            "failureReason": obj.get("failureReason"),
+            "paid": obj.get("paid"),
+            "sessionId": obj.get("sessionId"),
+            "status": obj.get("status"),
+            "subscriptionStatus": obj.get("subscriptionStatus")
         })
         return _obj

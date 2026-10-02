@@ -9,6 +9,7 @@ const contract = JSON.parse(
 
 const sdkFacingPaths = [
   '/api-keys',
+  '/me',
   '/emails',
   '/emails/{id}',
   '/identities',

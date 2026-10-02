@@ -12,21 +12,19 @@ use crate::models;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
-pub struct ClaimInvitationClaimInvitationRequest {
-    #[serde(rename = "email", skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
+pub struct AccountMeResponse {
+    #[serde(rename = "role", skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    /// TenantID is the account the person's data lives under: the id an account opened before the identity provider kept, their identity id otherwise.
     #[serde(rename = "tenantId", skip_serializing_if = "Option::is_none")]
     pub tenant_id: Option<String>,
-    #[serde(rename = "token", skip_serializing_if = "Option::is_none")]
-    pub token: Option<String>,
 }
 
-impl ClaimInvitationClaimInvitationRequest {
-    pub fn new() -> ClaimInvitationClaimInvitationRequest {
-        ClaimInvitationClaimInvitationRequest {
-            email: None,
+impl AccountMeResponse {
+    pub fn new() -> AccountMeResponse {
+        AccountMeResponse {
+            role: None,
             tenant_id: None,
-            token: None,
         }
     }
 }

@@ -15,10 +15,11 @@
 """  # noqa: E501
 
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Define package exports
 __all__ = [
+    "AccountApi",
     "ApiKeysApi",
     "BillingApi",
     "BrandingApi",
@@ -43,6 +44,7 @@ __all__ = [
     "ApiKeyError",
     "ApiAttributeError",
     "ApiException",
+    "AccountMeResponse",
     "AddAddressAddAddressRequest",
     "AddAddressAddAddressResult",
     "AddSuppressionAddSuppressionRequest",
@@ -52,11 +54,6 @@ __all__ = [
     "ApikeysListAPIKeysResponse",
     "ApikeysView",
     "CancelSubscriptionResult",
-    "ClaimInvitationClaimInvitationRequest",
-    "ClaimInvitationClaimInvitationResponse",
-    "ClaimInvitationLookupInvitationResponse",
-    "ClaimInvitationRegisterCustomerRequest",
-    "ClaimInvitationRegisterCustomerResponse",
     "ConfirmUnsubscribeConfirmUnsubscribeRequest",
     "ConfirmUnsubscribeResponse",
     "CreateEndpointCreateEndpointRequest",
@@ -77,12 +74,17 @@ __all__ = [
     "ExtractBrandExtractBrandRequest",
     "ExtractBrandResponse",
     "GetBillingStateState",
+    "GetCatalogueCatalogue",
+    "GetCataloguePlan",
+    "GetCheckoutSessionResult",
     "GetUsageCurrentPeriodView",
     "GetUsageHistoryEntry",
     "GetUsageIdentityBreakdown",
     "GetUsageUsageResponse",
     "IngestBounceResponse",
     "IngestInboundMessageResponse",
+    "ListCheckoutMethodsMethod",
+    "ListCheckoutMethodsResult",
     "ListEndpointsResult",
     "ListIdentitiesResponse",
     "ListInboundMessagesResponse",
@@ -128,6 +130,7 @@ __all__ = [
 ]
 
 # import apis into sdk package
+from spore_email.api.account_api import AccountApi as AccountApi
 from spore_email.api.api_keys_api import ApiKeysApi as ApiKeysApi
 from spore_email.api.billing_api import BillingApi as BillingApi
 from spore_email.api.branding_api import BrandingApi as BrandingApi
@@ -156,6 +159,7 @@ from spore_email.exceptions import ApiAttributeError as ApiAttributeError
 from spore_email.exceptions import ApiException as ApiException
 
 # import models into sdk package
+from spore_email.models.account_me_response import AccountMeResponse as AccountMeResponse
 from spore_email.models.add_address_add_address_request import AddAddressAddAddressRequest as AddAddressAddAddressRequest
 from spore_email.models.add_address_add_address_result import AddAddressAddAddressResult as AddAddressAddAddressResult
 from spore_email.models.add_suppression_add_suppression_request import AddSuppressionAddSuppressionRequest as AddSuppressionAddSuppressionRequest
@@ -165,11 +169,6 @@ from spore_email.models.apikeys_created_key import ApikeysCreatedKey as ApikeysC
 from spore_email.models.apikeys_list_api_keys_response import ApikeysListAPIKeysResponse as ApikeysListAPIKeysResponse
 from spore_email.models.apikeys_view import ApikeysView as ApikeysView
 from spore_email.models.cancel_subscription_result import CancelSubscriptionResult as CancelSubscriptionResult
-from spore_email.models.claim_invitation_claim_invitation_request import ClaimInvitationClaimInvitationRequest as ClaimInvitationClaimInvitationRequest
-from spore_email.models.claim_invitation_claim_invitation_response import ClaimInvitationClaimInvitationResponse as ClaimInvitationClaimInvitationResponse
-from spore_email.models.claim_invitation_lookup_invitation_response import ClaimInvitationLookupInvitationResponse as ClaimInvitationLookupInvitationResponse
-from spore_email.models.claim_invitation_register_customer_request import ClaimInvitationRegisterCustomerRequest as ClaimInvitationRegisterCustomerRequest
-from spore_email.models.claim_invitation_register_customer_response import ClaimInvitationRegisterCustomerResponse as ClaimInvitationRegisterCustomerResponse
 from spore_email.models.confirm_unsubscribe_confirm_unsubscribe_request import ConfirmUnsubscribeConfirmUnsubscribeRequest as ConfirmUnsubscribeConfirmUnsubscribeRequest
 from spore_email.models.confirm_unsubscribe_response import ConfirmUnsubscribeResponse as ConfirmUnsubscribeResponse
 from spore_email.models.create_endpoint_create_endpoint_request import CreateEndpointCreateEndpointRequest as CreateEndpointCreateEndpointRequest
@@ -190,12 +189,17 @@ from spore_email.models.events_record_check import EventsRecordCheck as EventsRe
 from spore_email.models.extract_brand_extract_brand_request import ExtractBrandExtractBrandRequest as ExtractBrandExtractBrandRequest
 from spore_email.models.extract_brand_response import ExtractBrandResponse as ExtractBrandResponse
 from spore_email.models.get_billing_state_state import GetBillingStateState as GetBillingStateState
+from spore_email.models.get_catalogue_catalogue import GetCatalogueCatalogue as GetCatalogueCatalogue
+from spore_email.models.get_catalogue_plan import GetCataloguePlan as GetCataloguePlan
+from spore_email.models.get_checkout_session_result import GetCheckoutSessionResult as GetCheckoutSessionResult
 from spore_email.models.get_usage_current_period_view import GetUsageCurrentPeriodView as GetUsageCurrentPeriodView
 from spore_email.models.get_usage_history_entry import GetUsageHistoryEntry as GetUsageHistoryEntry
 from spore_email.models.get_usage_identity_breakdown import GetUsageIdentityBreakdown as GetUsageIdentityBreakdown
 from spore_email.models.get_usage_usage_response import GetUsageUsageResponse as GetUsageUsageResponse
 from spore_email.models.ingest_bounce_response import IngestBounceResponse as IngestBounceResponse
 from spore_email.models.ingest_inbound_message_response import IngestInboundMessageResponse as IngestInboundMessageResponse
+from spore_email.models.list_checkout_methods_method import ListCheckoutMethodsMethod as ListCheckoutMethodsMethod
+from spore_email.models.list_checkout_methods_result import ListCheckoutMethodsResult as ListCheckoutMethodsResult
 from spore_email.models.list_endpoints_result import ListEndpointsResult as ListEndpointsResult
 from spore_email.models.list_identities_response import ListIdentitiesResponse as ListIdentitiesResponse
 from spore_email.models.list_inbound_messages_response import ListInboundMessagesResponse as ListInboundMessagesResponse

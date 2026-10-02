@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './accountMeResponse';
 export * from './addAddressAddAddressRequest';
 export * from './addAddressAddAddressResult';
 export * from './addSuppressionAddSuppressionRequest';
@@ -15,11 +16,6 @@ export * from './apikeysCreatedKey';
 export * from './apikeysListAPIKeysResponse';
 export * from './apikeysView';
 export * from './cancelSubscriptionResult';
-export * from './claimInvitationClaimInvitationRequest';
-export * from './claimInvitationClaimInvitationResponse';
-export * from './claimInvitationLookupInvitationResponse';
-export * from './claimInvitationRegisterCustomerRequest';
-export * from './claimInvitationRegisterCustomerResponse';
 export * from './confirmUnsubscribeConfirmUnsubscribeRequest';
 export * from './confirmUnsubscribeParams';
 export * from './confirmUnsubscribeResponse';
@@ -41,12 +37,18 @@ export * from './eventsRecordCheck';
 export * from './extractBrandExtractBrandRequest';
 export * from './extractBrandResponse';
 export * from './getBillingStateState';
+export * from './getCatalogueCatalogue';
+export * from './getCataloguePlan';
+export * from './getCheckoutSessionResult';
 export * from './getUsageCurrentPeriodView';
 export * from './getUsageHistoryEntry';
 export * from './getUsageIdentityBreakdown';
 export * from './getUsageUsageResponse';
 export * from './ingestBounceResponse';
 export * from './ingestInboundMessageResponse';
+export * from './listBillingCheckoutMethodsParams';
+export * from './listCheckoutMethodsMethod';
+export * from './listCheckoutMethodsResult';
 export * from './listEmailsParams';
 export * from './listEmailsStatus';
 export * from './listEndpointsResult';

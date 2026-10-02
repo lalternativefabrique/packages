@@ -1,6 +1,6 @@
 <?php
 /**
- * ClaimInvitationClaimInvitationRequest
+ * ListCheckoutMethodsMethod
  *
  * PHP version 8.1
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \Lalternative\Spore\ObjectSerializer;
 
 /**
- * ClaimInvitationClaimInvitationRequest Class Doc Comment
+ * ListCheckoutMethodsMethod Class Doc Comment
  *
  * @category Class
  * @package  Lalternative\Spore
@@ -41,7 +41,7 @@ use \Lalternative\Spore\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class ListCheckoutMethodsMethod implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      *
      * @var string
      */
-    protected static $openAPIModelName = 'claim_invitation.ClaimInvitationRequest';
+    protected static $openAPIModelName = 'list_checkout_methods.Method';
 
     /**
      * Array of property to type mappings. Used for (de)serialization
@@ -58,9 +58,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @var string[]
      */
     protected static $openAPITypes = [
-        'email' => 'string',
-        'tenant_id' => 'string',
-        'token' => 'string'
+        'id' => 'string',
+        'label' => 'string'
     ];
 
     /**
@@ -71,9 +70,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
-        'email' => null,
-        'tenant_id' => null,
-        'token' => null
+        'id' => null,
+        'label' => null
     ];
 
     /**
@@ -82,9 +80,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'email' => false,
-        'tenant_id' => false,
-        'token' => false
+        'id' => false,
+        'label' => false
     ];
 
     /**
@@ -173,9 +170,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @var string[]
      */
     protected static $attributeMap = [
-        'email' => 'email',
-        'tenant_id' => 'tenantId',
-        'token' => 'token'
+        'id' => 'id',
+        'label' => 'label'
     ];
 
     /**
@@ -184,9 +180,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @var string[]
      */
     protected static $setters = [
-        'email' => 'setEmail',
-        'tenant_id' => 'setTenantId',
-        'token' => 'setToken'
+        'id' => 'setId',
+        'label' => 'setLabel'
     ];
 
     /**
@@ -195,9 +190,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      * @var string[]
      */
     protected static $getters = [
-        'email' => 'getEmail',
-        'tenant_id' => 'getTenantId',
-        'token' => 'getToken'
+        'id' => 'getId',
+        'label' => 'getLabel'
     ];
 
     /**
@@ -257,9 +251,8 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('email', $data ?? [], null);
-        $this->setIfExists('tenant_id', $data ?? [], null);
-        $this->setIfExists('token', $data ?? [], null);
+        $this->setIfExists('id', $data ?? [], null);
+        $this->setIfExists('label', $data ?? [], null);
     }
 
     /**
@@ -305,82 +298,55 @@ class ClaimInvitationClaimInvitationRequest implements ModelInterface, ArrayAcce
 
 
     /**
-     * Gets email
+     * Gets id
      *
      * @return string|null
      */
-    public function getEmail()
+    public function getId()
     {
-        return $this->container['email'];
+        return $this->container['id'];
     }
 
     /**
-     * Sets email
+     * Sets id
      *
-     * @param string|null $email email
+     * @param string|null $id ID travels back as the checkout's paymentMethod.
      *
      * @return self
      */
-    public function setEmail($email)
+    public function setId($id)
     {
-        if (is_null($email)) {
-            throw new \InvalidArgumentException('non-nullable email cannot be null');
+        if (is_null($id)) {
+            throw new \InvalidArgumentException('non-nullable id cannot be null');
         }
-        $this->container['email'] = $email;
+        $this->container['id'] = $id;
 
         return $this;
     }
 
     /**
-     * Gets tenant_id
+     * Gets label
      *
      * @return string|null
      */
-    public function getTenantId()
+    public function getLabel()
     {
-        return $this->container['tenant_id'];
+        return $this->container['label'];
     }
 
     /**
-     * Sets tenant_id
+     * Sets label
      *
-     * @param string|null $tenant_id tenant_id
+     * @param string|null $label Label names the method for the buyer.
      *
      * @return self
      */
-    public function setTenantId($tenant_id)
+    public function setLabel($label)
     {
-        if (is_null($tenant_id)) {
-            throw new \InvalidArgumentException('non-nullable tenant_id cannot be null');
+        if (is_null($label)) {
+            throw new \InvalidArgumentException('non-nullable label cannot be null');
         }
-        $this->container['tenant_id'] = $tenant_id;
-
-        return $this;
-    }
-
-    /**
-     * Gets token
-     *
-     * @return string|null
-     */
-    public function getToken()
-    {
-        return $this->container['token'];
-    }
-
-    /**
-     * Sets token
-     *
-     * @param string|null $token token
-     *
-     * @return self
-     */
-    public function setToken($token)
-    {
-        if (is_null($token)) {
-            throw new \InvalidArgumentException('non-nullable token cannot be null');
-        }
-        $this->container['token'] = $token;
+        $this->container['label'] = $label;
 
         return $this;
     }

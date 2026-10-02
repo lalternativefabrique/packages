@@ -5,8 +5,8 @@
  * Control plane for the Spore transactional email platform.
  * OpenAPI spec version: 0.1.0
  */
+import type { ListCheckoutMethodsMethod } from './listCheckoutMethodsMethod';
 
-export interface ClaimInvitationRegisterCustomerRequest {
-  email?: string;
-  tenantId?: string;
+export interface ListCheckoutMethodsResult {
+  methods?: ListCheckoutMethodsMethod[];
 }

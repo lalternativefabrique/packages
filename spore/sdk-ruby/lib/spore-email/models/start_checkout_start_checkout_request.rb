@@ -20,6 +20,9 @@ module SporeEmail
 
     attr_accessor :name
 
+    # PaymentMethod is one of the ids GET /billing/checkout/methods returned for this tier. Omitted, the provider's own selection screen decides.
+    attr_accessor :payment_method
+
     # Plan is the tier being bought. Only purchasable tiers are accepted: reaching the free tier is a cancellation, not a purchase.
     attr_accessor :plan
 
@@ -31,6 +34,7 @@ module SporeEmail
       {
         :'email' => :'email',
         :'name' => :'name',
+        :'payment_method' => :'paymentMethod',
         :'plan' => :'plan',
         :'success_url' => :'successUrl'
       }
@@ -51,6 +55,7 @@ module SporeEmail
       {
         :'email' => :'String',
         :'name' => :'String',
+        :'payment_method' => :'String',
         :'plan' => :'String',
         :'success_url' => :'String'
       }
@@ -86,6 +91,10 @@ module SporeEmail
         self.name = attributes[:'name']
       end
 
+      if attributes.key?(:'payment_method')
+        self.payment_method = attributes[:'payment_method']
+      end
+
       if attributes.key?(:'plan')
         self.plan = attributes[:'plan']
       end
@@ -117,6 +126,7 @@ module SporeEmail
       self.class == o.class &&
           email == o.email &&
           name == o.name &&
+          payment_method == o.payment_method &&
           plan == o.plan &&
           success_url == o.success_url
     end
@@ -130,7 +140,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [email, name, plan, success_url].hash
+      [email, name, payment_method, plan, success_url].hash
     end
 
     # Builds the object from hash

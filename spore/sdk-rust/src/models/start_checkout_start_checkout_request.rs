@@ -18,6 +18,9 @@ pub struct StartCheckoutStartCheckoutRequest {
     pub email: Option<String>,
     #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
+    /// PaymentMethod is one of the ids GET /billing/checkout/methods returned for this tier. Omitted, the provider's own selection screen decides.
+    #[serde(rename = "paymentMethod", skip_serializing_if = "Option::is_none")]
+    pub payment_method: Option<String>,
     /// Plan is the tier being bought. Only purchasable tiers are accepted: reaching the free tier is a cancellation, not a purchase.
     #[serde(rename = "plan", skip_serializing_if = "Option::is_none")]
     pub plan: Option<String>,
@@ -31,6 +34,7 @@ impl StartCheckoutStartCheckoutRequest {
         StartCheckoutStartCheckoutRequest {
             email: None,
             name: None,
+            payment_method: None,
             plan: None,
             success_url: None,
         }

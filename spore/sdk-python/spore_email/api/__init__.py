@@ -1,6 +1,7 @@
 # flake8: noqa
 
 # import apis into api package
+from spore_email.api.account_api import AccountApi
 from spore_email.api.api_keys_api import ApiKeysApi
 from spore_email.api.billing_api import BillingApi
 from spore_email.api.branding_api import BrandingApi

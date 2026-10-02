@@ -1,6 +1,6 @@
 <?php
 /**
- * ClaimInvitationClaimInvitationResponse
+ * GetCatalogueCatalogue
  *
  * PHP version 8.1
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \Lalternative\Spore\ObjectSerializer;
 
 /**
- * ClaimInvitationClaimInvitationResponse Class Doc Comment
+ * GetCatalogueCatalogue Class Doc Comment
  *
  * @category Class
  * @package  Lalternative\Spore
@@ -41,7 +41,7 @@ use \Lalternative\Spore\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAccess, \JsonSerializable
+class GetCatalogueCatalogue implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      *
      * @var string
      */
-    protected static $openAPIModelName = 'claim_invitation.ClaimInvitationResponse';
+    protected static $openAPIModelName = 'get_catalogue.Catalogue';
 
     /**
      * Array of property to type mappings. Used for (de)serialization
@@ -58,8 +58,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $openAPITypes = [
-        'claimed' => 'bool',
-        'plan' => 'string'
+        'degraded' => 'bool',
+        'plans' => '\Lalternative\Spore\Model\GetCataloguePlan[]'
     ];
 
     /**
@@ -70,8 +70,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
-        'claimed' => null,
-        'plan' => null
+        'degraded' => null,
+        'plans' => null
     ];
 
     /**
@@ -80,8 +80,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'claimed' => false,
-        'plan' => false
+        'degraded' => false,
+        'plans' => false
     ];
 
     /**
@@ -170,8 +170,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $attributeMap = [
-        'claimed' => 'claimed',
-        'plan' => 'plan'
+        'degraded' => 'degraded',
+        'plans' => 'plans'
     ];
 
     /**
@@ -180,8 +180,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $setters = [
-        'claimed' => 'setClaimed',
-        'plan' => 'setPlan'
+        'degraded' => 'setDegraded',
+        'plans' => 'setPlans'
     ];
 
     /**
@@ -190,8 +190,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $getters = [
-        'claimed' => 'getClaimed',
-        'plan' => 'getPlan'
+        'degraded' => 'getDegraded',
+        'plans' => 'getPlans'
     ];
 
     /**
@@ -251,8 +251,8 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('claimed', $data ?? [], null);
-        $this->setIfExists('plan', $data ?? [], null);
+        $this->setIfExists('degraded', $data ?? [], null);
+        $this->setIfExists('plans', $data ?? [], null);
     }
 
     /**
@@ -298,55 +298,55 @@ class ClaimInvitationClaimInvitationResponse implements ModelInterface, ArrayAcc
 
 
     /**
-     * Gets claimed
+     * Gets degraded
      *
      * @return bool|null
      */
-    public function getClaimed()
+    public function getDegraded()
     {
-        return $this->container['claimed'];
+        return $this->container['degraded'];
     }
 
     /**
-     * Sets claimed
+     * Sets degraded
      *
-     * @param bool|null $claimed Claimed is false when the offer no longer holds — unknown, expired or already taken. The account is fine; it stays on the default plan.
+     * @param bool|null $degraded Degraded reports that Lungor could not be reached and nothing here can be bought.
      *
      * @return self
      */
-    public function setClaimed($claimed)
+    public function setDegraded($degraded)
     {
-        if (is_null($claimed)) {
-            throw new \InvalidArgumentException('non-nullable claimed cannot be null');
+        if (is_null($degraded)) {
+            throw new \InvalidArgumentException('non-nullable degraded cannot be null');
         }
-        $this->container['claimed'] = $claimed;
+        $this->container['degraded'] = $degraded;
 
         return $this;
     }
 
     /**
-     * Gets plan
+     * Gets plans
      *
-     * @return string|null
+     * @return \Lalternative\Spore\Model\GetCataloguePlan[]|null
      */
-    public function getPlan()
+    public function getPlans()
     {
-        return $this->container['plan'];
+        return $this->container['plans'];
     }
 
     /**
-     * Sets plan
+     * Sets plans
      *
-     * @param string|null $plan Plan is what the invitation conferred, empty when it was refused.
+     * @param \Lalternative\Spore\Model\GetCataloguePlan[]|null $plans plans
      *
      * @return self
      */
-    public function setPlan($plan)
+    public function setPlans($plans)
     {
-        if (is_null($plan)) {
-            throw new \InvalidArgumentException('non-nullable plan cannot be null');
+        if (is_null($plans)) {
+            throw new \InvalidArgumentException('non-nullable plans cannot be null');
         }
-        $this->container['plan'] = $plan;
+        $this->container['plans'] = $plans;
 
         return $this;
     }

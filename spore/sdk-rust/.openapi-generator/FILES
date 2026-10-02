@@ -4,6 +4,7 @@
 Cargo.toml
 README.md
 git_push.sh
+src/apis/account_api.rs
 src/apis/api_keys_api.rs
 src/apis/billing_api.rs
 src/apis/branding_api.rs
@@ -22,6 +23,7 @@ src/apis/unsubscribes_api.rs
 src/apis/usage_api.rs
 src/apis/webhooks_api.rs
 src/lib.rs
+src/models/account_me_response.rs
 src/models/add_address_add_address_request.rs
 src/models/add_address_add_address_result.rs
 src/models/add_suppression_add_suppression_request.rs
@@ -31,11 +33,6 @@ src/models/apikeys_created_key.rs
 src/models/apikeys_list_api_keys_response.rs
 src/models/apikeys_view.rs
 src/models/cancel_subscription_result.rs
-src/models/claim_invitation_claim_invitation_request.rs
-src/models/claim_invitation_claim_invitation_response.rs
-src/models/claim_invitation_lookup_invitation_response.rs
-src/models/claim_invitation_register_customer_request.rs
-src/models/claim_invitation_register_customer_response.rs
 src/models/confirm_unsubscribe_confirm_unsubscribe_request.rs
 src/models/confirm_unsubscribe_response.rs
 src/models/create_endpoint_create_endpoint_request.rs
@@ -56,12 +53,17 @@ src/models/events_record_check.rs
 src/models/extract_brand_extract_brand_request.rs
 src/models/extract_brand_response.rs
 src/models/get_billing_state_state.rs
+src/models/get_catalogue_catalogue.rs
+src/models/get_catalogue_plan.rs
+src/models/get_checkout_session_result.rs
 src/models/get_usage_current_period_view.rs
 src/models/get_usage_history_entry.rs
 src/models/get_usage_identity_breakdown.rs
 src/models/get_usage_usage_response.rs
 src/models/ingest_bounce_response.rs
 src/models/ingest_inbound_message_response.rs
+src/models/list_checkout_methods_method.rs
+src/models/list_checkout_methods_result.rs
 src/models/list_endpoints_result.rs
 src/models/list_identities_response.rs
 src/models/list_inbound_messages_response.rs

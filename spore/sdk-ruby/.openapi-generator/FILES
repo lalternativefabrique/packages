@@ -9,6 +9,7 @@ README.md
 Rakefile
 git_push.sh
 lib/spore-email.rb
+lib/spore-email/api/account_api.rb
 lib/spore-email/api/api_keys_api.rb
 lib/spore-email/api/billing_api.rb
 lib/spore-email/api/branding_api.rb
@@ -28,6 +29,7 @@ lib/spore-email/api_client.rb
 lib/spore-email/api_error.rb
 lib/spore-email/api_model_base.rb
 lib/spore-email/configuration.rb
+lib/spore-email/models/account_me_response.rb
 lib/spore-email/models/add_address_add_address_request.rb
 lib/spore-email/models/add_address_add_address_result.rb
 lib/spore-email/models/add_suppression_add_suppression_request.rb
@@ -37,11 +39,6 @@ lib/spore-email/models/apikeys_created_key.rb
 lib/spore-email/models/apikeys_list_api_keys_response.rb
 lib/spore-email/models/apikeys_view.rb
 lib/spore-email/models/cancel_subscription_result.rb
-lib/spore-email/models/claim_invitation_claim_invitation_request.rb
-lib/spore-email/models/claim_invitation_claim_invitation_response.rb
-lib/spore-email/models/claim_invitation_lookup_invitation_response.rb
-lib/spore-email/models/claim_invitation_register_customer_request.rb
-lib/spore-email/models/claim_invitation_register_customer_response.rb
 lib/spore-email/models/confirm_unsubscribe_confirm_unsubscribe_request.rb
 lib/spore-email/models/confirm_unsubscribe_response.rb
 lib/spore-email/models/create_endpoint_create_endpoint_request.rb
@@ -62,12 +59,17 @@ lib/spore-email/models/events_record_check.rb
 lib/spore-email/models/extract_brand_extract_brand_request.rb
 lib/spore-email/models/extract_brand_response.rb
 lib/spore-email/models/get_billing_state_state.rb
+lib/spore-email/models/get_catalogue_catalogue.rb
+lib/spore-email/models/get_catalogue_plan.rb
+lib/spore-email/models/get_checkout_session_result.rb
 lib/spore-email/models/get_usage_current_period_view.rb
 lib/spore-email/models/get_usage_history_entry.rb
 lib/spore-email/models/get_usage_identity_breakdown.rb
 lib/spore-email/models/get_usage_usage_response.rb
 lib/spore-email/models/ingest_bounce_response.rb
 lib/spore-email/models/ingest_inbound_message_response.rb
+lib/spore-email/models/list_checkout_methods_method.rb
+lib/spore-email/models/list_checkout_methods_result.rb
 lib/spore-email/models/list_endpoints_result.rb
 lib/spore-email/models/list_identities_response.rb
 lib/spore-email/models/list_inbound_messages_response.rb

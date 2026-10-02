@@ -11,6 +11,9 @@ export interface StartCheckoutStartCheckoutRequest {
 they are absent. */
   email?: string;
   name?: string;
+  /** PaymentMethod is one of the ids GET /billing/checkout/methods returned for
+this tier. Omitted, the provider's own selection screen decides. */
+  paymentMethod?: string;
   /** Plan is the tier being bought. Only purchasable tiers are accepted:
 reaching the free tier is a cancellation, not a purchase. */
   plan?: string;

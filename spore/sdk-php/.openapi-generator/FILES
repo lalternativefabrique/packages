@@ -5,6 +5,7 @@
 README.md
 composer.json
 git_push.sh
+lib/Api/AccountApi.php
 lib/Api/ApiKeysApi.php
 lib/Api/BillingApi.php
 lib/Api/BrandingApi.php
@@ -24,6 +25,7 @@ lib/ApiException.php
 lib/Configuration.php
 lib/FormDataProcessor.php
 lib/HeaderSelector.php
+lib/Model/AccountMeResponse.php
 lib/Model/AddAddressAddAddressRequest.php
 lib/Model/AddAddressAddAddressResult.php
 lib/Model/AddSuppressionAddSuppressionRequest.php
@@ -33,11 +35,6 @@ lib/Model/ApikeysCreatedKey.php
 lib/Model/ApikeysListAPIKeysResponse.php
 lib/Model/ApikeysView.php
 lib/Model/CancelSubscriptionResult.php
-lib/Model/ClaimInvitationClaimInvitationRequest.php
-lib/Model/ClaimInvitationClaimInvitationResponse.php
-lib/Model/ClaimInvitationLookupInvitationResponse.php
-lib/Model/ClaimInvitationRegisterCustomerRequest.php
-lib/Model/ClaimInvitationRegisterCustomerResponse.php
 lib/Model/ConfirmUnsubscribeConfirmUnsubscribeRequest.php
 lib/Model/ConfirmUnsubscribeResponse.php
 lib/Model/CreateEndpointCreateEndpointRequest.php
@@ -58,12 +55,17 @@ lib/Model/EventsRecordCheck.php
 lib/Model/ExtractBrandExtractBrandRequest.php
 lib/Model/ExtractBrandResponse.php
 lib/Model/GetBillingStateState.php
+lib/Model/GetCatalogueCatalogue.php
+lib/Model/GetCataloguePlan.php
+lib/Model/GetCheckoutSessionResult.php
 lib/Model/GetUsageCurrentPeriodView.php
 lib/Model/GetUsageHistoryEntry.php
 lib/Model/GetUsageIdentityBreakdown.php
 lib/Model/GetUsageUsageResponse.php
 lib/Model/IngestBounceResponse.php
 lib/Model/IngestInboundMessageResponse.php
+lib/Model/ListCheckoutMethodsMethod.php
+lib/Model/ListCheckoutMethodsResult.php
 lib/Model/ListEndpointsResult.php
 lib/Model/ListIdentitiesResponse.php
 lib/Model/ListInboundMessagesResponse.php

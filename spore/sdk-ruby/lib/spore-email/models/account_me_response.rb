@@ -14,19 +14,17 @@ require 'date'
 require 'time'
 
 module SporeEmail
-  class ClaimInvitationClaimInvitationRequest < ApiModelBase
-    attr_accessor :email
+  class AccountMeResponse < ApiModelBase
+    attr_accessor :role
 
+    # TenantID is the account the person's data lives under: the id an account opened before the identity provider kept, their identity id otherwise.
     attr_accessor :tenant_id
-
-    attr_accessor :token
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'email' => :'email',
-        :'tenant_id' => :'tenantId',
-        :'token' => :'token'
+        :'role' => :'role',
+        :'tenant_id' => :'tenantId'
       }
     end
 
@@ -43,9 +41,8 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'email' => :'String',
-        :'tenant_id' => :'String',
-        :'token' => :'String'
+        :'role' => :'String',
+        :'tenant_id' => :'String'
       }
     end
 
@@ -59,28 +56,24 @@ module SporeEmail
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ClaimInvitationClaimInvitationRequest` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::AccountMeResponse` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ClaimInvitationClaimInvitationRequest`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::AccountMeResponse`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'email')
-        self.email = attributes[:'email']
+      if attributes.key?(:'role')
+        self.role = attributes[:'role']
       end
 
       if attributes.key?(:'tenant_id')
         self.tenant_id = attributes[:'tenant_id']
-      end
-
-      if attributes.key?(:'token')
-        self.token = attributes[:'token']
       end
     end
 
@@ -104,9 +97,8 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          email == o.email &&
-          tenant_id == o.tenant_id &&
-          token == o.token
+          role == o.role &&
+          tenant_id == o.tenant_id
     end
 
     # @see the `==` method
@@ -118,7 +110,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [email, tenant_id, token].hash
+      [role, tenant_id].hash
     end
 
     # Builds the object from hash

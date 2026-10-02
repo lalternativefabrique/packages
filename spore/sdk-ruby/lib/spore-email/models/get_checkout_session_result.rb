@@ -14,18 +14,28 @@ require 'date'
 require 'time'
 
 module SporeEmail
-  class ClaimInvitationClaimInvitationResponse < ApiModelBase
-    # Claimed is false when the offer no longer holds — unknown, expired or already taken. The account is fine; it stays on the default plan.
-    attr_accessor :claimed
+  class GetCheckoutSessionResult < ApiModelBase
+    # FailureReason is the provider's own word for a refusal. Set on failed only.
+    attr_accessor :failure_reason
 
-    # Plan is what the invitation conferred, empty when it was refused.
-    attr_accessor :plan
+    # Paid is the one field to open access on.
+    attr_accessor :paid
+
+    attr_accessor :session_id
+
+    # Status is pending, redirected, completed, failed, canceled or expired. The first two are still in flight and worth asking again; the rest are final.
+    attr_accessor :status
+
+    attr_accessor :subscription_status
 
     # Attribute mapping from ruby-style variable name to JSON key.
     def self.attribute_map
       {
-        :'claimed' => :'claimed',
-        :'plan' => :'plan'
+        :'failure_reason' => :'failureReason',
+        :'paid' => :'paid',
+        :'session_id' => :'sessionId',
+        :'status' => :'status',
+        :'subscription_status' => :'subscriptionStatus'
       }
     end
 
@@ -42,8 +52,11 @@ module SporeEmail
     # Attribute type mapping.
     def self.openapi_types
       {
-        :'claimed' => :'Boolean',
-        :'plan' => :'String'
+        :'failure_reason' => :'String',
+        :'paid' => :'Boolean',
+        :'session_id' => :'String',
+        :'status' => :'String',
+        :'subscription_status' => :'String'
       }
     end
 
@@ -57,24 +70,36 @@ module SporeEmail
     # @param [Hash] attributes Model attributes in the form of hash
     def initialize(attributes = {})
       if (!attributes.is_a?(Hash))
-        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::ClaimInvitationClaimInvitationResponse` initialize method"
+        fail ArgumentError, "The input argument (attributes) must be a hash in `SporeEmail::GetCheckoutSessionResult` initialize method"
       end
 
       # check to see if the attribute exists and convert string to symbol for hash key
       acceptable_attribute_map = self.class.acceptable_attribute_map
       attributes = attributes.each_with_object({}) { |(k, v), h|
         if (!acceptable_attribute_map.key?(k.to_sym))
-          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::ClaimInvitationClaimInvitationResponse`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
+          fail ArgumentError, "`#{k}` is not a valid attribute in `SporeEmail::GetCheckoutSessionResult`. Please check the name to make sure it's valid. List of attributes: " + acceptable_attribute_map.keys.inspect
         end
         h[k.to_sym] = v
       }
 
-      if attributes.key?(:'claimed')
-        self.claimed = attributes[:'claimed']
+      if attributes.key?(:'failure_reason')
+        self.failure_reason = attributes[:'failure_reason']
       end
 
-      if attributes.key?(:'plan')
-        self.plan = attributes[:'plan']
+      if attributes.key?(:'paid')
+        self.paid = attributes[:'paid']
+      end
+
+      if attributes.key?(:'session_id')
+        self.session_id = attributes[:'session_id']
+      end
+
+      if attributes.key?(:'status')
+        self.status = attributes[:'status']
+      end
+
+      if attributes.key?(:'subscription_status')
+        self.subscription_status = attributes[:'subscription_status']
       end
     end
 
@@ -98,8 +123,11 @@ module SporeEmail
     def ==(o)
       return true if self.equal?(o)
       self.class == o.class &&
-          claimed == o.claimed &&
-          plan == o.plan
+          failure_reason == o.failure_reason &&
+          paid == o.paid &&
+          session_id == o.session_id &&
+          status == o.status &&
+          subscription_status == o.subscription_status
     end
 
     # @see the `==` method
@@ -111,7 +139,7 @@ module SporeEmail
     # Calculates hash code according to all attributes.
     # @return [Integer] Hash code
     def hash
-      [claimed, plan].hash
+      [failure_reason, paid, session_id, status, subscription_status].hash
     end
 
     # Builds the object from hash

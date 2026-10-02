@@ -1,6 +1,6 @@
 <?php
 /**
- * ClaimInvitationRegisterCustomerRequest
+ * GetCheckoutSessionResult
  *
  * PHP version 8.1
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \Lalternative\Spore\ObjectSerializer;
 
 /**
- * ClaimInvitationRegisterCustomerRequest Class Doc Comment
+ * GetCheckoutSessionResult Class Doc Comment
  *
  * @category Class
  * @package  Lalternative\Spore
@@ -41,7 +41,7 @@ use \Lalternative\Spore\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAccess, \JsonSerializable
+class GetCheckoutSessionResult implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      *
      * @var string
      */
-    protected static $openAPIModelName = 'claim_invitation.RegisterCustomerRequest';
+    protected static $openAPIModelName = 'get_checkout_session.Result';
 
     /**
      * Array of property to type mappings. Used for (de)serialization
@@ -58,8 +58,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $openAPITypes = [
-        'email' => 'string',
-        'tenant_id' => 'string'
+        'failure_reason' => 'string',
+        'paid' => 'bool',
+        'session_id' => 'string',
+        'status' => 'string',
+        'subscription_status' => 'string'
     ];
 
     /**
@@ -70,8 +73,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
-        'email' => null,
-        'tenant_id' => null
+        'failure_reason' => null,
+        'paid' => null,
+        'session_id' => null,
+        'status' => null,
+        'subscription_status' => null
     ];
 
     /**
@@ -80,8 +86,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'email' => false,
-        'tenant_id' => false
+        'failure_reason' => false,
+        'paid' => false,
+        'session_id' => false,
+        'status' => false,
+        'subscription_status' => false
     ];
 
     /**
@@ -170,8 +179,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $attributeMap = [
-        'email' => 'email',
-        'tenant_id' => 'tenantId'
+        'failure_reason' => 'failureReason',
+        'paid' => 'paid',
+        'session_id' => 'sessionId',
+        'status' => 'status',
+        'subscription_status' => 'subscriptionStatus'
     ];
 
     /**
@@ -180,8 +192,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $setters = [
-        'email' => 'setEmail',
-        'tenant_id' => 'setTenantId'
+        'failure_reason' => 'setFailureReason',
+        'paid' => 'setPaid',
+        'session_id' => 'setSessionId',
+        'status' => 'setStatus',
+        'subscription_status' => 'setSubscriptionStatus'
     ];
 
     /**
@@ -190,8 +205,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      * @var string[]
      */
     protected static $getters = [
-        'email' => 'getEmail',
-        'tenant_id' => 'getTenantId'
+        'failure_reason' => 'getFailureReason',
+        'paid' => 'getPaid',
+        'session_id' => 'getSessionId',
+        'status' => 'getStatus',
+        'subscription_status' => 'getSubscriptionStatus'
     ];
 
     /**
@@ -251,8 +269,11 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('email', $data ?? [], null);
-        $this->setIfExists('tenant_id', $data ?? [], null);
+        $this->setIfExists('failure_reason', $data ?? [], null);
+        $this->setIfExists('paid', $data ?? [], null);
+        $this->setIfExists('session_id', $data ?? [], null);
+        $this->setIfExists('status', $data ?? [], null);
+        $this->setIfExists('subscription_status', $data ?? [], null);
     }
 
     /**
@@ -298,55 +319,136 @@ class ClaimInvitationRegisterCustomerRequest implements ModelInterface, ArrayAcc
 
 
     /**
-     * Gets email
+     * Gets failure_reason
      *
      * @return string|null
      */
-    public function getEmail()
+    public function getFailureReason()
     {
-        return $this->container['email'];
+        return $this->container['failure_reason'];
     }
 
     /**
-     * Sets email
+     * Sets failure_reason
      *
-     * @param string|null $email email
+     * @param string|null $failure_reason FailureReason is the provider's own word for a refusal. Set on failed only.
      *
      * @return self
      */
-    public function setEmail($email)
+    public function setFailureReason($failure_reason)
     {
-        if (is_null($email)) {
-            throw new \InvalidArgumentException('non-nullable email cannot be null');
+        if (is_null($failure_reason)) {
+            throw new \InvalidArgumentException('non-nullable failure_reason cannot be null');
         }
-        $this->container['email'] = $email;
+        $this->container['failure_reason'] = $failure_reason;
 
         return $this;
     }
 
     /**
-     * Gets tenant_id
+     * Gets paid
      *
-     * @return string|null
+     * @return bool|null
      */
-    public function getTenantId()
+    public function getPaid()
     {
-        return $this->container['tenant_id'];
+        return $this->container['paid'];
     }
 
     /**
-     * Sets tenant_id
+     * Sets paid
      *
-     * @param string|null $tenant_id tenant_id
+     * @param bool|null $paid Paid is the one field to open access on.
      *
      * @return self
      */
-    public function setTenantId($tenant_id)
+    public function setPaid($paid)
     {
-        if (is_null($tenant_id)) {
-            throw new \InvalidArgumentException('non-nullable tenant_id cannot be null');
+        if (is_null($paid)) {
+            throw new \InvalidArgumentException('non-nullable paid cannot be null');
         }
-        $this->container['tenant_id'] = $tenant_id;
+        $this->container['paid'] = $paid;
+
+        return $this;
+    }
+
+    /**
+     * Gets session_id
+     *
+     * @return string|null
+     */
+    public function getSessionId()
+    {
+        return $this->container['session_id'];
+    }
+
+    /**
+     * Sets session_id
+     *
+     * @param string|null $session_id session_id
+     *
+     * @return self
+     */
+    public function setSessionId($session_id)
+    {
+        if (is_null($session_id)) {
+            throw new \InvalidArgumentException('non-nullable session_id cannot be null');
+        }
+        $this->container['session_id'] = $session_id;
+
+        return $this;
+    }
+
+    /**
+     * Gets status
+     *
+     * @return string|null
+     */
+    public function getStatus()
+    {
+        return $this->container['status'];
+    }
+
+    /**
+     * Sets status
+     *
+     * @param string|null $status Status is pending, redirected, completed, failed, canceled or expired. The first two are still in flight and worth asking again; the rest are final.
+     *
+     * @return self
+     */
+    public function setStatus($status)
+    {
+        if (is_null($status)) {
+            throw new \InvalidArgumentException('non-nullable status cannot be null');
+        }
+        $this->container['status'] = $status;
+
+        return $this;
+    }
+
+    /**
+     * Gets subscription_status
+     *
+     * @return string|null
+     */
+    public function getSubscriptionStatus()
+    {
+        return $this->container['subscription_status'];
+    }
+
+    /**
+     * Sets subscription_status
+     *
+     * @param string|null $subscription_status subscription_status
+     *
+     * @return self
+     */
+    public function setSubscriptionStatus($subscription_status)
+    {
+        if (is_null($subscription_status)) {
+            throw new \InvalidArgumentException('non-nullable subscription_status cannot be null');
+        }
+        $this->container['subscription_status'] = $subscription_status;
 
         return $this;
     }

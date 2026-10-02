@@ -1,6 +1,6 @@
 <?php
 /**
- * ClaimInvitationLookupInvitationResponse
+ * AccountMeResponse
  *
  * PHP version 8.1
  *
@@ -33,7 +33,7 @@ use \ArrayAccess;
 use \Lalternative\Spore\ObjectSerializer;
 
 /**
- * ClaimInvitationLookupInvitationResponse Class Doc Comment
+ * AccountMeResponse Class Doc Comment
  *
  * @category Class
  * @package  Lalternative\Spore
@@ -41,7 +41,7 @@ use \Lalternative\Spore\ObjectSerializer;
  * @link     https://openapi-generator.tech
  * @implements \ArrayAccess<string, mixed>
  */
-class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAccess, \JsonSerializable
+class AccountMeResponse implements ModelInterface, ArrayAccess, \JsonSerializable
 {
     public const DISCRIMINATOR = null;
 
@@ -50,7 +50,7 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      *
      * @var string
      */
-    protected static $openAPIModelName = 'claim_invitation.LookupInvitationResponse';
+    protected static $openAPIModelName = 'account.MeResponse';
 
     /**
      * Array of property to type mappings. Used for (de)serialization
@@ -58,10 +58,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $openAPITypes = [
-        'claimable' => 'bool',
-        'email' => 'string',
-        'plan' => 'string',
-        'status' => 'string'
+        'role' => 'string',
+        'tenant_id' => 'string'
     ];
 
     /**
@@ -72,10 +70,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @psalm-var array<string, string|null>
      */
     protected static $openAPIFormats = [
-        'claimable' => null,
-        'email' => null,
-        'plan' => null,
-        'status' => null
+        'role' => null,
+        'tenant_id' => null
     ];
 
     /**
@@ -84,10 +80,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @var boolean[]
      */
     protected static array $openAPINullables = [
-        'claimable' => false,
-        'email' => false,
-        'plan' => false,
-        'status' => false
+        'role' => false,
+        'tenant_id' => false
     ];
 
     /**
@@ -176,10 +170,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $attributeMap = [
-        'claimable' => 'claimable',
-        'email' => 'email',
-        'plan' => 'plan',
-        'status' => 'status'
+        'role' => 'role',
+        'tenant_id' => 'tenantId'
     ];
 
     /**
@@ -188,10 +180,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $setters = [
-        'claimable' => 'setClaimable',
-        'email' => 'setEmail',
-        'plan' => 'setPlan',
-        'status' => 'setStatus'
+        'role' => 'setRole',
+        'tenant_id' => 'setTenantId'
     ];
 
     /**
@@ -200,10 +190,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      * @var string[]
      */
     protected static $getters = [
-        'claimable' => 'getClaimable',
-        'email' => 'getEmail',
-        'plan' => 'getPlan',
-        'status' => 'getStatus'
+        'role' => 'getRole',
+        'tenant_id' => 'getTenantId'
     ];
 
     /**
@@ -263,10 +251,8 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
      */
     public function __construct(?array $data = null)
     {
-        $this->setIfExists('claimable', $data ?? [], null);
-        $this->setIfExists('email', $data ?? [], null);
-        $this->setIfExists('plan', $data ?? [], null);
-        $this->setIfExists('status', $data ?? [], null);
+        $this->setIfExists('role', $data ?? [], null);
+        $this->setIfExists('tenant_id', $data ?? [], null);
     }
 
     /**
@@ -312,109 +298,55 @@ class ClaimInvitationLookupInvitationResponse implements ModelInterface, ArrayAc
 
 
     /**
-     * Gets claimable
+     * Gets role
      *
-     * @return bool|null
+     * @return string|null
      */
-    public function getClaimable()
+    public function getRole()
     {
-        return $this->container['claimable'];
+        return $this->container['role'];
     }
 
     /**
-     * Sets claimable
+     * Sets role
      *
-     * @param bool|null $claimable claimable
+     * @param string|null $role role
      *
      * @return self
      */
-    public function setClaimable($claimable)
+    public function setRole($role)
     {
-        if (is_null($claimable)) {
-            throw new \InvalidArgumentException('non-nullable claimable cannot be null');
+        if (is_null($role)) {
+            throw new \InvalidArgumentException('non-nullable role cannot be null');
         }
-        $this->container['claimable'] = $claimable;
+        $this->container['role'] = $role;
 
         return $this;
     }
 
     /**
-     * Gets email
+     * Gets tenant_id
      *
      * @return string|null
      */
-    public function getEmail()
+    public function getTenantId()
     {
-        return $this->container['email'];
+        return $this->container['tenant_id'];
     }
 
     /**
-     * Sets email
+     * Sets tenant_id
      *
-     * @param string|null $email Email is the address the offer was issued to, so the form can pre-fill it.
+     * @param string|null $tenant_id TenantID is the account the person's data lives under: the id an account opened before the identity provider kept, their identity id otherwise.
      *
      * @return self
      */
-    public function setEmail($email)
+    public function setTenantId($tenant_id)
     {
-        if (is_null($email)) {
-            throw new \InvalidArgumentException('non-nullable email cannot be null');
+        if (is_null($tenant_id)) {
+            throw new \InvalidArgumentException('non-nullable tenant_id cannot be null');
         }
-        $this->container['email'] = $email;
-
-        return $this;
-    }
-
-    /**
-     * Gets plan
-     *
-     * @return string|null
-     */
-    public function getPlan()
-    {
-        return $this->container['plan'];
-    }
-
-    /**
-     * Sets plan
-     *
-     * @param string|null $plan Plan is the tier it confers, for telling the invitee what is on the table.
-     *
-     * @return self
-     */
-    public function setPlan($plan)
-    {
-        if (is_null($plan)) {
-            throw new \InvalidArgumentException('non-nullable plan cannot be null');
-        }
-        $this->container['plan'] = $plan;
-
-        return $this;
-    }
-
-    /**
-     * Gets status
-     *
-     * @return string|null
-     */
-    public function getStatus()
-    {
-        return $this->container['status'];
-    }
-
-    /**
-     * Sets status
-     *
-     * @param string|null $status Status is claimable, claimed or expired. Only the last two say the offer was real, which is what tells someone whether asking for a new link is worth it rather than doubting the address they were invited at.
-     *
-     * @return self
-     */
-    public function setStatus($status)
-    {
-        if (is_null($status)) {
-            throw new \InvalidArgumentException('non-nullable status cannot be null');
-        }
-        $this->container['status'] = $status;
+        $this->container['tenant_id'] = $tenant_id;
 
         return $this;
     }
