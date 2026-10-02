@@ -754,25 +754,6 @@ test("get-session exchanges an expired token so the role is the current one, and
   assert.match(res.headers.getSetCookie().join(";"), /tornad_token=/);
 });
 
-test("get-session carries this product's early-access marks", async () => {
-  resetProvisioningTokenCache();
-  const { fetchImpl } = await exchangeStub(["tornad:user", "tornad:beta", "lalter:collab"]);
-  const expired = await jwt({
-    sub: "8f3a",
-    roles: [],
-    exp: Math.floor(Date.now() / 1000) - 60,
-  });
-  const res = await auth(fetchImpl).handler(
-    new Request("https://tornad.dev/api/auth/get-session", {
-      headers: { cookie: `tornad_session=ory_st; tornad_token=${expired}` },
-    }),
-  );
-  const body = (await res.json()) as { user: { role: string; beta: boolean; collab: boolean } };
-  assert.equal(body.user.role, "user");
-  assert.equal(body.user.beta, true);
-  assert.equal(body.user.collab, false);
-});
-
 test("get-session reads no role while urbangate cannot be reached", async () => {
   resetProvisioningTokenCache();
   const { fetchImpl } = kratosStub({

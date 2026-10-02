@@ -241,8 +241,6 @@ test("get-session verifies the console token, reads userinfo once, then keeps th
     emailVerified: true,
     name: "Ana",
     role: "admin",
-    beta: false,
-    collab: false,
   });
   const jar = first.headers
     .getSetCookie()
@@ -338,8 +336,6 @@ test("profile answers the shape the admin package reads", async () => {
     name: "Ana",
     avatar_url: "",
     roles: ["admin"],
-    beta: false,
-    collab: false,
   });
   const none = await auth(fetchImpl).handler(get("profile"));
   assert.equal(none.status, 401);
