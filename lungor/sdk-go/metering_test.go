@@ -256,3 +256,74 @@ func TestAppLLMCostSummary_UnconfiguredClientIsRefused(t *testing.T) {
 		t.Fatalf("got %v, want ErrNotConfigured", err)
 	}
 }
+
+func TestRelease_PostsToTheReleaseRoute(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"allowed": true, "balance": 3, "recorded": true,
+	})
+	defer srv.Close()
+
+	d, err := New(srv.URL, "k").Release(ctx(), Usage{
+		ExternalUserID: "tenant-1", Unit: "domain", Quantity: 1, IdempotencyKey: "domain-deleted-7",
+	})
+	if err != nil {
+		t.Fatalf("release: %v", err)
+	}
+	if !d.Recorded || d.Balance != 3 {
+		t.Fatalf("decision = %+v", d)
+	}
+	if rec.method != http.MethodPost || rec.path != "/api/v1/metering/usage/release" {
+		t.Fatalf("%s %s", rec.method, rec.path)
+	}
+}
+
+func TestRelease_MoreThanHeldIsAConflict(t *testing.T) {
+	srv, _ := server(t, http.StatusConflict, map[string]any{"message": "release exceeds what is held"})
+	defer srv.Close()
+
+	_, err := New(srv.URL, "k").Release(ctx(), Usage{
+		ExternalUserID: "tenant-1", Unit: "domain", Quantity: 1, IdempotencyKey: "k",
+	})
+	if !errors.Is(err, ErrConflict) {
+		t.Fatalf("got %v, want ErrConflict", err)
+	}
+}
+
+func TestRelease_RequiresAnIdempotencyKey(t *testing.T) {
+	if _, err := New("http://unused", "k").Release(ctx(), Usage{
+		ExternalUserID: "tenant-1", Unit: "domain", Quantity: 1,
+	}); !errors.Is(err, ErrBadRequest) {
+		t.Fatalf("got %v, want ErrBadRequest", err)
+	}
+}
+
+func TestBalance_CapacityCarriesItsKind(t *testing.T) {
+	srv, _ := server(t, http.StatusOK, map[string]any{
+		"unit": "domain", "balance": 2, "limit": 5, "consumed": 3, "periodic": false,
+		"kind": "capacity", "unlimited": false,
+	})
+	defer srv.Close()
+
+	got, err := New(srv.URL, "k").Balance(ctx(), "tenant-1", "domain")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Kind != UnitCapacity || got.Limit != 5 || got.Consumed != 3 || got.Remaining != 2 || got.Periodic {
+		t.Fatalf("balance = %+v", got)
+	}
+}
+
+func TestBalance_ReadsUnlimited(t *testing.T) {
+	srv, _ := server(t, http.StatusOK, map[string]any{
+		"unit": "domain", "balance": 1000000000, "limit": 1000000000, "kind": "capacity", "unlimited": true,
+	})
+	defer srv.Close()
+
+	got, err := New(srv.URL, "k").Balance(ctx(), "tenant-1", "domain")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !got.Unlimited {
+		t.Fatal("an unlimited allocation read as a numeric cap")
+	}
+}

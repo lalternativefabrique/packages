@@ -882,6 +882,16 @@
                                 }
                             }
                         }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -963,6 +973,84 @@
                 }
             }
         },
+        "/metering/usage/release": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Gives back `quantity` slots of a CAPACITY unit, previously taken with POST /metering/usage — call it when the app deletes what it had counted (a domain, a seat).\n\nA capacity unit caps what is held right now (every debit minus every release, all time) and never resets at renewal. Releasing more than is held is refused with 409, and releasing a metered unit with 400: served consumption cannot be handed back.\n\nWorks without an active allocation, so a customer whose plan lapsed can still free slots. Idempotent on `idempotency_key`.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Release slots of a capacity unit",
+                "operationId": "releaseUsage",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/metering.releaseRequest"
+                            }
+                        }
+                    },
+                    "description": "Release",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.decisionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/usage/topup": {
             "post": {
                 "security": [
@@ -1020,6 +1108,16 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -8802,6 +8900,15 @@
                         "type": "integer",
                         "example": 2905
                     },
+                    "kind": {
+                        "description": "Kind capacity: limit caps what is held, consumed is what is held now, and\nneither resets at renewal.",
+                        "type": "string",
+                        "enum": [
+                            "metered",
+                            "capacity"
+                        ],
+                        "example": "metered"
+                    },
                     "limit": {
                         "description": "Limit and Consumed describe the period Balance was computed over, so a\ncaller can render \"95 of 3000 left\" without a second call or its own\narithmetic. Both are 0 under the prepaid regime, where there is neither.",
                         "type": "integer",
@@ -8815,6 +8922,11 @@
                     "unit": {
                         "type": "string",
                         "example": "email"
+                    },
+                    "unlimited": {
+                        "description": "Unlimited reports an uncapped allocation; limit and balance then carry an\ninternal ceiling that is not meant for display.",
+                        "type": "boolean",
+                        "example": false
                     }
                 }
             },
@@ -8939,11 +9051,42 @@
                     "currency": {
                         "type": "string"
                     },
+                    "kind": {
+                        "description": "Kind is metered (default: capped per billing period) or capacity (capped\non what is held, released by POST /metering/usage/release, never reset).\nFixed once declared.",
+                        "type": "string",
+                        "enum": [
+                            "metered",
+                            "capacity"
+                        ],
+                        "example": "metered"
+                    },
                     "name": {
                         "type": "string"
                     },
                     "unit_amount": {
                         "type": "integer"
+                    }
+                }
+            },
+            "metering.releaseRequest": {
+                "type": "object",
+                "properties": {
+                    "external_user_id": {
+                        "type": "string",
+                        "example": "user-42"
+                    },
+                    "idempotency_key": {
+                        "description": "IdempotencyKey dedupes retries of the same release; derive it from the\nobject freed, e.g. \"domain-deleted-<id>\".",
+                        "type": "string",
+                        "example": "domain-deleted-8f21"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "domain"
                     }
                 }
             },
@@ -8990,6 +9133,13 @@
                     },
                     "id": {
                         "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "metered",
+                            "capacity"
+                        ]
                     },
                     "name": {
                         "type": "string"

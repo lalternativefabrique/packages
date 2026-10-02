@@ -36,6 +36,18 @@ const (
 	Scaleway CosttrackingImportLLMPricesRequestProvider = "scaleway"
 )
 
+// Defines values for MeteringBalanceResponseKind.
+const (
+	MeteringBalanceResponseKindCapacity MeteringBalanceResponseKind = "capacity"
+	MeteringBalanceResponseKindMetered  MeteringBalanceResponseKind = "metered"
+)
+
+// Defines values for MeteringUnitViewKind.
+const (
+	MeteringUnitViewKindCapacity MeteringUnitViewKind = "capacity"
+	MeteringUnitViewKindMetered  MeteringUnitViewKind = "metered"
+)
+
 // CosttrackingAppCustomerCostResponse defines model for costtracking.appCustomerCostResponse.
 type CosttrackingAppCustomerCostResponse struct {
 	ByModel       *[]CosttrackingAppCustomerModelCostResponse `json:"by_model,omitempty"`
@@ -478,6 +490,10 @@ type MeteringBalanceResponse struct {
 	Balance  *int `json:"balance,omitempty"`
 	Consumed *int `json:"consumed,omitempty"`
 
+	// Kind Kind capacity: limit caps what is held, consumed is what is held now, and
+	// neither resets at renewal.
+	Kind *MeteringBalanceResponseKind `json:"kind,omitempty"`
+
 	// Limit Limit and Consumed describe the period Balance was computed over, so a
 	// caller can render "95 of 3000 left" without a second call or its own
 	// arithmetic. Both are 0 under the prepaid regime, where there is neither.
@@ -488,7 +504,15 @@ type MeteringBalanceResponse struct {
 	// opposite things to the user.
 	Periodic *bool   `json:"periodic,omitempty"`
 	Unit     *string `json:"unit,omitempty"`
+
+	// Unlimited Unlimited reports an uncapped allocation; limit and balance then carry an
+	// internal ceiling that is not meant for display.
+	Unlimited *bool `json:"unlimited,omitempty"`
 }
+
+// MeteringBalanceResponseKind Kind capacity: limit caps what is held, consumed is what is held now, and
+// neither resets at renewal.
+type MeteringBalanceResponseKind string
 
 // MeteringBulkDeleteUnitsRequest defines model for metering.bulkDeleteUnitsRequest.
 type MeteringBulkDeleteUnitsRequest struct {
@@ -550,6 +574,17 @@ type MeteringDecisionResponse struct {
 	Recorded *bool `json:"recorded,omitempty"`
 }
 
+// MeteringReleaseRequest defines model for metering.releaseRequest.
+type MeteringReleaseRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// IdempotencyKey IdempotencyKey dedupes retries of the same release; derive it from the
+	// object freed, e.g. "domain-deleted-<id>".
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	Quantity       *int    `json:"quantity,omitempty"`
+	Unit           *string `json:"unit,omitempty"`
+}
+
 // MeteringUnitInUseView defines model for metering.unitInUseView.
 type MeteringUnitInUseView struct {
 	Code       *string                     `json:"code,omitempty"`
@@ -569,13 +604,17 @@ type MeteringUnitReferencesView struct {
 
 // MeteringUnitView defines model for metering.unitView.
 type MeteringUnitView struct {
-	Active     *bool   `json:"active,omitempty"`
-	Code       *string `json:"code,omitempty"`
-	Currency   *string `json:"currency,omitempty"`
-	Id         *string `json:"id,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	UnitAmount *int    `json:"unit_amount,omitempty"`
+	Active     *bool                 `json:"active,omitempty"`
+	Code       *string               `json:"code,omitempty"`
+	Currency   *string               `json:"currency,omitempty"`
+	Id         *string               `json:"id,omitempty"`
+	Kind       *MeteringUnitViewKind `json:"kind,omitempty"`
+	Name       *string               `json:"name,omitempty"`
+	UnitAmount *int                  `json:"unit_amount,omitempty"`
 }
+
+// MeteringUnitViewKind defines model for MeteringUnitView.Kind.
+type MeteringUnitViewKind string
 
 // MeteringUpdateUnitRequest defines model for metering.updateUnitRequest.
 type MeteringUpdateUnitRequest struct {
@@ -713,6 +752,9 @@ type RecordLLMUsageJSONRequestBody = CosttrackingIngestRequest
 
 // ConsumeUsageJSONRequestBody defines body for ConsumeUsage for application/json ContentType.
 type ConsumeUsageJSONRequestBody = MeteringConsumeRequest
+
+// ReleaseUsageJSONRequestBody defines body for ReleaseUsage for application/json ContentType.
+type ReleaseUsageJSONRequestBody = MeteringReleaseRequest
 
 // TopupUsageJSONRequestBody defines body for TopupUsage for application/json ContentType.
 type TopupUsageJSONRequestBody = MeteringConsumeRequest
@@ -871,6 +913,11 @@ type ClientInterface interface {
 
 	// GetUsageBalance request
 	GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReleaseUsageWithBody request with any body
+	ReleaseUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ReleaseUsage(ctx context.Context, body ReleaseUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// TopupUsageWithBody request with any body
 	TopupUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1174,6 +1221,30 @@ func (c *Client) ConsumeUsage(ctx context.Context, body ConsumeUsageJSONRequestB
 
 func (c *Client) GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetUsageBalanceRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReleaseUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReleaseUsageRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReleaseUsage(ctx context.Context, body ReleaseUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReleaseUsageRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2257,6 +2328,46 @@ func NewGetUsageBalanceRequest(server string, params *GetUsageBalanceParams) (*h
 	return req, nil
 }
 
+// NewReleaseUsageRequest calls the generic ReleaseUsage builder with application/json body
+func NewReleaseUsageRequest(server string, body ReleaseUsageJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReleaseUsageRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewReleaseUsageRequestWithBody generates requests for ReleaseUsage with any type of body
+func NewReleaseUsageRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/usage/release")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewTopupUsageRequest calls the generic TopupUsage builder with application/json body
 func NewTopupUsageRequest(server string, body TopupUsageJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3109,6 +3220,11 @@ type ClientWithResponsesInterface interface {
 	// GetUsageBalanceWithResponse request
 	GetUsageBalanceWithResponse(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*GetUsageBalanceResponse, error)
 
+	// ReleaseUsageWithBodyWithResponse request with any body
+	ReleaseUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error)
+
+	ReleaseUsageWithResponse(ctx context.Context, body ReleaseUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error)
+
 	// TopupUsageWithBodyWithResponse request with any body
 	TopupUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TopupUsageResponse, error)
 
@@ -3497,6 +3613,7 @@ type ConsumeUsageResponse struct {
 	JSON401      *EchoHTTPError
 	JSON402      *MeteringDecisionResponse
 	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
@@ -3540,6 +3657,32 @@ func (r GetUsageBalanceResponse) StatusCode() int {
 	return 0
 }
 
+type ReleaseUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringDecisionResponse
+	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ReleaseUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReleaseUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type TopupUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3547,6 +3690,7 @@ type TopupUsageResponse struct {
 	JSON400      *EchoHTTPError
 	JSON401      *EchoHTTPError
 	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
 }
 
 // Status returns HTTPResponse.Status
@@ -4119,6 +4263,23 @@ func (c *ClientWithResponses) GetUsageBalanceWithResponse(ctx context.Context, p
 		return nil, err
 	}
 	return ParseGetUsageBalanceResponse(rsp)
+}
+
+// ReleaseUsageWithBodyWithResponse request with arbitrary body returning *ReleaseUsageResponse
+func (c *ClientWithResponses) ReleaseUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error) {
+	rsp, err := c.ReleaseUsageWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReleaseUsageResponse(rsp)
+}
+
+func (c *ClientWithResponses) ReleaseUsageWithResponse(ctx context.Context, body ReleaseUsageJSONRequestBody, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error) {
+	rsp, err := c.ReleaseUsage(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReleaseUsageResponse(rsp)
 }
 
 // TopupUsageWithBodyWithResponse request with arbitrary body returning *TopupUsageResponse
@@ -4892,6 +5053,13 @@ func ParseConsumeUsageResponse(rsp *http.Response) (*ConsumeUsageResponse, error
 		}
 		response.JSON404 = &dest
 
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
 	}
 
 	return response, nil
@@ -4944,6 +5112,60 @@ func ParseGetUsageBalanceResponse(rsp *http.Response) (*GetUsageBalanceResponse,
 	return response, nil
 }
 
+// ParseReleaseUsageResponse parses an HTTP response from a ReleaseUsageWithResponse call
+func ParseReleaseUsageResponse(rsp *http.Response) (*ReleaseUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReleaseUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringDecisionResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseTopupUsageResponse parses an HTTP response from a TopupUsageWithResponse call
 func ParseTopupUsageResponse(rsp *http.Response) (*TopupUsageResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -4985,6 +5207,13 @@ func ParseTopupUsageResponse(rsp *http.Response) (*TopupUsageResponse, error) {
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	}
 

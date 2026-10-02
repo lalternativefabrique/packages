@@ -123,6 +123,49 @@ func (c *Client) Topup(ctx context.Context, in Usage) (Decision, error) {
 	return decisionFrom(out), nil
 }
 
+// Release gives back Quantity slots of a CAPACITY unit — one Lungor caps on
+// what is held right now (active domains, seats) rather than per period. Call
+// it when the object counted with Consume is deleted. Derive the idempotency
+// key from that object ("domain-deleted-<id>"), so a retry frees it once.
+//
+// Errors: ErrConflict when releasing more than is held, or when the key was
+// already used for another movement; ErrBadRequest on a metered unit, whose
+// consumption was served and cannot be handed back. A user whose plan lapsed
+// can still release. SubscriptionID is ignored.
+func (c *Client) Release(ctx context.Context, in Usage) (Decision, error) {
+	consume, err := in.request()
+	if err != nil {
+		return Decision{}, err
+	}
+	if c.baseURL == "" || c.appKey == "" {
+		return Decision{}, ErrNotConfigured
+	}
+	body := wire.MeteringReleaseRequest{
+		ExternalUserId: consume.ExternalUserId,
+		Unit:           consume.Unit,
+		Quantity:       consume.Quantity,
+		IdempotencyKey: consume.IdempotencyKey,
+	}
+	var out wire.MeteringDecisionResponse
+	if err := c.send(ctx, &out, func() (*http.Response, error) {
+		return c.wire.ReleaseUsage(ctx, body)
+	}); err != nil {
+		return Decision{}, err
+	}
+	return decisionFrom(out), nil
+}
+
+// UnitKind is what a plan allocation of a unit caps.
+type UnitKind string
+
+const (
+	// UnitMetered caps consumption per billing period; it comes back at renewal.
+	UnitMetered UnitKind = "metered"
+	// UnitCapacity caps what is held right now, taken by Consume and given back
+	// by Release; it never resets.
+	UnitCapacity UnitKind = "capacity"
+)
+
 // Balance is what a user has left of a unit, and the period it was measured
 // over.
 //
@@ -145,6 +188,13 @@ type Balance struct {
 	// user: "0 left, back at renewal" and "0 in the wallet, top it up" are the
 	// same number meaning opposite things.
 	Periodic bool
+	// Kind is UnitCapacity when Limit caps what is held and Consumed is what is
+	// held now; Periodic is then false although a plan ceiling applies. Empty
+	// from a Lungor older than capacity units.
+	Kind UnitKind
+	// Unlimited means the plan does not cap the unit: Limit and Remaining then
+	// carry an internal ceiling that is not meant for display.
+	Unlimited bool
 }
 
 // Balance reports what a user has left of a unit.
@@ -477,6 +527,12 @@ func balanceFrom(unit string, w wire.MeteringBalanceResponse) Balance {
 	}
 	if w.Periodic != nil {
 		b.Periodic = *w.Periodic
+	}
+	if w.Kind != nil {
+		b.Kind = UnitKind(*w.Kind)
+	}
+	if w.Unlimited != nil {
+		b.Unlimited = *w.Unlimited
 	}
 	return b
 }
