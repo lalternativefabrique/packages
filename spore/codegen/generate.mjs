@@ -22,16 +22,16 @@ const generatedScaffolding = {
   rust: ['.travis.yml', 'git_push.sh'],
 }
 
-function replaceInstallSection(name, output) {
+function replaceReadmeSection(output, heading, snippet) {
   const readme = resolve(output, 'README.md')
   const source = readFileSync(readme, 'utf8')
-  const start = source.search(/^## Installation/m)
-  const end = source.search(/^## Getting Started/m)
-  if (start < 0 || end < start) {
-    throw new Error(`no installation section to replace in ${readme}`)
+  const start = source.search(new RegExp(`^## ${heading}`, 'm'))
+  const next = source.slice(start + 3).search(/^## /m)
+  if (start < 0 || next < 0) {
+    throw new Error(`no "${heading}" section to replace in ${readme}`)
   }
-  const section = readFileSync(resolve(codegen, 'install', `${name}.md`), 'utf8')
-  writeFileSync(readme, source.slice(0, start) + section + source.slice(end))
+  const end = start + 3 + next
+  writeFileSync(readme, source.slice(0, start) + readFileSync(snippet, 'utf8') + source.slice(end))
 }
 
 function normalizeGeneratedFiles(directory) {
@@ -80,8 +80,9 @@ for (const [name, generator] of clients) {
   for (const relativePath of generatedScaffolding[name]) {
     rmSync(resolve(output, relativePath), { recursive: true, force: true })
   }
-  if (existsSync(resolve(codegen, 'install', `${name}.md`))) {
-    replaceInstallSection(name, output)
+  for (const [heading, folder] of [['Installation', 'install'], ['Getting Started', 'getting-started']]) {
+    const snippet = resolve(codegen, folder, `${name}.md`)
+    if (existsSync(snippet)) replaceReadmeSection(output, heading, snippet)
   }
   normalizeGeneratedFiles(output)
 }

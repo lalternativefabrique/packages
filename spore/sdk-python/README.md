@@ -33,43 +33,30 @@ import spore_email
 
 ## Getting Started
 
-Please follow the [installation procedure](#installation--usage) and then run the following:
-
 ```python
+import os
 
 import spore_email
-from spore_email.rest import ApiException
-from pprint import pprint
+from spore_email.exceptions import ApiException
 
-# Defining the host is optional and defaults to https://api.sporee.fr
-# See configuration.py for a list of all supported configuration parameters.
-configuration = spore_email.Configuration(
-    host = "https://api.sporee.fr"
-)
+configuration = spore_email.Configuration()
+configuration.api_key["BearerAuth"] = os.environ["SPORE_API_KEY"]
+configuration.api_key_prefix["BearerAuth"] = "Bearer"
 
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: BearerAuth
-configuration.api_key['BearerAuth'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['BearerAuth'] = 'Bearer'
-
-
-# Enter a context with an instance of the API client
 with spore_email.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = spore_email.AccountApi(api_client)
-
     try:
-        # Delete your own account
-        api_instance.delete_account()
+        me = spore_email.AccountApi(api_client).get_me()
+        sent = spore_email.MessagingApi(api_client).send_email(
+            spore_email.SendEmailSendEmailRequest(**{
+                "from": "hello@your-domain.com",
+                "to": ["someone@example.com"],
+                "subject": "Hello",
+                "text": "Sent with Spore.",
+            })
+        )
+        print(sent)
     except ApiException as e:
-        print("Exception when calling AccountApi->delete_account: %s\n" % e)
-
+        print("Spore API error: %s\n" % e)
 ```
 
 ## Documentation for API Endpoints

@@ -26,31 +26,28 @@ gem 'spore-email', git: 'https://github.com/lalternativefabrique/packages.git', 
 
 ## Getting Started
 
-Please follow the [installation](#installation) procedure and then run the following code:
-
 ```ruby
-# Load the gem
 require 'spore-email'
 
-# Setup authorization
 SporeEmail.configure do |config|
-  # Configure API key authorization: BearerAuth
-  config.api_key['Authorization'] = 'YOUR API KEY'
-  # Uncomment the following line to set a prefix for the API key, e.g. 'Bearer' (defaults to nil)
-  # config.api_key_prefix['Authorization'] = 'Bearer'
-  # Configure faraday connection
-  config.configure_faraday_connection { |connection| 'YOUR CONNECTION CONFIG PROC' }
+  config.api_key['BearerAuth'] = ENV.fetch('SPORE_API_KEY')
+  config.api_key_prefix['BearerAuth'] = 'Bearer'
 end
-
-api_instance = SporeEmail::AccountApi.new
 
 begin
-  #Delete your own account
-  api_instance.delete_account
+  me = SporeEmail::AccountApi.new.get_me
+  sent = SporeEmail::MessagingApi.new.send_email(
+    SporeEmail::SendEmailSendEmailRequest.new(
+      from: 'hello@your-domain.com',
+      to: ['someone@example.com'],
+      subject: 'Hello',
+      text: 'Sent with Spore.'
+    )
+  )
+  p sent
 rescue SporeEmail::ApiError => e
-  puts "Exception when calling AccountApi->delete_account: #{e}"
+  puts "Spore API error: #{e}"
 end
-
 ```
 
 ## Documentation for API Endpoints

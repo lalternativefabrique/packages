@@ -53,33 +53,32 @@ Then run `composer install`.
 
 ## Getting Started
 
-Please follow the [installation procedure](#installation--usage) and then run the following:
-
 ```php
 <?php
-require_once(__DIR__ . '/vendor/autoload.php');
+require_once __DIR__ . '/vendor/autoload.php';
 
+use Lalternative\Spore\ApiException;
+use Lalternative\Spore\Configuration;
+use Lalternative\Spore\Api\AccountApi;
+use Lalternative\Spore\Api\MessagingApi;
+use Lalternative\Spore\Model\SendEmailSendEmailRequest;
 
-
-// Configure API key authorization: BearerAuth
-$config = Lalternative\Spore\Configuration::getDefaultConfiguration()->setApiKey('Authorization', 'YOUR_API_KEY');
-// Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-// $config = Lalternative\Spore\Configuration::getDefaultConfiguration()->setApiKeyPrefix('Authorization', 'Bearer');
-
-
-$apiInstance = new Lalternative\Spore\Api\AccountApi(
-    // If you want use custom http client, pass your client which implements `GuzzleHttp\ClientInterface`.
-    // This is optional, `GuzzleHttp\Client` will be used as default.
-    new GuzzleHttp\Client(),
-    $config
-);
+$config = Configuration::getDefaultConfiguration()
+    ->setApiKey('Authorization', getenv('SPORE_API_KEY'))
+    ->setApiKeyPrefix('Authorization', 'Bearer');
 
 try {
-    $apiInstance->deleteAccount();
-} catch (Exception $e) {
-    echo 'Exception when calling AccountApi->deleteAccount: ', $e->getMessage(), PHP_EOL;
+    $me = (new AccountApi(null, $config))->getMe();
+    $sent = (new MessagingApi(null, $config))->sendEmail(new SendEmailSendEmailRequest([
+        'from' => 'hello@your-domain.com',
+        'to' => ['someone@example.com'],
+        'subject' => 'Hello',
+        'text' => 'Sent with Spore.',
+    ]));
+    print_r($sent);
+} catch (ApiException $e) {
+    echo 'Spore API error: ', $e->getMessage(), PHP_EOL;
 }
-
 ```
 
 ## API Endpoints
