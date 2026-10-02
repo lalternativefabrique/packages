@@ -23,6 +23,19 @@ export function rolesOf(profile: SsoProfile): string[] {
     : []
 }
 
+export interface EarlyAccess {
+  beta: boolean
+  collab: boolean
+}
+
+/** urbangate writes "<product>:beta" for a collaborator too, so `beta` covers both. */
+export function earlyAccessOf(roles: readonly string[], product: string): EarlyAccess {
+  return {
+    beta: roles.includes(`${product}:beta`),
+    collab: roles.includes(`${product}:collab`),
+  }
+}
+
 /**
  * Maps the identity provider's claims onto the local user. The admin role is
  * recomputed from the roles claim on every sign-in, so a role removed at the

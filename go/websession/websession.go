@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/lalternative/packages/go/svcauth"
@@ -34,6 +35,10 @@ type User struct {
 	Name       string
 	// Role is admin, user or empty, for this product.
 	Role string
+	// Beta and Collab are this product's early-access marks: urbangate writes
+	// "<product>:beta" for both, so Beta covers every collaborator.
+	Beta   bool
+	Collab bool
 	// Issuer is the URL of whoever signed, so a handler that must tell a
 	// web session from an urbangate one can.
 	Issuer string
@@ -208,6 +213,8 @@ func (g *Guard) Resolve(ctx context.Context, raw string) (User, error) {
 	if u.Role == "" {
 		u.Role = roleOf(claims.Roles, g.product)
 	}
+	u.Beta = slices.Contains(claims.Roles, g.product+":beta")
+	u.Collab = slices.Contains(claims.Roles, g.product+":collab")
 	return u, nil
 }
 

@@ -70,8 +70,8 @@ export type { MagicLinkErrorLabels } from "./magic-link-error"
 
 export { AuthLink } from "./components/auth-link"
 
-export { mapSsoProfile } from "./sso-profile"
-export type { SsoProfile, SsoMappedUser } from "./sso-profile"
+export { earlyAccessOf, mapSsoProfile, rolesOf } from "./sso-profile"
+export type { EarlyAccess, SsoProfile, SsoMappedUser } from "./sso-profile"
 
 export { DeleteAccountSteps } from "./components/delete-account-steps"
 export type {

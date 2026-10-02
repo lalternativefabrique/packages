@@ -69,6 +69,22 @@ func TestAnUrbangateTokenNamesTheIdentityAndReadsTheProductRole(t *testing.T) {
 	}
 }
 
+func TestEarlyAccessIsReadForThisProductOnly(t *testing.T) {
+	g := NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: []string{"tornad:user", "tornad:beta", "spore:collab"}}}, "tornad")
+	_, u, _ := serve(g, token(t, map[string]any{}))
+	if u.Role != "user" || !u.Beta || u.Collab {
+		t.Fatalf("user = %+v", u)
+	}
+	g = NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: []string{"tornad:user", "tornad:beta", "tornad:collab"}}}, "tornad")
+	if _, u, _ = serve(g, token(t, map[string]any{})); !u.Beta || !u.Collab || u.Role != "user" {
+		t.Fatalf("collaborator = %+v", u)
+	}
+	g = NewWith(stub{claims: svcauth.Claims{Subject: "8f3a", Roles: []string{"tornad:beta"}}}, "tornad")
+	if _, u, _ = serve(g, token(t, map[string]any{})); u.Role != "" {
+		t.Fatalf("a mark grants no role, got %q", u.Role)
+	}
+}
+
 func TestRefusals(t *testing.T) {
 	g := NewWith(stub{claims: svcauth.Claims{Subject: "u-1"}}, "tornad")
 	if code, _, seen := serve(g, ""); code != http.StatusUnauthorized || seen {
