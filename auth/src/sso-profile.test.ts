@@ -1,6 +1,6 @@
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { earlyAccessOf, identityIdFromIdToken, mapSsoProfile, roleFromIdToken } from "./sso-profile.ts"
+import { identityIdFromIdToken, mapSsoProfile, roleFromIdToken } from "./sso-profile.ts"
 
 test("the product's admin role makes the user an admin", () => {
   const u = mapSsoProfile(
@@ -74,13 +74,4 @@ test("identityIdFromIdToken answers undefined rather than a wrong value", () => 
   assert.equal(identityIdFromIdToken("not.a.token"), undefined)
   const empty = Buffer.from(JSON.stringify({ sub: "" })).toString("base64url")
   assert.equal(identityIdFromIdToken(`x.${empty}.y`), undefined)
-})
-
-test("early access reads this product's marks only", () => {
-  assert.deepEqual(earlyAccessOf(["lalter:user", "lalter:beta", "spore:collab"], "lalter"), {
-    beta: true,
-    collab: false,
-  })
-  assert.deepEqual(earlyAccessOf(["lalter:beta", "lalter:collab"], "lalter"), { beta: true, collab: true })
-  assert.deepEqual(earlyAccessOf([], "lalter"), { beta: false, collab: false })
 })

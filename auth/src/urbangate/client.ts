@@ -15,8 +15,6 @@ export interface UrbangateClientUser {
   emailVerified: boolean;
   name: string;
   role: "admin" | "user";
-  beta: boolean;
-  collab: boolean;
 }
 
 export interface UrbangateClientSession {
