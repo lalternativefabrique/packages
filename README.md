@@ -55,3 +55,9 @@ generated clients with:
 To regenerate without fetching the network, use
 `pnpm --filter @lalternative/spore-codegen generate`. The Go client is
 maintained by hand and tested against the same HTTP contract separately.
+
+Publish from a clean `main`: `npm publish` in `spore/sdk-node`,
+`./spore/publish.sh python` (needs `UV_PUBLISH_TOKEN`) for PyPI, and
+`./spore/publish.sh php` for Packagist, which pushes the `spore/sdk-php`
+subtree and a `v<version>` tag to `lalternativefabrique/spore-php`, the
+repository Packagist reads.

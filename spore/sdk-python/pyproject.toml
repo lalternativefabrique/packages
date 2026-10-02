@@ -1,6 +1,6 @@
 [project]
 name = "spore_email"
-version = "0.1.0"
+version = "0.2.0"
 description = "Spore API"
 authors = [
   {name = "Spore",email = "contact@sporee.fr"},

@@ -1,7 +1,7 @@
 {
   "gemName": "spore-email",
   "moduleName": "SporeEmail",
-  "gemVersion": "0.1.0",
+  "gemVersion": "0.2.0",
   "gemAuthor": "Spore",
   "gemAuthorEmail": "contact@sporee.fr",
   "gemHomepage": "https://sporee.fr/docs/sdks/ruby",

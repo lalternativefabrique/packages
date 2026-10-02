@@ -60,6 +60,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static $openAPITypes = [
         'email' => 'string',
         'name' => 'string',
+        'payment_method' => 'string',
         'plan' => 'string',
         'success_url' => 'string'
     ];
@@ -74,6 +75,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static $openAPIFormats = [
         'email' => null,
         'name' => null,
+        'payment_method' => null,
         'plan' => null,
         'success_url' => null
     ];
@@ -86,6 +88,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static array $openAPINullables = [
         'email' => false,
         'name' => false,
+        'payment_method' => false,
         'plan' => false,
         'success_url' => false
     ];
@@ -178,6 +181,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static $attributeMap = [
         'email' => 'email',
         'name' => 'name',
+        'payment_method' => 'paymentMethod',
         'plan' => 'plan',
         'success_url' => 'successUrl'
     ];
@@ -190,6 +194,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static $setters = [
         'email' => 'setEmail',
         'name' => 'setName',
+        'payment_method' => 'setPaymentMethod',
         'plan' => 'setPlan',
         'success_url' => 'setSuccessUrl'
     ];
@@ -202,6 +207,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     protected static $getters = [
         'email' => 'getEmail',
         'name' => 'getName',
+        'payment_method' => 'getPaymentMethod',
         'plan' => 'getPlan',
         'success_url' => 'getSuccessUrl'
     ];
@@ -265,6 +271,7 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
     {
         $this->setIfExists('email', $data ?? [], null);
         $this->setIfExists('name', $data ?? [], null);
+        $this->setIfExists('payment_method', $data ?? [], null);
         $this->setIfExists('plan', $data ?? [], null);
         $this->setIfExists('success_url', $data ?? [], null);
     }
@@ -361,6 +368,33 @@ class StartCheckoutStartCheckoutRequest implements ModelInterface, ArrayAccess, 
             throw new \InvalidArgumentException('non-nullable name cannot be null');
         }
         $this->container['name'] = $name;
+
+        return $this;
+    }
+
+    /**
+     * Gets payment_method
+     *
+     * @return string|null
+     */
+    public function getPaymentMethod()
+    {
+        return $this->container['payment_method'];
+    }
+
+    /**
+     * Sets payment_method
+     *
+     * @param string|null $payment_method PaymentMethod is one of the ids GET /billing/checkout/methods returned for this tier. Omitted, the provider's own selection screen decides.
+     *
+     * @return self
+     */
+    public function setPaymentMethod($payment_method)
+    {
+        if (is_null($payment_method)) {
+            throw new \InvalidArgumentException('non-nullable payment_method cannot be null');
+        }
+        $this->container['payment_method'] = $payment_method;
 
         return $this;
     }

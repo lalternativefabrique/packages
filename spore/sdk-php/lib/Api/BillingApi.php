@@ -84,7 +84,16 @@ class BillingApi
         'downgradeBillingSubscription' => [
             'application/json',
         ],
+        'getBillingCatalogue' => [
+            'application/json',
+        ],
+        'getBillingCheckoutSession' => [
+            'application/json',
+        ],
         'getBillingState' => [
+            'application/json',
+        ],
+        'listBillingCheckoutMethods' => [
             'application/json',
         ],
         'lungorWebhook' => [
@@ -340,7 +349,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -635,7 +644,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -956,7 +965,7 @@ class BillingApi
         if (isset($downgrade_subscription_downgrade_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($downgrade_subscription_downgrade_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($downgrade_subscription_downgrade_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $downgrade_subscription_downgrade_request;
             }
@@ -977,7 +986,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -1005,6 +1014,569 @@ class BillingApi
         $query = ObjectSerializer::buildQuery($queryParams);
         return new Request(
             'POST',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation getBillingCatalogue
+     *
+     * Read the public plan catalogue
+     *
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCatalogue'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\GetCatalogueCatalogue
+     */
+    public function getBillingCatalogue(string $contentType = self::contentTypes['getBillingCatalogue'][0])
+    {
+        list($response) = $this->getBillingCatalogueWithHttpInfo($contentType);
+        return $response;
+    }
+
+    /**
+     * Operation getBillingCatalogueWithHttpInfo
+     *
+     * Read the public plan catalogue
+     *
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCatalogue'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\GetCatalogueCatalogue, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function getBillingCatalogueWithHttpInfo(string $contentType = self::contentTypes['getBillingCatalogue'][0])
+    {
+        $request = $this->getBillingCatalogueRequest($contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\GetCatalogueCatalogue',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\GetCatalogueCatalogue',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\GetCatalogueCatalogue',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation getBillingCatalogueAsync
+     *
+     * Read the public plan catalogue
+     *
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCatalogue'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function getBillingCatalogueAsync(string $contentType = self::contentTypes['getBillingCatalogue'][0])
+    {
+        return $this->getBillingCatalogueAsyncWithHttpInfo($contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation getBillingCatalogueAsyncWithHttpInfo
+     *
+     * Read the public plan catalogue
+     *
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCatalogue'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function getBillingCatalogueAsyncWithHttpInfo(string $contentType = self::contentTypes['getBillingCatalogue'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\GetCatalogueCatalogue';
+        $request = $this->getBillingCatalogueRequest($contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'getBillingCatalogue'
+     *
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCatalogue'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function getBillingCatalogueRequest(string $contentType = self::contentTypes['getBillingCatalogue'][0])
+    {
+
+
+        $resourcePath = '/billing/catalogue';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'GET',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation getBillingCheckoutSession
+     *
+     * Read how a checkout ended
+     *
+     * @param  string $session_id Checkout session id, from the lungor_session_id query parameter on the return URL (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCheckoutSession'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\GetCheckoutSessionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function getBillingCheckoutSession($session_id, string $contentType = self::contentTypes['getBillingCheckoutSession'][0])
+    {
+        list($response) = $this->getBillingCheckoutSessionWithHttpInfo($session_id, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation getBillingCheckoutSessionWithHttpInfo
+     *
+     * Read how a checkout ended
+     *
+     * @param  string $session_id Checkout session id, from the lungor_session_id query parameter on the return URL (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCheckoutSession'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\GetCheckoutSessionResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function getBillingCheckoutSessionWithHttpInfo($session_id, string $contentType = self::contentTypes['getBillingCheckoutSession'][0])
+    {
+        $request = $this->getBillingCheckoutSessionRequest($session_id, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\GetCheckoutSessionResult',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 404:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\GetCheckoutSessionResult',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\GetCheckoutSessionResult',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 404:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation getBillingCheckoutSessionAsync
+     *
+     * Read how a checkout ended
+     *
+     * @param  string $session_id Checkout session id, from the lungor_session_id query parameter on the return URL (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCheckoutSession'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function getBillingCheckoutSessionAsync($session_id, string $contentType = self::contentTypes['getBillingCheckoutSession'][0])
+    {
+        return $this->getBillingCheckoutSessionAsyncWithHttpInfo($session_id, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation getBillingCheckoutSessionAsyncWithHttpInfo
+     *
+     * Read how a checkout ended
+     *
+     * @param  string $session_id Checkout session id, from the lungor_session_id query parameter on the return URL (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCheckoutSession'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function getBillingCheckoutSessionAsyncWithHttpInfo($session_id, string $contentType = self::contentTypes['getBillingCheckoutSession'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\GetCheckoutSessionResult';
+        $request = $this->getBillingCheckoutSessionRequest($session_id, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'getBillingCheckoutSession'
+     *
+     * @param  string $session_id Checkout session id, from the lungor_session_id query parameter on the return URL (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['getBillingCheckoutSession'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function getBillingCheckoutSessionRequest($session_id, string $contentType = self::contentTypes['getBillingCheckoutSession'][0])
+    {
+
+        // verify the required parameter 'session_id' is set
+        if ($session_id === null || (is_array($session_id) && count($session_id) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $session_id when calling getBillingCheckoutSession'
+            );
+        }
+
+
+        $resourcePath = '/billing/checkout/{session_id}';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+
+
+        // path params
+        if ($session_id !== null) {
+            $resourcePath = str_replace(
+                '{session_id}',
+                ObjectSerializer::toPathValue($session_id),
+                $resourcePath
+            );
+        }
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('Authorization');
+        if ($apiKey !== null) {
+            $headers['Authorization'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'GET',
             $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
             $headers,
             $httpBody
@@ -1258,7 +1830,337 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
+            } else {
+                // for HTTP post (form)
+                $httpBody = ObjectSerializer::buildQuery($formParams);
+            }
+        }
+
+        // this endpoint requires API key authentication
+        $apiKey = $this->config->getApiKeyWithPrefix('Authorization');
+        if ($apiKey !== null) {
+            $headers['Authorization'] = $apiKey;
+        }
+
+        $defaultHeaders = [];
+        if ($this->config->getUserAgent()) {
+            $defaultHeaders['User-Agent'] = $this->config->getUserAgent();
+        }
+
+        $headers = array_merge(
+            $defaultHeaders,
+            $headerParams,
+            $headers
+        );
+
+        $operationHost = $this->config->getHost();
+        $query = ObjectSerializer::buildQuery($queryParams);
+        return new Request(
+            'GET',
+            $operationHost . $resourcePath . ($query ? "?{$query}" : ''),
+            $headers,
+            $httpBody
+        );
+    }
+
+    /**
+     * Operation listBillingCheckoutMethods
+     *
+     * List how a plan may be paid for
+     *
+     * @param  string $plan Plan to be paid for (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listBillingCheckoutMethods'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return \Lalternative\Spore\Model\ListCheckoutMethodsResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError
+     */
+    public function listBillingCheckoutMethods($plan, string $contentType = self::contentTypes['listBillingCheckoutMethods'][0])
+    {
+        list($response) = $this->listBillingCheckoutMethodsWithHttpInfo($plan, $contentType);
+        return $response;
+    }
+
+    /**
+     * Operation listBillingCheckoutMethodsWithHttpInfo
+     *
+     * List how a plan may be paid for
+     *
+     * @param  string $plan Plan to be paid for (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listBillingCheckoutMethods'] to see the possible values for this operation
+     *
+     * @throws \Lalternative\Spore\ApiException on non-2xx response or if the response body is not in the expected format
+     * @throws \InvalidArgumentException
+     * @return array of \Lalternative\Spore\Model\ListCheckoutMethodsResult|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError|\Lalternative\Spore\Model\EchoHTTPError, HTTP status code, HTTP response headers (array of strings)
+     */
+    public function listBillingCheckoutMethodsWithHttpInfo($plan, string $contentType = self::contentTypes['listBillingCheckoutMethods'][0])
+    {
+        $request = $this->listBillingCheckoutMethodsRequest($plan, $contentType);
+
+        try {
+            $options = $this->createHttpClientOption();
+            try {
+                $response = $this->client->send($request, $options);
+            } catch (RequestException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    $e->getResponse() ? $e->getResponse()->getHeaders() : null,
+                    $e->getResponse() ? (string) $e->getResponse()->getBody() : null
+                );
+            } catch (ConnectException $e) {
+                throw new ApiException(
+                    "[{$e->getCode()}] {$e->getMessage()}",
+                    (int) $e->getCode(),
+                    null,
+                    null
+                );
+            }
+
+            $statusCode = $response->getStatusCode();
+
+
+            switch($statusCode) {
+                case 200:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\ListCheckoutMethodsResult',
+                        $request,
+                        $response,
+                    );
+                case 401:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 422:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 500:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+                case 503:
+                    return $this->handleResponseWithDataType(
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $request,
+                        $response,
+                    );
+            }
+
+
+
+            if ($statusCode < 200 || $statusCode > 299) {
+                throw new ApiException(
+                    sprintf(
+                        '[%d] Error connecting to the API (%s)',
+                        $statusCode,
+                        (string) $request->getUri()
+                    ),
+                    $statusCode,
+                    $response->getHeaders(),
+                    (string) $response->getBody()
+                );
+            }
+
+            return $this->handleResponseWithDataType(
+                '\Lalternative\Spore\Model\ListCheckoutMethodsResult',
+                $request,
+                $response,
+            );
+        } catch (ApiException $e) {
+            switch ($e->getCode()) {
+                case 200:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\ListCheckoutMethodsResult',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 401:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 422:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 500:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+                case 503:
+                    $data = ObjectSerializer::deserialize(
+                        $e->getResponseBody(),
+                        '\Lalternative\Spore\Model\EchoHTTPError',
+                        $e->getResponseHeaders()
+                    );
+                    $e->setResponseObject($data);
+                    throw $e;
+            }
+
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Operation listBillingCheckoutMethodsAsync
+     *
+     * List how a plan may be paid for
+     *
+     * @param  string $plan Plan to be paid for (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listBillingCheckoutMethods'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function listBillingCheckoutMethodsAsync($plan, string $contentType = self::contentTypes['listBillingCheckoutMethods'][0])
+    {
+        return $this->listBillingCheckoutMethodsAsyncWithHttpInfo($plan, $contentType)
+            ->then(
+                function ($response) {
+                    return $response[0];
+                }
+            );
+    }
+
+    /**
+     * Operation listBillingCheckoutMethodsAsyncWithHttpInfo
+     *
+     * List how a plan may be paid for
+     *
+     * @param  string $plan Plan to be paid for (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listBillingCheckoutMethods'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Promise\PromiseInterface
+     */
+    public function listBillingCheckoutMethodsAsyncWithHttpInfo($plan, string $contentType = self::contentTypes['listBillingCheckoutMethods'][0])
+    {
+        $returnType = '\Lalternative\Spore\Model\ListCheckoutMethodsResult';
+        $request = $this->listBillingCheckoutMethodsRequest($plan, $contentType);
+
+        return $this->client
+            ->sendAsync($request, $this->createHttpClientOption())
+            ->then(
+                function ($response) use ($returnType) {
+                    if ($returnType === '\SplFileObject') {
+                        $content = $response->getBody(); //stream goes to serializer
+                    } else {
+                        $content = (string) $response->getBody();
+                        if ($returnType !== 'string') {
+                            $content = json_decode($content);
+                        }
+                    }
+
+                    return [
+                        ObjectSerializer::deserialize($content, $returnType, []),
+                        $response->getStatusCode(),
+                        $response->getHeaders()
+                    ];
+                },
+                function ($exception) {
+                    $response = $exception->getResponse();
+                    $statusCode = $response->getStatusCode();
+                    throw new ApiException(
+                        sprintf(
+                            '[%d] Error connecting to the API (%s)',
+                            $statusCode,
+                            $exception->getRequest()->getUri()
+                        ),
+                        $statusCode,
+                        $response->getHeaders(),
+                        (string) $response->getBody()
+                    );
+                }
+            );
+    }
+
+    /**
+     * Create request for operation 'listBillingCheckoutMethods'
+     *
+     * @param  string $plan Plan to be paid for (required)
+     * @param  string $contentType The value for the Content-Type header. Check self::contentTypes['listBillingCheckoutMethods'] to see the possible values for this operation
+     *
+     * @throws \InvalidArgumentException
+     * @return \GuzzleHttp\Psr7\Request
+     */
+    public function listBillingCheckoutMethodsRequest($plan, string $contentType = self::contentTypes['listBillingCheckoutMethods'][0])
+    {
+
+        // verify the required parameter 'plan' is set
+        if ($plan === null || (is_array($plan) && count($plan) === 0)) {
+            throw new \InvalidArgumentException(
+                'Missing the required parameter $plan when calling listBillingCheckoutMethods'
+            );
+        }
+
+
+        $resourcePath = '/billing/checkout/methods';
+        $formParams = [];
+        $queryParams = [];
+        $headerParams = [];
+        $httpBody = '';
+        $multipart = false;
+
+        // query params
+        $queryParams = array_merge($queryParams, ObjectSerializer::toQueryValue(
+            $plan,
+            'plan', // param base name
+            'string', // openApiType
+            'form', // style
+            true, // explode
+            true // required
+        ) ?? []);
+
+
+
+
+        $headers = $this->headerSelector->selectHeaders(
+            ['application/json', ],
+            $contentType,
+            $multipart
+        );
+
+        // for model (json/xml)
+        if (count($formParams) > 0) {
+            if ($multipart) {
+                $multipartContents = [];
+                foreach ($formParams as $formParamName => $formParamValue) {
+                    $formParamValueItems = is_array($formParamValue) ? $formParamValue : [$formParamValue];
+                    foreach ($formParamValueItems as $formParamValueItem) {
+                        $multipartContents[] = [
+                            'name' => $formParamName,
+                            'contents' => $formParamValueItem
+                        ];
+                    }
+                }
+                // for HTTP post (form)
+                $httpBody = new MultipartStream($multipartContents);
+
+            } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
+                # if Content-Type contains "application/json", json_encode the form parameters
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -1525,7 +2427,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -1841,7 +2743,7 @@ class BillingApi
         if (isset($upgrade_subscription_quote_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_quote_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_quote_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $upgrade_subscription_quote_request;
             }
@@ -1862,7 +2764,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -2183,7 +3085,7 @@ class BillingApi
         if (isset($start_checkout_start_checkout_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($start_checkout_start_checkout_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($start_checkout_start_checkout_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $start_checkout_start_checkout_request;
             }
@@ -2204,7 +3106,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -2553,7 +3455,7 @@ class BillingApi
         if (isset($upgrade_subscription_upgrade_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_upgrade_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($upgrade_subscription_upgrade_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $upgrade_subscription_upgrade_request;
             }
@@ -2574,7 +3476,7 @@ class BillingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);

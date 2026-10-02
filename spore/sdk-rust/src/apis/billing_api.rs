@@ -21,6 +21,20 @@ pub struct DowngradeBillingSubscriptionParams {
     pub downgrade_subscription_downgrade_request: models::DowngradeSubscriptionDowngradeRequest
 }
 
+/// struct for passing parameters to the method [`get_billing_checkout_session`]
+#[derive(Clone, Debug)]
+pub struct GetBillingCheckoutSessionParams {
+    /// Checkout session id, from the lungor_session_id query parameter on the return URL
+    pub session_id: String
+}
+
+/// struct for passing parameters to the method [`list_billing_checkout_methods`]
+#[derive(Clone, Debug)]
+pub struct ListBillingCheckoutMethodsParams {
+    /// Plan to be paid for
+    pub plan: String
+}
+
 /// struct for passing parameters to the method [`quote_billing_upgrade`]
 #[derive(Clone, Debug)]
 pub struct QuoteBillingUpgradeParams {
@@ -75,12 +89,40 @@ pub enum DowngradeBillingSubscriptionError {
     UnknownValue(serde_json::Value),
 }
 
+/// struct for typed errors of method [`get_billing_catalogue`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GetBillingCatalogueError {
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`get_billing_checkout_session`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum GetBillingCheckoutSessionError {
+    Status401(models::EchoHttpError),
+    Status404(models::EchoHttpError),
+    Status503(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
+
 /// struct for typed errors of method [`get_billing_state`]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum GetBillingStateError {
     Status401(models::EchoHttpError),
     Status500(models::EchoHttpError),
+    UnknownValue(serde_json::Value),
+}
+
+/// struct for typed errors of method [`list_billing_checkout_methods`]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ListBillingCheckoutMethodsError {
+    Status401(models::EchoHttpError),
+    Status422(models::EchoHttpError),
+    Status500(models::EchoHttpError),
+    Status503(models::EchoHttpError),
     UnknownValue(serde_json::Value),
 }
 
@@ -250,6 +292,84 @@ pub async fn downgrade_billing_subscription(configuration: &configuration::Confi
     }
 }
 
+/// Returns the plans on offer, priced and allocated by the billing hub rather than restated here, so the page shown and the amount charged come from the same read. Unauthenticated: the pricing page is a marketing surface with no tenant. A plan the hub does not sell is absent, and one it prices at zero is present but not purchasable — the free tier is signed up for and the granted tier is handed out from the back-office. When the hub cannot be reached the last catalogue served is replayed with degraded=true, every plan unpurchasable and every price id dropped.
+pub async fn get_billing_catalogue(configuration: &configuration::Configuration) -> Result<models::GetCatalogueCatalogue, Error<GetBillingCatalogueError>> {
+
+    let uri_str = format!("{}/billing/catalogue", configuration.base_path);
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::GetCatalogueCatalogue`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::GetCatalogueCatalogue`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<GetBillingCatalogueError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
+/// The provider's redirect carries no outcome — a refused card lands on the same URL as a paid one — so the return page polls this while `status` is `pending` or `redirected`, and opens access on `paid`. Someone else's session reads as not found.
+pub async fn get_billing_checkout_session(configuration: &configuration::Configuration, params: GetBillingCheckoutSessionParams) -> Result<models::GetCheckoutSessionResult, Error<GetBillingCheckoutSessionError>> {
+
+    let uri_str = format!("{}/billing/checkout/{session_id}", configuration.base_path, session_id=crate::apis::urlencode(params.session_id));
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("Authorization", value);
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::GetCheckoutSessionResult`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::GetCheckoutSessionResult`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<GetBillingCheckoutSessionError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
 /// Returns the subscription's health: which tier is paid for, whether a payment failed and until when it can still be fixed, and any scheduled change. A tenant who never subscribed is reported healthy with hasSubscription=false — the free tier is not a degraded state.
 pub async fn get_billing_state(configuration: &configuration::Configuration) -> Result<models::GetBillingStateState, Error<GetBillingStateError>> {
 
@@ -289,6 +409,50 @@ pub async fn get_billing_state(configuration: &configuration::Configuration) -> 
     } else {
         let content = resp.text().await?;
         let entity: Option<GetBillingStateError> = serde_json::from_str(&content).ok();
+        Err(Error::ResponseError(ResponseContent { status, content, entity }))
+    }
+}
+
+/// Returns the payment methods the provider accepts for this tier, in the order to offer them, each id being what the checkout takes as paymentMethod. The list is asked rather than assumed: a tier billed monthly drops every method that leaves no mandate behind, and the provider refuses at checkout what it omits here. An empty list means no choice to present — check out with no preselection.
+pub async fn list_billing_checkout_methods(configuration: &configuration::Configuration, params: ListBillingCheckoutMethodsParams) -> Result<models::ListCheckoutMethodsResult, Error<ListBillingCheckoutMethodsError>> {
+
+    let uri_str = format!("{}/billing/checkout/methods", configuration.base_path);
+    let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
+
+    req_builder = req_builder.query(&[("plan", &params.plan.to_string())]);
+    if let Some(ref user_agent) = configuration.user_agent {
+        req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
+    }
+    if let Some(ref apikey) = configuration.api_key {
+        let key = apikey.key.clone();
+        let value = match apikey.prefix {
+            Some(ref prefix) => format!("{} {}", prefix, key),
+            None => key,
+        };
+        req_builder = req_builder.header("Authorization", value);
+    };
+
+    let req = req_builder.build()?;
+    let resp = configuration.client.execute(req).await?;
+
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream");
+    let content_type = super::ContentType::from(content_type);
+
+    if !status.is_client_error() && !status.is_server_error() {
+        let content = resp.text().await?;
+        match content_type {
+            ContentType::Json => serde_json::from_str(&content).map_err(Error::from),
+            ContentType::Text => return Err(Error::from(serde_json::Error::custom("Received `text/plain` content type response that cannot be converted to `models::ListCheckoutMethodsResult`"))),
+            ContentType::Unsupported(unknown_type) => return Err(Error::from(serde_json::Error::custom(format!("Received `{unknown_type}` content type response that cannot be converted to `models::ListCheckoutMethodsResult`")))),
+        }
+    } else {
+        let content = resp.text().await?;
+        let entity: Option<ListBillingCheckoutMethodsError> = serde_json::from_str(&content).ok();
         Err(Error::ResponseError(ResponseContent { status, content, entity }))
     }
 }

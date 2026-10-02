@@ -14,6 +14,66 @@
         "version": "0.1.0"
     },
     "paths": {
+        "/account": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancels the subscription, stops every webhook endpoint and asks for the erasure: the membership worker then erases every row the tenant owns and removes the login (urbangate ADR 0013). Irreversible. Suppressions and unsubscribes are deliberately KEPT: they are the record of who asked not to be emailed, and losing them would resume sending to addresses that bounced or opted out. Session-only — an API key cannot destroy the account it belongs to.",
+                "tags": [
+                    "account"
+                ],
+                "summary": "Delete your own account",
+                "operationId": "deleteAccount",
+                "responses": {
+                    "202": {
+                        "description": "Erasure under way"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "an API key may not delete the account",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "subscription cancellation failed; nothing was deleted",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api-keys": {
             "get": {
                 "security": [
@@ -185,6 +245,28 @@
                 }
             }
         },
+        "/billing/catalogue": {
+            "get": {
+                "description": "Returns the plans on offer, priced and allocated by the billing hub rather than restated here, so the page shown and the amount charged come from the same read. Unauthenticated: the pricing page is a marketing surface with no tenant. A plan the hub does not sell is absent, and one it prices at zero is present but not purchasable — the free tier is signed up for and the granted tier is handed out from the back-office. When the hub cannot be reached the last catalogue served is replayed with degraded=true, every plan unpurchasable and every price id dropped.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Read the public plan catalogue",
+                "operationId": "getBillingCatalogue",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/get_catalogue.Catalogue"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/billing/checkout": {
             "post": {
                 "security": [
@@ -262,6 +344,152 @@
                     },
                     "503": {
                         "description": "billing is not configured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/checkout/methods": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the payment methods the provider accepts for this tier, in the order to offer them, each id being what the checkout takes as paymentMethod. The list is asked rather than assumed: a tier billed monthly drops every method that leaves no mandate behind, and the provider refuses at checkout what it omits here. An empty list means no choice to present — check out with no preselection.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List how a plan may be paid for",
+                "operationId": "listBillingCheckoutMethods",
+                "parameters": [
+                    {
+                        "description": "Plan to be paid for",
+                        "name": "plan",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/list_checkout_methods.Result"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "plan is not purchasable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "billing is not configured",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/billing/checkout/{session_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The provider's redirect carries no outcome — a refused card lands on the same URL as a paid one — so the return page polls this while `status` is `pending` or `redirected`, and opens access on `paid`. Someone else's session reads as not found.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Read how a checkout ended",
+                "operationId": "getBillingCheckoutSession",
+                "parameters": [
+                    {
+                        "description": "Checkout session id, from the lungor_session_id query parameter on the return URL",
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/get_checkout_session.Result"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -736,51 +964,6 @@
                             "text/plain": {
                                 "schema": {
                                     "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/billing/webhook/mollie": {
-            "post": {
-                "description": "Receives payment notifications from Mollie. The body is unsigned and carries only a payment id, so the payment is re-fetched with the API key before anything is applied — the authenticated read is the security boundary. Idempotent: replayed notifications are acknowledged without being re-applied.",
-                "tags": [
-                    "internal"
-                ],
-                "summary": "Payment provider webhook",
-                "operationId": "handleMollieWebhook",
-                "responses": {
-                    "200": {
-                        "description": "acknowledged — applied, replayed, or attributable to nobody"
-                    },
-                    "400": {
-                        "description": "no payment id in the body",
-                        "content": {
-                            "text/plain": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "not applied — the provider should retry",
-                        "content": {
-                            "text/plain": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "billing is not configured",
-                        "content": {
-                            "text/plain": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
                                 }
                             }
                         }
@@ -2180,240 +2363,6 @@
                 }
             }
         },
-        "/internal/tenant/billing-customer": {
-            "post": {
-                "security": [
-                    {
-                        "InternalToken": []
-                    }
-                ],
-                "description": "Makes the billing service aware of an account without subscribing it to anything, for importing users that predate it. Idempotent on the address: a re-run neither duplicates nor overwrites.\n\nDistinct from assigning a plan: that grants an entitlement, this only says the tenant exists. Putting every imported account on a plan would fabricate billing history nobody asked for.",
-                "tags": [
-                    "internal"
-                ],
-                "summary": "Declare a tenant to the billing service (service-to-service)",
-                "operationId": "registerBillingCustomer",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/claim_invitation.RegisterCustomerRequest"
-                            }
-                        }
-                    },
-                    "description": "Tenant + address",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/claim_invitation.RegisterCustomerResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "502": {
-                        "description": "Bad Gateway",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/internal/tenant/invitation/claim": {
-            "post": {
-                "security": [
-                    {
-                        "InternalToken": []
-                    }
-                ],
-                "description": "Called by the web app once a sign-up has created the account. Authenticated via the X-Internal-Token header — NOT the public BearerAuth scheme. A refused invitation answers 200 with claimed=false: the account exists either way.",
-                "tags": [
-                    "internal"
-                ],
-                "summary": "Redeem an invitation onto a tenant (service-to-service)",
-                "operationId": "claimTenantInvitation",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/claim_invitation.ClaimInvitationRequest"
-                            }
-                        }
-                    },
-                    "description": "Tenant + invitation token",
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/claim_invitation.ClaimInvitationResponse"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "502": {
-                        "description": "Bad Gateway",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/internal/tenant/invitation/{token}": {
-            "get": {
-                "security": [
-                    {
-                        "InternalToken": []
-                    }
-                ],
-                "description": "Called by the web app when a visitor lands on the sign-up page with a token, so it can pre-fill the invited address and refuse a lapsed link early rather than rendering a form that will not grant anything. Claiming is what burns the token; this never does.",
-                "tags": [
-                    "internal"
-                ],
-                "summary": "Read an invitation without consuming it (service-to-service)",
-                "operationId": "lookupTenantInvitation",
-                "parameters": [
-                    {
-                        "description": "Invitation token",
-                        "name": "token",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/claim_invitation.LookupInvitationResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "502": {
-                        "description": "Bad Gateway",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Service Unavailable",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/echo.HTTPError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/internal/tenant/plan": {
             "post": {
                 "security": [
@@ -2471,6 +2420,43 @@
                     },
                     "503": {
                         "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "An admin session is put on the admin tier the first time it is seen.",
+                "tags": [
+                    "account"
+                ],
+                "summary": "The account the caller acts on",
+                "operationId": "getMe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/account.MeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3470,6 +3456,18 @@
             }
         },
         "schemas": {
+            "account.MeResponse": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string"
+                    },
+                    "tenantId": {
+                        "description": "TenantID is the account the person's data lives under: the id an\naccount opened before the identity provider kept, their identity id\notherwise.",
+                        "type": "string"
+                    }
+                }
+            },
             "add_address.AddAddressResult": {
                 "type": "object",
                 "properties": {
@@ -3616,73 +3614,6 @@
                 "properties": {
                     "entitledUntil": {
                         "type": "string"
-                    }
-                }
-            },
-            "claim_invitation.ClaimInvitationRequest": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "tenantId": {
-                        "type": "string"
-                    },
-                    "token": {
-                        "type": "string"
-                    }
-                }
-            },
-            "claim_invitation.ClaimInvitationResponse": {
-                "type": "object",
-                "properties": {
-                    "claimed": {
-                        "description": "Claimed is false when the offer no longer holds — unknown, expired or\nalready taken. The account is fine; it stays on the default plan.",
-                        "type": "boolean"
-                    },
-                    "plan": {
-                        "description": "Plan is what the invitation conferred, empty when it was refused.",
-                        "type": "string"
-                    }
-                }
-            },
-            "claim_invitation.LookupInvitationResponse": {
-                "type": "object",
-                "properties": {
-                    "claimable": {
-                        "type": "boolean"
-                    },
-                    "email": {
-                        "description": "Email is the address the offer was issued to, so the form can pre-fill it.",
-                        "type": "string"
-                    },
-                    "plan": {
-                        "description": "Plan is the tier it confers, for telling the invitee what is on the table.",
-                        "type": "string"
-                    },
-                    "status": {
-                        "description": "Status is claimable, claimed or expired. Only the last two say the offer\nwas real, which is what tells someone whether asking for a new link is\nworth it rather than doubting the address they were invited at.",
-                        "type": "string"
-                    }
-                }
-            },
-            "claim_invitation.RegisterCustomerRequest": {
-                "type": "object",
-                "properties": {
-                    "email": {
-                        "type": "string"
-                    },
-                    "tenantId": {
-                        "type": "string"
-                    }
-                }
-            },
-            "claim_invitation.RegisterCustomerResponse": {
-                "type": "object",
-                "properties": {
-                    "created": {
-                        "description": "Created is false when the billing service already knew the address, so a\nre-run of an import reports what it actually added rather than what it\nsent.",
-                        "type": "boolean"
                     }
                 }
             },
@@ -3995,6 +3926,92 @@
                     }
                 }
             },
+            "get_catalogue.Catalogue": {
+                "type": "object",
+                "properties": {
+                    "degraded": {
+                        "description": "Degraded reports that Lungor could not be reached and nothing here can be\nbought.",
+                        "type": "boolean"
+                    },
+                    "plans": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/get_catalogue.Plan"
+                        }
+                    }
+                }
+            },
+            "get_catalogue.Plan": {
+                "type": "object",
+                "properties": {
+                    "amountCents": {
+                        "type": "integer"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "degraded": {
+                        "description": "Degraded marks a plan served from the last catalogue read rather than a\nfresh one, so the page can say the prices may have moved.",
+                        "type": "boolean"
+                    },
+                    "domainLimit": {
+                        "description": "DomainLimit stays Spore's own: verifying a domain is not metered\nconsumption and Lungor knows nothing about it.",
+                        "type": "integer"
+                    },
+                    "included": {
+                        "type": "boolean"
+                    },
+                    "includedEmails": {
+                        "description": "IncludedEmails is Lungor's allocation for the metered unit, and Included\nsays whether it caps the unit at all. A plan Lungor does not cap is not a\nplan with a zero allowance.",
+                        "type": "integer"
+                    },
+                    "interval": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "priceId": {
+                        "description": "PriceID opens the checkout. Empty whenever the plan must not be bought,\nincluding in degraded mode.",
+                        "type": "string"
+                    },
+                    "purchasable": {
+                        "description": "Purchasable is what gates the CTA. False for a granted or free tier, and\nfalse for every plan while the catalogue could not be read.",
+                        "type": "boolean"
+                    },
+                    "sortOrder": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "get_checkout_session.Result": {
+                "type": "object",
+                "properties": {
+                    "failureReason": {
+                        "description": "FailureReason is the provider's own word for a refusal. Set on failed only.",
+                        "type": "string",
+                        "example": "insufficient_funds"
+                    },
+                    "paid": {
+                        "description": "Paid is the one field to open access on.",
+                        "type": "boolean"
+                    },
+                    "sessionId": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "description": "Status is pending, redirected, completed, failed, canceled or expired. The\nfirst two are still in flight and worth asking again; the rest are final.",
+                        "type": "string",
+                        "example": "failed"
+                    },
+                    "subscriptionStatus": {
+                        "type": "string"
+                    }
+                }
+            },
             "get_usage.CurrentPeriodView": {
                 "type": "object",
                 "properties": {
@@ -4109,6 +4126,30 @@
                     },
                     "tenantId": {
                         "type": "string"
+                    }
+                }
+            },
+            "list_checkout_methods.Method": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "description": "ID travels back as the checkout's paymentMethod.",
+                        "type": "string"
+                    },
+                    "label": {
+                        "description": "Label names the method for the buyer.",
+                        "type": "string"
+                    }
+                }
+            },
+            "list_checkout_methods.Result": {
+                "type": "object",
+                "properties": {
+                    "methods": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/list_checkout_methods.Method"
+                        }
                     }
                 }
             },
@@ -4886,6 +4927,10 @@
                         "type": "string"
                     },
                     "name": {
+                        "type": "string"
+                    },
+                    "paymentMethod": {
+                        "description": "PaymentMethod is one of the ids GET /billing/checkout/methods returned for\nthis tier. Omitted, the provider's own selection screen decides.",
                         "type": "string"
                     },
                     "plan": {
