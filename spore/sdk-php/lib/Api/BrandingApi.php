@@ -397,7 +397,7 @@ class BrandingApi
         if (isset($extract_brand_extract_brand_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($extract_brand_extract_brand_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($extract_brand_extract_brand_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $extract_brand_extract_brand_request;
             }
@@ -418,7 +418,7 @@ class BrandingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -733,7 +733,7 @@ class BrandingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -1032,7 +1032,7 @@ class BrandingApi
         if (isset($set_brand_set_brand_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($set_brand_set_brand_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($set_brand_set_brand_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $set_brand_set_brand_request;
             }
@@ -1053,7 +1053,7 @@ class BrandingApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);

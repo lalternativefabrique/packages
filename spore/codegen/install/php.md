@@ -28,8 +28,8 @@ plain `vcs` repository cannot point at `spore/sdk-php`):
           "ext-curl": "*",
           "ext-json": "*",
           "ext-mbstring": "*",
-          "guzzlehttp/guzzle": "^7.3",
-          "guzzlehttp/psr7": "^1.7 || ^2.0"
+          "guzzlehttp/guzzle": "^7.3 || ^8.0",
+          "guzzlehttp/psr7": "^1.7 || ^2.0 || ^3.0"
         },
         "autoload": {
           "psr-4": { "Lalternative\\Spore\\": "spore/sdk-php/lib/" }

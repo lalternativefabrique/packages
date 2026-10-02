@@ -34,6 +34,34 @@ function replaceReadmeSection(output, heading, snippet) {
   writeFileSync(readme, source.slice(0, start) + readFileSync(snippet, 'utf8') + source.slice(end))
 }
 
+function widenGuzzleConstraints(output) {
+  const path = resolve(output, 'composer.json')
+  const composer = JSON.parse(readFileSync(path, 'utf8'))
+  composer.require['guzzlehttp/guzzle'] = '^7.3 || ^8.0'
+  composer.require['guzzlehttp/psr7'] = '^1.7 || ^2.0 || ^3.0'
+  writeFileSync(path, `${JSON.stringify(composer, null, 4)}\n`)
+}
+
+function dropGuzzleJsonEncode(directory) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name)
+    if (entry.isDirectory()) {
+      dropGuzzleJsonEncode(path)
+      continue
+    }
+    if (!entry.name.endsWith('.php')) continue
+    const source = readFileSync(path, 'utf8')
+    const rewritten = source.replace(
+      /\\GuzzleHttp\\Utils::jsonEncode\((.*)\);$/gm,
+      '\\json_encode($1, \\JSON_THROW_ON_ERROR);',
+    )
+    if (rewritten.includes('GuzzleHttp\\Utils::jsonEncode')) {
+      throw new Error(`unrewritten GuzzleHttp\\Utils::jsonEncode left in ${path}`)
+    }
+    if (rewritten !== source) writeFileSync(path, rewritten)
+  }
+}
+
 function normalizeGeneratedFiles(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name)
@@ -83,6 +111,10 @@ for (const [name, generator] of clients) {
   for (const [heading, folder] of [['Installation', 'install'], ['Getting Started', 'getting-started']]) {
     const snippet = resolve(codegen, folder, `${name}.md`)
     if (existsSync(snippet)) replaceReadmeSection(output, heading, snippet)
+  }
+  if (name === 'php') {
+    widenGuzzleConstraints(output)
+    dropGuzzleJsonEncode(resolve(output, 'lib'))
   }
   normalizeGeneratedFiles(output)
 }

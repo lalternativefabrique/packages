@@ -370,7 +370,7 @@ class UnsubscribeApi
         if (isset($confirm_unsubscribe_confirm_unsubscribe_request)) {
             if (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the body
-                $httpBody = \GuzzleHttp\Utils::jsonEncode(ObjectSerializer::sanitizeForSerialization($confirm_unsubscribe_confirm_unsubscribe_request));
+                $httpBody = \json_encode(ObjectSerializer::sanitizeForSerialization($confirm_unsubscribe_confirm_unsubscribe_request), \JSON_THROW_ON_ERROR);
             } else {
                 $httpBody = $confirm_unsubscribe_confirm_unsubscribe_request;
             }
@@ -391,7 +391,7 @@ class UnsubscribeApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
@@ -688,7 +688,7 @@ class UnsubscribeApi
 
             } elseif (stripos($headers['Content-Type'], 'application/json') !== false) {
                 # if Content-Type contains "application/json", json_encode the form parameters
-                $httpBody = \GuzzleHttp\Utils::jsonEncode($formParams);
+                $httpBody = \json_encode($formParams, \JSON_THROW_ON_ERROR);
             } else {
                 // for HTTP post (form)
                 $httpBody = ObjectSerializer::buildQuery($formParams);
