@@ -547,7 +547,9 @@ func (c *Client) sendStatus(ctx context.Context, out any, call func() (*http.Res
 	defer resp.Body.Close()
 
 	switch {
-	case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
+	case resp.StatusCode == http.StatusForbidden:
+		return resp.StatusCode, forbiddenError(resp.Body)
+	case resp.StatusCode == http.StatusUnauthorized:
 		return resp.StatusCode, ErrUnauthorized
 	case resp.StatusCode == http.StatusNotFound:
 		return resp.StatusCode, fmt.Errorf("%w: %s", ErrNotFound, snippet(resp.Body))
@@ -572,6 +574,19 @@ func (c *Client) sendStatus(ctx context.Context, out any, call func() (*http.Res
 		return resp.StatusCode, fmt.Errorf("%w: decoding response: %v", ErrUnavailable, err)
 	}
 	return resp.StatusCode, nil
+}
+
+// forbiddenError tells a refused delegation, which names the offending line
+// in a coded body, apart from a plain authorization failure.
+func forbiddenError(r io.Reader) error {
+	var body struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	}
+	if json.NewDecoder(io.LimitReader(r, 512)).Decode(&body) == nil && body.Code == codeCostDelegationDenied {
+		return fmt.Errorf("%w: %s", ErrCostDelegationDenied, body.Message)
+	}
+	return ErrUnauthorized
 }
 
 // snippet reads a bounded prefix of an error body, so a misbehaving server

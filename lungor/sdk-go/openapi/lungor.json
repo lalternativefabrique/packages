@@ -459,7 +459,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nLLM usage is declared as one line per token kind, on items coded `<provider>/<model>.input`, `.cached` and `.output` (imported prices) or `<model>.<kind>` (items created by hand), with the quantity in tokens.",
+                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nA line with `app_id` set to another app of the same tenant is recorded against that app, on its behalf: every rule above then applies to that app (its attached and private items, its customers for `external_user_id`), and the record keeps the caller as declarer. That app must have delegated cost declaration to the caller, otherwise the whole batch is refused with 403 and `code` = `cost_delegation_denied`. `idempotency_key` stays unique per recorded app.\n\nLLM usage is declared as one line per token kind, on items coded `<provider>/<model>.input`, `.cached` and `.output` (imported prices) or `<model>.<kind>` (items created by hand), with the quantity in tokens.",
                 "tags": [
                     "costs"
                 ],
@@ -481,6 +481,16 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2245,6 +2255,161 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/cost-declarers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The apps of the tenant allowed to send cost lines with `app_id` set to this app. Those costs are recorded against this app.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Apps declaring costs on behalf of this app",
+                "operationId": "listAppCostDeclarers",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costDeclarerView"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/cost-declarers/{declarer_app_id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Let another app of the tenant declare this app's costs",
+                "operationId": "addAppCostDeclarer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Declaring app ID",
+                        "name": "declarer_app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Costs it already declared stay.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Stop another app declaring this app's costs",
+                "operationId": "removeAppCostDeclarer",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Declaring app ID",
+                        "name": "declarer_app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
@@ -4136,7 +4301,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sums recorded costs over [from, to), grouped by `app`, `item`, `end_user`, `day` or `month`, and by currency. Filter to one app with `app_id`.",
+                "description": "Sums recorded costs over [from, to), grouped by `app`, `declared_by`, `item`, `end_user`, `day` or `month`, and by currency. Filter to one app with `app_id`.\n\nA cost declared by one app on behalf of another counts for the app it was declared for: `app` groups by that app, `declared_by` by the app that declared it (the app itself when it declared its own).",
                 "tags": [
                     "costs"
                 ],
@@ -4153,7 +4318,7 @@
                         }
                     },
                     {
-                        "description": "app | item | end_user | day | month",
+                        "description": "app | declared_by | item | end_user | day | month",
                         "name": "group_by",
                         "in": "query",
                         "required": true,
@@ -6350,6 +6515,17 @@
                     }
                 }
             },
+            "costtracking.costDeclarerView": {
+                "type": "object",
+                "properties": {
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "declarer_app_id": {
+                        "type": "string"
+                    }
+                }
+            },
             "costtracking.costItemView": {
                 "type": "object",
                 "properties": {
@@ -6398,6 +6574,11 @@
             "costtracking.costLineRequest": {
                 "type": "object",
                 "properties": {
+                    "app_id": {
+                        "description": "AppID records the line against another app of the same tenant, on its\nbehalf: that app must have delegated cost declaration to the caller, and\ncode, price and external_user_id are then read in that app.",
+                        "type": "string",
+                        "example": "7d3f1c2a-5b4e-4f6a-9c8d-1e2f3a4b5c6d"
+                    },
                     "code": {
                         "type": "string",
                         "example": "deepseek-v4.input"
@@ -6863,6 +7044,9 @@
                 "properties": {
                     "amount_micros": {
                         "type": "integer"
+                    },
+                    "app_id": {
+                        "type": "string"
                     },
                     "code": {
                         "type": "string"
