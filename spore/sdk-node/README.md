@@ -41,7 +41,7 @@ SPORE_API_KEY=spore_api_key_here
 ### 2. Configure the client
 
 Call `configureSporeClient` once at boot. After that every generated
-function uses the shared axios instance.
+function uses these options.
 
 ```ts
 import { configureSporeClient, getSporeAPI } from "@lalternative/spore-sdk";
@@ -116,10 +116,33 @@ Reusing the key with a different body returns 422.
 |-----------|----------|----------------------------|-------|
 | `apiKey`  | yes\*    | —                          | Sent as `Authorization: Bearer <apiKey>`. Accepts an `sk_live_…` managed key (recommended), an HS256 JWT signed with `JWT_SECRET`, or the static `API_KEY` value (dev only). |
 | `baseURL` | no       | `https://api.sporee.fr`    | Override for staging / local dev. |
-| `axios`   | no       | —                          | Inject your own `AxiosInstance` (interceptors, retry, telemetry). When set, `apiKey` and `baseURL` are ignored — wire them into your instance directly. |
+| `credentials` | no   | —                          | Forwarded to `fetch`. Use `"include"` from a browser that authenticates with cookies instead of an API key. |
+| `fetch`   | no       | global `fetch`             | Your own `fetch` (retries, telemetry, test double). |
 
-\* You can omit `apiKey` only when you also pass a custom `axios`
-instance that handles auth itself.
+\* `apiKey` can be omitted when the requests are authenticated another way,
+e.g. a cookie through a same-origin proxy.
+
+The SDK has no runtime dependency: it uses the platform `fetch` (Node 18+,
+Bun, Deno, edge runtimes, browsers).
+
+## Errors
+
+A non-2xx response throws a `SporeError` carrying `status`, the decoded
+`body` and the raw `response`. Its `message` is the API's `message` field
+when there is one.
+
+```ts
+import { isSporeError } from "@lalternative/spore-sdk";
+
+try {
+  await api.sendEmail(payload);
+} catch (err) {
+  if (isSporeError(err) && err.status === 422) {
+    console.error(err.message, err.body);
+  }
+  throw err;
+}
+```
 
 ## Auth modes accepted by the server
 

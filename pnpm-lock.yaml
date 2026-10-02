@@ -353,10 +353,6 @@ importers:
         version: 2.40.1
 
   spore/sdk-node:
-    dependencies:
-      axios:
-        specifier: ^1.7.7
-        version: 1.19.0
     devDependencies:
       orval:
         specifier: ^7.3.0
