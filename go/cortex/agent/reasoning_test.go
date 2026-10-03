@@ -2,12 +2,10 @@ package agent
 
 import "testing"
 
-func TestDeepSeekDefaultsToNoThinking(t *testing.T) {
-	// Measured, not assumed: the chain of thought comes back in a field this
-	// client does not read, so it is paid for and dropped.
-	for _, model := range []string{"deepseek-r1", "DeepSeek-V3", "scw/deepseek-r1-distill"} {
-		if got := DefaultReasoningEffort(model); got != "none" {
-			t.Errorf("DefaultReasoningEffort(%q) = %q, want none", model, got)
+func TestDeepSeekThinksUnlessAskedNotTo(t *testing.T) {
+	for _, model := range []string{"deepseek-r1", "DeepSeek-V3", "deepseek-v4-flash-0731"} {
+		if got := DefaultReasoningEffort(model); got != "" {
+			t.Errorf("DefaultReasoningEffort(%q) = %q, want the server default", model, got)
 		}
 	}
 }
