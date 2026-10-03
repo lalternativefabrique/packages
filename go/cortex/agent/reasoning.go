@@ -7,8 +7,8 @@ import "strings"
 // own default alone.
 var ReasoningEfforts = []string{"high", "medium", "low", ReasoningEffortNone}
 
-// ReasoningEffortNone turns reasoning off. It is not sent as a value: some
-// servers reject it, and the absence of the field says the same thing.
+// ReasoningEffortNone turns reasoning off. How it reaches the server depends on
+// the model family: see reasonerFor.
 const ReasoningEffortNone = "none"
 
 // ValidReasoningEffort reports whether v is one the servers understand.
