@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/lungor-sdk-react",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "React components for Lungor checkout and pricing",
   "type": "module",
   "main": "./dist/index.js",

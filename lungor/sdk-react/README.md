@@ -65,12 +65,23 @@ import { CheckoutMethodPicker } from '@lalternative/lungor-sdk-react';
   methods={methods}
   amountLabel="19,00 € / mois"
   busy={isRedirecting}
-  onSelect={(paymentMethod) => startCheckout({ planId, paymentMethod })}
+  refusal={checkoutError?.code}
+  onSelect={(paymentMethod, { buyerKind }) => startCheckout({ planId, paymentMethod, buyerKind })}
 />;
 ```
 
 `onSelect` hands back the method id verbatim; send it as `payment_method` on
 `POST /finance/checkout`, then redirect to the `redirect_url` you get back.
+
+The payer also says who they order as — « Particulier » (`consumer`, the
+default) or « Professionnel » (`business`) — and the selection carries it as
+`buyerKind`, to send as `buyer_kind`. The invoice follows: a consumer gets the
+mediator and the 14-day withdrawal notes, a business the B2B settlement terms.
+An offer for consumers only refuses a business buyer with a 422 whose `error`
+is `business_buyers_not_accepted`; hand that code back as `refusal` and the
+picker shows « Cette offre est réservée aux particuliers. » under the choice.
+`checkoutRefusalMessage(code)` renders the same text for a page with its own
+markup. Every label is overridable through `labels`.
 
 ## BillingPage
 

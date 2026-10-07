@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client"
 import { CheckoutMethodPicker } from "../src/CheckoutMethodPicker.js"
 import { CheckoutOutcome } from "../src/CheckoutOutcome.js"
 import { BillingPage, type BillingSubscription } from "../src/BillingPage.js"
-import type { CheckoutSession, CheckoutStatus } from "../src/checkout.js"
+import { BUSINESS_BUYERS_NOT_ACCEPTED, type CheckoutSession, type CheckoutStatus } from "../src/checkout.js"
 import { PricingTable } from "../src/PricingTable.js"
 import { formatPrice, type PricingAllocation, type PricingPlan } from "../src/plans.js"
 import { METHODS, PLANS, STAFF_PLAN, UNIT_LABELS } from "./catalogue.js"
@@ -69,6 +69,7 @@ function App() {
   const [run, setRun] = useState(0)
   const [hero, setHero] = useState(true)
   const [subState, setSubState] = useState<SubState>("active")
+  const [refuseBusiness, setRefuseBusiness] = useState(false)
 
   const record = (line: string) => setLog((l) => [line, ...l].slice(0, 6))
 
@@ -165,6 +166,11 @@ function App() {
             </select>
           </label>
         )}
+        {screen === "methods" && (
+          <Toggle checked={refuseBusiness} onChange={setRefuseBusiness}>
+            Offre réservée aux particuliers
+          </Toggle>
+        )}
         {screen !== "outcome" && (
           <Toggle checked={busy} onChange={setBusy}>
             Occupé
@@ -202,7 +208,8 @@ function App() {
             methods={METHODS}
             busy={busy}
             amountLabel={formatPrice(2900, "EUR", "fr-FR")}
-            onSelect={(id) => record(`payment_method → ${id}`)}
+            refusal={refuseBusiness ? BUSINESS_BUYERS_NOT_ACCEPTED : undefined}
+            onSelect={(id, { buyerKind }) => record(`payment_method → ${id}, buyer_kind → ${buyerKind}`)}
           />
         ) : screen === "billing" ? (
           <BillingPage
