@@ -58,6 +58,7 @@ type CheckoutSession struct {
 	SubscriptionStatus string
 	PlanID             string
 	ExternalUserID     string
+	BuyerKind          BuyerKind
 	ExpiresAt          time.Time
 	CreatedAt          time.Time
 }
@@ -103,6 +104,9 @@ func checkoutSessionFrom(w wire.FinanceCheckoutSessionResponse) CheckoutSession 
 		SubscriptionStatus: deref(w.SubscriptionStatus),
 		PlanID:             deref(w.PlanId),
 		ExternalUserID:     deref(w.ExternalUserId),
+	}
+	if w.BuyerKind != nil {
+		out.BuyerKind = BuyerKind(*w.BuyerKind)
 	}
 	if w.Paid != nil {
 		out.Paid = *w.Paid
