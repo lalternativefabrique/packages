@@ -236,6 +236,36 @@
                                 }
                             }
                         }
+                    },
+                    "422": {
+                        "description": "The tenant requires an express withdrawal waiver: resend with the withdrawal_waiver consent. A body {error: business_buyers_not_accepted, message} means the buyer declared itself a business and the offer is for consumers only",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.checkoutConsentResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "The payment provider could not open the payment; the session is failed with reason provider_unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.checkoutProviderResponse"
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -431,6 +461,16 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3914,6 +3954,150 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/balance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "One line per app plus a common line for costs recorded against no app, and their total. Income is read from LIVE, succeeded transactions only (created_at in [from, to)): charged = charges, refunded = refunds and chargebacks, fee = PSP fees, credit = charged − refunded − fee. Debit is the cost records of the period (occurred_at), micros rounded to cents. Balance = credit − debit. Every amount is in cents of `currency`; two currencies are never added, so it defaults to EUR and selects both sides.",
+                "tags": [
+                    "balance"
+                ],
+                "summary": "Tenant balance per app over a period",
+                "operationId": "getBalance",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the first of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "ISO 4217 code. Defaults to EUR.",
+                        "name": "currency",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/balance.balanceView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/balance.csv": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The same lines as GET /balance, one per app then the common line and the total, amounts as decimal units of `currency`.",
+                "tags": [
+                    "balance"
+                ],
+                "summary": "Tenant balance as CSV",
+                "operationId": "getBalanceCSV",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the first of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "ISO 4217 code. Defaults to EUR.",
+                        "name": "currency",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV body",
+                        "content": {
+                            "text/csv": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/csv": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/cost-items": {
             "get": {
                 "security": [
@@ -4091,6 +4275,47 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/cost-items/pricing-reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Items the pricing watch flagged, each with the read that saw the change and the one before it. Nothing is repriced automatically: add a version with POST /prices if the price changed, then resolve the review.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Cost items whose pricing page changed",
+                "operationId": "listCostItemPricingReviews",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.pricingReviewView"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/cost-items/{item_id}": {
             "patch": {
                 "security": [
@@ -4098,11 +4323,11 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "The price is not changed here: append a version with POST /prices.",
+                "description": "The price is not changed here: append a version with POST /prices. `pricing_url` and `pricing_site` are what the pricing watch reads.",
                 "tags": [
                     "costs"
                 ],
-                "summary": "Update a cost item's description or deactivate it",
+                "summary": "Update a cost item's description, its pricing page, or deactivate it",
                 "operationId": "updateCostItem",
                 "parameters": [
                     {
@@ -4142,6 +4367,16 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/costtracking.costItemView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
                                 }
                             }
                         }
@@ -4294,6 +4529,471 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/cost-items/{item_id}/pricing-check": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Runs the pricing watch on one item and returns the snapshot it recorded. A page that could not be read is a snapshot with status `error`. A `changed` status flags the item for review.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Read a cost item's pricing page now",
+                "operationId": "checkCostItemPricing",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.pricingSnapshotView"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/cost-items/{item_id}/pricing-review/resolve": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Clears the review flag, once a new price was added with POST /prices or the change was judged irrelevant.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Close a cost item's pricing review",
+                "operationId": "resolveCostItemPricingReview",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost item ID",
+                        "name": "item_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The cost records imputed to no app over [from, to), newest first, with how many files each carries and whether a recurring schedule posted it. Only `common=true` is served: app costs are read through the report.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "List the costs common to the tenant",
+                "operationId": "listCommonCosts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Must be true (the default)",
+                        "name": "common",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start (RFC3339). Defaults to the 1st of the current month.",
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, exclusive (RFC3339). Defaults to now.",
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costEntriesView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Records cost lines imputed to no app: hosting, a tool subscription, a service — what the tenant pays that no single app caused. Any active item of the tenant catalog can carry one, attached to an app or not; an item private to an app cannot (422). Same valuation as the app routes, with the price in force at `occurred_at`. A line naming an `app_id` is refused (400): record it on that app instead. `idempotency_key` is unique per tenant among common costs.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Record costs common to the tenant",
+                "operationId": "recordCommonCosts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "$ref": "#/components/requestBodies/costtracking.recordCostsRequest"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recordCostsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/direct": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "One tenant-common cost entered without a catalog item: an API bill, a SaaS subscription, an infra invoice. The item is found or created under the code `<category>/<slug(label)>` (unit \"unité\", unit_size 1, supplier as given) and priced at `amount_micros` from `occurred_at` — a price version is appended when the amount differs from the one in force at that date, never rewritten — and one unit of it is recorded as a common cost. The catalog thus stays the single price history. Refuses an amount <= 0 and an unknown category (400), and a currency other than the existing item's (422, code `cost_item_currency_mismatch`). Two different amounts on the same label and the same instant conflict (409): use distinct labels.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Record a common cost as a free amount",
+                "operationId": "recordDirectCommonCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.recordDirectCostRequest"
+                            }
+                        }
+                    },
+                    "description": "Free-amount cost",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recordCostsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/read-invoice": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Extracts the text of a PDF and asks the suite's base agent (lalter, EU-hosted, metered like any call; lalter picks the model) for the supplier, label, amounts, dates and category. Nothing is recorded: the answer prefills the form a human then checks and submits. An image or a scanned PDF has no readable text and answers 422 `invoice_unreadable`. Answers 503 `invoice_reading_not_configured` when no lalter key is set.",
+                "tags": [
+                    "invoice-reading"
+                ],
+                "summary": "Read a supplier invoice to prefill a cost",
+                "operationId": "readInvoice",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "description": "The invoice (PDF, PNG or JPEG, 10 MiB at most)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "file"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.invoiceReadingView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/costs/report": {
             "get": {
                 "security": [
@@ -4301,7 +5001,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Sums recorded costs over [from, to), grouped by `app`, `declared_by`, `item`, `end_user`, `day` or `month`, and by currency. Filter to one app with `app_id`.\n\nA cost declared by one app on behalf of another counts for the app it was declared for: `app` groups by that app, `declared_by` by the app that declared it (the app itself when it declared its own).",
+                "description": "Sums recorded costs over [from, to), grouped by `app`, `declared_by`, `item`, `end_user`, `day` or `month`, and by currency. Filter to one app with `app_id`.\n\nA cost declared by one app on behalf of another counts for the app it was declared for: `app` groups by that app, `declared_by` by the app that declared it (the app itself when it declared its own). Costs common to the tenant come as one row with an empty `key` under `app` and `declared_by`. Under `item`, each row also carries the item's `item_name` and `supplier`, and `category` when the code is a free-amount one (`<category>/<slug>`).",
                 "tags": [
                     "costs"
                 ],
@@ -4366,6 +5066,333 @@
                         "description": "Bad Request",
                         "content": {
                             "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/{record_id}/attachments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "cost-attachments"
+                ],
+                "summary": "List the files attached to a cost",
+                "operationId": "listCostAttachments",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costAttachmentView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stores a supplier invoice (PDF, PNG or JPEG, 10 MiB at most) against a cost of the tenant that is common to it or was entered from the console. The type is read from the bytes, not from the upload. The file stays private: it is only served back through this console session, never by a public URL. Answers 503 `attachments_not_configured` when no object store is set.",
+                "tags": [
+                    "cost-attachments"
+                ],
+                "summary": "Attach a file to a common cost",
+                "operationId": "addCostAttachment",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "file": {
+                                        "description": "The invoice",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "file"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costAttachmentView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/{record_id}/attachments/{attachment_id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Streams the stored bytes with `Content-Disposition: attachment`, to a member of the tenant only.",
+                "tags": [
+                    "cost-attachments"
+                ],
+                "summary": "Download a file attached to a cost",
+                "operationId": "downloadCostAttachment",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Attachment ID",
+                        "name": "attachment_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "cost-attachments"
+                ],
+                "summary": "Remove a file attached to a cost",
+                "operationId": "deleteCostAttachment",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Attachment ID",
+                        "name": "attachment_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -5541,6 +6568,266 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/recurring-costs": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The schedules not yet over (no `ends_on`, or one today or later), with the next due date of each, and the monthly commitment per currency.",
+                "tags": [
+                    "recurring-costs"
+                ],
+                "summary": "List the active recurring common costs",
+                "operationId": "listRecurringCosts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recurringCostListView"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A schedule that posts one free-amount common cost (see POST /costs/direct) at each due date, from `starts_on` every month or year, up to `ends_on` inclusive. A monthly schedule keeps its day of month and clamps to the last day of shorter months, never drifting. Due dates already reached are posted immediately; the rest are posted by the nightly sweep, each under the idempotency key `recurring/<id>/<YYYY-MM-DD>`.",
+                "tags": [
+                    "recurring-costs"
+                ],
+                "summary": "Create a recurring common cost",
+                "operationId": "createRecurringCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.createRecurringCostRequest"
+                            }
+                        }
+                    },
+                    "description": "Schedule",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recurringCostView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/recurring-costs/{recurring_cost_id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Changes what the next due dates post: label, supplier, amount, note, end date. Lines already posted are never rewritten; a new amount becomes a new price version of the item at the next due date.",
+                "tags": [
+                    "recurring-costs"
+                ],
+                "summary": "Update a recurring common cost",
+                "operationId": "updateRecurringCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Recurring cost ID",
+                        "name": "recurring_cost_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.updateRecurringCostRequest"
+                            }
+                        }
+                    },
+                    "description": "Fields to change",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recurringCostView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/recurring-costs/{recurring_cost_id}/end": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the last due date, inclusive (today when the body gives none). Nothing is posted after it; lines already posted stay.",
+                "tags": [
+                    "recurring-costs"
+                ],
+                "summary": "End a recurring common cost",
+                "operationId": "endRecurringCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Recurring cost ID",
+                        "name": "recurring_cost_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.endRecurringCostRequest"
+                            }
+                        }
+                    },
+                    "description": "End date"
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.recurringCostView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/subscriptions": {
             "get": {
                 "tags": [
@@ -6421,6 +7708,67 @@
             }
         },
         "schemas": {
+            "balance.balanceLineView": {
+                "type": "object",
+                "properties": {
+                    "app_id": {
+                        "description": "AppID is empty on the common line: costs recorded against no app.",
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string",
+                        "example": "Shop"
+                    },
+                    "balance_cents": {
+                        "type": "integer",
+                        "example": 104940
+                    },
+                    "charged_cents": {
+                        "type": "integer",
+                        "example": 150000
+                    },
+                    "credit_cents": {
+                        "type": "integer",
+                        "example": 143150
+                    },
+                    "debit_cents": {
+                        "type": "integer",
+                        "example": 38210
+                    },
+                    "fee_cents": {
+                        "type": "integer",
+                        "example": 4350
+                    },
+                    "refunded_cents": {
+                        "type": "integer",
+                        "example": 2500
+                    }
+                }
+            },
+            "balance.balanceView": {
+                "type": "object",
+                "properties": {
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "from": {
+                        "type": "string"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/balance.balanceLineView"
+                        }
+                    },
+                    "to": {
+                        "type": "string"
+                    },
+                    "total": {
+                        "$ref": "#/components/schemas/balance.balanceLineView"
+                    }
+                }
+            },
             "costtracking.addCostPriceRequest": {
                 "type": "object",
                 "properties": {
@@ -6515,6 +7863,37 @@
                     }
                 }
             },
+            "costtracking.costAttachmentView": {
+                "type": "object",
+                "properties": {
+                    "content_type": {
+                        "type": "string",
+                        "enum": [
+                            "application/pdf",
+                            "image/png",
+                            "image/jpeg"
+                        ],
+                        "example": "application/pdf"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "example": "facture-ovh-2026-09.pdf"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "record_id": {
+                        "type": "string"
+                    },
+                    "size_bytes": {
+                        "type": "integer",
+                        "example": 48213
+                    }
+                }
+            },
             "costtracking.costDeclarerView": {
                 "type": "object",
                 "properties": {
@@ -6523,6 +7902,76 @@
                     },
                     "declarer_app_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "costtracking.costEntriesView": {
+                "type": "object",
+                "properties": {
+                    "entries": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.costEntryView"
+                        }
+                    },
+                    "from": {
+                        "type": "string"
+                    },
+                    "to": {
+                        "type": "string"
+                    }
+                }
+            },
+            "costtracking.costEntryView": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "attachment_count": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "category": {
+                        "description": "Category is set on a free-amount entry (code `<category>/<slug>`).",
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "item_code": {
+                        "type": "string",
+                        "example": "infra/hebergement-ovh"
+                    },
+                    "item_name": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "occurred_at": {
+                        "type": "string"
+                    },
+                    "recurring": {
+                        "description": "Recurring is set on a line a recurring schedule posted.",
+                        "type": "boolean"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
                     }
                 }
             },
@@ -6556,6 +8005,21 @@
                     },
                     "owner_app_id": {
                         "type": "string"
+                    },
+                    "pricing_checked_at": {
+                        "type": "string"
+                    },
+                    "pricing_review_pending": {
+                        "description": "PricingReviewPending is set when the watched pricing page changed and\nno one has reviewed it yet.",
+                        "type": "boolean"
+                    },
+                    "pricing_site": {
+                        "type": "string",
+                        "example": "https://elevenlabs.io"
+                    },
+                    "pricing_url": {
+                        "type": "string",
+                        "example": "https://elevenlabs.io/pricing"
                     },
                     "supplier": {
                         "type": "string",
@@ -6657,9 +8121,24 @@
                         "type": "integer",
                         "example": 42500
                     },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
                     "currency": {
                         "type": "string",
                         "example": "EUR"
+                    },
+                    "item_name": {
+                        "description": "ItemName, Supplier and Category are set when grouping by item; Category only on a free-amount item.",
+                        "type": "string",
+                        "example": "Hébergement OVH"
                     },
                     "key": {
                         "type": "string",
@@ -6672,6 +8151,10 @@
                     "records": {
                         "type": "integer",
                         "example": 12
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
                     }
                 }
             },
@@ -6787,6 +8270,61 @@
                     }
                 }
             },
+            "costtracking.createRecurringCostRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros is posted at each due date, in micros of the currency (1 EUR = 1 000 000).",
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "currency": {
+                        "description": "Currency defaults to EUR; it must match the item when one already exists for this label.",
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "ends_on": {
+                        "description": "EndsOn is the last due date, inclusive.",
+                        "type": "string",
+                        "example": "2027-09-01"
+                    },
+                    "interval": {
+                        "type": "string",
+                        "enum": [
+                            "month",
+                            "year"
+                        ],
+                        "example": "month"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "note": {
+                        "type": "string",
+                        "example": "Contrat annuel"
+                    },
+                    "starts_on": {
+                        "description": "StartsOn is the first due date; due dates already reached are posted at once.",
+                        "type": "string",
+                        "example": "2026-10-01"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
+                    }
+                }
+            },
             "costtracking.customerCostResponse": {
                 "type": "object",
                 "properties": {
@@ -6819,6 +8357,37 @@
                     "tokens": {
                         "type": "integer",
                         "example": 1204000
+                    }
+                }
+            },
+            "costtracking.detectedAmountView": {
+                "type": "object",
+                "properties": {
+                    "context": {
+                        "type": "string",
+                        "example": "Multilingual v2: $0.30 per 1K characters"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "USD"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "1K characters"
+                    },
+                    "value": {
+                        "type": "string",
+                        "example": "0.30"
+                    }
+                }
+            },
+            "costtracking.endRecurringCostRequest": {
+                "type": "object",
+                "properties": {
+                    "ends_on": {
+                        "description": "EndsOn is the last due date posted, inclusive; defaults to today.",
+                        "type": "string",
+                        "example": "2026-12-31"
                     }
                 }
             },
@@ -6911,6 +8480,71 @@
                         "items": {
                             "type": "string"
                         }
+                    }
+                }
+            },
+            "costtracking.invoiceReadingView": {
+                "type": "object",
+                "properties": {
+                    "amount_excl_tax_micros": {
+                        "description": "Amounts are micros of the currency (1 EUR = 1 000 000); absent when not read.",
+                        "type": "integer",
+                        "example": 100000000
+                    },
+                    "amount_incl_tax_micros": {
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "confidence": {
+                        "description": "Confidence is high when supplier, date and an amount were all read.",
+                        "type": "string",
+                        "enum": [
+                            "high",
+                            "low"
+                        ],
+                        "example": "high"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "invoice_date": {
+                        "type": "string",
+                        "example": "2026-09-30"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement VPS"
+                    },
+                    "period_end": {
+                        "type": "string",
+                        "example": "2026-09-30"
+                    },
+                    "period_start": {
+                        "type": "string",
+                        "example": "2026-09-01"
+                    },
+                    "raw_excerpt": {
+                        "description": "RawExcerpt is the first 300 characters read from the file, to judge the reading by.",
+                        "type": "string"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "OVH"
+                    },
+                    "tax_micros": {
+                        "type": "integer",
+                        "example": 20000000
                     }
                 }
             },
@@ -7010,6 +8644,57 @@
                     }
                 }
             },
+            "costtracking.pricingReviewView": {
+                "type": "object",
+                "properties": {
+                    "item": {
+                        "$ref": "#/components/schemas/costtracking.costItemView"
+                    },
+                    "latest": {
+                        "$ref": "#/components/schemas/costtracking.pricingSnapshotView"
+                    },
+                    "previous": {
+                        "$ref": "#/components/schemas/costtracking.pricingSnapshotView"
+                    }
+                }
+            },
+            "costtracking.pricingSnapshotView": {
+                "type": "object",
+                "properties": {
+                    "amounts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.detectedAmountView"
+                        }
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "excerpt": {
+                        "type": "string"
+                    },
+                    "fetched_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "page_url": {
+                        "type": "string",
+                        "example": "https://elevenlabs.io/pricing"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "baseline",
+                            "unchanged",
+                            "changed",
+                            "error"
+                        ],
+                        "example": "changed"
+                    }
+                }
+            },
             "costtracking.recordCostsRequest": {
                 "type": "object",
                 "properties": {
@@ -7039,6 +8724,51 @@
                     }
                 }
             },
+            "costtracking.recordDirectCostRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros is the amount paid, in micros of the currency (1 EUR = 1 000 000).",
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "currency": {
+                        "description": "Currency defaults to EUR; it must match the item when one already exists for this label.",
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "idempotency_key": {
+                        "description": "IdempotencyKey is generated when absent: a form entry is not a retried call.",
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "note": {
+                        "type": "string",
+                        "example": "Facture n° 2026-09-1234"
+                    },
+                    "occurred_at": {
+                        "type": "string",
+                        "example": "2026-09-30T00:00:00Z"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
+                    }
+                }
+            },
             "costtracking.recordedCostView": {
                 "type": "object",
                 "properties": {
@@ -7046,6 +8776,7 @@
                         "type": "integer"
                     },
                     "app_id": {
+                        "description": "AppID is absent on a cost common to the tenant.",
                         "type": "string"
                     },
                     "code": {
@@ -7054,7 +8785,14 @@
                     "currency": {
                         "type": "string"
                     },
+                    "id": {
+                        "description": "ID is the record's, the one an attachment is added to.",
+                        "type": "string"
+                    },
                     "idempotency_key": {
+                        "type": "string"
+                    },
+                    "note": {
                         "type": "string"
                     },
                     "price_id": {
@@ -7068,6 +8806,103 @@
                     },
                     "unit_size": {
                         "type": "integer"
+                    }
+                }
+            },
+            "costtracking.recurringCostListView": {
+                "type": "object",
+                "properties": {
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.recurringCostView"
+                        }
+                    },
+                    "monthly_commitment_micros": {
+                        "description": "MonthlyCommitmentMicros is, per currency, what the active schedules\ncommit each month: monthly amounts plus a twelfth of yearly ones.",
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "integer",
+                            "format": "int64"
+                        },
+                        "example": {
+                            "EUR": 130000000
+                        }
+                    }
+                }
+            },
+            "costtracking.recurringCostView": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros is what each due date posts, in micros of the currency.",
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "code": {
+                        "description": "Code is the catalog item the posted lines land on.",
+                        "type": "string",
+                        "example": "infra/hebergement-ovh"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "ends_on": {
+                        "description": "EndsOn is the last due date posted, inclusive; absent while the schedule is open.",
+                        "type": "string",
+                        "example": "2027-09-01"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "interval": {
+                        "type": "string",
+                        "enum": [
+                            "month",
+                            "year"
+                        ],
+                        "example": "month"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "last_posted_on": {
+                        "type": "string",
+                        "example": "2026-10-01"
+                    },
+                    "next_due_on": {
+                        "description": "NextDueOn is the first due date after today; absent once the schedule is over.",
+                        "type": "string",
+                        "example": "2026-11-01"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "starts_on": {
+                        "type": "string",
+                        "example": "2026-10-01"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
+                    },
+                    "updated_at": {
+                        "type": "string"
                     }
                 }
             },
@@ -7116,11 +8951,47 @@
                     "name": {
                         "type": "string"
                     },
+                    "pricing_site": {
+                        "description": "PricingSite is searched for a pricing page when PricingURL is unset; \"\" clears it.",
+                        "type": "string",
+                        "example": "https://elevenlabs.io"
+                    },
+                    "pricing_url": {
+                        "description": "PricingURL is the supplier page the pricing watch reads; \"\" clears it.",
+                        "type": "string",
+                        "example": "https://elevenlabs.io/pricing"
+                    },
                     "supplier": {
                         "type": "string"
                     },
                     "unit_label": {
                         "type": "string"
+                    }
+                }
+            },
+            "costtracking.updateRecurringCostRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros applies from the next due date; posted lines keep their amount.",
+                        "type": "integer",
+                        "example": 135000000
+                    },
+                    "ends_on": {
+                        "description": "EndsOn empty reopens the schedule.",
+                        "type": "string",
+                        "example": "2027-09-01"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
                     }
                 }
             },
@@ -7596,6 +9467,27 @@
                     }
                 }
             },
+            "finance.checkoutConsentResponse": {
+                "type": "object",
+                "properties": {
+                    "consent_required": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "consent_required"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "example": "withdrawal_waiver"
+                    },
+                    "text": {
+                        "description": "Text is the French sentence the buyer must accept, verbatim.",
+                        "type": "string"
+                    }
+                }
+            },
             "finance.checkoutMethodView": {
                 "type": "object",
                 "properties": {
@@ -7618,6 +9510,15 @@
                     }
                 }
             },
+            "finance.checkoutProviderResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "payment_provider_unavailable"
+                    }
+                }
+            },
             "finance.checkoutRequest": {
                 "type": "object",
                 "properties": {
@@ -7628,8 +9529,25 @@
                     "app_id": {
                         "type": "string"
                     },
+                    "buyer_kind": {
+                        "description": "BuyerKind is who the buyer is under the law. Omitted, the buyer is a\nconsumer. A business buyer is refused with 422: the offer is for\nconsumers only.",
+                        "type": "string",
+                        "default": "consumer",
+                        "enum": [
+                            "consumer",
+                            "business"
+                        ],
+                        "example": "consumer"
+                    },
                     "cancel_url": {
                         "type": "string"
+                    },
+                    "consents": {
+                        "description": "Consents are the affirmative acts the buyer performed. A tenant under the\nwaiver withdrawal policy requires \"withdrawal_waiver\" here, or the checkout\nis refused with 422.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
                     },
                     "country": {
                         "type": "string"
@@ -7681,6 +9599,15 @@
             "finance.checkoutSessionResponse": {
                 "type": "object",
                 "properties": {
+                    "buyer_kind": {
+                        "description": "BuyerKind is who the buyer declared itself to be at checkout.",
+                        "type": "string",
+                        "enum": [
+                            "consumer",
+                            "business"
+                        ],
+                        "example": "consumer"
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -7712,6 +9639,10 @@
                         "type": "string"
                     },
                     "subscription_status": {
+                        "type": "string"
+                    },
+                    "withdrawal_waived_at": {
+                        "description": "WithdrawalWaivedAt is when the buyer expressly waived the 14-day right of\nwithdrawal. Absent under a refund policy.",
                         "type": "string"
                     }
                 }
@@ -8557,6 +10488,9 @@
                         "items": {
                             "$ref": "#/components/schemas/finance.planCatalogView"
                         }
+                    },
+                    "seller": {
+                        "$ref": "#/components/schemas/finance.sellerTermsView"
                     }
                 }
             },
@@ -8654,6 +10588,35 @@
                         "type": "string"
                     },
                     "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.sellerTermsView": {
+                "type": "object",
+                "properties": {
+                    "mediator_name": {
+                        "type": "string",
+                        "example": "CM2C"
+                    },
+                    "mediator_url": {
+                        "type": "string",
+                        "example": "https://cm2c.net"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Acme SAS"
+                    },
+                    "withdrawal_policy": {
+                        "type": "string",
+                        "enum": [
+                            "refund",
+                            "waiver"
+                        ],
+                        "example": "refund"
+                    },
+                    "withdrawal_text": {
+                        "description": "WithdrawalText is the French sentence to display: the right itself under\nrefund, the express waiver the buyer must tick under waiver.",
                         "type": "string"
                     }
                 }
@@ -8760,6 +10723,12 @@
                     "legal_mention": {
                         "type": "string"
                     },
+                    "mediator_name": {
+                        "type": "string"
+                    },
+                    "mediator_url": {
+                        "type": "string"
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -8786,6 +10755,13 @@
                     },
                     "vat_on_debits": {
                         "type": "boolean"
+                    },
+                    "withdrawal_policy": {
+                        "type": "string",
+                        "enum": [
+                            "refund",
+                            "waiver"
+                        ]
                     }
                 }
             },
@@ -8964,6 +10940,13 @@
                     "legal_mention": {
                         "type": "string"
                     },
+                    "mediator_name": {
+                        "type": "string"
+                    },
+                    "mediator_url": {
+                        "description": "MediatorURL must be empty or an absolute https URL.",
+                        "type": "string"
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -8984,6 +10967,14 @@
                     },
                     "vat_on_debits": {
                         "type": "boolean"
+                    },
+                    "withdrawal_policy": {
+                        "description": "WithdrawalPolicy is \"refund\" or \"waiver\".",
+                        "type": "string",
+                        "enum": [
+                            "refund",
+                            "waiver"
+                        ]
                     }
                 }
             },
