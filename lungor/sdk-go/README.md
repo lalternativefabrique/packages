@@ -178,6 +178,14 @@ out, err := client.Checkout(ctx, sdk.CheckoutInput{
 The amount is never sent. Lungor prices the tier, so the page shown and the
 amount charged cannot disagree.
 
+`BuyerKind` says who the buyer is under the law: `sdk.BuyerConsumer` (the
+default when left empty) or `sdk.BuyerBusiness`. The invoice follows — a
+consumer gets the mediator and the 14-day withdrawal notes, a business the B2B
+settlement terms. An offer for consumers only refuses a business buyer with
+`ErrBusinessBuyersNotAccepted` (a 422 that also matches `ErrUnprocessable`),
+so the page can say so and let the buyer retry as a consumer. `CheckoutSession`
+reports the kind back as `BuyerKind`.
+
 ### Reading how it ended
 
 The provider's redirect says nothing about the outcome: Mollie sends the payer

@@ -198,7 +198,26 @@ var (
 	// ErrUnprocessable — Lungor understood the request but refuses it in the
 	// current state (422). Not transient: a retry gets the same answer.
 	ErrUnprocessable = errors.New("lungor: unprocessable")
+	// ErrBusinessBuyersNotAccepted — the checkout named a business buyer and
+	// the offer is for consumers only (422, business_buyers_not_accepted).
+	//
+	// Its own sentinel, wrapping ErrUnprocessable, because it is the one 422 a
+	// checkout page shows a dedicated message for: the buyer chose the wrong
+	// kind, and retrying as a consumer is the way through.
+	ErrBusinessBuyersNotAccepted = fmt.Errorf("%w: business buyers not accepted", ErrUnprocessable)
 )
+
+// BuyerKind is who the buyer is under the law. It decides the terms the
+// invoice carries: a consumer gets the mediator and the 14-day withdrawal
+// notes, a business the B2B settlement terms.
+type BuyerKind string
+
+const (
+	BuyerConsumer BuyerKind = "consumer"
+	BuyerBusiness BuyerKind = "business"
+)
+
+const businessBuyersNotAcceptedCode = "business_buyers_not_accepted"
 
 // StatusNoSubscription is what Lungor reports for a user it has never seen.
 //
@@ -399,6 +418,10 @@ type CheckoutInput struct {
 	// obeyed, so a stale page cannot sell a plan on a method that would never
 	// renew.
 	PaymentMethod string
+	// BuyerKind is who the buyer declared itself to be. Empty is omitted, which
+	// Lungor reads as BuyerConsumer. BuyerBusiness is refused with
+	// ErrBusinessBuyersNotAccepted when the offer is for consumers only.
+	BuyerKind BuyerKind
 }
 
 // Checkout is the session Lungor opened.
@@ -437,14 +460,32 @@ func (c *Client) Checkout(ctx context.Context, in CheckoutInput) (Checkout, erro
 	if in.PaymentMethod != "" {
 		req.PaymentMethod = &in.PaymentMethod
 	}
+	if in.BuyerKind != "" {
+		kind := wire.FinanceCheckoutRequestBuyerKind(in.BuyerKind)
+		req.BuyerKind = &kind
+	}
 
 	var body wire.FinanceCheckoutResponse
 	if err := c.send(ctx, &body, func() (*http.Response, error) {
 		return c.wire.Checkout(ctx, req)
 	}); err != nil {
-		return Checkout{}, err
+		return Checkout{}, checkoutError(err)
 	}
 	return checkoutFrom(body), nil
+}
+
+func checkoutError(err error) error {
+	if !errors.Is(err, ErrUnprocessable) {
+		return err
+	}
+	detail := strings.TrimPrefix(err.Error(), ErrUnprocessable.Error()+": ")
+	var body struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal([]byte(detail), &body) != nil || body.Error != businessBuyersNotAcceptedCode {
+		return err
+	}
+	return fmt.Errorf("%w: %s", ErrBusinessBuyersNotAccepted, detail)
 }
 
 // CheckoutMethod is one way a plan may be paid for.

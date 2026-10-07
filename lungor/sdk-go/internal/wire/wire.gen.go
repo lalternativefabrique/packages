@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/oapi-codegen/runtime"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
@@ -21,12 +22,49 @@ const (
 	BearerAuthScopes = "BearerAuth.Scopes"
 )
 
+// Defines values for CosttrackingCostAttachmentViewContentType.
+const (
+	Applicationpdf CosttrackingCostAttachmentViewContentType = "application/pdf"
+	Imagejpeg      CosttrackingCostAttachmentViewContentType = "image/jpeg"
+	Imagepng       CosttrackingCostAttachmentViewContentType = "image/png"
+)
+
+// Defines values for CosttrackingCostEntryViewCategory.
+const (
+	CosttrackingCostEntryViewCategoryApi          CosttrackingCostEntryViewCategory = "api"
+	CosttrackingCostEntryViewCategoryInfra        CosttrackingCostEntryViewCategory = "infra"
+	CosttrackingCostEntryViewCategoryOther        CosttrackingCostEntryViewCategory = "other"
+	CosttrackingCostEntryViewCategorySubscription CosttrackingCostEntryViewCategory = "subscription"
+)
+
+// Defines values for CosttrackingCostReportRowViewCategory.
+const (
+	CosttrackingCostReportRowViewCategoryApi          CosttrackingCostReportRowViewCategory = "api"
+	CosttrackingCostReportRowViewCategoryInfra        CosttrackingCostReportRowViewCategory = "infra"
+	CosttrackingCostReportRowViewCategoryOther        CosttrackingCostReportRowViewCategory = "other"
+	CosttrackingCostReportRowViewCategorySubscription CosttrackingCostReportRowViewCategory = "subscription"
+)
+
+// Defines values for CosttrackingCreateRecurringCostRequestCategory.
+const (
+	CosttrackingCreateRecurringCostRequestCategoryApi          CosttrackingCreateRecurringCostRequestCategory = "api"
+	CosttrackingCreateRecurringCostRequestCategoryInfra        CosttrackingCreateRecurringCostRequestCategory = "infra"
+	CosttrackingCreateRecurringCostRequestCategoryOther        CosttrackingCreateRecurringCostRequestCategory = "other"
+	CosttrackingCreateRecurringCostRequestCategorySubscription CosttrackingCreateRecurringCostRequestCategory = "subscription"
+)
+
+// Defines values for CosttrackingCreateRecurringCostRequestInterval.
+const (
+	CosttrackingCreateRecurringCostRequestIntervalMonth CosttrackingCreateRecurringCostRequestInterval = "month"
+	CosttrackingCreateRecurringCostRequestIntervalYear  CosttrackingCreateRecurringCostRequestInterval = "year"
+)
+
 // Defines values for CosttrackingImportLLMPriceLineViewOutcome.
 const (
-	Created   CosttrackingImportLLMPriceLineViewOutcome = "created"
-	Repriced  CosttrackingImportLLMPriceLineViewOutcome = "repriced"
-	Unchanged CosttrackingImportLLMPriceLineViewOutcome = "unchanged"
-	Updated   CosttrackingImportLLMPriceLineViewOutcome = "updated"
+	CosttrackingImportLLMPriceLineViewOutcomeCreated   CosttrackingImportLLMPriceLineViewOutcome = "created"
+	CosttrackingImportLLMPriceLineViewOutcomeRepriced  CosttrackingImportLLMPriceLineViewOutcome = "repriced"
+	CosttrackingImportLLMPriceLineViewOutcomeUnchanged CosttrackingImportLLMPriceLineViewOutcome = "unchanged"
+	CosttrackingImportLLMPriceLineViewOutcomeUpdated   CosttrackingImportLLMPriceLineViewOutcome = "updated"
 )
 
 // Defines values for CosttrackingImportLLMPricesRequestProvider.
@@ -34,6 +72,68 @@ const (
 	Deepseek CosttrackingImportLLMPricesRequestProvider = "deepseek"
 	Ovh      CosttrackingImportLLMPricesRequestProvider = "ovh"
 	Scaleway CosttrackingImportLLMPricesRequestProvider = "scaleway"
+)
+
+// Defines values for CosttrackingInvoiceReadingViewCategory.
+const (
+	CosttrackingInvoiceReadingViewCategoryApi          CosttrackingInvoiceReadingViewCategory = "api"
+	CosttrackingInvoiceReadingViewCategoryInfra        CosttrackingInvoiceReadingViewCategory = "infra"
+	CosttrackingInvoiceReadingViewCategoryOther        CosttrackingInvoiceReadingViewCategory = "other"
+	CosttrackingInvoiceReadingViewCategorySubscription CosttrackingInvoiceReadingViewCategory = "subscription"
+)
+
+// Defines values for CosttrackingInvoiceReadingViewConfidence.
+const (
+	High CosttrackingInvoiceReadingViewConfidence = "high"
+	Low  CosttrackingInvoiceReadingViewConfidence = "low"
+)
+
+// Defines values for CosttrackingPricingSnapshotViewStatus.
+const (
+	CosttrackingPricingSnapshotViewStatusBaseline  CosttrackingPricingSnapshotViewStatus = "baseline"
+	CosttrackingPricingSnapshotViewStatusChanged   CosttrackingPricingSnapshotViewStatus = "changed"
+	CosttrackingPricingSnapshotViewStatusError     CosttrackingPricingSnapshotViewStatus = "error"
+	CosttrackingPricingSnapshotViewStatusUnchanged CosttrackingPricingSnapshotViewStatus = "unchanged"
+)
+
+// Defines values for CosttrackingRecordDirectCostRequestCategory.
+const (
+	CosttrackingRecordDirectCostRequestCategoryApi          CosttrackingRecordDirectCostRequestCategory = "api"
+	CosttrackingRecordDirectCostRequestCategoryInfra        CosttrackingRecordDirectCostRequestCategory = "infra"
+	CosttrackingRecordDirectCostRequestCategoryOther        CosttrackingRecordDirectCostRequestCategory = "other"
+	CosttrackingRecordDirectCostRequestCategorySubscription CosttrackingRecordDirectCostRequestCategory = "subscription"
+)
+
+// Defines values for CosttrackingRecurringCostViewCategory.
+const (
+	CosttrackingRecurringCostViewCategoryApi          CosttrackingRecurringCostViewCategory = "api"
+	CosttrackingRecurringCostViewCategoryInfra        CosttrackingRecurringCostViewCategory = "infra"
+	CosttrackingRecurringCostViewCategoryOther        CosttrackingRecurringCostViewCategory = "other"
+	CosttrackingRecurringCostViewCategorySubscription CosttrackingRecurringCostViewCategory = "subscription"
+)
+
+// Defines values for CosttrackingRecurringCostViewInterval.
+const (
+	CosttrackingRecurringCostViewIntervalMonth CosttrackingRecurringCostViewInterval = "month"
+	CosttrackingRecurringCostViewIntervalYear  CosttrackingRecurringCostViewInterval = "year"
+)
+
+// Defines values for FinanceCheckoutRequestBuyerKind.
+const (
+	FinanceCheckoutRequestBuyerKindBusiness FinanceCheckoutRequestBuyerKind = "business"
+	FinanceCheckoutRequestBuyerKindConsumer FinanceCheckoutRequestBuyerKind = "consumer"
+)
+
+// Defines values for FinanceCheckoutSessionResponseBuyerKind.
+const (
+	FinanceCheckoutSessionResponseBuyerKindBusiness FinanceCheckoutSessionResponseBuyerKind = "business"
+	FinanceCheckoutSessionResponseBuyerKindConsumer FinanceCheckoutSessionResponseBuyerKind = "consumer"
+)
+
+// Defines values for FinanceSellerTermsViewWithdrawalPolicy.
+const (
+	Refund FinanceSellerTermsViewWithdrawalPolicy = "refund"
+	Waiver FinanceSellerTermsViewWithdrawalPolicy = "waiver"
 )
 
 // Defines values for MeteringBalanceResponseKind.
@@ -47,6 +147,28 @@ const (
 	MeteringUnitViewKindCapacity MeteringUnitViewKind = "capacity"
 	MeteringUnitViewKindMetered  MeteringUnitViewKind = "metered"
 )
+
+// BalanceBalanceLineView defines model for balance.balanceLineView.
+type BalanceBalanceLineView struct {
+	// AppId AppID is empty on the common line: costs recorded against no app.
+	AppId         *string `json:"app_id,omitempty"`
+	AppName       *string `json:"app_name,omitempty"`
+	BalanceCents  *int    `json:"balance_cents,omitempty"`
+	ChargedCents  *int    `json:"charged_cents,omitempty"`
+	CreditCents   *int    `json:"credit_cents,omitempty"`
+	DebitCents    *int    `json:"debit_cents,omitempty"`
+	FeeCents      *int    `json:"fee_cents,omitempty"`
+	RefundedCents *int    `json:"refunded_cents,omitempty"`
+}
+
+// BalanceBalanceView defines model for balance.balanceView.
+type BalanceBalanceView struct {
+	Currency *string                   `json:"currency,omitempty"`
+	From     *string                   `json:"from,omitempty"`
+	Lines    *[]BalanceBalanceLineView `json:"lines,omitempty"`
+	To       *string                   `json:"to,omitempty"`
+	Total    *BalanceBalanceLineView   `json:"total,omitempty"`
+}
 
 // CosttrackingAppCustomerCostResponse defines model for costtracking.appCustomerCostResponse.
 type CosttrackingAppCustomerCostResponse struct {
@@ -77,10 +199,76 @@ type CosttrackingAppModelCostResponse struct {
 	Tokens     *int    `json:"tokens,omitempty"`
 }
 
+// CosttrackingCostAttachmentView defines model for costtracking.costAttachmentView.
+type CosttrackingCostAttachmentView struct {
+	ContentType *CosttrackingCostAttachmentViewContentType `json:"content_type,omitempty"`
+	CreatedAt   *string                                    `json:"created_at,omitempty"`
+	Filename    *string                                    `json:"filename,omitempty"`
+	Id          *string                                    `json:"id,omitempty"`
+	RecordId    *string                                    `json:"record_id,omitempty"`
+	SizeBytes   *int                                       `json:"size_bytes,omitempty"`
+}
+
+// CosttrackingCostAttachmentViewContentType defines model for CosttrackingCostAttachmentView.ContentType.
+type CosttrackingCostAttachmentViewContentType string
+
 // CosttrackingCostDeclarerView defines model for costtracking.costDeclarerView.
 type CosttrackingCostDeclarerView struct {
 	CreatedAt     *string `json:"created_at,omitempty"`
 	DeclarerAppId *string `json:"declarer_app_id,omitempty"`
+}
+
+// CosttrackingCostEntriesView defines model for costtracking.costEntriesView.
+type CosttrackingCostEntriesView struct {
+	Entries *[]CosttrackingCostEntryView `json:"entries,omitempty"`
+	From    *string                      `json:"from,omitempty"`
+	To      *string                      `json:"to,omitempty"`
+}
+
+// CosttrackingCostEntryView defines model for costtracking.costEntryView.
+type CosttrackingCostEntryView struct {
+	AmountMicros    *int `json:"amount_micros,omitempty"`
+	AttachmentCount *int `json:"attachment_count,omitempty"`
+
+	// Category Category is set on a free-amount entry (code `<category>/<slug>`).
+	Category   *CosttrackingCostEntryViewCategory `json:"category,omitempty"`
+	Currency   *string                            `json:"currency,omitempty"`
+	Id         *string                            `json:"id,omitempty"`
+	ItemCode   *string                            `json:"item_code,omitempty"`
+	ItemName   *string                            `json:"item_name,omitempty"`
+	Note       *string                            `json:"note,omitempty"`
+	OccurredAt *string                            `json:"occurred_at,omitempty"`
+
+	// Recurring Recurring is set on a line a recurring schedule posted.
+	Recurring *bool   `json:"recurring,omitempty"`
+	Supplier  *string `json:"supplier,omitempty"`
+}
+
+// CosttrackingCostEntryViewCategory Category is set on a free-amount entry (code `<category>/<slug>`).
+type CosttrackingCostEntryViewCategory string
+
+// CosttrackingCostItemView defines model for costtracking.costItemView.
+type CosttrackingCostItemView struct {
+	Active *bool `json:"active,omitempty"`
+
+	// Attached Attached is only meaningful on the per-app listing.
+	Attached         *bool                      `json:"attached,omitempty"`
+	Code             *string                    `json:"code,omitempty"`
+	Currency         *string                    `json:"currency,omitempty"`
+	CurrentPrice     *CosttrackingCostPriceView `json:"current_price,omitempty"`
+	Id               *string                    `json:"id,omitempty"`
+	Name             *string                    `json:"name,omitempty"`
+	OwnerAppId       *string                    `json:"owner_app_id,omitempty"`
+	PricingCheckedAt *string                    `json:"pricing_checked_at,omitempty"`
+
+	// PricingReviewPending PricingReviewPending is set when the watched pricing page changed and
+	// no one has reviewed it yet.
+	PricingReviewPending *bool   `json:"pricing_review_pending,omitempty"`
+	PricingSite          *string `json:"pricing_site,omitempty"`
+	PricingUrl           *string `json:"pricing_url,omitempty"`
+	Supplier             *string `json:"supplier,omitempty"`
+	UnitLabel            *string `json:"unit_label,omitempty"`
+	UnitSize             *int    `json:"unit_size,omitempty"`
 }
 
 // CosttrackingCostLineRequest defines model for costtracking.costLineRequest.
@@ -102,14 +290,30 @@ type CosttrackingCostLineRequest struct {
 	RunKey   *string `json:"run_key,omitempty"`
 }
 
+// CosttrackingCostPriceView defines model for costtracking.costPriceView.
+type CosttrackingCostPriceView struct {
+	CreatedAt          *string `json:"created_at,omitempty"`
+	EffectiveFrom      *string `json:"effective_from,omitempty"`
+	Id                 *string `json:"id,omitempty"`
+	PriceMicrosPerUnit *int    `json:"price_micros_per_unit,omitempty"`
+}
+
 // CosttrackingCostReportRowView defines model for costtracking.costReportRowView.
 type CosttrackingCostReportRowView struct {
-	AmountMicros *int    `json:"amount_micros,omitempty"`
-	Currency     *string `json:"currency,omitempty"`
-	Key          *string `json:"key,omitempty"`
-	Quantity     *int    `json:"quantity,omitempty"`
-	Records      *int    `json:"records,omitempty"`
+	AmountMicros *int                                   `json:"amount_micros,omitempty"`
+	Category     *CosttrackingCostReportRowViewCategory `json:"category,omitempty"`
+	Currency     *string                                `json:"currency,omitempty"`
+
+	// ItemName ItemName, Supplier and Category are set when grouping by item; Category only on a free-amount item.
+	ItemName *string `json:"item_name,omitempty"`
+	Key      *string `json:"key,omitempty"`
+	Quantity *int    `json:"quantity,omitempty"`
+	Records  *int    `json:"records,omitempty"`
+	Supplier *string `json:"supplier,omitempty"`
 }
+
+// CosttrackingCostReportRowViewCategory defines model for CosttrackingCostReportRowView.Category.
+type CosttrackingCostReportRowViewCategory string
 
 // CosttrackingCostReportView defines model for costtracking.costReportView.
 type CosttrackingCostReportView struct {
@@ -135,6 +339,46 @@ type CosttrackingCostSummaryResponse struct {
 	Currency    *string                             `json:"currency,omitempty"`
 	PeriodEnd   *string                             `json:"period_end,omitempty"`
 	PeriodStart *string                             `json:"period_start,omitempty"`
+}
+
+// CosttrackingCreateRecurringCostRequest defines model for costtracking.createRecurringCostRequest.
+type CosttrackingCreateRecurringCostRequest struct {
+	// AmountMicros AmountMicros is posted at each due date, in micros of the currency (1 EUR = 1 000 000).
+	AmountMicros *int                                            `json:"amount_micros,omitempty"`
+	Category     *CosttrackingCreateRecurringCostRequestCategory `json:"category,omitempty"`
+
+	// Currency Currency defaults to EUR; it must match the item when one already exists for this label.
+	Currency *string `json:"currency,omitempty"`
+
+	// EndsOn EndsOn is the last due date, inclusive.
+	EndsOn   *string                                         `json:"ends_on,omitempty"`
+	Interval *CosttrackingCreateRecurringCostRequestInterval `json:"interval,omitempty"`
+	Label    *string                                         `json:"label,omitempty"`
+	Note     *string                                         `json:"note,omitempty"`
+
+	// StartsOn StartsOn is the first due date; due dates already reached are posted at once.
+	StartsOn *string `json:"starts_on,omitempty"`
+	Supplier *string `json:"supplier,omitempty"`
+}
+
+// CosttrackingCreateRecurringCostRequestCategory defines model for CosttrackingCreateRecurringCostRequest.Category.
+type CosttrackingCreateRecurringCostRequestCategory string
+
+// CosttrackingCreateRecurringCostRequestInterval defines model for CosttrackingCreateRecurringCostRequest.Interval.
+type CosttrackingCreateRecurringCostRequestInterval string
+
+// CosttrackingDetectedAmountView defines model for costtracking.detectedAmountView.
+type CosttrackingDetectedAmountView struct {
+	Context  *string `json:"context,omitempty"`
+	Currency *string `json:"currency,omitempty"`
+	Unit     *string `json:"unit,omitempty"`
+	Value    *string `json:"value,omitempty"`
+}
+
+// CosttrackingEndRecurringCostRequest defines model for costtracking.endRecurringCostRequest.
+type CosttrackingEndRecurringCostRequest struct {
+	// EndsOn EndsOn is the last due date posted, inclusive; defaults to today.
+	EndsOn *string `json:"ends_on,omitempty"`
 }
 
 // CosttrackingImportLLMPriceLineView defines model for costtracking.importLLMPriceLineView.
@@ -182,6 +426,33 @@ type CosttrackingIngestResponse struct {
 	UnknownUsers *[]string `json:"unknown_users,omitempty"`
 }
 
+// CosttrackingInvoiceReadingView defines model for costtracking.invoiceReadingView.
+type CosttrackingInvoiceReadingView struct {
+	// AmountExclTaxMicros Amounts are micros of the currency (1 EUR = 1 000 000); absent when not read.
+	AmountExclTaxMicros *int                                    `json:"amount_excl_tax_micros,omitempty"`
+	AmountInclTaxMicros *int                                    `json:"amount_incl_tax_micros,omitempty"`
+	Category            *CosttrackingInvoiceReadingViewCategory `json:"category,omitempty"`
+
+	// Confidence Confidence is high when supplier, date and an amount were all read.
+	Confidence  *CosttrackingInvoiceReadingViewConfidence `json:"confidence,omitempty"`
+	Currency    *string                                   `json:"currency,omitempty"`
+	InvoiceDate *string                                   `json:"invoice_date,omitempty"`
+	Label       *string                                   `json:"label,omitempty"`
+	PeriodEnd   *string                                   `json:"period_end,omitempty"`
+	PeriodStart *string                                   `json:"period_start,omitempty"`
+
+	// RawExcerpt RawExcerpt is the first 300 characters read from the file, to judge the reading by.
+	RawExcerpt *string `json:"raw_excerpt,omitempty"`
+	Supplier   *string `json:"supplier,omitempty"`
+	TaxMicros  *int    `json:"tax_micros,omitempty"`
+}
+
+// CosttrackingInvoiceReadingViewCategory defines model for CosttrackingInvoiceReadingView.Category.
+type CosttrackingInvoiceReadingViewCategory string
+
+// CosttrackingInvoiceReadingViewConfidence Confidence is high when supplier, date and an amount were all read.
+type CosttrackingInvoiceReadingViewConfidence string
+
 // CosttrackingLlmUsageBatch defines model for costtracking.llmUsageBatch.
 type CosttrackingLlmUsageBatch struct {
 	// BucketStart BucketStart is the window's start, floored server-side to the aggregation
@@ -215,6 +486,27 @@ type CosttrackingMyCostReportResponse struct {
 	PeriodStart *string `json:"period_start,omitempty"`
 }
 
+// CosttrackingPricingReviewView defines model for costtracking.pricingReviewView.
+type CosttrackingPricingReviewView struct {
+	Item     *CosttrackingCostItemView        `json:"item,omitempty"`
+	Latest   *CosttrackingPricingSnapshotView `json:"latest,omitempty"`
+	Previous *CosttrackingPricingSnapshotView `json:"previous,omitempty"`
+}
+
+// CosttrackingPricingSnapshotView defines model for costtracking.pricingSnapshotView.
+type CosttrackingPricingSnapshotView struct {
+	Amounts   *[]CosttrackingDetectedAmountView      `json:"amounts,omitempty"`
+	Error     *string                                `json:"error,omitempty"`
+	Excerpt   *string                                `json:"excerpt,omitempty"`
+	FetchedAt *string                                `json:"fetched_at,omitempty"`
+	Id        *string                                `json:"id,omitempty"`
+	PageUrl   *string                                `json:"page_url,omitempty"`
+	Status    *CosttrackingPricingSnapshotViewStatus `json:"status,omitempty"`
+}
+
+// CosttrackingPricingSnapshotViewStatus defines model for CosttrackingPricingSnapshotView.Status.
+type CosttrackingPricingSnapshotViewStatus string
+
 // CosttrackingRecordCostsRequest defines model for costtracking.recordCostsRequest.
 type CosttrackingRecordCostsRequest struct {
 	Lines *[]CosttrackingCostLineRequest `json:"lines,omitempty"`
@@ -229,17 +521,96 @@ type CosttrackingRecordCostsResponse struct {
 	Lines    *[]CosttrackingRecordedCostView `json:"lines,omitempty"`
 }
 
+// CosttrackingRecordDirectCostRequest defines model for costtracking.recordDirectCostRequest.
+type CosttrackingRecordDirectCostRequest struct {
+	// AmountMicros AmountMicros is the amount paid, in micros of the currency (1 EUR = 1 000 000).
+	AmountMicros *int                                         `json:"amount_micros,omitempty"`
+	Category     *CosttrackingRecordDirectCostRequestCategory `json:"category,omitempty"`
+
+	// Currency Currency defaults to EUR; it must match the item when one already exists for this label.
+	Currency *string `json:"currency,omitempty"`
+
+	// IdempotencyKey IdempotencyKey is generated when absent: a form entry is not a retried call.
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	Label          *string `json:"label,omitempty"`
+	Note           *string `json:"note,omitempty"`
+	OccurredAt     *string `json:"occurred_at,omitempty"`
+	Supplier       *string `json:"supplier,omitempty"`
+}
+
+// CosttrackingRecordDirectCostRequestCategory defines model for CosttrackingRecordDirectCostRequest.Category.
+type CosttrackingRecordDirectCostRequestCategory string
+
 // CosttrackingRecordedCostView defines model for costtracking.recordedCostView.
 type CosttrackingRecordedCostView struct {
-	AmountMicros       *int    `json:"amount_micros,omitempty"`
-	AppId              *string `json:"app_id,omitempty"`
-	Code               *string `json:"code,omitempty"`
-	Currency           *string `json:"currency,omitempty"`
+	AmountMicros *int `json:"amount_micros,omitempty"`
+
+	// AppId AppID is absent on a cost common to the tenant.
+	AppId    *string `json:"app_id,omitempty"`
+	Code     *string `json:"code,omitempty"`
+	Currency *string `json:"currency,omitempty"`
+
+	// Id ID is the record's, the one an attachment is added to.
+	Id                 *string `json:"id,omitempty"`
 	IdempotencyKey     *string `json:"idempotency_key,omitempty"`
+	Note               *string `json:"note,omitempty"`
 	PriceId            *string `json:"price_id,omitempty"`
 	PriceMicrosPerUnit *int    `json:"price_micros_per_unit,omitempty"`
 	Quantity           *int    `json:"quantity,omitempty"`
 	UnitSize           *int    `json:"unit_size,omitempty"`
+}
+
+// CosttrackingRecurringCostListView defines model for costtracking.recurringCostListView.
+type CosttrackingRecurringCostListView struct {
+	Items *[]CosttrackingRecurringCostView `json:"items,omitempty"`
+
+	// MonthlyCommitmentMicros MonthlyCommitmentMicros is, per currency, what the active schedules
+	// commit each month: monthly amounts plus a twelfth of yearly ones.
+	MonthlyCommitmentMicros *map[string]int64 `json:"monthly_commitment_micros,omitempty"`
+}
+
+// CosttrackingRecurringCostView defines model for costtracking.recurringCostView.
+type CosttrackingRecurringCostView struct {
+	// AmountMicros AmountMicros is what each due date posts, in micros of the currency.
+	AmountMicros *int                                   `json:"amount_micros,omitempty"`
+	Category     *CosttrackingRecurringCostViewCategory `json:"category,omitempty"`
+
+	// Code Code is the catalog item the posted lines land on.
+	Code      *string `json:"code,omitempty"`
+	CreatedAt *string `json:"created_at,omitempty"`
+	Currency  *string `json:"currency,omitempty"`
+
+	// EndsOn EndsOn is the last due date posted, inclusive; absent while the schedule is open.
+	EndsOn       *string                                `json:"ends_on,omitempty"`
+	Id           *string                                `json:"id,omitempty"`
+	Interval     *CosttrackingRecurringCostViewInterval `json:"interval,omitempty"`
+	Label        *string                                `json:"label,omitempty"`
+	LastPostedOn *string                                `json:"last_posted_on,omitempty"`
+
+	// NextDueOn NextDueOn is the first due date after today; absent once the schedule is over.
+	NextDueOn *string `json:"next_due_on,omitempty"`
+	Note      *string `json:"note,omitempty"`
+	StartsOn  *string `json:"starts_on,omitempty"`
+	Supplier  *string `json:"supplier,omitempty"`
+	UpdatedAt *string `json:"updated_at,omitempty"`
+}
+
+// CosttrackingRecurringCostViewCategory defines model for CosttrackingRecurringCostView.Category.
+type CosttrackingRecurringCostViewCategory string
+
+// CosttrackingRecurringCostViewInterval defines model for CosttrackingRecurringCostView.Interval.
+type CosttrackingRecurringCostViewInterval string
+
+// CosttrackingUpdateRecurringCostRequest defines model for costtracking.updateRecurringCostRequest.
+type CosttrackingUpdateRecurringCostRequest struct {
+	// AmountMicros AmountMicros applies from the next due date; posted lines keep their amount.
+	AmountMicros *int `json:"amount_micros,omitempty"`
+
+	// EndsOn EndsOn empty reopens the schedule.
+	EndsOn   *string `json:"ends_on,omitempty"`
+	Label    *string `json:"label,omitempty"`
+	Note     *string `json:"note,omitempty"`
+	Supplier *string `json:"supplier,omitempty"`
 }
 
 // CreateEndpointCreateEndpointRequest defines model for create_endpoint.CreateEndpointRequest.
@@ -341,6 +712,16 @@ type FinanceAppWithdrawPendingResponse struct {
 	Withdrawn *bool   `json:"withdrawn,omitempty"`
 }
 
+// FinanceCheckoutConsentResponse defines model for finance.checkoutConsentResponse.
+type FinanceCheckoutConsentResponse struct {
+	ConsentRequired *bool   `json:"consent_required,omitempty"`
+	Error           *string `json:"error,omitempty"`
+	Kind            *string `json:"kind,omitempty"`
+
+	// Text Text is the French sentence the buyer must accept, verbatim.
+	Text *string `json:"text,omitempty"`
+}
+
 // FinanceCheckoutMethodView defines model for finance.checkoutMethodView.
 type FinanceCheckoutMethodView struct {
 	Id    *string `json:"id,omitempty"`
@@ -352,18 +733,33 @@ type FinanceCheckoutMethodsResponse struct {
 	Methods *[]FinanceCheckoutMethodView `json:"methods,omitempty"`
 }
 
+// FinanceCheckoutProviderResponse defines model for finance.checkoutProviderResponse.
+type FinanceCheckoutProviderResponse struct {
+	Error *string `json:"error,omitempty"`
+}
+
 // FinanceCheckoutRequest defines model for finance.checkoutRequest.
 type FinanceCheckoutRequest struct {
 	// AmountCents AmountCents is what the payer chose, for a plan that lets them choose.
 	// Omitted on a fixed-price plan; stating one there is refused, never
 	// ignored. The plan's own bounds are what this is checked against —
 	// the figure is a request, not an instruction.
-	AmountCents    *int    `json:"amount_cents,omitempty"`
-	AppId          *string `json:"app_id,omitempty"`
-	CancelUrl      *string `json:"cancel_url,omitempty"`
-	Country        *string `json:"country,omitempty"`
-	Email          *string `json:"email,omitempty"`
-	ExternalUserId *string `json:"external_user_id,omitempty"`
+	AmountCents *int    `json:"amount_cents,omitempty"`
+	AppId       *string `json:"app_id,omitempty"`
+
+	// BuyerKind BuyerKind is who the buyer is under the law. Omitted, the buyer is a
+	// consumer. A business buyer is refused with 422: the offer is for
+	// consumers only.
+	BuyerKind *FinanceCheckoutRequestBuyerKind `json:"buyer_kind,omitempty"`
+	CancelUrl *string                          `json:"cancel_url,omitempty"`
+
+	// Consents Consents are the affirmative acts the buyer performed. A tenant under the
+	// waiver withdrawal policy requires "withdrawal_waiver" here, or the checkout
+	// is refused with 422.
+	Consents       *[]string `json:"consents,omitempty"`
+	Country        *string   `json:"country,omitempty"`
+	Email          *string   `json:"email,omitempty"`
+	ExternalUserId *string   `json:"external_user_id,omitempty"`
 
 	// Name Name is the customer's legal name, as it must appear on the invoice.
 	// Optional: an omitted name never clears one already on record, and the
@@ -389,6 +785,11 @@ type FinanceCheckoutRequest struct {
 	TenantId   *string `json:"tenant_id,omitempty"`
 }
 
+// FinanceCheckoutRequestBuyerKind BuyerKind is who the buyer is under the law. Omitted, the buyer is a
+// consumer. A business buyer is refused with 422: the offer is for
+// consumers only.
+type FinanceCheckoutRequestBuyerKind string
+
 // FinanceCheckoutResponse defines model for finance.checkoutResponse.
 type FinanceCheckoutResponse struct {
 	RedirectUrl    *string `json:"redirect_url,omitempty"`
@@ -398,9 +799,11 @@ type FinanceCheckoutResponse struct {
 
 // FinanceCheckoutSessionResponse defines model for finance.checkoutSessionResponse.
 type FinanceCheckoutSessionResponse struct {
-	CreatedAt      *string `json:"created_at,omitempty"`
-	ExpiresAt      *string `json:"expires_at,omitempty"`
-	ExternalUserId *string `json:"external_user_id,omitempty"`
+	// BuyerKind BuyerKind is who the buyer declared itself to be at checkout.
+	BuyerKind      *FinanceCheckoutSessionResponseBuyerKind `json:"buyer_kind,omitempty"`
+	CreatedAt      *string                                  `json:"created_at,omitempty"`
+	ExpiresAt      *string                                  `json:"expires_at,omitempty"`
+	ExternalUserId *string                                  `json:"external_user_id,omitempty"`
 
 	// FailureReason FailureReason is the provider's own word for a refusal (Mollie:
 	// insufficient_funds, invalid_card_number…). Set on failed only.
@@ -417,7 +820,14 @@ type FinanceCheckoutSessionResponse struct {
 	Status             *string `json:"status,omitempty"`
 	SubscriptionId     *string `json:"subscription_id,omitempty"`
 	SubscriptionStatus *string `json:"subscription_status,omitempty"`
+
+	// WithdrawalWaivedAt WithdrawalWaivedAt is when the buyer expressly waived the 14-day right of
+	// withdrawal. Absent under a refund policy.
+	WithdrawalWaivedAt *string `json:"withdrawal_waived_at,omitempty"`
 }
+
+// FinanceCheckoutSessionResponseBuyerKind BuyerKind is who the buyer declared itself to be at checkout.
+type FinanceCheckoutSessionResponseBuyerKind string
 
 // FinanceEntitlementResponse defines model for finance.entitlementResponse.
 type FinanceEntitlementResponse struct {
@@ -484,8 +894,24 @@ type FinancePlanCatalogView struct {
 
 // FinancePlansResponse defines model for finance.plansResponse.
 type FinancePlansResponse struct {
-	Plans *[]FinancePlanCatalogView `json:"plans,omitempty"`
+	Plans  *[]FinancePlanCatalogView `json:"plans,omitempty"`
+	Seller *FinanceSellerTermsView   `json:"seller,omitempty"`
 }
+
+// FinanceSellerTermsView defines model for finance.sellerTermsView.
+type FinanceSellerTermsView struct {
+	MediatorName     *string                                 `json:"mediator_name,omitempty"`
+	MediatorUrl      *string                                 `json:"mediator_url,omitempty"`
+	Name             *string                                 `json:"name,omitempty"`
+	WithdrawalPolicy *FinanceSellerTermsViewWithdrawalPolicy `json:"withdrawal_policy,omitempty"`
+
+	// WithdrawalText WithdrawalText is the French sentence to display: the right itself under
+	// refund, the express waiver the buyer must tick under waiver.
+	WithdrawalText *string `json:"withdrawal_text,omitempty"`
+}
+
+// FinanceSellerTermsViewWithdrawalPolicy defines model for FinanceSellerTermsView.WithdrawalPolicy.
+type FinanceSellerTermsViewWithdrawalPolicy string
 
 // ListEndpointsResult defines model for list_endpoints.Result.
 type ListEndpointsResult struct {
@@ -734,6 +1160,54 @@ type GetUsageBalanceParams struct {
 	Unit string `form:"unit" json:"unit"`
 }
 
+// GetBalanceParams defines parameters for GetBalance.
+type GetBalanceParams struct {
+	// From Start (RFC3339). Defaults to the first of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+
+	// Currency ISO 4217 code. Defaults to EUR.
+	Currency *string `form:"currency,omitempty" json:"currency,omitempty"`
+}
+
+// GetBalanceCSVParams defines parameters for GetBalanceCSV.
+type GetBalanceCSVParams struct {
+	// From Start (RFC3339). Defaults to the first of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+
+	// Currency ISO 4217 code. Defaults to EUR.
+	Currency *string `form:"currency,omitempty" json:"currency,omitempty"`
+}
+
+// ListCommonCostsParams defines parameters for ListCommonCosts.
+type ListCommonCostsParams struct {
+	// Common Must be true (the default)
+	Common *string `form:"common,omitempty" json:"common,omitempty"`
+
+	// From Start (RFC3339). Defaults to the 1st of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ReadInvoiceMultipartBody defines parameters for ReadInvoice.
+type ReadInvoiceMultipartBody struct {
+	// File The invoice (PDF, PNG or JPEG, 10 MiB at most)
+	File openapi_types.File `json:"file"`
+}
+
+// AddCostAttachmentMultipartBody defines parameters for AddCostAttachment.
+type AddCostAttachmentMultipartBody struct {
+	// File The invoice
+	File openapi_types.File `json:"file"`
+}
+
 // GetCustomerUsageParams defines parameters for GetCustomerUsage.
 type GetCustomerUsageParams struct {
 	// AppId Restrict to one app; omitted spans the tenant's apps
@@ -790,6 +1264,27 @@ type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
 
 // ImportLLMPricesJSONRequestBody defines body for ImportLLMPrices for application/json ContentType.
 type ImportLLMPricesJSONRequestBody = CosttrackingImportLLMPricesRequest
+
+// RecordCommonCostsJSONRequestBody defines body for RecordCommonCosts for application/json ContentType.
+type RecordCommonCostsJSONRequestBody = CosttrackingRecordCostsRequest
+
+// RecordDirectCommonCostJSONRequestBody defines body for RecordDirectCommonCost for application/json ContentType.
+type RecordDirectCommonCostJSONRequestBody = CosttrackingRecordDirectCostRequest
+
+// ReadInvoiceMultipartRequestBody defines body for ReadInvoice for multipart/form-data ContentType.
+type ReadInvoiceMultipartRequestBody ReadInvoiceMultipartBody
+
+// AddCostAttachmentMultipartRequestBody defines body for AddCostAttachment for multipart/form-data ContentType.
+type AddCostAttachmentMultipartRequestBody AddCostAttachmentMultipartBody
+
+// CreateRecurringCostJSONRequestBody defines body for CreateRecurringCost for application/json ContentType.
+type CreateRecurringCostJSONRequestBody = CosttrackingCreateRecurringCostRequest
+
+// UpdateRecurringCostJSONRequestBody defines body for UpdateRecurringCost for application/json ContentType.
+type UpdateRecurringCostJSONRequestBody = CosttrackingUpdateRecurringCostRequest
+
+// EndRecurringCostJSONRequestBody defines body for EndRecurringCost for application/json ContentType.
+type EndRecurringCostJSONRequestBody = CosttrackingEndRecurringCostRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -980,13 +1475,74 @@ type ClientInterface interface {
 
 	UpdateUsageUnit(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetBalance request
+	GetBalance(ctx context.Context, tenantId string, params *GetBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBalanceCSV request
+	GetBalanceCSV(ctx context.Context, tenantId string, params *GetBalanceCSVParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ImportLLMPricesWithBody request with any body
 	ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	ImportLLMPrices(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListCostItemPricingReviews request
+	ListCostItemPricingReviews(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CheckCostItemPricing request
+	CheckCostItemPricing(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ResolveCostItemPricingReview request
+	ResolveCostItemPricingReview(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCommonCosts request
+	ListCommonCosts(ctx context.Context, tenantId string, params *ListCommonCostsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RecordCommonCostsWithBody request with any body
+	RecordCommonCostsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RecordCommonCosts(ctx context.Context, tenantId string, body RecordCommonCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RecordDirectCommonCostWithBody request with any body
+	RecordDirectCommonCostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RecordDirectCommonCost(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReadInvoiceWithBody request with any body
+	ReadInvoiceWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCostAttachments request
+	ListCostAttachments(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddCostAttachmentWithBody request with any body
+	AddCostAttachmentWithBody(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteCostAttachment request
+	DeleteCostAttachment(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadCostAttachment request
+	DownloadCostAttachment(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetCustomerUsage request
 	GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListRecurringCosts request
+	ListRecurringCosts(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateRecurringCostWithBody request with any body
+	CreateRecurringCostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateRecurringCost(ctx context.Context, tenantId string, body CreateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateRecurringCostWithBody request with any body
+	UpdateRecurringCostWithBody(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateRecurringCost(ctx context.Context, tenantId string, recurringCostId string, body UpdateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// EndRecurringCostWithBody request with any body
+	EndRecurringCostWithBody(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	EndRecurringCost(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1503,6 +2059,30 @@ func (c *Client) UpdateUsageUnit(ctx context.Context, tenantId string, appId str
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetBalance(ctx context.Context, tenantId string, params *GetBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBalanceRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBalanceCSV(ctx context.Context, tenantId string, params *GetBalanceCSVParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBalanceCSVRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ImportLLMPricesWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewImportLLMPricesRequestWithBody(c.Server, tenantId, contentType, body)
 	if err != nil {
@@ -1527,8 +2107,248 @@ func (c *Client) ImportLLMPrices(ctx context.Context, tenantId string, body Impo
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListCostItemPricingReviews(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCostItemPricingReviewsRequest(c.Server, tenantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CheckCostItemPricing(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCheckCostItemPricingRequest(c.Server, tenantId, itemId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ResolveCostItemPricingReview(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewResolveCostItemPricingReviewRequest(c.Server, tenantId, itemId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCommonCosts(ctx context.Context, tenantId string, params *ListCommonCostsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCommonCostsRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordCommonCostsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordCommonCostsRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordCommonCosts(ctx context.Context, tenantId string, body RecordCommonCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordCommonCostsRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordDirectCommonCostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordDirectCommonCostRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RecordDirectCommonCost(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRecordDirectCommonCostRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReadInvoiceWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReadInvoiceRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCostAttachments(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCostAttachmentsRequest(c.Server, tenantId, recordId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddCostAttachmentWithBody(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddCostAttachmentRequestWithBody(c.Server, tenantId, recordId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteCostAttachment(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteCostAttachmentRequest(c.Server, tenantId, recordId, attachmentId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DownloadCostAttachment(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadCostAttachmentRequest(c.Server, tenantId, recordId, attachmentId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetCustomerUsageRequest(c.Server, tenantId, customerId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListRecurringCosts(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRecurringCostsRequest(c.Server, tenantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateRecurringCostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateRecurringCostRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateRecurringCost(ctx context.Context, tenantId string, body CreateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateRecurringCostRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateRecurringCostWithBody(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateRecurringCostRequestWithBody(c.Server, tenantId, recurringCostId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateRecurringCost(ctx context.Context, tenantId string, recurringCostId string, body UpdateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateRecurringCostRequest(c.Server, tenantId, recurringCostId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EndRecurringCostWithBody(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEndRecurringCostRequestWithBody(c.Server, tenantId, recurringCostId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EndRecurringCost(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEndRecurringCostRequest(c.Server, tenantId, recurringCostId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2951,6 +3771,182 @@ func NewUpdateUsageUnitRequestWithBody(server string, tenantId string, appId str
 	return req, nil
 }
 
+// NewGetBalanceRequest generates requests for GetBalance
+func NewGetBalanceRequest(server string, tenantId string, params *GetBalanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/balance", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Currency != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "currency", runtime.ParamLocationQuery, *params.Currency); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBalanceCSVRequest generates requests for GetBalanceCSV
+func NewGetBalanceCSVRequest(server string, tenantId string, params *GetBalanceCSVParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/balance.csv", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Currency != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "currency", runtime.ParamLocationQuery, *params.Currency); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewImportLLMPricesRequest calls the generic ImportLLMPrices builder with application/json body
 func NewImportLLMPricesRequest(server string, tenantId string, body ImportLLMPricesJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -2994,6 +3990,520 @@ func NewImportLLMPricesRequestWithBody(server string, tenantId string, contentTy
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCostItemPricingReviewsRequest generates requests for ListCostItemPricingReviews
+func NewListCostItemPricingReviewsRequest(server string, tenantId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/pricing-reviews", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCheckCostItemPricingRequest generates requests for CheckCostItemPricing
+func NewCheckCostItemPricingRequest(server string, tenantId string, itemId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "item_id", runtime.ParamLocationPath, itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/%s/pricing-check", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewResolveCostItemPricingReviewRequest generates requests for ResolveCostItemPricingReview
+func NewResolveCostItemPricingReviewRequest(server string, tenantId string, itemId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "item_id", runtime.ParamLocationPath, itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/%s/pricing-review/resolve", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListCommonCostsRequest generates requests for ListCommonCosts
+func NewListCommonCostsRequest(server string, tenantId string, params *ListCommonCostsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Common != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "common", runtime.ParamLocationQuery, *params.Common); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRecordCommonCostsRequest calls the generic RecordCommonCosts builder with application/json body
+func NewRecordCommonCostsRequest(server string, tenantId string, body RecordCommonCostsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRecordCommonCostsRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewRecordCommonCostsRequestWithBody generates requests for RecordCommonCosts with any type of body
+func NewRecordCommonCostsRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRecordDirectCommonCostRequest calls the generic RecordDirectCommonCost builder with application/json body
+func NewRecordDirectCommonCostRequest(server string, tenantId string, body RecordDirectCommonCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRecordDirectCommonCostRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewRecordDirectCommonCostRequestWithBody generates requests for RecordDirectCommonCost with any type of body
+func NewRecordDirectCommonCostRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/direct", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewReadInvoiceRequestWithBody generates requests for ReadInvoice with any type of body
+func NewReadInvoiceRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/read-invoice", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCostAttachmentsRequest generates requests for ListCostAttachments
+func NewListCostAttachmentsRequest(server string, tenantId string, recordId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s/attachments", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddCostAttachmentRequestWithBody generates requests for AddCostAttachment with any type of body
+func NewAddCostAttachmentRequestWithBody(server string, tenantId string, recordId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s/attachments", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteCostAttachmentRequest generates requests for DeleteCostAttachment
+func NewDeleteCostAttachmentRequest(server string, tenantId string, recordId string, attachmentId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "attachment_id", runtime.ParamLocationPath, attachmentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s/attachments/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewDownloadCostAttachmentRequest generates requests for DownloadCostAttachment
+func NewDownloadCostAttachmentRequest(server string, tenantId string, recordId string, attachmentId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "attachment_id", runtime.ParamLocationPath, attachmentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s/attachments/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -3057,6 +4567,195 @@ func NewGetCustomerUsageRequest(server string, tenantId string, customerId strin
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewListRecurringCostsRequest generates requests for ListRecurringCosts
+func NewListRecurringCostsRequest(server string, tenantId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/recurring-costs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateRecurringCostRequest calls the generic CreateRecurringCost builder with application/json body
+func NewCreateRecurringCostRequest(server string, tenantId string, body CreateRecurringCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateRecurringCostRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewCreateRecurringCostRequestWithBody generates requests for CreateRecurringCost with any type of body
+func NewCreateRecurringCostRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/recurring-costs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewUpdateRecurringCostRequest calls the generic UpdateRecurringCost builder with application/json body
+func NewUpdateRecurringCostRequest(server string, tenantId string, recurringCostId string, body UpdateRecurringCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateRecurringCostRequestWithBody(server, tenantId, recurringCostId, "application/json", bodyReader)
+}
+
+// NewUpdateRecurringCostRequestWithBody generates requests for UpdateRecurringCost with any type of body
+func NewUpdateRecurringCostRequestWithBody(server string, tenantId string, recurringCostId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "recurring_cost_id", runtime.ParamLocationPath, recurringCostId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/recurring-costs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewEndRecurringCostRequest calls the generic EndRecurringCost builder with application/json body
+func NewEndRecurringCostRequest(server string, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewEndRecurringCostRequestWithBody(server, tenantId, recurringCostId, "application/json", bodyReader)
+}
+
+// NewEndRecurringCostRequestWithBody generates requests for EndRecurringCost with any type of body
+func NewEndRecurringCostRequestWithBody(server string, tenantId string, recurringCostId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "recurring_cost_id", runtime.ParamLocationPath, recurringCostId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/recurring-costs/%s/end", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3468,13 +5167,74 @@ type ClientWithResponsesInterface interface {
 
 	UpdateUsageUnitWithResponse(ctx context.Context, tenantId string, appId string, code string, body UpdateUsageUnitJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateUsageUnitResponse, error)
 
+	// GetBalanceWithResponse request
+	GetBalanceWithResponse(ctx context.Context, tenantId string, params *GetBalanceParams, reqEditors ...RequestEditorFn) (*GetBalanceResponse, error)
+
+	// GetBalanceCSVWithResponse request
+	GetBalanceCSVWithResponse(ctx context.Context, tenantId string, params *GetBalanceCSVParams, reqEditors ...RequestEditorFn) (*GetBalanceCSVResponse, error)
+
 	// ImportLLMPricesWithBodyWithResponse request with any body
 	ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
 
 	ImportLLMPricesWithResponse(ctx context.Context, tenantId string, body ImportLLMPricesJSONRequestBody, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error)
 
+	// ListCostItemPricingReviewsWithResponse request
+	ListCostItemPricingReviewsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListCostItemPricingReviewsResponse, error)
+
+	// CheckCostItemPricingWithResponse request
+	CheckCostItemPricingWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*CheckCostItemPricingResponse, error)
+
+	// ResolveCostItemPricingReviewWithResponse request
+	ResolveCostItemPricingReviewWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*ResolveCostItemPricingReviewResponse, error)
+
+	// ListCommonCostsWithResponse request
+	ListCommonCostsWithResponse(ctx context.Context, tenantId string, params *ListCommonCostsParams, reqEditors ...RequestEditorFn) (*ListCommonCostsResponse, error)
+
+	// RecordCommonCostsWithBodyWithResponse request with any body
+	RecordCommonCostsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCommonCostsResponse, error)
+
+	RecordCommonCostsWithResponse(ctx context.Context, tenantId string, body RecordCommonCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordCommonCostsResponse, error)
+
+	// RecordDirectCommonCostWithBodyWithResponse request with any body
+	RecordDirectCommonCostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error)
+
+	RecordDirectCommonCostWithResponse(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error)
+
+	// ReadInvoiceWithBodyWithResponse request with any body
+	ReadInvoiceWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReadInvoiceResponse, error)
+
+	// ListCostAttachmentsWithResponse request
+	ListCostAttachmentsWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*ListCostAttachmentsResponse, error)
+
+	// AddCostAttachmentWithBodyWithResponse request with any body
+	AddCostAttachmentWithBodyWithResponse(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCostAttachmentResponse, error)
+
+	// DeleteCostAttachmentWithResponse request
+	DeleteCostAttachmentWithResponse(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*DeleteCostAttachmentResponse, error)
+
+	// DownloadCostAttachmentWithResponse request
+	DownloadCostAttachmentWithResponse(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*DownloadCostAttachmentResponse, error)
+
 	// GetCustomerUsageWithResponse request
 	GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error)
+
+	// ListRecurringCostsWithResponse request
+	ListRecurringCostsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListRecurringCostsResponse, error)
+
+	// CreateRecurringCostWithBodyWithResponse request with any body
+	CreateRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateRecurringCostResponse, error)
+
+	CreateRecurringCostWithResponse(ctx context.Context, tenantId string, body CreateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateRecurringCostResponse, error)
+
+	// UpdateRecurringCostWithBodyWithResponse request with any body
+	UpdateRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRecurringCostResponse, error)
+
+	UpdateRecurringCostWithResponse(ctx context.Context, tenantId string, recurringCostId string, body UpdateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRecurringCostResponse, error)
+
+	// EndRecurringCostWithBodyWithResponse request with any body
+	EndRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EndRecurringCostResponse, error)
+
+	EndRecurringCostWithResponse(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*EndRecurringCostResponse, error)
 
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
@@ -3577,6 +5337,9 @@ type CheckoutResponse struct {
 	JSON401      *EchoHTTPError
 	JSON403      *EchoHTTPError
 	JSON404      *EchoHTTPError
+	JSON422      *FinanceCheckoutConsentResponse
+	JSON500      *EchoHTTPError
+	JSON502      *FinanceCheckoutProviderResponse
 }
 
 // Status returns HTTPResponse.Status
@@ -4166,6 +5929,50 @@ func (r UpdateUsageUnitResponse) StatusCode() int {
 	return 0
 }
 
+type GetBalanceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BalanceBalanceView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBalanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBalanceCSVResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBalanceCSVResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBalanceCSVResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ImportLLMPricesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4190,6 +5997,268 @@ func (r ImportLLMPricesResponse) StatusCode() int {
 	return 0
 }
 
+type ListCostItemPricingReviewsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingPricingReviewView
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCostItemPricingReviewsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCostItemPricingReviewsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CheckCostItemPricingResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingPricingSnapshotView
+	JSON404      *EchoHTTPError
+	JSON422      *EchoHTTPError
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r CheckCostItemPricingResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CheckCostItemPricingResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ResolveCostItemPricingReviewResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ResolveCostItemPricingReviewResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ResolveCostItemPricingReviewResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCommonCostsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostEntriesView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCommonCostsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCommonCostsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RecordCommonCostsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingRecordCostsResponse
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON422      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r RecordCommonCostsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RecordCommonCostsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RecordDirectCommonCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingRecordCostsResponse
+	JSON400      *EchoHTTPError
+	JSON409      *EchoHTTPError
+	JSON422      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r RecordDirectCommonCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RecordDirectCommonCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ReadInvoiceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingInvoiceReadingView
+	JSON400      *EchoHTTPError
+	JSON413      *EchoHTTPError
+	JSON422      *EchoHTTPError
+	JSON429      *EchoHTTPError
+	JSON502      *EchoHTTPError
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ReadInvoiceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReadInvoiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCostAttachmentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostAttachmentView
+	JSON404      *EchoHTTPError
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCostAttachmentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCostAttachmentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddCostAttachmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *CosttrackingCostAttachmentView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON413      *EchoHTTPError
+	JSON422      *EchoHTTPError
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AddCostAttachmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddCostAttachmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteCostAttachmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteCostAttachmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteCostAttachmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DownloadCostAttachmentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadCostAttachmentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadCostAttachmentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetCustomerUsageResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -4208,6 +6277,100 @@ func (r GetCustomerUsageResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetCustomerUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListRecurringCostsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingRecurringCostListView
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRecurringCostsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRecurringCostsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateRecurringCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *CosttrackingRecurringCostView
+	JSON400      *EchoHTTPError
+	JSON422      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateRecurringCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateRecurringCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateRecurringCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingRecurringCostView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateRecurringCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateRecurringCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type EndRecurringCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingRecurringCostView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r EndRecurringCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r EndRecurringCostResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -4713,6 +6876,24 @@ func (c *ClientWithResponses) UpdateUsageUnitWithResponse(ctx context.Context, t
 	return ParseUpdateUsageUnitResponse(rsp)
 }
 
+// GetBalanceWithResponse request returning *GetBalanceResponse
+func (c *ClientWithResponses) GetBalanceWithResponse(ctx context.Context, tenantId string, params *GetBalanceParams, reqEditors ...RequestEditorFn) (*GetBalanceResponse, error) {
+	rsp, err := c.GetBalance(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBalanceResponse(rsp)
+}
+
+// GetBalanceCSVWithResponse request returning *GetBalanceCSVResponse
+func (c *ClientWithResponses) GetBalanceCSVWithResponse(ctx context.Context, tenantId string, params *GetBalanceCSVParams, reqEditors ...RequestEditorFn) (*GetBalanceCSVResponse, error) {
+	rsp, err := c.GetBalanceCSV(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBalanceCSVResponse(rsp)
+}
+
 // ImportLLMPricesWithBodyWithResponse request with arbitrary body returning *ImportLLMPricesResponse
 func (c *ClientWithResponses) ImportLLMPricesWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ImportLLMPricesResponse, error) {
 	rsp, err := c.ImportLLMPricesWithBody(ctx, tenantId, contentType, body, reqEditors...)
@@ -4730,6 +6911,121 @@ func (c *ClientWithResponses) ImportLLMPricesWithResponse(ctx context.Context, t
 	return ParseImportLLMPricesResponse(rsp)
 }
 
+// ListCostItemPricingReviewsWithResponse request returning *ListCostItemPricingReviewsResponse
+func (c *ClientWithResponses) ListCostItemPricingReviewsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListCostItemPricingReviewsResponse, error) {
+	rsp, err := c.ListCostItemPricingReviews(ctx, tenantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCostItemPricingReviewsResponse(rsp)
+}
+
+// CheckCostItemPricingWithResponse request returning *CheckCostItemPricingResponse
+func (c *ClientWithResponses) CheckCostItemPricingWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*CheckCostItemPricingResponse, error) {
+	rsp, err := c.CheckCostItemPricing(ctx, tenantId, itemId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCheckCostItemPricingResponse(rsp)
+}
+
+// ResolveCostItemPricingReviewWithResponse request returning *ResolveCostItemPricingReviewResponse
+func (c *ClientWithResponses) ResolveCostItemPricingReviewWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*ResolveCostItemPricingReviewResponse, error) {
+	rsp, err := c.ResolveCostItemPricingReview(ctx, tenantId, itemId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseResolveCostItemPricingReviewResponse(rsp)
+}
+
+// ListCommonCostsWithResponse request returning *ListCommonCostsResponse
+func (c *ClientWithResponses) ListCommonCostsWithResponse(ctx context.Context, tenantId string, params *ListCommonCostsParams, reqEditors ...RequestEditorFn) (*ListCommonCostsResponse, error) {
+	rsp, err := c.ListCommonCosts(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCommonCostsResponse(rsp)
+}
+
+// RecordCommonCostsWithBodyWithResponse request with arbitrary body returning *RecordCommonCostsResponse
+func (c *ClientWithResponses) RecordCommonCostsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCommonCostsResponse, error) {
+	rsp, err := c.RecordCommonCostsWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordCommonCostsResponse(rsp)
+}
+
+func (c *ClientWithResponses) RecordCommonCostsWithResponse(ctx context.Context, tenantId string, body RecordCommonCostsJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordCommonCostsResponse, error) {
+	rsp, err := c.RecordCommonCosts(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordCommonCostsResponse(rsp)
+}
+
+// RecordDirectCommonCostWithBodyWithResponse request with arbitrary body returning *RecordDirectCommonCostResponse
+func (c *ClientWithResponses) RecordDirectCommonCostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error) {
+	rsp, err := c.RecordDirectCommonCostWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordDirectCommonCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) RecordDirectCommonCostWithResponse(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error) {
+	rsp, err := c.RecordDirectCommonCost(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRecordDirectCommonCostResponse(rsp)
+}
+
+// ReadInvoiceWithBodyWithResponse request with arbitrary body returning *ReadInvoiceResponse
+func (c *ClientWithResponses) ReadInvoiceWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReadInvoiceResponse, error) {
+	rsp, err := c.ReadInvoiceWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReadInvoiceResponse(rsp)
+}
+
+// ListCostAttachmentsWithResponse request returning *ListCostAttachmentsResponse
+func (c *ClientWithResponses) ListCostAttachmentsWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*ListCostAttachmentsResponse, error) {
+	rsp, err := c.ListCostAttachments(ctx, tenantId, recordId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCostAttachmentsResponse(rsp)
+}
+
+// AddCostAttachmentWithBodyWithResponse request with arbitrary body returning *AddCostAttachmentResponse
+func (c *ClientWithResponses) AddCostAttachmentWithBodyWithResponse(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCostAttachmentResponse, error) {
+	rsp, err := c.AddCostAttachmentWithBody(ctx, tenantId, recordId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddCostAttachmentResponse(rsp)
+}
+
+// DeleteCostAttachmentWithResponse request returning *DeleteCostAttachmentResponse
+func (c *ClientWithResponses) DeleteCostAttachmentWithResponse(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*DeleteCostAttachmentResponse, error) {
+	rsp, err := c.DeleteCostAttachment(ctx, tenantId, recordId, attachmentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteCostAttachmentResponse(rsp)
+}
+
+// DownloadCostAttachmentWithResponse request returning *DownloadCostAttachmentResponse
+func (c *ClientWithResponses) DownloadCostAttachmentWithResponse(ctx context.Context, tenantId string, recordId string, attachmentId string, reqEditors ...RequestEditorFn) (*DownloadCostAttachmentResponse, error) {
+	rsp, err := c.DownloadCostAttachment(ctx, tenantId, recordId, attachmentId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadCostAttachmentResponse(rsp)
+}
+
 // GetCustomerUsageWithResponse request returning *GetCustomerUsageResponse
 func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error) {
 	rsp, err := c.GetCustomerUsage(ctx, tenantId, customerId, params, reqEditors...)
@@ -4737,6 +7033,66 @@ func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetCustomerUsageResponse(rsp)
+}
+
+// ListRecurringCostsWithResponse request returning *ListRecurringCostsResponse
+func (c *ClientWithResponses) ListRecurringCostsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListRecurringCostsResponse, error) {
+	rsp, err := c.ListRecurringCosts(ctx, tenantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRecurringCostsResponse(rsp)
+}
+
+// CreateRecurringCostWithBodyWithResponse request with arbitrary body returning *CreateRecurringCostResponse
+func (c *ClientWithResponses) CreateRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateRecurringCostResponse, error) {
+	rsp, err := c.CreateRecurringCostWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateRecurringCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateRecurringCostWithResponse(ctx context.Context, tenantId string, body CreateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateRecurringCostResponse, error) {
+	rsp, err := c.CreateRecurringCost(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateRecurringCostResponse(rsp)
+}
+
+// UpdateRecurringCostWithBodyWithResponse request with arbitrary body returning *UpdateRecurringCostResponse
+func (c *ClientWithResponses) UpdateRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateRecurringCostResponse, error) {
+	rsp, err := c.UpdateRecurringCostWithBody(ctx, tenantId, recurringCostId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateRecurringCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateRecurringCostWithResponse(ctx context.Context, tenantId string, recurringCostId string, body UpdateRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateRecurringCostResponse, error) {
+	rsp, err := c.UpdateRecurringCost(ctx, tenantId, recurringCostId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateRecurringCostResponse(rsp)
+}
+
+// EndRecurringCostWithBodyWithResponse request with arbitrary body returning *EndRecurringCostResponse
+func (c *ClientWithResponses) EndRecurringCostWithBodyWithResponse(ctx context.Context, tenantId string, recurringCostId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EndRecurringCostResponse, error) {
+	rsp, err := c.EndRecurringCostWithBody(ctx, tenantId, recurringCostId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEndRecurringCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) EndRecurringCostWithResponse(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*EndRecurringCostResponse, error) {
+	rsp, err := c.EndRecurringCost(ctx, tenantId, recurringCostId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEndRecurringCostResponse(rsp)
 }
 
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
@@ -4963,6 +7319,27 @@ func ParseCheckoutResponse(rsp *http.Response) (*CheckoutResponse, error) {
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest FinanceCheckoutConsentResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest FinanceCheckoutProviderResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
 
 	}
 
@@ -5885,6 +8262,55 @@ func ParseUpdateUsageUnitResponse(rsp *http.Response) (*UpdateUsageUnitResponse,
 	return response, nil
 }
 
+// ParseGetBalanceResponse parses an HTTP response from a GetBalanceWithResponse call
+func ParseGetBalanceResponse(rsp *http.Response) (*GetBalanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBalanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BalanceBalanceView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBalanceCSVResponse parses an HTTP response from a GetBalanceCSVWithResponse call
+func ParseGetBalanceCSVResponse(rsp *http.Response) (*GetBalanceCSVResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBalanceCSVResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseImportLLMPricesResponse parses an HTTP response from a ImportLLMPricesWithResponse call
 func ParseImportLLMPricesResponse(rsp *http.Response) (*ImportLLMPricesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5925,6 +8351,423 @@ func ParseImportLLMPricesResponse(rsp *http.Response) (*ImportLLMPricesResponse,
 	return response, nil
 }
 
+// ParseListCostItemPricingReviewsResponse parses an HTTP response from a ListCostItemPricingReviewsWithResponse call
+func ParseListCostItemPricingReviewsResponse(rsp *http.Response) (*ListCostItemPricingReviewsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCostItemPricingReviewsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingPricingReviewView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCheckCostItemPricingResponse parses an HTTP response from a CheckCostItemPricingWithResponse call
+func ParseCheckCostItemPricingResponse(rsp *http.Response) (*CheckCostItemPricingResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CheckCostItemPricingResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingPricingSnapshotView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseResolveCostItemPricingReviewResponse parses an HTTP response from a ResolveCostItemPricingReviewWithResponse call
+func ParseResolveCostItemPricingReviewResponse(rsp *http.Response) (*ResolveCostItemPricingReviewResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ResolveCostItemPricingReviewResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListCommonCostsResponse parses an HTTP response from a ListCommonCostsWithResponse call
+func ParseListCommonCostsResponse(rsp *http.Response) (*ListCommonCostsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCommonCostsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostEntriesView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRecordCommonCostsResponse parses an HTTP response from a RecordCommonCostsWithResponse call
+func ParseRecordCommonCostsResponse(rsp *http.Response) (*RecordCommonCostsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RecordCommonCostsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingRecordCostsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRecordDirectCommonCostResponse parses an HTTP response from a RecordDirectCommonCostWithResponse call
+func ParseRecordDirectCommonCostResponse(rsp *http.Response) (*RecordDirectCommonCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RecordDirectCommonCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingRecordCostsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReadInvoiceResponse parses an HTTP response from a ReadInvoiceWithResponse call
+func ParseReadInvoiceResponse(rsp *http.Response) (*ReadInvoiceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReadInvoiceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingInvoiceReadingView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 429:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON429 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListCostAttachmentsResponse parses an HTTP response from a ListCostAttachmentsWithResponse call
+func ParseListCostAttachmentsResponse(rsp *http.Response) (*ListCostAttachmentsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCostAttachmentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostAttachmentView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddCostAttachmentResponse parses an HTTP response from a AddCostAttachmentWithResponse call
+func ParseAddCostAttachmentResponse(rsp *http.Response) (*AddCostAttachmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddCostAttachmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CosttrackingCostAttachmentView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteCostAttachmentResponse parses an HTTP response from a DeleteCostAttachmentWithResponse call
+func ParseDeleteCostAttachmentResponse(rsp *http.Response) (*DeleteCostAttachmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteCostAttachmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseDownloadCostAttachmentResponse parses an HTTP response from a DownloadCostAttachmentWithResponse call
+func ParseDownloadCostAttachmentResponse(rsp *http.Response) (*DownloadCostAttachmentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadCostAttachmentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseGetCustomerUsageResponse parses an HTTP response from a GetCustomerUsageWithResponse call
 func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5959,6 +8802,152 @@ func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageRespons
 			return nil, err
 		}
 		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRecurringCostsResponse parses an HTTP response from a ListRecurringCostsWithResponse call
+func ParseListRecurringCostsResponse(rsp *http.Response) (*ListRecurringCostsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRecurringCostsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingRecurringCostListView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateRecurringCostResponse parses an HTTP response from a CreateRecurringCostWithResponse call
+func ParseCreateRecurringCostResponse(rsp *http.Response) (*CreateRecurringCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateRecurringCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CosttrackingRecurringCostView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateRecurringCostResponse parses an HTTP response from a UpdateRecurringCostWithResponse call
+func ParseUpdateRecurringCostResponse(rsp *http.Response) (*UpdateRecurringCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateRecurringCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingRecurringCostView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseEndRecurringCostResponse parses an HTTP response from a EndRecurringCostWithResponse call
+func ParseEndRecurringCostResponse(rsp *http.Response) (*EndRecurringCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &EndRecurringCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingRecurringCostView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 

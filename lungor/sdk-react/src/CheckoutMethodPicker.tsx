@@ -1,19 +1,45 @@
 import { useEffect, useMemo, useState } from 'react';
+import { checkoutRefusalMessage, type BuyerKind, type CheckoutRefusalLabels } from './checkout.js';
 import { APPLE_PAY, canUseApplePay, METHOD_TIMING, type CheckoutMethod } from './methods.js';
+
+/** What the payer chose, to be sent as `payment_method` and `buyer_kind` on checkout. */
+export interface CheckoutSelection {
+  paymentMethod: string;
+  buyerKind: BuyerKind;
+}
+
+export interface CheckoutMethodPickerLabels extends CheckoutRefusalLabels {
+  buyerKindHeading?: string;
+  consumer?: string;
+  business?: string;
+}
 
 export interface CheckoutMethodPickerProps {
   /** Methods from `GET /finance/checkout/methods`, in the order Lungor returned them. */
   methods: CheckoutMethod[];
-  /** Called with the chosen method id, to be sent as `payment_method` on checkout. */
-  onSelect: (methodId: string) => void;
+  /** Called with the chosen method id and the whole selection. */
+  onSelect: (methodId: string, selection: CheckoutSelection) => void;
   /** Disables every control while the caller opens the session. */
   busy?: boolean;
   /** What the payer is about to pay, already formatted (e.g. "19,00 €"). */
   amountLabel?: string;
+  /** The `error` code of a refused checkout, shown as a message the payer reads. */
+  refusal?: string;
   heading?: string;
   submitLabel?: string;
+  labels?: CheckoutMethodPickerLabels;
   className?: string;
 }
+
+const DEFAULT_LABELS: Required<CheckoutMethodPickerLabels> = {
+  buyerKindHeading: 'Je commande en tant que :',
+  consumer: 'Particulier',
+  business: 'Professionnel',
+  businessBuyersNotAccepted: 'Cette offre est réservée aux particuliers.',
+  refused: 'Le paiement n’a pas pu être ouvert.',
+};
+
+const BUYER_KINDS: BuyerKind[] = ['consumer', 'business'];
 
 const ICONS: Record<string, string> = {
   card: '💳',
@@ -38,11 +64,16 @@ export function CheckoutMethodPicker({
   onSelect,
   busy = false,
   amountLabel,
+  refusal,
   heading = 'Comment souhaitez-vous payer ?',
   submitLabel = 'Continuer',
+  labels,
   className = '',
 }: CheckoutMethodPickerProps) {
+  const text = { ...DEFAULT_LABELS, ...labels };
+  const [buyerKind, setBuyerKind] = useState<BuyerKind>('consumer');
   const [applePayReady, setApplePayReady] = useState(false);
+  const select = (paymentMethod: string) => onSelect(paymentMethod, { paymentMethod, buyerKind });
 
   // After mount only: the server renders the same markup for everyone, and
   // Apple Pay depends on the browser it lands in.
@@ -78,12 +109,35 @@ export function CheckoutMethodPicker({
         ) : null}
       </div>
 
+      <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2" disabled={busy}>
+        <legend className="float-left mr-1 text-sm text-foreground">{text.buyerKindHeading}</legend>
+        {BUYER_KINDS.map((kind) => (
+          <label key={kind} className="inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="lungor-buyer-kind"
+              value={kind}
+              checked={buyerKind === kind}
+              onChange={() => setBuyerKind(kind)}
+              className="size-4 accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            {text[kind]}
+          </label>
+        ))}
+      </fieldset>
+
+      {refusal ? (
+        <p role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground">
+          {checkoutRefusalMessage(refusal, text)}
+        </p>
+      ) : null}
+
       {applePay ? (
         <>
           <button
             type="button"
             disabled={busy}
-            onClick={() => onSelect(applePay.id)}
+            onClick={() => select(applePay.id)}
             className="flex h-12 w-full items-center justify-center gap-1.5 rounded-md bg-black text-[15px] font-medium text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
           >
             <span aria-hidden="true"></span> Pay
@@ -140,7 +194,7 @@ export function CheckoutMethodPicker({
           <button
             type="button"
             disabled={busy || !selected}
-            onClick={() => selected && onSelect(selected)}
+            onClick={() => selected && select(selected)}
             className="h-10 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
           >
             {busy ? 'Redirection…' : submitLabel}

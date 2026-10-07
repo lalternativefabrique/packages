@@ -1,5 +1,9 @@
 export { CheckoutMethodPicker } from './CheckoutMethodPicker.js';
-export type { CheckoutMethodPickerProps } from './CheckoutMethodPicker.js';
+export type {
+  CheckoutMethodPickerProps,
+  CheckoutMethodPickerLabels,
+  CheckoutSelection,
+} from './CheckoutMethodPicker.js';
 export { canUseApplePay, METHOD_TIMING } from './methods.js';
 export type { CheckoutMethod } from './methods.js';
 export { PricingTable } from './PricingTable.js';
@@ -14,7 +18,13 @@ export type {
   CheckoutReturnState,
   CheckoutReturnPhase,
 } from './useCheckoutReturn.js';
-export { CHECKOUT_SESSION_PARAM, isFinalCheckoutStatus, readCheckoutSessionId } from './checkout.js';
-export type { CheckoutSession, CheckoutStatus } from './checkout.js';
+export {
+  BUSINESS_BUYERS_NOT_ACCEPTED,
+  CHECKOUT_SESSION_PARAM,
+  checkoutRefusalMessage,
+  isFinalCheckoutStatus,
+  readCheckoutSessionId,
+} from './checkout.js';
+export type { BuyerKind, CheckoutRefusalLabels, CheckoutSession, CheckoutStatus } from './checkout.js';
 export { BillingPage, BILLING_PATH, REQUESTED_PLAN_PARAM } from './BillingPage.js';
 export type { BillingPageProps, BillingPageLabels, BillingSubscription } from './BillingPage.js';
