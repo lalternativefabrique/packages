@@ -42,8 +42,16 @@ connection.
 `SafeHTTPClient` resolves each host itself, refuses every address it must not
 reach, and then dials **the address it just validated** rather than re-resolving
 the name. That is what closes rebinding — not a second inspection, but the
-absence of a second lookup. `SafeTransport` exposes the same dialing guarantee
-for a caller that needs its own client settings.
+absence of a second lookup. Its dialer checks the socket address once more just
+before connecting, and every redirect hop is dialed through it. `SafeTransport`
+exposes the same dialing guarantee for a caller that needs its own client
+settings.
+
+Refused: loopback, link-local (cloud metadata), multicast, unspecified,
+`0.0.0.0/8`, RFC1918, `100.64.0.0/10`, `198.18.0.0/15`, `192.0.0.0/24`, and the
+IPv6 prefixes that carry an IPv4 address onward (`64:ff9b::/96`,
+`64:ff9b:1::/48`, `2002::/16`). An IPv4-mapped IPv6 address is judged as its
+IPv4 address.
 
 **Know when only the first half applies.** Behind an HTTP proxy the transport
 connects to the proxy, not to the target, so its guard inspects the wrong

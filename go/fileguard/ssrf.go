@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -60,26 +61,56 @@ func ValidateFetchURL(raw string) error {
 	return nil
 }
 
+// blockedNets are the ranges a public fetch has no business reaching that the
+// net.IP predicates do not cover: carrier-grade NAT, benchmarking, IETF
+// protocol assignments, and the IPv6 prefixes that embed an IPv4 address a
+// translator or relay would forward to (NAT64, 6to4).
+var blockedNets = mustParseCIDRs(
+	"100.64.0.0/10",
+	"198.18.0.0/15",
+	"192.0.0.0/24",
+	"64:ff9b::/96",
+	"64:ff9b:1::/48",
+	"2002::/16",
+)
+
+func mustParseCIDRs(cidrs ...string) []*net.IPNet {
+	nets := make([]*net.IPNet, 0, len(cidrs))
+	for _, c := range cidrs {
+		_, n, err := net.ParseCIDR(c)
+		if err != nil {
+			panic(err)
+		}
+		nets = append(nets, n)
+	}
+	return nets
+}
+
 // IsBlockedIP reports whether an address is one a caller must never be able to
 // make the server reach: loopback, link-local (including the cloud metadata
-// endpoint), multicast, unspecified, and the RFC1918 ranges.
+// endpoint), multicast, unspecified, the RFC1918 ranges, carrier-grade NAT,
+// benchmarking and IETF protocol ranges, and the NAT64 and 6to4 prefixes. An
+// IPv4-mapped IPv6 address is judged as the IPv4 address it carries.
 func IsBlockedIP(ip net.IP) bool {
 	if ip == nil {
 		return true
+	}
+	if ip4 := ip.To4(); ip4 != nil {
+		ip = ip4
 	}
 	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
 		ip.IsMulticast() || ip.IsUnspecified() || ip.IsPrivate() {
 		return true
 	}
-	// Explicit for readers: the cloud metadata endpoint, already covered by
-	// IsLinkLocalUnicast.
-	if ip.Equal(net.IPv4(169, 254, 169, 254)) {
-		return true
-	}
 	// 0.0.0.0/8 is "this network": not caught by IsUnspecified, which only
 	// matches the bare 0.0.0.0, yet routed to the local host by some stacks.
-	if ip4 := ip.To4(); ip4 != nil && ip4[0] == 0 {
+	if len(ip) == net.IPv4len && ip[0] == 0 {
 		return true
+	}
+	for _, n := range blockedNets {
+		if n.Contains(ip) {
+			return true
+		}
 	}
 	return false
 }
@@ -103,9 +134,11 @@ func SafeHTTPClient(timeout time.Duration) *http.Client {
 }
 
 // SafeTransport is SafeHTTPClient's transport, for a caller that needs its own
-// client settings but the same dialing guarantee.
+// client settings but the same dialing guarantee. Every socket it opens is
+// checked once more on the address actually being connected, so no resolution
+// path can slip an internal address past it.
 func SafeTransport() *http.Transport {
-	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}
+	dialer := &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second, Control: refuseBlockedSocket}
 	return &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			host, port, err := net.SplitHostPort(addr)
@@ -135,12 +168,26 @@ func SafeTransport() *http.Transport {
 	}
 }
 
+func refuseBlockedSocket(_, address string, _ syscall.RawConn) error {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return err
+	}
+	if IsBlockedIP(net.ParseIP(host)) {
+		return fmt.Errorf("connection to disallowed address %s", host)
+	}
+	return nil
+}
+
 func checkRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= maxFetchRedirects {
 		return fmt.Errorf("too many redirects")
 	}
 	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
 		return fmt.Errorf("redirect to disallowed scheme %q", req.URL.Scheme)
+	}
+	if ip := net.ParseIP(req.URL.Hostname()); ip != nil && IsBlockedIP(ip) {
+		return fmt.Errorf("redirect to disallowed address")
 	}
 	return nil
 }
