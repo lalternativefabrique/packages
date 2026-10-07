@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lalternative/packages/go/fileguard"
 )
 
 // UseProxy makes proxyURL, a "scheme://user:pass@host:port" residential
@@ -103,12 +105,45 @@ func (p *proxyConfig) get() *url.URL {
 	return p.url
 }
 
-// httpClient returns the client one fetch runs on: direct, or through the
-// proxy when viaProxy asks for it and one is configured.
-func httpClient(timeout time.Duration, viaProxy bool) *http.Client {
-	client := &http.Client{Timeout: timeout}
-	if u := proxy.get(); u != nil && viaProxy {
-		client.Transport = &http.Transport{Proxy: http.ProxyURL(u)}
+// UseHTTPClient makes c the client direct fetches run on. nil restores the
+// default, fileguard's SafeHTTPClient, which refuses internal addresses on
+// every redirect hop and dials only the address it checked.
+func UseHTTPClient(c *http.Client) {
+	direct.set(c)
+}
+
+var (
+	direct     directClient
+	safeClient = fileguard.SafeHTTPClient(fetchTimeout)
+)
+
+type directClient struct {
+	mu     sync.RWMutex
+	client *http.Client
+}
+
+func (d *directClient) set(c *http.Client) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.client = c
+}
+
+func (d *directClient) get() *http.Client {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if d.client != nil {
+		return d.client
 	}
-	return client
+	return safeClient
+}
+
+// httpClient returns the client one fetch runs on: direct, or through the
+// proxy when viaProxy asks for it and one is configured. Through a proxy the
+// address guard cannot apply: the socket goes to the proxy, and the proxy
+// resolves the target on its own network.
+func httpClient(timeout time.Duration, viaProxy bool) *http.Client {
+	if u := proxy.get(); u != nil && viaProxy {
+		return &http.Client{Timeout: timeout, Transport: &http.Transport{Proxy: http.ProxyURL(u)}}
+	}
+	return direct.get()
 }
