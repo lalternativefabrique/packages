@@ -81,6 +81,8 @@ scopes:
     - "go/webhooks/**"
   busevents:
     - "go/busevents/**"
+  language:
+    - "go/language/**"
   membership:
     - "go/membership/**"
     - "go/busevents/**"
@@ -216,6 +218,15 @@ steps:
     tools: [go]
     run: |
       cd go/busevents
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: language
+    scope: [language]
+    tools: [go]
+    run: |
+      cd go/language
       go build ./...
       go vet ./...
       go test -count=1 ./...
