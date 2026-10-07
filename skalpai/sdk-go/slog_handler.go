@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/trace"
@@ -74,7 +75,7 @@ func EnableSlogBridge(serviceName string) {
 type otlpSlogHandler struct {
 	logger   otellog.Logger
 	minLevel slog.Level
-	attrs    []otellog.KeyValue
+	attrs    []attribute.KeyValue
 	groups   []string
 }
 
@@ -85,11 +86,11 @@ func (h *otlpSlogHandler) Enabled(_ context.Context, level slog.Level) bool {
 func (h *otlpSlogHandler) Handle(ctx context.Context, rec slog.Record) error {
 	var otelRec otellog.Record
 	otelRec.SetTimestamp(rec.Time)
-	otelRec.SetBody(otellog.StringValue(rec.Message))
+	otelRec.SetBody(attribute.StringValue(rec.Message))
 	otelRec.SetSeverity(slogLevelToOTEL(rec.Level))
 	otelRec.SetSeverityText(rec.Level.String())
 
-	attrs := make([]otellog.KeyValue, 0, rec.NumAttrs()+len(h.attrs)+2)
+	attrs := make([]attribute.KeyValue, 0, rec.NumAttrs()+len(h.attrs)+2)
 	attrs = append(attrs, h.attrs...)
 
 	prefix := groupPrefix(h.groups)
@@ -100,8 +101,8 @@ func (h *otlpSlogHandler) Handle(ctx context.Context, rec slog.Record) error {
 
 	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
 		attrs = append(attrs,
-			otellog.String("trace_id", sc.TraceID().String()),
-			otellog.String("span_id", sc.SpanID().String()),
+			attribute.String("trace_id", sc.TraceID().String()),
+			attribute.String("span_id", sc.SpanID().String()),
 		)
 	}
 
@@ -115,7 +116,7 @@ func (h *otlpSlogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		return h
 	}
 	prefix := groupPrefix(h.groups)
-	newAttrs := make([]otellog.KeyValue, len(h.attrs), len(h.attrs)+len(attrs))
+	newAttrs := make([]attribute.KeyValue, len(h.attrs), len(h.attrs)+len(attrs))
 	copy(newAttrs, h.attrs)
 	for _, a := range attrs {
 		newAttrs = appendSlogAttr(newAttrs, prefix, a)
@@ -152,7 +153,7 @@ func groupPrefix(groups []string) string {
 
 // appendSlogAttr flattens a slog.Attr into one or more OTEL log attributes,
 // honoring group nesting by dot-prefixing keys.
-func appendSlogAttr(dst []otellog.KeyValue, prefix string, a slog.Attr) []otellog.KeyValue {
+func appendSlogAttr(dst []attribute.KeyValue, prefix string, a slog.Attr) []attribute.KeyValue {
 	if a.Equal(slog.Attr{}) {
 		return dst
 	}
@@ -174,25 +175,25 @@ func appendSlogAttr(dst []otellog.KeyValue, prefix string, a slog.Attr) []otello
 	return append(dst, slogValueToOTEL(prefix+a.Key, v))
 }
 
-func slogValueToOTEL(key string, v slog.Value) otellog.KeyValue {
+func slogValueToOTEL(key string, v slog.Value) attribute.KeyValue {
 	switch v.Kind() {
 	case slog.KindString:
-		return otellog.String(key, v.String())
+		return attribute.String(key, v.String())
 	case slog.KindInt64:
-		return otellog.Int64(key, v.Int64())
+		return attribute.Int64(key, v.Int64())
 	case slog.KindUint64:
 		// otel/log has no uint64; widen to int64 (lossy for very large values).
-		return otellog.Int64(key, int64(v.Uint64()))
+		return attribute.Int64(key, int64(v.Uint64()))
 	case slog.KindFloat64:
-		return otellog.Float64(key, v.Float64())
+		return attribute.Float64(key, v.Float64())
 	case slog.KindBool:
-		return otellog.Bool(key, v.Bool())
+		return attribute.Bool(key, v.Bool())
 	case slog.KindDuration:
-		return otellog.Int64(key, v.Duration().Nanoseconds())
+		return attribute.Int64(key, v.Duration().Nanoseconds())
 	case slog.KindTime:
-		return otellog.String(key, v.Time().Format("2006-01-02T15:04:05.000Z07:00"))
+		return attribute.String(key, v.Time().Format("2006-01-02T15:04:05.000Z07:00"))
 	default:
-		return otellog.String(key, v.String())
+		return attribute.String(key, v.String())
 	}
 }
 

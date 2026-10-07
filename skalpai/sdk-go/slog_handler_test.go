@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	logembedded "go.opentelemetry.io/otel/log/embedded"
 	"go.opentelemetry.io/otel/log/global"
@@ -59,13 +60,13 @@ func installCaptureLoggerProvider(t *testing.T) *captureProcessor {
 	return cap
 }
 
-func findAttr(rec sdklog.Record, key string) (otellog.Value, bool) {
+func findAttr(rec sdklog.Record, key string) (attribute.Value, bool) {
 	var (
-		v     otellog.Value
+		v     attribute.Value
 		found bool
 	)
-	rec.WalkAttributes(func(kv otellog.KeyValue) bool {
-		if kv.Key == key {
+	rec.WalkAttributes(func(kv attribute.KeyValue) bool {
+		if string(kv.Key) == key {
 			v = kv.Value
 			found = true
 			return false
@@ -170,18 +171,18 @@ func TestNewSlogHandler_WithAttrsAndGroups(t *testing.T) {
 			t.Errorf("attr %q missing", k)
 			continue
 		}
-		switch v.Kind() {
-		case otellog.KindString:
+		switch v.Type() {
+		case attribute.STRING:
 			if v.AsString() != want {
 				t.Errorf("attr %q = %q, want %q", k, v.AsString(), want)
 			}
-		case otellog.KindInt64:
+		case attribute.INT64:
 			// 200 was emitted as int64 — string compare for convenience.
 			if v.AsInt64() != 200 {
 				t.Errorf("attr %q = %d, want 200", k, v.AsInt64())
 			}
 		default:
-			t.Errorf("attr %q unexpected kind %v", k, v.Kind())
+			t.Errorf("attr %q unexpected kind %v", k, v.Type())
 		}
 	}
 }
