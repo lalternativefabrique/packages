@@ -64,13 +64,17 @@ func TestIsBlockedIP(t *testing.T) {
 		"127.0.0.1", "::1", "169.254.169.254", "169.254.1.1",
 		"10.1.2.3", "172.20.0.1", "192.168.0.1",
 		"0.0.0.0", "0.1.2.3", "fe80::1", "224.0.0.1", "ff02::1",
+		"100.64.0.1", "100.127.255.254", "198.18.0.1", "198.19.255.254",
+		"192.0.0.8", "64:ff9b::a00:1", "64:ff9b:1::1", "2002:a00:1::1",
+		"::ffff:127.0.0.1", "::ffff:10.0.0.1", "::ffff:169.254.169.254",
+		"::ffff:100.64.0.1",
 	}
 	for _, s := range blocked {
 		if !IsBlockedIP(net.ParseIP(s)) {
 			t.Errorf("IsBlockedIP(%s) = false, want true", s)
 		}
 	}
-	for _, s := range []string{"8.8.8.8", "1.1.1.1", "2606:4700::1111"} {
+	for _, s := range []string{"8.8.8.8", "1.1.1.1", "2606:4700::1111", "100.128.0.1", "198.20.0.1", "::ffff:8.8.8.8"} {
 		if IsBlockedIP(net.ParseIP(s)) {
 			t.Errorf("IsBlockedIP(%s) = true, want false", s)
 		}
@@ -127,5 +131,39 @@ func TestSafeTransport_GuardsItsOwnClient(t *testing.T) {
 	c := &http.Client{Timeout: 5 * time.Second, Transport: SafeTransport()}
 	if _, err := c.Get(srv.URL); err == nil {
 		t.Fatal("connection to a loopback address succeeded")
+	}
+}
+
+func TestSafeHTTPClient_RefusesRedirectToInternalLiteral(t *testing.T) {
+	c := SafeHTTPClient(time.Second)
+	for _, target := range []string{
+		"http://169.254.169.254/latest/meta-data/",
+		"http://[::ffff:127.0.0.1]/",
+		"http://100.64.0.1/",
+	} {
+		req := httptest.NewRequest(http.MethodGet, target, nil)
+		if err := c.CheckRedirect(req, nil); err == nil {
+			t.Errorf("redirect to %s was allowed", target)
+		}
+	}
+}
+
+// The socket check is the last line: whatever path produced the address, the
+// connect itself is refused.
+func TestRefuseBlockedSocket(t *testing.T) {
+	for _, addr := range []string{"127.0.0.1:80", "[::1]:443", "[::ffff:10.0.0.1]:80", "100.64.0.1:80"} {
+		if err := refuseBlockedSocket("tcp", addr, nil); err == nil {
+			t.Errorf("refuseBlockedSocket(%s) = nil, want refusal", addr)
+		}
+	}
+	if err := refuseBlockedSocket("tcp", "8.8.8.8:443", nil); err != nil {
+		t.Errorf("refuseBlockedSocket(8.8.8.8:443) = %v, want nil", err)
+	}
+}
+
+func TestSafeTransport_HasNoProxy(t *testing.T) {
+	tr := SafeTransport()
+	if tr.Proxy != nil {
+		t.Error("SafeTransport uses a proxy: the dial guard would inspect the proxy, not the target")
 	}
 }
