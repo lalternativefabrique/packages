@@ -15,7 +15,4 @@ allowBuilds:
   esbuild: true
   protobufjs: false
 minimumReleaseAgeExclude:
-  - '@lalternative/nakoda-sdk-browser@0.1.0'
-  - '@lalternative/nakoda-sdk-react@0.1.1'
-  - '@lalternative/nakoda-sdk-browser@0.2.0'
-  - '@lalternative/nakoda-sdk-react@0.2.0'
+  - '@lalternative/*'
