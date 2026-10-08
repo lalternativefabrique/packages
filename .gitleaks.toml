@@ -1,0 +1,8 @@
+title = "packages gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "sklp run plans: plan_key is a cache hash, not a credential"
+paths = ['''^\.sklp/cache/''']
