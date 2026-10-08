@@ -22,8 +22,8 @@ type CrawlJob struct {
 // needs NATS, which search and fetch do not, so a deployment can have one and
 // not the other.
 func (c *Client) StartCrawl(ctx context.Context, s Scope) (CrawlJob, error) {
-	if c.wire == nil {
-		return CrawlJob{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return CrawlJob{}, err
 	}
 	body := wire.HttpapiCrawlRequest{Url: ptr(s.URL)}
 	if s.MaxDepth > 0 {
@@ -87,8 +87,8 @@ type CrawlStatusRequest struct {
 
 // CrawlStatus returns a crawl's progress and the pages it has read.
 func (c *Client) CrawlStatus(ctx context.Context, req CrawlStatusRequest) (CrawlProgress, error) {
-	if c.wire == nil {
-		return CrawlProgress{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return CrawlProgress{}, err
 	}
 	params := &wire.CrawlStatusParams{}
 	if req.Offset > 0 {

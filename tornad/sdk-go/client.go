@@ -50,11 +50,19 @@ const DefaultTimeout = 30 * time.Second
 // reachable only from inside the cluster may run with no key at all, which is
 // why an empty one is not an error here: tornad decides whether to refuse.
 type Client struct {
-	baseURL string
-	key     string
-	http    *http.Client
-	wire    *wire.ClientWithResponses
+	baseURL      string
+	key          string
+	http         *http.Client
+	maxBytes     int64
+	insecureHTTP bool
+	err          error
+	wire         *wire.ClientWithResponses
 }
+
+// DefaultMaxResponseBytes bounds one response. A render returns a whole page's
+// HTML and content_runes has no server-side ceiling, so without one a single
+// answer could be held in memory whatever its size.
+const DefaultMaxResponseBytes = 32 << 20
 
 // Option configures a Client.
 type Option func(*Client)
@@ -71,29 +79,36 @@ func WithTimeout(d time.Duration) Option {
 }
 
 // New returns a Client. An empty baseURL yields one whose every method returns
-// ErrNotConfigured, so a deployment with no tornad reachable can hold a client
-// and branch on the error rather than on a nil pointer.
+// ErrNotConfigured, and a plain-http one off the cluster ErrInsecureBaseURL, so
+// a caller branches on the error rather than on a nil pointer.
 func New(baseURL, key string, opts ...Option) *Client {
 	c := &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		key:     key,
-		http:    &http.Client{Timeout: DefaultTimeout},
+		baseURL:  strings.TrimRight(baseURL, "/"),
+		key:      key,
+		http:     &http.Client{Timeout: DefaultTimeout},
+		maxBytes: DefaultMaxResponseBytes,
 	}
 	for _, o := range opts {
 		o(c)
 	}
-	c.wire = newWire(c.baseURL, c.key, c.http)
+	switch {
+	case c.baseURL == "":
+		c.err = ErrNotConfigured
+	default:
+		c.err = checkBaseURL(c.baseURL, c.insecureHTTP)
+	}
+	if c.err == nil {
+		c.wire = newWire(c.baseURL, c.key, boundedDoer{next: c.http, max: c.maxBytes})
+		if c.wire == nil {
+			c.err = ErrNotConfigured
+		}
+	}
 	return c
 }
 
-// newWire builds the generated transport. Its error is dropped on purpose: it
-// can only come from a ClientOption, and none is passed here — surfacing it
-// would force New to return an error for a case that cannot arise, when a blank
-// baseURL is already handled by every method returning ErrNotConfigured.
+func (c *Client) ready() error { return c.err }
+
 func newWire(baseURL, key string, doer wire.HttpRequestDoer) *wire.ClientWithResponses {
-	if baseURL == "" {
-		return nil
-	}
 	auth := wire.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 		if key != "" {
 			req.Header.Set("Authorization", "Bearer "+key)

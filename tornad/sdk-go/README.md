@@ -62,9 +62,8 @@ unaware of two routes. `TestEveryCallerFacingRouteIsGenerated` asserts it
 against the contract.
 
 Speech is not here at all: reading text aloud is
-[vvaves](https://github.com/lalternativefabrique/vvaves), a separate service
-with its own client, because a reading is authorised by a signed URL rather
-than by an application key.
+[vvaves](https://github.com/lalternativefabrique/vvaves), with its own client
+in [`vvaves/sdk-go`](../../vvaves/sdk-go), built the same way.
 
 ## Errors
 
@@ -76,8 +75,19 @@ than by an application key.
 | `ErrNotFound` | no such crawl |
 | `ErrUpstream` | tornad reached the web and got no page (502). **Routine**, not an outage |
 | `ErrUnavailable` | transport failure, 5xx, or a backend this deployment lacks |
+| `ErrInsecureBaseURL` | plain `http://` to a host outside the cluster — the key would travel in clear |
+| `ErrResponseTooLarge` | a response past `DefaultMaxResponseBytes` (32 MiB, `WithMaxResponseBytes`) |
 
 `ErrUpstream` is separate on purpose: a publisher refusing a datacenter address
 is the common case on the open web, and folded into `ErrUnavailable` it reads
 as "tornad is broken" — so a caller retries a URL that will never load instead
 of falling back.
+
+## Transport safety
+
+`guard.go` is byte-identical in `vvaves/sdk-go`; change both together.
+
+- `http://` is accepted only for loopback, private IPs, single-label hosts and
+  `.internal` / `.local` / `.svc` / `.cluster.local`. `WithInsecureHTTP()` lifts
+  that for tests.
+- Every response is read through a byte ceiling, announced or chunked.

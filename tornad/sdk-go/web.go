@@ -103,8 +103,8 @@ type SearchResults struct {
 
 // Search returns ranked web results, optionally with the first pages' text.
 func (c *Client) Search(ctx context.Context, q SearchQuery) (SearchResults, error) {
-	if c.wire == nil {
-		return SearchResults{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return SearchResults{}, err
 	}
 	body := wire.HttpapiSearchRequest{Q: ptr(q.Query)}
 	if len(q.Categories) > 0 {
@@ -211,8 +211,8 @@ type Page struct {
 // A page tornad could not read answers ErrUpstream, which is routine on the
 // open web: a caller with a fallback should take it rather than retry.
 func (c *Client) Fetch(ctx context.Context, req FetchRequest) (Page, error) {
-	if c.wire == nil {
-		return Page{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return Page{}, err
 	}
 	body := wire.HttpapiFetchRequest{Url: ptr(req.URL)}
 	if req.MaxRunes > 0 {
@@ -264,8 +264,8 @@ type Rendered struct {
 // way around a block. Fetch is what carries both a residential address and a
 // real browser's fingerprint.
 func (c *Client) Render(ctx context.Context, req RenderRequest) (Rendered, error) {
-	if c.wire == nil {
-		return Rendered{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return Rendered{}, err
 	}
 	body := wire.HttpapiRenderRequest{Url: ptr(req.URL)}
 	if req.TimeoutMS > 0 {
@@ -312,8 +312,8 @@ type SiteMap struct {
 
 // Map returns a site's URLs, within a scope. Synchronous and bounded.
 func (c *Client) Map(ctx context.Context, req MapRequest) (SiteMap, error) {
-	if c.wire == nil {
-		return SiteMap{}, ErrNotConfigured
+	if err := c.ready(); err != nil {
+		return SiteMap{}, err
 	}
 	body := wire.HttpapiMapRequest{Url: ptr(req.URL)}
 	applyScope(&body, req.Scope)
@@ -356,7 +356,7 @@ func applyScope(body *wire.HttpapiMapRequest, s Scope) {
 
 // wrap turns a transport failure into ErrUnavailable, preserving what failed.
 func wrap(err error) error {
-	return fmt.Errorf("%w: %v", ErrUnavailable, err)
+	return fmt.Errorf("%w: %w", ErrUnavailable, err)
 }
 
 // statusFrom maps a response with no decoded body onto a sentinel.

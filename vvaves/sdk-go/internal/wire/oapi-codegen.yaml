@@ -1,0 +1,10 @@
+package: wire
+output: wire.gen.go
+generate:
+  client: true
+  models: true
+output-options:
+  # A deny list, so a caller-facing route added upstream reaches the SDK on its
+  # own. admin is authenticated by an operator JWT and keys by a console
+  # session: an application key has nothing to call on either.
+  exclude-tags: [admin, keys]
