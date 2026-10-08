@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/nakoda-sdk-browser",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "nakoda's cookieless visitor analytics for browsers: page views and where visitors come from",
   "type": "module",
   "main": "./dist/index.js",
