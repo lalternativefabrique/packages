@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/nakoda-sdk-react",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "React component for nakoda's cookieless visitor analytics",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "react": ">=18"
   },
   "dependencies": {
-    "@lalternative/nakoda-sdk-browser": "^0.1.0"
+    "@lalternative/nakoda-sdk-browser": "^0.2.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
