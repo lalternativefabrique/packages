@@ -20,7 +20,7 @@ The browser side is `@lalternative/vvaves-sdk-react`, which plays `su.URL`.
 
 ## What is covered
 
-`Speak`, `SpeakStream`, `Exists`, `Prime`, `Pregenerate`, `Sign`.
+`Speak`, `SpeakStream`, `Exists`, `Prime`, `Pregenerate`, `Sign`, `Transcribe`.
 `/api/v1/admin/*` (operator JWT) and `/api/keys` (console session) are excluded
 by a deny list, asserted against the contract by `contract_test.go`.
 Refresh with `./refresh-contract.sh`.
@@ -42,3 +42,4 @@ a control character are refused, since the signed string is newline-joined.
 | `ErrInsecureBaseURL` | plain `http://` outside the cluster, for the base URL, the public URL, or a URL vvaves signed |
 | `ErrResponseTooLarge` | a response past 64 MiB (`WithMaxResponseBytes`) |
 | `ErrFrameTooLarge` | a streamed piece past `MaxFrameBytes` (8 MiB) |
+| `ErrAudioTooLarge` | a recording past `MaxAudioBytes` (25 MiB), refused before upload |
