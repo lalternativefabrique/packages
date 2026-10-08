@@ -1,8 +1,8 @@
 export interface NakodaOptions {
-  /** The app's public site key, shown on its page in nakoda. */
-  site: string;
   /** nakoda's origin; https://nakoda.club by default. */
   endpoint?: string;
+  /** @deprecated nakoda knows the app by the page's domain; ignored. */
+  site?: string;
 }
 
 /** Where the visit started, kept for the visit so a sign-up can say it. */
@@ -41,7 +41,7 @@ export function readSource(storage: TrackerEnv['storage']): VisitSource | null {
  * page's referrer; the next ones, the previous URL of the same site, which
  * nakoda reads as the same visit going on.
  */
-export function createTracker(options: NakodaOptions, env: TrackerEnv) {
+export function createTracker(options: NakodaOptions = {}, env: TrackerEnv) {
   const endpoint = (options.endpoint ?? DEFAULT_ENDPOINT).replace(/\/$/, '') + '/v1/hit';
   let previous: string | null = null;
 
@@ -59,7 +59,7 @@ export function createTracker(options: NakodaOptions, env: TrackerEnv) {
       if (href === previous || isLocal(env.hostname())) return;
       const referrer = previous ?? env.referrer;
       previous = href;
-      env.send(endpoint, JSON.stringify({ s: options.site, u: href, r: referrer }));
+      env.send(endpoint, JSON.stringify({ u: href, r: referrer }));
     },
   };
 }
