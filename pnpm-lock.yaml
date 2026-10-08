@@ -218,8 +218,8 @@ importers:
   nakoda/sdk-react:
     dependencies:
       '@lalternative/nakoda-sdk-browser':
-        specifier: ^0.1.0
-        version: 0.1.0
+        specifier: ^0.2.0
+        version: 0.2.0
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
@@ -993,6 +993,9 @@ packages:
 
   '@lalternative/nakoda-sdk-browser@0.1.0':
     resolution: {integrity: sha512-/fPekJcIbJxdDeQAWLLfYw/28LTnypsAaEu/HqPUoEDMQejW19BMIoDaSNf20EHZgMfFniX3C87wmm9xwjZ90w==}
+
+  '@lalternative/nakoda-sdk-browser@0.2.0':
+    resolution: {integrity: sha512-8EstwvKiC+zZHhE8I7ZnpIFUGXIrpsd5kQts4cvXSMXlKj7EP5obyp8mJ37psI6suF+3LB2ufKLpUh+A8kRvgw==}
 
   '@lalternative/nakoda-sdk-react@0.1.1':
     resolution: {integrity: sha512-fIwkWvlNAgJ1ZT+JRM62AEN3C6+rTnbfZj7BDlV3dvxt5nukjUMnwTiTWlBO8k9QXfqP7PasD/vZ6XOJJz4Hwg==}
@@ -5192,6 +5195,8 @@ snapshots:
       jsep: 1.4.0
 
   '@lalternative/nakoda-sdk-browser@0.1.0': {}
+
+  '@lalternative/nakoda-sdk-browser@0.2.0': {}
 
   '@lalternative/nakoda-sdk-react@0.1.1(react@19.2.8)':
     dependencies:
