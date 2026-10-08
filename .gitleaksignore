@@ -1,0 +1,2 @@
+# Reviewed false positives (commit:file:rule:line). Never add a real secret here: revoke it.
+129fd4cd70c3ec07a2c7ba1ed586b7fb89ff08be:go/cortex/config/config_test.go:generic-api-key:65

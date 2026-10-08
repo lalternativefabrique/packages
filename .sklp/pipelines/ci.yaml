@@ -4,6 +4,7 @@ name: ci
 
 tools:
   node: "24.16.0"
+  gitleaks: "8.18.4"
   pnpm: "11.3.0"
   rust: "1.90.0"
 
@@ -103,12 +104,31 @@ scopes:
     - "pnpm-workspace.yaml"
   lalter-sdk-go:
     - "lalter/sdk-go/**"
+  tornad-sdk-go:
+    - "tornad/sdk-go/**"
+  vvaves-sdk-go:
+    - "vvaves/sdk-go/**"
+  vvaves-sdk-react:
+    - "vvaves/sdk-react/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
   lalter-sdk-node:
     - "lalter/sdk-node/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
 
 steps:
+  # Unscoped: a key can land in any file. This repository is public, so a
+  # secret that reaches main is published and must be revoked, not deleted.
+  - name: gitleaks
+    tools: [gitleaks]
+    run: |
+      if git rev-parse --git-dir >/dev/null 2>&1; then
+        gitleaks detect --source . --config .gitleaks.toml --no-banner --redact --exit-code 1
+      else
+        gitleaks detect --no-git --source . --config .gitleaks.toml --no-banner --redact --exit-code 1
+      fi
+
   # build, not just typecheck: the package hand-writes the types its consumers
   # compile against, because the plugin-augmented better-auth client cannot be
   # named in a published .d.ts (TS2742). Only emitting the declarations proves
@@ -352,6 +372,33 @@ steps:
       go build ./...
       go vet ./...
       go test -count=1 ./...
+
+  - name: tornad-sdk-go
+    scope: [tornad-sdk-go]
+    tools: [go]
+    run: |
+      cd tornad/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: vvaves-sdk-go
+    scope: [vvaves-sdk-go]
+    tools: [go]
+    run: |
+      cd vvaves/sdk-go
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: vvaves-sdk-react
+    scope: [vvaves-sdk-react]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react test
+      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react build
 
   - name: lalter-sdk-node
     scope: [lalter-sdk-node]
