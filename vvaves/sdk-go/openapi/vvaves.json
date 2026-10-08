@@ -1,0 +1,952 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "description": "Read text aloud for every product, plus the admin API of the applications registry.\n\nThe speak routes answer at the root; the admin API is under\n/api/v1, which is why no global base path is declared.",
+        "title": "Vvaves",
+        "contact": {},
+        "version": "0.3.0"
+    },
+    "paths": {
+        "/api/keys": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "keys"
+                ],
+                "summary": "List the caller's keys for this product",
+                "operationId": "listKeys",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.KeyListDTO"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The key is signed by urbangate and returned once; it is stored nowhere.",
+                "tags": [
+                    "keys"
+                ],
+                "summary": "Issue a key the caller's application will present to this product",
+                "operationId": "createKey",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/keys.CreateKeyRequest"
+                            }
+                        }
+                    },
+                    "description": "Label, and optionally the scopes",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.CreatedKeyDTO"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/keys/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Recorded before the key is dropped: a 503 left the key working, and retrying is safe.",
+                "tags": [
+                    "keys"
+                ],
+                "summary": "Revoke one of the caller's keys",
+                "operationId": "revokeKey",
+                "parameters": [
+                    {
+                        "description": "The key's id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/keys.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/apps": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Every registered application, key withheld",
+                "operationId": "listApps",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.AppListDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Admit an application and hand its key out once",
+                "operationId": "registerApp",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/registry.RegisterRequest"
+                            }
+                        }
+                    },
+                    "description": "The issuer name the application signs as",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.CredentialsDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/apps/{name}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "End an application's access at once",
+                "operationId": "revokeApp",
+                "parameters": [
+                    {
+                        "description": "Application name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/apps/{name}/rotate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "admin"
+                ],
+                "summary": "Mint an application a new key; the old one works for a day",
+                "operationId": "rotateAppKey",
+                "parameters": [
+                    {
+                        "description": "Application name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.CredentialsDTO"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.ErrorDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/registry.ErrorDTO"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/healthz": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Liveness",
+                "operationId": "healthz",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.healthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/speak": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceKey": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Answers audio bytes, not JSON. With stream=false the whole\nreading comes back with a Content-Length and ranges; with\nstream=true each piece is emitted as it is read, length-prefixed\nunder application/x-lalter-audio-frames.",
+                "tags": [
+                    "speak"
+                ],
+                "summary": "Read a text aloud, from the store when it is already there",
+                "operationId": "speak",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httpapi.speakRequest"
+                            }
+                        }
+                    },
+                    "description": "text to read",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "audio/mpeg": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/speak/exists": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceKey": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "speak"
+                ],
+                "summary": "Whether a reading is already stored, without reading its bytes",
+                "operationId": "speakExists",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httpapi.speakRequest"
+                            }
+                        }
+                    },
+                    "description": "reading to look for",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.existsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/speak/pregenerate": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceKey": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "For a text expected to be heard more than once. It holds a\nsynthesis slot, so prefer /speak/prime for a text that may never\nbe played. Takes an application key.",
+                "tags": [
+                    "speak"
+                ],
+                "summary": "Read a whole text ahead of time and keep it",
+                "operationId": "pregenerateSpeak",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httpapi.speakRequest"
+                            }
+                        }
+                    },
+                    "description": "text to read in full",
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/speak/prime": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceKey": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Answers 202 without waiting: nobody is listening yet. Takes an\napplication key — a browser signature is good for /speak alone.",
+                "tags": [
+                    "speak"
+                ],
+                "summary": "Read a text's opening ahead of time, so the first listen starts at once",
+                "operationId": "primeSpeak",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httpapi.speakRequest"
+                            }
+                        }
+                    },
+                    "description": "text whose opening to read",
+                    "required": true
+                },
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/speak/sign": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceKey": []
+                    },
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "For an application holding a customer key, which cannot sign\nURLs itself. Takes a server credential, never a signature.",
+                "tags": [
+                    "speak"
+                ],
+                "summary": "Sign a /speak URL a browser can play",
+                "operationId": "signSpeak",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/httpapi.speakRequest"
+                            }
+                        }
+                    },
+                    "description": "reading to authorise",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.signResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/httpapi.errorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header"
+            },
+            "ServiceKey": {
+                "type": "apiKey",
+                "name": "X-Vvaves-Key",
+                "in": "header"
+            }
+        },
+        "schemas": {
+            "httpapi.errorResponse": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httpapi.existsResponse": {
+                "type": "object",
+                "properties": {
+                    "ready": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "httpapi.healthResponse": {
+                "type": "object",
+                "properties": {
+                    "ok": {
+                        "type": "boolean"
+                    }
+                }
+            },
+            "httpapi.signResponse": {
+                "type": "object",
+                "properties": {
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "url": {
+                        "type": "string"
+                    }
+                }
+            },
+            "httpapi.speakRequest": {
+                "type": "object",
+                "properties": {
+                    "gender": {
+                        "description": "Gender is the voice the listener wants to hear: female, male or\nneutral. Absent, DefaultGender. A gender no configured voice reads in\nis honoured as far as the language, never refused.",
+                        "type": "string",
+                        "enum": [
+                            "female",
+                            "male",
+                            "neutral"
+                        ]
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "lang": {
+                        "description": "Lang is the listener's language, as a BCP 47 tag; it picks the voice.\nAbsent, the request's Accept-Language does.",
+                        "type": "string"
+                    },
+                    "scope": {
+                        "description": "Scope and ID name where a reading is kept. Both optional: an ID lets a\ncaller prime a reading before anyone asks for it, since priming means\nnaming ahead of time what will be listened to. Without one the reading\nis still cached, keyed by the text alone — a second listen of the same\nwords finds it, which no caller has to opt into.",
+                        "type": "string"
+                    },
+                    "stream": {
+                        "type": "boolean"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                }
+            },
+            "keys.CreateKeyRequest": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "keys.CreatedKeyDTO": {
+                "type": "object",
+                "properties": {
+                    "audience": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "expiresAt": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "secret": {
+                        "type": "string"
+                    }
+                }
+            },
+            "keys.ErrorDTO": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "keys.KeyDTO": {
+                "type": "object",
+                "properties": {
+                    "audience": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "expiresAt": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "scopes": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "keys.KeyListDTO": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/keys.KeyDTO"
+                        }
+                    }
+                }
+            },
+            "registry.AppDTO": {
+                "type": "object",
+                "properties": {
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "grace_until": {
+                        "type": "string"
+                    },
+                    "last4": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "revoked_at": {
+                        "type": "string"
+                    },
+                    "rotated_at": {
+                        "type": "string"
+                    }
+                }
+            },
+            "registry.AppListDTO": {
+                "type": "object",
+                "properties": {
+                    "apps": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/registry.AppDTO"
+                        }
+                    }
+                }
+            },
+            "registry.CredentialsDTO": {
+                "type": "object",
+                "properties": {
+                    "grace_until": {
+                        "type": "string"
+                    },
+                    "key": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "registry.ErrorDTO": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    }
+                }
+            },
+            "registry.RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
