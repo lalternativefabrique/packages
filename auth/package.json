@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/auth",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "The suite's sign-in on urbangate for L'Alternative apps: the product's server routes, the browser and Expo clients, and the auth UI",
   "type": "module",
   "main": "./dist/index.js",
@@ -65,7 +65,7 @@
     "directory": "auth"
   },
   "dependencies": {
-    "@lalternative/nakoda-sdk-browser": "^0.1.0",
-    "@lalternative/nakoda-sdk-react": "^0.1.1"
+    "@lalternative/nakoda-sdk-browser": "^0.2.0",
+    "@lalternative/nakoda-sdk-react": "^0.2.0"
   }
 }
