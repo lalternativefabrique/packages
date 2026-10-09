@@ -181,13 +181,7 @@ export function LoginForm({
         {messag && (
           <MessagSignIn
             {...(messag === true ? {} : messag)}
-            authClient={authClient}
-            onSuccess={onSuccess}
-            defaultEmail={defaultEmail}
-            coreTokenUrl={coreTokenUrl}
             disabled={isPending}
-            fieldClassName={fieldClassName}
-            submitClassName={submitClassName}
           />
         )}
       </SocialButtons>

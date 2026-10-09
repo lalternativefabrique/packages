@@ -28,6 +28,8 @@ export interface PendingSignIn {
   state: string;
   verifier: string;
   landing: string;
+  /** Signed in with messag: any person, not only the product's admins */
+  messag?: boolean;
 }
 
 const SCOPE = "openid offline_access email profile";
@@ -128,8 +130,14 @@ export class ConsoleSso {
 
   async start(
     landing: string,
+    messag = false,
   ): Promise<{ location: string; pending: PendingSignIn }> {
-    const pending = { state: random(16), verifier: random(), landing };
+    const pending: PendingSignIn = {
+      state: random(16),
+      verifier: random(),
+      landing,
+      ...(messag ? { messag: true } : {}),
+    };
     const url = new URL("/oauth2/auth", this.config.issuerUrl);
     url.search = new URLSearchParams({
       client_id: this.config.clientId,
@@ -140,6 +148,7 @@ export class ConsoleSso {
       state: pending.state,
       code_challenge: await challengeOf(pending.verifier),
       code_challenge_method: "S256",
+      ...(messag ? { brand: "messag" } : {}),
     }).toString();
     return { location: url.toString(), pending };
   }
