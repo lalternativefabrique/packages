@@ -1,0 +1,88 @@
+.lam-room {
+  height: 100%;
+  background: #0b0b0c;
+  color: #f4f4f5;
+}
+.lam-call {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  height: 100%;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+.lam-call[data-layout='stage'],
+.lam-call[data-layout='screens'] {
+  grid-template-rows: 1fr 120px auto;
+}
+.lam-main {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-auto-rows: 1fr;
+}
+.lam-main[data-count='1'] {
+  grid-template-columns: 1fr;
+}
+.lam-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+.lam-strip .lam-tile {
+  flex: 0 0 180px;
+}
+.lam-tile {
+  position: relative;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1c1c1f;
+}
+.lam-tile[data-pinned] {
+  outline: 2px solid #22c55e;
+}
+.lam-tile .lk-participant-tile {
+  height: 100%;
+}
+.lam-tile-label,
+.lam-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: rgb(0 0 0 / 0.6);
+}
+.lam-badge {
+  left: auto;
+  right: 8px;
+  background: #166534;
+}
+.lam-pin {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 12px;
+}
+.lam-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.lam-layouts {
+  display: flex;
+  gap: 4px;
+}
+.lam-button[aria-pressed='true'] {
+  background: #3f3f46;
+}
+.lam-error {
+  color: #f87171;
+  text-align: center;
+  margin: 0;
+}
