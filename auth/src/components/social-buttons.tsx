@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 const LABELS: Record<string, string> = {
   google: "Continuer avec Google",
   github: "Continuer avec GitHub",
@@ -11,6 +13,8 @@ interface SocialButtonsProps {
   separator?: string
   /** Per-provider button copy, merged over the French defaults */
   labels?: Partial<Record<"google" | "github", string>>
+  /** Another way in, under the providers and after the same divider */
+  children?: ReactNode
 }
 
 export function SocialButtons({
@@ -19,8 +23,9 @@ export function SocialButtons({
   disabled = false,
   separator = "ou",
   labels,
+  children,
 }: SocialButtonsProps) {
-  if (providers.length === 0) return null
+  if (providers.length === 0 && !children) return null
 
   const copy = { ...LABELS, ...labels }
 
@@ -71,6 +76,7 @@ export function SocialButtons({
           </button>
         ))}
       </div>
+      {children}
     </div>
   )
 }
