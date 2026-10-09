@@ -15,10 +15,19 @@ go get github.com/lalternative/packages/lungor/entitlement
 | handlers | nothing — they never read a plan |
 
 This module never knows what is sold. A subject's plan comes from
-`Entitlement`, its limits from that plan's allocations in the app catalogue
-(`ListPlans`). A unit the plan does not list has a limit of **0**: declare
-every gated unit on every plan. An allocation `>= 1_000_000_000` (Lungor's
-`Unlimited`) is uncapped.
+`Entitlement`, its limits from the subject's own allocations: one `Balance`
+read per gated unit (its `Limit`, or `Unlimited`), at most 4 in parallel.
+That works for `visibility: staff` plans, which the public catalogue
+(`ListPlans`) hides. A unit the plan does not list has a limit of **0**:
+declare every gated unit on every plan. An allocation `>= 1_000_000_000`
+(Lungor's `Unlimited`) is uncapped.
+
+Gated units are the `Counters` keys, the units passed to `Require`,
+`RequireRoom*` and `Spend`, and `Config.Units`. A unit checked only through
+`gate.Allow` must be listed in `Units`.
+
+The `Fallback` plan (no subscription, anonymous subject, or Lungor down with
+no snapshot) still takes its limits from `ListPlans`, kept in memory.
 
 ## Wiring
 
@@ -44,7 +53,9 @@ api.GET("/me/plan", func(c echo.Context) error { /* gate.Limits(ctx, subject) */
 e.POST("/webhooks/lungor", gate.Webhook(os.Getenv("LUNGOR_WEBHOOK_SECRET")))
 ```
 
-Non-HTTP callers use `gate.Allow(ctx, subject, unit, n)`.
+Non-HTTP callers use `gate.Allow(ctx, subject, unit, n)`. After changing a
+subject's plan yourself (admin `Grant`, `ChangePlan`), call
+`gate.Invalidate(ctx, subject)` to re-read it and replace its snapshot.
 
 Refusals reach the client as
 `402 {"code":"plan_limit","unit","limit","used","plan"}`; a metered spend the

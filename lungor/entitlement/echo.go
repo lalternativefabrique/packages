@@ -19,6 +19,7 @@ const maxWebhookBody = 1 << 20
 // Require admits the request when the subject's plan allocates at least one
 // of unit: a feature flag.
 func (g *Gate) Require(unit string) echo.MiddlewareFunc {
+	g.track(unit)
 	return g.middleware(func(c echo.Context, subject string) error {
 		return g.allowFeature(c.Request().Context(), subject, unit)
 	})
@@ -35,6 +36,7 @@ func (g *Gate) RequireRoomFrom(unit string, amount func(c echo.Context) (int64, 
 	if _, ok := g.cfg.Counters[unit]; !ok {
 		panic(fmt.Sprintf("entitlement: no Counter declared for unit %q", unit))
 	}
+	g.track(unit)
 	return g.middleware(func(c echo.Context, subject string) error {
 		n, err := amount(c)
 		if err != nil {
@@ -47,6 +49,7 @@ func (g *Gate) RequireRoomFrom(unit string, amount func(c echo.Context) (int64, 
 // Spend debits n of a metered unit on Lungor before the handler runs, keyed on
 // the request id, and releases it when the handler fails.
 func (g *Gate) Spend(unit string, n int64) echo.MiddlewareFunc {
+	g.track(unit)
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			subject, err := g.subject(c)
@@ -147,7 +150,7 @@ func (g *Gate) Webhook(secret string) echo.HandlerFunc {
 			g.mu.Unlock()
 			return c.NoContent(http.StatusNoContent)
 		}
-		if _, err := g.load(c.Request().Context(), subject); err != nil {
+		if err := g.Invalidate(c.Request().Context(), subject); err != nil {
 			return echo.NewHTTPError(http.StatusServiceUnavailable).SetInternal(err)
 		}
 		return c.NoContent(http.StatusNoContent)
