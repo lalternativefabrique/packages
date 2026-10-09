@@ -561,6 +561,7 @@ test("sign-in/messag asks Hydra for the messag window and lands on the app", asy
   const q = new URL(res.headers.get("location") ?? "").searchParams;
   assert.equal(q.get("client_id"), "partage-admin");
   assert.equal(q.get("brand"), "messag");
+  assert.equal(q.get("prompt"), "login");
   const set = res.headers
     .getSetCookie()
     .find((c) => c.startsWith("partage_sso="));
