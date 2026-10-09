@@ -1,8 +1,22 @@
-type FeedbackType = 'bug' | 'idea' | 'other';
+export type FeedbackType = 'bug' | 'idea' | 'other';
+
+export type FeedbackSource = 'manual' | 'error' | 'nudge';
+
+export type FeedbackLang = 'fr' | 'en';
+
+export interface OpenFeedbackOptions {
+  type?: FeedbackType;
+  message?: string;
+  source?: FeedbackSource;
+  context?: Record<string, string>;
+}
+
+export const OPEN_EVENT = 'skalpai-feedback:open';
+export const NUDGE_EVENT = 'skalpai-feedback:nudge';
 
 export type Placement = 'bottom-left' | 'bottom-right' | 'inline';
 
-type Labels = {
+export type Labels = {
   title: string;
   send: string;
   sending: string;
@@ -21,9 +35,11 @@ type Labels = {
   email_invalid: string;
   hide: string;
   show: string;
+  nudge: string;
+  context_attached: string;
 };
 
-const DEFAULT_LABELS: Labels = {
+const FR_LABELS: Labels = {
   title: 'Feedback',
   send: 'Envoyer',
   sending: 'Envoi…',
@@ -42,7 +58,71 @@ const DEFAULT_LABELS: Labels = {
   email_invalid: 'Email invalide',
   hide: 'Masquer le bouton',
   show: 'Afficher le bouton feedback',
+  nudge: 'Un souci ? Dites-le-nous',
+  context_attached: 'Détails techniques joints',
 };
+
+const EN_LABELS: Labels = {
+  title: 'Feedback',
+  send: 'Send',
+  sending: 'Sending…',
+  close: 'Close',
+  bug: 'Bug',
+  idea: 'Idea',
+  other: 'Other',
+  placeholder: 'Tell us what happened…',
+  thanks: 'Thanks for your feedback!',
+  capture: 'Capture screen',
+  capturing: 'Capturing…',
+  remove_screenshot: 'Remove screenshot',
+  attach: 'Attach image',
+  remove_attachment: 'Remove attachment',
+  email_placeholder: 'Your email (to get a reply)',
+  email_invalid: 'Invalid email',
+  hide: 'Hide the button',
+  show: 'Show the feedback button',
+  nudge: 'Something wrong? Tell us',
+  context_attached: 'Technical details attached',
+};
+
+const LABELS_BY_LANG: Record<FeedbackLang, Labels> = { fr: FR_LABELS, en: EN_LABELS };
+
+const NUDGE_SESSION_KEY = 'skalpai-feedback:nudged';
+const NUDGE_DURATION_MS = 8000;
+const RAGE_CLICK_COUNT = 3;
+const RAGE_CLICK_WINDOW_MS = 800;
+const RAGE_CLICK_RADIUS_PX = 30;
+const MAX_CONTEXT_VALUE_CHARS = 2000;
+
+export function openFeedback(options: OpenFeedbackOptions = {}): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent<OpenFeedbackOptions>(OPEN_EVENT, { detail: options }));
+}
+
+export function reportProblem(error: unknown, context: Record<string, string> = {}): void {
+  const err = error instanceof Error ? error : null;
+  openFeedback({
+    type: 'bug',
+    source: 'error',
+    context: {
+      ...context,
+      error: err ? `${err.name}: ${err.message}` : String(error),
+      ...(err?.stack ? { stack: err.stack } : {}),
+    },
+  });
+}
+
+export function nudgeFeedback(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(NUDGE_EVENT));
+}
+
+function formatContext(context: Record<string, string>): string {
+  const lines = Object.entries(context).map(
+    ([k, v]) => `${k}: ${v.length > MAX_CONTEXT_VALUE_CHARS ? v.slice(0, MAX_CONTEXT_VALUE_CHARS) + '…' : v}`,
+  );
+  return lines.length ? `\n\n---\n${lines.join('\n')}` : '';
+}
 
 const COLLAPSE_STORAGE_PREFIX = 'skalpai-feedback:collapsed:';
 
@@ -265,6 +345,18 @@ const STYLES = `
     padding: 8px 10px; background: rgba(239,68,68,.12); color: #f87171;
     font-size: 12px; border-radius: 6px;
   }
+  .nudge {
+    position: absolute; bottom: calc(100% + 10px); left: 0;
+    padding: 8px 12px; border-radius: 10px; white-space: nowrap;
+    background: var(--skalpai-accent); color: #fff;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,.25);
+    animation: skalpai-pop .25s ease-out;
+  }
+  :host([placement="bottom-right"]) .nudge { left: auto; right: 0; }
+  .btn-fab.nudging { outline: 2px solid var(--skalpai-accent); outline-offset: 2px; }
+  @keyframes skalpai-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .nudge { animation: none; } }
   .ok { padding: 28px 16px; text-align: center; font-size: 13px; color: var(--skalpai-muted); }
 `;
 
@@ -284,7 +376,7 @@ const HTMLElementCtor: typeof HTMLElement =
     : (class {} as unknown as typeof HTMLElement);
 
 export class SkalpaiFeedbackElement extends HTMLElementCtor {
-  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'theme', 'user-email', 'placement', 'collapsed'];
+  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'lang', 'theme', 'user-email', 'placement', 'collapsed'];
 
   private root: ShadowRoot;
   private open = false;
@@ -296,6 +388,11 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   private capturing = false;
   private themeObserver: MutationObserver | null = null;
   private mqlDark: MediaQueryList | null = null;
+  private source: FeedbackSource = 'manual';
+  private context: Record<string, string> = {};
+  private nudging = false;
+  private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
+  private recentClicks: Array<{ t: number; x: number; y: number }> = [];
 
   /**
    * Optional user email used as the reply-to identity. Pre-filled from the
@@ -332,13 +429,21 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     else this.removeAttribute('project-id');
   }
 
+  get lang(): FeedbackLang {
+    return this.getAttribute('lang')?.toLowerCase().startsWith('en') ? 'en' : 'fr';
+  }
+  set lang(v: string) {
+    this.setAttribute('lang', v);
+  }
+
   get labels(): Labels {
+    const base = LABELS_BY_LANG[this.lang];
     const raw = this.getAttribute('labels');
-    if (!raw) return DEFAULT_LABELS;
+    if (!raw) return base;
     try {
-      return { ...DEFAULT_LABELS, ...(JSON.parse(raw) as Partial<Labels>) };
+      return { ...base, ...(JSON.parse(raw) as Partial<Labels>) };
     } catch {
-      return DEFAULT_LABELS;
+      return base;
     }
   }
   set labels(v: string | Partial<Labels>) {
@@ -380,6 +485,62 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     this.collapsed = false;
   }
 
+  openPanel(options: OpenFeedbackOptions = {}): void {
+    this.stopNudge();
+    if (this.collapsed) this.setCollapsed(false);
+    if (options.type) this.type = options.type;
+    if (options.message !== undefined) this.message = options.message;
+    this.source = options.source ?? 'manual';
+    this.context = options.context ?? {};
+    if (this.state !== 'loading') this.state = 'idle';
+    this.open = true;
+    this.render();
+  }
+
+  nudge(): void {
+    if (this.open || this.nudging || this.placement === 'inline') return;
+    if (this.readStoredCollapse()) return;
+    try {
+      if (sessionStorage.getItem(NUDGE_SESSION_KEY)) return;
+      sessionStorage.setItem(NUDGE_SESSION_KEY, '1');
+    } catch {
+      // storage unavailable: nudge anyway, the in-memory flag still limits repeats
+    }
+    if (this.collapsed) this.collapsed = false;
+    this.nudging = true;
+    this.render();
+    this.nudgeTimer = setTimeout(() => this.stopNudge(), NUDGE_DURATION_MS);
+  }
+
+  private stopNudge(): void {
+    if (this.nudgeTimer) clearTimeout(this.nudgeTimer);
+    this.nudgeTimer = null;
+    if (!this.nudging) return;
+    this.nudging = false;
+    this.render();
+  }
+
+  private onOpenEvent = (e: Event): void => {
+    this.openPanel((e as CustomEvent<OpenFeedbackOptions>).detail ?? {});
+  };
+
+  private onNudgeEvent = (): void => this.nudge();
+
+  private onDocumentClick = (e: MouseEvent): void => {
+    if (e.composedPath().includes(this)) return;
+    const now = e.timeStamp;
+    this.recentClicks = this.recentClicks.filter((c) => now - c.t < RAGE_CLICK_WINDOW_MS);
+    this.recentClicks.push({ t: now, x: e.clientX, y: e.clientY });
+    const [first] = this.recentClicks;
+    const clustered = this.recentClicks.every(
+      (c) => Math.hypot(c.x - first.x, c.y - first.y) < RAGE_CLICK_RADIUS_PX,
+    );
+    if (this.recentClicks.length >= RAGE_CLICK_COUNT && clustered) {
+      this.recentClicks = [];
+      this.nudge();
+    }
+  };
+
   private get collapseStorageKey(): string {
     return COLLAPSE_STORAGE_PREFIX + (this.projectId || 'default');
   }
@@ -419,10 +580,17 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     this.setupThemeWatchers();
     this.render();
     document.addEventListener('keydown', this.onKey);
+    document.addEventListener('click', this.onDocumentClick, true);
+    window.addEventListener(OPEN_EVENT, this.onOpenEvent);
+    window.addEventListener(NUDGE_EVENT, this.onNudgeEvent);
   }
 
   disconnectedCallback(): void {
     document.removeEventListener('keydown', this.onKey);
+    document.removeEventListener('click', this.onDocumentClick, true);
+    window.removeEventListener(OPEN_EVENT, this.onOpenEvent);
+    window.removeEventListener(NUDGE_EVENT, this.onNudgeEvent);
+    this.stopNudge();
     this.themeObserver?.disconnect();
     this.themeObserver = null;
     this.mqlDark?.removeEventListener('change', this.applyTheme);
@@ -667,7 +835,9 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       const url = `${this.endpoint.replace(/\/$/, '')}/api/projects/${encodeURIComponent(this.projectId)}/issues/submit`;
       const form = new FormData();
       form.append('type', this.type);
-      form.append('message', this.message);
+      form.append('message', this.message + formatContext(this.context));
+      form.append('source', this.source);
+      if (Object.keys(this.context).length) form.append('context', JSON.stringify(this.context));
       form.append('url', location.pathname);
       form.append('device', window.innerWidth < 768 ? 'mobile' : 'desktop');
       form.append('user_identifier', this.userIdentifier);
@@ -683,6 +853,8 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       this.state = 'sent';
       this.message = '';
       this.type = 'other';
+      this.source = 'manual';
+      this.context = {};
       this.emailTouched = false;
       this.clearAttachments();
       this.render();
@@ -717,7 +889,8 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     this.root.innerHTML = `
       <style>${STYLES}</style>
       <div class="fab">
-        <button class="btn-fab" type="button" aria-label="${L.title}" aria-expanded="${this.open}">
+        ${this.nudging ? `<div class="nudge" role="status">${L.nudge}</div>` : ''}
+        <button class="btn-fab${this.nudging ? ' nudging' : ''}" type="button" aria-label="${L.title}" aria-expanded="${this.open}">
           <span aria-hidden="true">💬</span><span>${L.title}</span>
         </button>
         ${
@@ -782,7 +955,9 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
                     </div>`
                   : ''
               }
-              <div class="meta">${device} · ${escapeHtml(location.pathname)}</div>
+              <div class="meta">${device} · ${escapeHtml(location.pathname)}${
+                Object.keys(this.context).length ? ` · ${L.context_attached}` : ''
+              }</div>
               <button class="submit" type="submit" ${
                 this.state === 'loading' || !this.message.trim() ? 'disabled' : ''
               }>
@@ -798,9 +973,14 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     `;
 
     this.root.querySelector('.btn-fab')?.addEventListener('click', () => {
-      this.open = !this.open;
-      this.render();
+      if (this.open) {
+        this.open = false;
+        this.render();
+      } else {
+        this.openPanel({ source: this.nudging ? 'nudge' : 'manual' });
+      }
     });
+    this.root.querySelector('.nudge')?.addEventListener('click', () => this.openPanel({ source: 'nudge' }));
     this.root.querySelector('.fab-hide')?.addEventListener('click', () => this.setCollapsed(true));
     this.root.querySelector('.close')?.addEventListener('click', () => {
       this.open = false;

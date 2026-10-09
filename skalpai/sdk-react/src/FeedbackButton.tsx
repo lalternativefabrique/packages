@@ -25,6 +25,8 @@ export type FeedbackLabels = {
   email_invalid?: string;
   hide?: string;
   show?: string;
+  nudge?: string;
+  context_attached?: string;
 };
 
 export interface FeedbackButtonProps {
@@ -38,7 +40,9 @@ export interface FeedbackButtonProps {
   userIdentifier?: string;
   /** Override theme detection. Default: 'auto' (Tailwind/shadcn/Mantine/system) */
   theme?: FeedbackTheme;
-  /** Localized labels — omitted keys fall back to the widget defaults (FR) */
+  /** Built-in label set. Default: 'fr' */
+  lang?: string;
+  /** Label overrides on top of the `lang` set */
   labels?: FeedbackLabels;
   /**
    * Where the launcher sits. Default: 'bottom-left' (floating). Use 'inline' to
@@ -63,6 +67,7 @@ export function FeedbackButton({
   projectId,
   userIdentifier,
   theme,
+  lang,
   labels,
   placement,
   collapsed,
@@ -99,6 +104,7 @@ export function FeedbackButton({
       api-key={apiKey}
       project-id={projectId}
       {...(theme && theme !== 'auto' ? { theme } : {})}
+      {...(lang ? { lang } : {})}
       {...(labelsAttr ? { labels: labelsAttr } : {})}
       {...(placement && placement !== 'bottom-left' ? { placement } : {})}
       {...(collapsed ? { collapsed: '' } : {})}
@@ -116,6 +122,7 @@ declare module 'react' {
           'project-id'?: string;
           theme?: 'light' | 'dark';
           labels?: string;
+          lang?: string;
           placement?: FeedbackPlacement;
           collapsed?: string;
         },

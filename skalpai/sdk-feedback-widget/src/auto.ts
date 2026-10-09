@@ -9,6 +9,7 @@ if (script && typeof document !== 'undefined') {
   const labels = script.dataset.labels;
   const userEmail = script.dataset.userEmail;
   const placement = script.dataset.placement;
+  const lang = script.dataset.lang;
   const collapsed = script.dataset.collapsed;
   if (apiKey) el.setAttribute('api-key', apiKey);
   if (endpoint) el.setAttribute('endpoint', endpoint);
@@ -16,6 +17,7 @@ if (script && typeof document !== 'undefined') {
   if (labels) el.setAttribute('labels', labels);
   if (userEmail) el.setAttribute('user-email', userEmail);
   if (placement) el.setAttribute('placement', placement);
+  if (lang) el.setAttribute('lang', lang);
   if (collapsed === 'true' || collapsed === '') el.setAttribute('collapsed', '');
 
   if (document.body) {
