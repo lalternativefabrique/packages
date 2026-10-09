@@ -14,6 +14,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/lalternative/packages/lungor/policy"
 	sdk "github.com/lalternative/packages/lungor/sdk-go"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -27,6 +28,8 @@ const DefaultRefresh = 24 * time.Hour
 
 const ledgerTimeout = 10 * time.Second
 
+const balanceConcurrency = 4
+
 // ErrLedgerUnavailable means a metered spend could not be recorded, so it was
 // refused.
 var ErrLedgerUnavailable = errors.New("entitlement: ledger unavailable")
@@ -35,6 +38,7 @@ var ErrLedgerUnavailable = errors.New("entitlement: ledger unavailable")
 type Ledger interface {
 	Entitlement(ctx context.Context, externalUserID string, units ...string) (sdk.Entitlement, error)
 	ListPlans(ctx context.Context) (sdk.Plans, error)
+	Balance(ctx context.Context, externalUserID, unit string) (sdk.Balance, error)
 	Consume(ctx context.Context, in sdk.Usage) (sdk.Decision, error)
 	Release(ctx context.Context, in sdk.Usage) (sdk.Decision, error)
 }
@@ -53,7 +57,10 @@ type Config struct {
 	Fallback string
 	Subject  func(c echo.Context) (string, error)
 	Counters map[string]Counter
-	Refresh  time.Duration
+	// Units lists gated units read on top of the Counters keys and the units
+	// named by Require, RequireRoom and Spend.
+	Units   []string
+	Refresh time.Duration
 }
 
 // Limits is a subject's plan and its per-unit allocations.
@@ -75,6 +82,7 @@ type Gate struct {
 
 	mu      sync.RWMutex
 	cache   map[string]Snapshot
+	units   map[string]struct{}
 	plans   sdk.Plans
 	plansAt time.Time
 }
@@ -88,7 +96,39 @@ func New(cfg Config) *Gate {
 	if cfg.Refresh <= 0 {
 		cfg.Refresh = DefaultRefresh
 	}
-	return &Gate{cfg: cfg, now: time.Now, cache: map[string]Snapshot{}}
+	g := &Gate{cfg: cfg, now: time.Now, cache: map[string]Snapshot{}, units: map[string]struct{}{}}
+	for unit := range cfg.Counters {
+		g.track(unit)
+	}
+	for _, unit := range cfg.Units {
+		g.track(unit)
+	}
+	return g
+}
+
+func (g *Gate) track(unit string) {
+	g.mu.Lock()
+	g.units[unit] = struct{}{}
+	g.mu.Unlock()
+}
+
+func (g *Gate) trackedUnits() []string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	units := make([]string, 0, len(g.units))
+	for unit := range g.units {
+		units = append(units, unit)
+	}
+	return units
+}
+
+// Invalidate re-reads the subject from Lungor and replaces its snapshot, for
+// callers that changed the subject's plan themselves (Grant, ChangePlan).
+func (g *Gate) Invalidate(ctx context.Context, subject string) error {
+	if _, err := g.load(ctx, subject); err != nil {
+		return fmt.Errorf("entitlement: invalidate %s: %w", subject, err)
+	}
+	return nil
 }
 
 // Limits returns the subject's plan and allocations.
@@ -193,26 +233,65 @@ func (g *Gate) load(ctx context.Context, subject string) (Snapshot, error) {
 }
 
 func (g *Gate) fetch(ctx context.Context, subject string) (Snapshot, error) {
-	plan := g.cfg.Fallback
-	if !policy.IsAnon(subject) {
-		ent, err := g.cfg.Ledger.Entitlement(ctx, subject)
-		if err != nil {
+	if policy.IsAnon(subject) {
+		return g.fetchFallback(ctx)
+	}
+	ent, err := g.cfg.Ledger.Entitlement(ctx, subject)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if ent.Status == sdk.StatusNoSubscription {
+		if ent, err = g.provision(ctx, subject, ent); err != nil {
 			return Snapshot{}, err
 		}
-		if ent.Status == sdk.StatusNoSubscription {
-			if ent, err = g.provision(ctx, subject, ent); err != nil {
-				return Snapshot{}, err
-			}
-		}
-		if ent.Entitled && ent.PlanCode != "" {
-			plan = ent.PlanCode
-		}
 	}
+	if !ent.Entitled || ent.PlanCode == "" {
+		return g.fetchFallback(ctx)
+	}
+	limits, err := g.subjectLimits(ctx, subject)
+	if err != nil {
+		return Snapshot{}, err
+	}
+	if _, err := g.catalogue(ctx, true); err != nil {
+		slog.Warn("entitlement: fallback catalogue not refreshed", "err", err)
+	}
+	return Snapshot{Plan: ent.PlanCode, Limits: limits, RefreshedAt: g.now()}, nil
+}
+
+func (g *Gate) fetchFallback(ctx context.Context) (Snapshot, error) {
 	plans, err := g.catalogue(ctx, true)
 	if err != nil {
 		return Snapshot{}, err
 	}
-	return Snapshot{Plan: plan, Limits: limitsOf(plans, plan), RefreshedAt: g.now()}, nil
+	return Snapshot{Plan: g.cfg.Fallback, Limits: limitsOf(plans, g.cfg.Fallback), RefreshedAt: g.now()}, nil
+}
+
+func (g *Gate) subjectLimits(ctx context.Context, subject string) (map[string]int64, error) {
+	units := g.trackedUnits()
+	amounts := make([]int64, len(units))
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(balanceConcurrency)
+	for i, unit := range units {
+		eg.Go(func() error {
+			b, err := g.cfg.Ledger.Balance(ctx, subject, unit)
+			if err != nil {
+				return fmt.Errorf("balance %s: %w", unit, err)
+			}
+			amounts[i] = b.Limit
+			if b.Unlimited {
+				amounts[i] = Unlimited
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	limits := make(map[string]int64, len(units))
+	for i, unit := range units {
+		limits[unit] = amounts[i]
+	}
+	return limits, nil
 }
 
 func (g *Gate) provision(ctx context.Context, subject string, ent sdk.Entitlement) (sdk.Entitlement, error) {

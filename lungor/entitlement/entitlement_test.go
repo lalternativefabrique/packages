@@ -22,14 +22,15 @@ import (
 )
 
 type fakeLedger struct {
-	mu       sync.Mutex
-	plans    map[string]string
-	down     bool
-	block    chan struct{}
-	reads    atomic.Int64
-	consumed []sdk.Usage
-	released []sdk.Usage
-	refuse   bool
+	mu           sync.Mutex
+	plans        map[string]string
+	down         bool
+	block        chan struct{}
+	reads        atomic.Int64
+	balanceReads atomic.Int64
+	consumed     []sdk.Usage
+	released     []sdk.Usage
+	refuse       bool
 }
 
 var catalogue = sdk.Plans{
@@ -38,6 +39,14 @@ var catalogue = sdk.Plans{
 		{Unit: "domain", Amount: 5}, {Unit: "custom_signature", Amount: 1}, {Unit: "drive_gb", Amount: Unlimited},
 	}},
 }
+
+var staffPlans = sdk.Plans{
+	{Code: "beta", Allocations: []sdk.Allocation{
+		{Unit: "domain", Amount: 50}, {Unit: "custom_signature", Amount: 1}, {Unit: "ai_write", Amount: Unlimited},
+	}},
+}
+
+var gatedUnits = []string{"domain", "ai_write", "custom_signature", "drive_gb"}
 
 func newLedger() *fakeLedger { return &fakeLedger{plans: map[string]string{}} }
 
@@ -65,6 +74,25 @@ func (f *fakeLedger) ListPlans(context.Context) (sdk.Plans, error) {
 		return nil, sdk.ErrUnavailable
 	}
 	return catalogue, nil
+}
+
+func (f *fakeLedger) Balance(_ context.Context, id, unit string) (sdk.Balance, error) {
+	f.balanceReads.Add(1)
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.down {
+		return sdk.Balance{}, sdk.ErrUnavailable
+	}
+	p, ok := append(append(sdk.Plans{}, catalogue...), staffPlans...).ByCode(f.plans[id])
+	if !ok {
+		return sdk.Balance{Unit: unit}, nil
+	}
+	for _, a := range p.Allocations {
+		if a.Unit == unit {
+			return sdk.Balance{Unit: unit, Limit: a.Amount, Unlimited: a.Amount >= Unlimited}, nil
+		}
+	}
+	return sdk.Balance{Unit: unit}, nil
 }
 
 func (f *fakeLedger) Consume(_ context.Context, u sdk.Usage) (sdk.Decision, error) {
@@ -123,6 +151,7 @@ func newGate(l *fakeLedger, store Store, counts map[string]int64) *Gate {
 			return c.Request().Header.Get("X-User"), nil
 		},
 		Counters: counters,
+		Units:    gatedUnits,
 		Refresh:  time.Hour,
 	})
 }
@@ -205,7 +234,7 @@ func TestUnknownSubjectIsProvisionedThenReread(t *testing.T) {
 	l := newLedger()
 	p := &provisioner{ledger: l}
 	g := New(Config{
-		Ledger: l, Store: NewMemoryStore(), Fallback: "none",
+		Ledger: l, Store: NewMemoryStore(), Fallback: "none", Units: gatedUnits,
 		Grant: &policy.Grant{Provisioner: p, Emails: emails{}},
 	})
 
@@ -473,5 +502,82 @@ func TestErrorHandlerPassesOtherErrorsThrough(t *testing.T) {
 	h(other, c)
 	if passed != other {
 		t.Fatalf("passed = %v", passed)
+	}
+}
+
+func TestStaffPlanAbsentFromCatalogueGetsItsOwnLimits(t *testing.T) {
+	l := newLedger()
+	l.set("staff", "beta")
+	g := newGate(l, NewMemoryStore(), nil)
+
+	lim, err := g.Limits(context.Background(), "staff")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lim.Plan != "beta" || lim.Limit("domain") != 50 || lim.Limit("custom_signature") != 1 ||
+		lim.Limit("ai_write") != Unlimited || lim.Limit("drive_gb") != 0 {
+		t.Fatalf("limits = %+v", lim)
+	}
+}
+
+func TestPublicPlansReadTheSameLimits(t *testing.T) {
+	l := newLedger()
+	l.set("f", "free")
+	l.set("p", "pro")
+	g := newGate(l, NewMemoryStore(), nil)
+	ctx := context.Background()
+
+	free, _ := g.Limits(ctx, "f")
+	pro, _ := g.Limits(ctx, "p")
+	if free.Limit("domain") != 1 || free.Limit("ai_write") != 10 || free.Limit("custom_signature") != 0 {
+		t.Fatalf("free = %+v", free)
+	}
+	if pro.Limit("domain") != 5 || pro.Limit("custom_signature") != 1 || pro.Limit("drive_gb") != Unlimited {
+		t.Fatalf("pro = %+v", pro)
+	}
+}
+
+func TestRoutesRegisterTheUnitsTheyGate(t *testing.T) {
+	l := newLedger()
+	l.set("staff", "beta")
+	g := New(Config{Ledger: l, Store: NewMemoryStore(), Fallback: "free"})
+	g.Require("custom_signature")
+	g.Spend("ai_write", 1)
+
+	lim, err := g.Limits(context.Background(), "staff")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lim.Limits) != 2 || lim.Limit("custom_signature") != 1 || lim.Limit("ai_write") != Unlimited {
+		t.Fatalf("limits = %+v", lim)
+	}
+}
+
+func TestInvalidateRereadsAndUpdatesStoreAndCache(t *testing.T) {
+	l := newLedger()
+	l.set("u1", "free")
+	store := NewMemoryStore()
+	g := newGate(l, store, nil)
+	ctx := context.Background()
+	if _, err := g.Limits(ctx, "u1"); err != nil {
+		t.Fatal(err)
+	}
+
+	l.set("u1", "beta")
+	if err := g.Invalidate(ctx, "u1"); err != nil {
+		t.Fatal(err)
+	}
+	lim, _ := g.Limits(ctx, "u1")
+	stored, ok, _ := store.Get(ctx, "u1")
+	if lim.Plan != "beta" || lim.Limit("domain") != 50 || !ok || stored.Plan != "beta" {
+		t.Fatalf("cache = %+v, store = %+v", lim, stored)
+	}
+
+	l.setDown(true)
+	if err := g.Invalidate(ctx, "u1"); err == nil {
+		t.Fatal("invalidate succeeded with Lungor down")
+	}
+	if lim, _ := g.Limits(ctx, "u1"); lim.Plan != "beta" {
+		t.Fatalf("snapshot lost on failed invalidate: %+v", lim)
 	}
 }
