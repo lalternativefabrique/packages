@@ -104,3 +104,12 @@ test("whoami answers null for 401 and throws unavailable when Kratos is out", as
       e.failure?.status === "unavailable",
   );
 });
+
+test("a login code Kratos mailed with a 400 is a success", async () => {
+  const flow = { id: "f", ui: { messages: [{ id: 1010014, type: "info" }] } };
+  const kratos = new KratosFlows(
+    "https://id.urbangate.dev",
+    (async () => Response.json(flow, { status: 400 })) as typeof fetch,
+  );
+  assert.deepEqual(await kratos.submit("login", "f", { method: "code" }), flow);
+});

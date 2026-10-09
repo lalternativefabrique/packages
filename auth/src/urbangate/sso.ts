@@ -148,7 +148,7 @@ export class ConsoleSso {
       state: pending.state,
       code_challenge: await challengeOf(pending.verifier),
       code_challenge_method: "S256",
-      ...(messag ? { brand: "messag" } : {}),
+      ...(messag ? { brand: "messag", prompt: "login" } : {}),
     }).toString();
     return { location: url.toString(), pending };
   }

@@ -238,6 +238,10 @@ export class KratosFlows {
     ) {
       return body;
     }
+    // Kratos answers a login code it just mailed with the flow and a 400.
+    if (res.status === 400 && body && codeWasSent(body as KratosFlow)) {
+      return body;
+    }
     // A submitted flow that still has errors comes back as the flow itself
     // with a 400, and the messages say which field.
     throw new KratosError(failureOf(res.status, body));
