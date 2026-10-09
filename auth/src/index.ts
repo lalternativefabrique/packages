@@ -29,6 +29,18 @@ export { LoginForm } from "./components/login-form"
 export { EmailCodeSignInForm } from "./components/email-code-sign-in-form"
 export { RegisterForm } from "./components/register-form"
 export { SocialButtons } from "./components/social-buttons"
+export { MessagSignIn } from "./components/messag-sign-in"
+export type {
+  MessagSignInLabels,
+  MessagSignInProps,
+} from "./components/messag-sign-in"
+export {
+  MESSAG_DEFAULTS,
+  messagAddress,
+  messagLocalPart,
+  messagRegisterUrl,
+} from "./messag-sign-in"
+export type { MessagSignInConfig } from "./messag-sign-in"
 export { VerifyEmailForm } from "./components/verify-email-form"
 export { ForgotPasswordForm } from "./components/forgot-password-form"
 export { ResetPasswordForm } from "./components/reset-password-form"

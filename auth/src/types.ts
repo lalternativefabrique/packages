@@ -1,3 +1,6 @@
+import type { MessagSignInConfig } from "./messag-sign-in"
+import type { MessagSignInLabels } from "./components/messag-sign-in"
+
 export interface VerifyEmailFormLabels {
   title?: string
   subtitle?: string
@@ -237,6 +240,13 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps {
   labels?: LoginFormLabels
   /** The urbangate client */
   authClient: AuthClientSurface
+  /** Offers "Se connecter avec messag" under the providers */
+  messag?:
+    | boolean
+    | (MessagSignInConfig & {
+        returnUrl?: string
+        labels?: MessagSignInLabels
+      })
 }
 
 export interface EmailCodeSignInFormLabels {

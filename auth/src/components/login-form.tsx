@@ -5,6 +5,7 @@ import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
 import { SocialButtons } from "./social-buttons"
+import { MessagSignIn } from "./messag-sign-in"
 import { AUTH_HINT_LINK_CLASS, AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { oauthErrorCallback } from "../oauth-error"
 
@@ -48,6 +49,7 @@ export function LoginForm({
   linkComponent,
   defaultEmail,
   authClient,
+  messag,
 }: LoginFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [email, setEmail] = useState(defaultEmail ?? "")
@@ -175,7 +177,20 @@ export function LoginForm({
         providers={socialProviders}
         onSelect={handleSocial}
         disabled={isPending}
-      />
+      >
+        {messag && (
+          <MessagSignIn
+            {...(messag === true ? {} : messag)}
+            authClient={authClient}
+            onSuccess={onSuccess}
+            defaultEmail={defaultEmail}
+            coreTokenUrl={coreTokenUrl}
+            disabled={isPending}
+            fieldClassName={fieldClassName}
+            submitClassName={submitClassName}
+          />
+        )}
+      </SocialButtons>
 
       {registerUrl && (
         <p className="text-center text-sm text-muted-foreground">
