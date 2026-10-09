@@ -31,6 +31,8 @@ type fakeLedger struct {
 	consumed     []sdk.Usage
 	released     []sdk.Usage
 	refuse       bool
+	statuses     map[string]string
+	used         map[string]int64
 }
 
 var catalogue = sdk.Plans{
@@ -48,7 +50,9 @@ var staffPlans = sdk.Plans{
 
 var gatedUnits = []string{"domain", "ai_write", "custom_signature", "drive_gb"}
 
-func newLedger() *fakeLedger { return &fakeLedger{plans: map[string]string{}} }
+func newLedger() *fakeLedger {
+	return &fakeLedger{plans: map[string]string{}, statuses: map[string]string{}, used: map[string]int64{}}
+}
 
 func (f *fakeLedger) Entitlement(_ context.Context, id string, _ ...string) (sdk.Entitlement, error) {
 	f.reads.Add(1)
@@ -63,6 +67,9 @@ func (f *fakeLedger) Entitlement(_ context.Context, id string, _ ...string) (sdk
 	plan, ok := f.plans[id]
 	if !ok {
 		return sdk.Entitlement{Status: sdk.StatusNoSubscription}, nil
+	}
+	if status, ok := f.statuses[id]; ok {
+		return sdk.Entitlement{Entitled: false, Status: status, PlanCode: plan}, nil
 	}
 	return sdk.Entitlement{Entitled: true, Status: "active", PlanCode: plan}, nil
 }
@@ -89,10 +96,14 @@ func (f *fakeLedger) Balance(_ context.Context, id, unit string) (sdk.Balance, e
 	}
 	for _, a := range p.Allocations {
 		if a.Unit == unit {
-			return sdk.Balance{Unit: unit, Limit: a.Amount, Unlimited: a.Amount >= Unlimited}, nil
+			used := f.used[id+"/"+unit]
+			return sdk.Balance{
+				Unit: unit, Limit: a.Amount, Consumed: used, Remaining: max(a.Amount-used, 0),
+				Periodic: true, Unlimited: a.Amount >= Unlimited,
+			}, nil
 		}
 	}
-	return sdk.Balance{Unit: unit}, nil
+	return sdk.Balance{Unit: unit}, sdk.ErrNotFound
 }
 
 func (f *fakeLedger) Consume(_ context.Context, u sdk.Usage) (sdk.Decision, error) {
@@ -105,6 +116,7 @@ func (f *fakeLedger) Consume(_ context.Context, u sdk.Usage) (sdk.Decision, erro
 		return sdk.Decision{Allowed: false, Balance: 0}, nil
 	}
 	f.consumed = append(f.consumed, u)
+	f.used[u.ExternalUserID+"/"+u.Unit] += u.Quantity
 	return sdk.Decision{Allowed: true, Recorded: true}, nil
 }
 
