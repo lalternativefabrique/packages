@@ -92,6 +92,8 @@ export interface UrbangateSsoConfig {
   appUrl: string;
   loginPath?: string;
   landingPath?: string;
+  /** Where a refused messag sign-in comes back, default /sign-in */
+  signInPath?: string;
 }
 
 export interface AccountOpened {
@@ -1104,11 +1106,25 @@ export function createUrbangateAuth(
     ]);
   }
 
+  async function startMessagSignIn(request: Request): Promise<Response> {
+    const landing = localPath(
+      new URL(request.url).searchParams.get("callbackURL"),
+      "/",
+    );
+    const { location, pending } = await sso!.start(landing, true);
+    return redirect(location, [
+      cookie(names.sso, encodePending(pending), FLOW_MAX_AGE),
+    ]);
+  }
+
   async function finishConsoleSignIn(request: Request): Promise<Response> {
     const params = new URL(request.url).searchParams;
     const pending = decodePending(readCookie(request.headers, names.sso));
+    const back = pending?.messag
+      ? (config.sso?.signInPath ?? "/sign-in")
+      : loginPath;
     const refused = (code: string, extra: Array<string> = []) =>
-      redirect(`${loginPath}?error=${code}`, [
+      redirect(`${back}?error=${code}`, [
         clear(names.sso),
         ...extra,
       ]);
@@ -1120,7 +1136,7 @@ export function createUrbangateAuth(
     if (outcome.status === "refused") return refused("sso_refused");
     if (outcome.status === "unavailable") return refused("unavailable");
     const roles = decodeToken(outcome.tokens.accessToken)?.roles ?? [];
-    if (!roles.includes(`${product}:admin`)) {
+    if (!pending.messag && !roles.includes(`${product}:admin`)) {
       await sso!.revoke(outcome.tokens.refreshToken);
       return refused("not_admin");
     }
@@ -1237,6 +1253,7 @@ export function createUrbangateAuth(
     ...(sso
       ? {
           "GET sign-in/urbangate": startConsoleSignIn,
+          "GET sign-in/messag": startMessagSignIn,
           "GET callback/urbangate": finishConsoleSignIn,
         }
       : {}),

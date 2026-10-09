@@ -553,3 +553,52 @@ test("core-token hands the bearer over only when the product asks for it", async
     res.headers.getSetCookie().some((c) => c.startsWith("partage_admin=rt2")),
   );
 });
+
+test("sign-in/messag asks Hydra for the messag window and lands on the app", async () => {
+  const { fetchImpl } = hydraStub();
+  const res = await auth(fetchImpl).handler(get("sign-in/messag"));
+  assert.equal(res.status, 302);
+  const q = new URL(res.headers.get("location") ?? "").searchParams;
+  assert.equal(q.get("client_id"), "partage-admin");
+  assert.equal(q.get("brand"), "messag");
+  const set = res.headers
+    .getSetCookie()
+    .find((c) => c.startsWith("partage_sso="));
+  const pending = decodePending(
+    set?.split(";")[0].slice("partage_sso=".length),
+  );
+  assert.equal(pending?.messag, true);
+  assert.equal(pending?.landing, "/");
+});
+
+test("a person signed in with messag needs no admin role", async () => {
+  const { fetchImpl, calls } = hydraStub({
+    "POST /oauth2/token": () =>
+      Response.json({
+        access_token: userToken,
+        refresh_token: "rt2",
+        expires_in: 900,
+      }),
+  });
+  const pending = encodePending({
+    state: "st",
+    verifier: "v",
+    landing: "/tasks",
+    messag: true,
+  });
+  const res = await auth(fetchImpl).handler(
+    get("callback/urbangate?code=c1&state=st", `partage_sso=${pending}`),
+  );
+  assert.equal(res.headers.get("location"), "/tasks");
+  assert.ok(res.headers.getSetCookie().some((c) => c.startsWith("partage_admin=rt2")));
+  assert.ok(!calls.some((c) => c.key === "POST /oauth2/revoke"));
+});
+
+test("a refused messag sign-in returns to the sign-in page", async () => {
+  const { fetchImpl } = hydraStub();
+  const pending = encodePending({ state: "st", verifier: "v", landing: "/", messag: true });
+  const res = await auth(fetchImpl).handler(
+    get("callback/urbangate?error=access_denied&state=st", `partage_sso=${pending}`),
+  );
+  assert.equal(res.headers.get("location"), "/sign-in?error=sso_refused");
+});
