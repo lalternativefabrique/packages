@@ -12,11 +12,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 const (
 	BearerAuthScopes = "BearerAuth.Scopes"
-	ServiceKeyScopes = "ServiceKey.Scopes"
 )
 
 // Defines values for HttpapiSpeakRequestGender.
@@ -74,6 +75,20 @@ type HttpapiSpeakRequest struct {
 // is honoured as far as the language, never refused.
 type HttpapiSpeakRequestGender string
 
+// HttpapiTranscribeResponse defines model for httpapi.transcribeResponse.
+type HttpapiTranscribeResponse struct {
+	Text *string `json:"text,omitempty"`
+}
+
+// TranscribeMultipartBody defines parameters for Transcribe.
+type TranscribeMultipartBody struct {
+	// Audio Recording (webm, ogg, m4a, wav, mp3), at most 25 MB
+	Audio openapi_types.File `json:"audio"`
+
+	// Language ISO language code; empty lets the model detect it
+	Language *string `json:"language,omitempty"`
+}
+
 // SpeakJSONRequestBody defines body for Speak for application/json ContentType.
 type SpeakJSONRequestBody = HttpapiSpeakRequest
 
@@ -88,6 +103,9 @@ type PrimeSpeakJSONRequestBody = HttpapiSpeakRequest
 
 // SignSpeakJSONRequestBody defines body for SignSpeak for application/json ContentType.
 type SignSpeakJSONRequestBody = HttpapiSpeakRequest
+
+// TranscribeMultipartRequestBody defines body for Transcribe for multipart/form-data ContentType.
+type TranscribeMultipartRequestBody TranscribeMultipartBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -189,6 +207,9 @@ type ClientInterface interface {
 	SignSpeakWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	SignSpeak(ctx context.Context, body SignSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// TranscribeWithBody request with any body
+	TranscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) Healthz(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -313,6 +334,18 @@ func (c *Client) SignSpeakWithBody(ctx context.Context, contentType string, body
 
 func (c *Client) SignSpeak(ctx context.Context, body SignSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSignSpeakRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) TranscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewTranscribeRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -550,6 +583,35 @@ func NewSignSpeakRequestWithBody(server string, contentType string, body io.Read
 	return req, nil
 }
 
+// NewTranscribeRequestWithBody generates requests for Transcribe with any type of body
+func NewTranscribeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/transcribe")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -620,6 +682,9 @@ type ClientWithResponsesInterface interface {
 	SignSpeakWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SignSpeakResponse, error)
 
 	SignSpeakWithResponse(ctx context.Context, body SignSpeakJSONRequestBody, reqEditors ...RequestEditorFn) (*SignSpeakResponse, error)
+
+	// TranscribeWithBodyWithResponse request with any body
+	TranscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TranscribeResponse, error)
 }
 
 type HealthzResponse struct {
@@ -756,6 +821,32 @@ func (r SignSpeakResponse) StatusCode() int {
 	return 0
 }
 
+type TranscribeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *HttpapiTranscribeResponse
+	JSON400      *HttpapiErrorResponse
+	JSON403      *HttpapiErrorResponse
+	JSON502      *HttpapiErrorResponse
+	JSON503      *HttpapiErrorResponse
+}
+
+// Status returns HTTPResponse.Status
+func (r TranscribeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TranscribeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // HealthzWithResponse request returning *HealthzResponse
 func (c *ClientWithResponses) HealthzWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthzResponse, error) {
 	rsp, err := c.Healthz(ctx, reqEditors...)
@@ -848,6 +939,15 @@ func (c *ClientWithResponses) SignSpeakWithResponse(ctx context.Context, body Si
 		return nil, err
 	}
 	return ParseSignSpeakResponse(rsp)
+}
+
+// TranscribeWithBodyWithResponse request with arbitrary body returning *TranscribeResponse
+func (c *ClientWithResponses) TranscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TranscribeResponse, error) {
+	rsp, err := c.TranscribeWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTranscribeResponse(rsp)
 }
 
 // ParseHealthzResponse parses an HTTP response from a HealthzWithResponse call
@@ -998,6 +1098,60 @@ func ParseSignSpeakResponse(rsp *http.Response) (*SignSpeakResponse, error) {
 			return nil, err
 		}
 		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest HttpapiErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseTranscribeResponse parses an HTTP response from a TranscribeWithResponse call
+func ParseTranscribeResponse(rsp *http.Response) (*TranscribeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TranscribeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest HttpapiTranscribeResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest HttpapiErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest HttpapiErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest HttpapiErrorResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
 		var dest HttpapiErrorResponse

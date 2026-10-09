@@ -16,8 +16,8 @@ func TestTranscribeSendsTheRecordingAsMultipart(t *testing.T) {
 		if r.URL.Path != "/transcribe" || r.Method != http.MethodPost {
 			t.Errorf("%s %s", r.Method, r.URL.Path)
 		}
-		if r.Header.Get(HeaderKey) != "app-key" {
-			t.Errorf("%s = %q", HeaderKey, r.Header.Get(HeaderKey))
+		if r.Header.Get("Authorization") != "Bearer app-key" {
+			t.Errorf("Authorization = %q", r.Header.Get("Authorization"))
 		}
 		f, h, err := r.FormFile("audio")
 		if err != nil {
@@ -39,7 +39,7 @@ func TestTranscribeSendsTheRecordingAsMultipart(t *testing.T) {
 
 func TestTranscribeCustomerKeyTravelsAsBearer(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer vvaves_key_abc" || r.Header.Get(HeaderKey) != "" {
+		if r.Header.Get("Authorization") != "Bearer vvaves_key_abc" {
 			t.Errorf("auth headers: %v", r.Header)
 		}
 		r.ParseMultipartForm(1 << 20)
