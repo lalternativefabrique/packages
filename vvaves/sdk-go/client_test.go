@@ -25,9 +25,9 @@ func TestNotConfiguredWithoutBaseURL(t *testing.T) {
 	}
 }
 
-func TestKeyTravelsOnTheHeaderItsKindNeeds(t *testing.T) {
+func TestEveryKeyTravelsAsBearer(t *testing.T) {
 	for key, want := range map[string][2]string{
-		"app-key":            {HeaderKey, "app-key"},
+		"app-key":            {"Authorization", "Bearer app-key"},
 		"vvaves_key_abc.sig": {"Authorization", "Bearer vvaves_key_abc.sig"},
 	} {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

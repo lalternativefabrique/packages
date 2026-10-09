@@ -26,12 +26,9 @@ const DefaultTimeout = 5 * time.Minute
 // reading's audio.
 const DefaultMaxResponseBytes = 64 << 20
 
-// HeaderKey carries an application key; CustomerKeyPrefix marks a key
-// urbangate issued, which travels as a bearer token instead.
-const (
-	HeaderKey         = "X-Vvaves-Key"
-	CustomerKeyPrefix = "vvaves_key_"
-)
+// CustomerKeyPrefix marks a key urbangate issued for vvaves. Every key
+// travels as a bearer token.
+const CustomerKeyPrefix = "vvaves_key_"
 
 // Client talks to a vvaves deployment on behalf of ONE application.
 type Client struct {
@@ -111,10 +108,8 @@ func (c *Client) authEditor() wire.RequestEditorFn {
 		switch {
 		case c.authorize != nil:
 			return c.authorize(req)
-		case strings.HasPrefix(c.key, CustomerKeyPrefix):
-			req.Header.Set("Authorization", "Bearer "+c.key)
 		case c.key != "":
-			req.Header.Set(HeaderKey, c.key)
+			req.Header.Set("Authorization", "Bearer "+c.key)
 		}
 		return nil
 	}
