@@ -5,8 +5,8 @@ go 1.25.0
 require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/labstack/echo/v4 v4.15.2
-	github.com/lalternative/packages/lungor/policy v0.0.0-20260812154134-093becf20cf2
-	github.com/lalternative/packages/lungor/sdk-go v0.9.0
+	github.com/lalternative/packages/lungor/policy v0.3.0
+	github.com/lalternative/packages/lungor/sdk-go v0.31.0
 	golang.org/x/sync v0.20.0
 )
 
