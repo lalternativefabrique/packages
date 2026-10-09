@@ -94,6 +94,10 @@ scopes:
     - "lungor/sdk-go/**"
   lungor-policy:
     - "lungor/policy/**"
+  lungor-entitlement:
+    - "lungor/entitlement/**"
+    - "lungor/policy/**"
+    - "lungor/sdk-go/**"
   skalpai-sdk:
     - "skalpai/sdk-go/**"
   nakoda-sdk-go:
@@ -345,6 +349,32 @@ steps:
       go build ./...
       go vet ./...
       go test -count=1 ./...
+
+  - name: lungor-entitlement
+    scope: [lungor-entitlement]
+    tools: [go]
+    run: |
+      cd lungor/entitlement
+      go build ./...
+      go vet ./...
+      go vet -tags integration ./...
+      go test -count=1 ./...
+
+  - name: lungor-entitlement-integration
+    scope: [lungor-entitlement]
+    depends_on: [lungor-entitlement]
+    tools: [go]
+    services: [postgres-test]
+    env:
+      DATABASE_URL: "postgres://packages:packages@postgres-test:5432/packages_test?sslmode=disable"
+    run: |
+      cd lungor/entitlement
+      set -o pipefail
+      go test -count=1 -v -tags integration ./... 2>&1 | tee /tmp/entitlement-integration.log
+      if grep -q -- "--- SKIP" /tmp/entitlement-integration.log; then
+        echo "integration tests SKIPPED, nothing was verified" >&2
+        exit 1
+      fi
 
   - name: skalpai-sdk
     scope: [skalpai-sdk]
