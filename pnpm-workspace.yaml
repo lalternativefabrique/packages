@@ -10,6 +10,7 @@ packages:
   - "legal"
   - "admin"
   - "editor"
+  - "meet"
 allowBuilds:
   '@openapitools/openapi-generator-cli': true
   '@scarf/scarf': false
