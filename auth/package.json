@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/auth",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "description": "The suite's sign-in on urbangate for L'Alternative apps: the product's server routes, the browser and Expo clients, and the auth UI",
   "type": "module",
   "main": "./dist/index.js",

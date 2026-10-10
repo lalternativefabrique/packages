@@ -12,6 +12,7 @@ export { completesSignup } from "../completes-signup.ts";
 import {
   provisionIdentity,
   requestAccountDeletion,
+  updateRecoveryEmail,
   updateIdentityPassword,
 } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
@@ -1063,9 +1064,8 @@ export function createUrbangateAuth(
     return json(200, { email, verified });
   }
 
-  // The address is saved before it is proved: Kratos verifies an address it
-  // already holds, and the code it mails comes back on the verification flow
-  // the settings submit continues with.
+  // The address is saved before it is proved: Kratos verifies an address the
+  // identity already holds.
   async function setRecoveryEmail(request: Request): Promise<Response> {
     const b = await body(request);
     const email = str(b, "email").trim().toLowerCase();
@@ -1077,23 +1077,22 @@ export function createUrbangateAuth(
     if (email === signed.identity.traits?.email?.toLowerCase())
       return failure("same_as_account", 400);
     await reprove(signed, password);
-    const settings = await kratos.start("settings", signed.token);
-    const saved = await kratos.submit(
-      "settings",
-      settings.id,
+    const saved = await updateRecoveryEmail(
       {
-        method: "profile",
-        traits: { ...signed.identity.traits, recovery_email: email },
-        ...brand,
+        issuer: config.urbangate.issuerUrl,
+        clientId: config.urbangate.provisioner.clientId,
+        clientSecret: config.urbangate.provisioner.clientSecret,
+        role: `${product}:user`,
+        product,
       },
-      signed.token,
+      { identityId: signed.identity.id, email },
+      config.fetch,
     );
-    const pending = continueWith(saved.continue_with, "show_verification_ui");
-    const flowId = pending
-      ? pending.flow.id
-      : (await sendCodeOn("verification", email)).flowId;
+    if (saved.status === "unavailable") return failure("unavailable", 503);
+    if (saved.status === "rejected") return failure(saved.reason, 400);
+    const sent = await sendCodeOn("verification", email);
     return json(200, { sent: true }, [
-      cookie(names.flow, `verification:${flowId}`, FLOW_MAX_AGE),
+      cookie(names.flow, `verification:${sent.flowId}`, FLOW_MAX_AGE),
     ]);
   }
 
