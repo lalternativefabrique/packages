@@ -10,6 +10,7 @@ export interface KratosFlow {
     }>;
   };
   state?: string;
+  continue_with?: Array<ContinueWith>;
 }
 
 export interface KratosMessage {
@@ -26,7 +27,7 @@ export interface KratosSession {
   identity?: {
     id: string;
     state?: string;
-    traits?: { email?: string; name?: string };
+    traits?: { email?: string; name?: string; recovery_email?: string };
     verifiable_addresses?: Array<{ value: string; verified: boolean }>;
   };
 }

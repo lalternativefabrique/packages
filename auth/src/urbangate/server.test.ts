@@ -699,6 +699,99 @@ test("change-password needs a session and both passwords", async () => {
   );
 });
 
+const get = (path: string, cookie = "") =>
+  new Request(`https://tornad.dev/api/auth/${path}`, {
+    headers: cookie ? { cookie } : {},
+  });
+
+test("recovery-email reads the address and whether it was proved", async () => {
+  const withRecovery = {
+    ...session,
+    identity: {
+      ...identity,
+      traits: { ...identity.traits, recovery_email: "ana@gmail.example" },
+      verifiable_addresses: [
+        ...identity.verifiable_addresses,
+        { value: "ana@gmail.example", verified: false },
+      ],
+    },
+  };
+  const { fetchImpl } = kratosStub({
+    "GET /sessions/whoami": () => Response.json(withRecovery),
+  });
+  const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { email: "ana@gmail.example", verified: false });
+});
+
+test("recovery-email is null for an identity that never set one, and needs a session", async () => {
+  const { fetchImpl } = kratosStub();
+  const a = auth(fetchImpl);
+  const res = await a.handler(get("recovery-email", signedInCookie));
+  assert.deepEqual(await res.json(), { email: null, verified: false });
+  assert.equal((await a.handler(get("recovery-email"))).status, 401);
+});
+
+test("setting a recovery email re-proves the password, saves the trait and keeps the verification flow", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+    "GET /self-service/settings/api": () => Response.json({ id: "S" }),
+    "POST /self-service/settings?flow=S": () =>
+      Response.json({
+        id: "S",
+        continue_with: [{ action: "show_verification_ui", flow: { id: "V2" } }],
+      }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("recovery-email", { email: " Ana@Gmail.example ", password: "pw" }, signedInCookie),
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("set-cookie") ?? "", /tornad_flow=verification%3AV2;/);
+  const settings = calls.find((c) => c.key === "POST /self-service/settings?flow=S");
+  assert.deepEqual((settings?.body as { traits: unknown }).traits, {
+    email: "ana@example",
+    name: "Ana",
+    recovery_email: "ana@gmail.example",
+  });
+  assert.ok(!calls.some((c) => c.key === "GET /self-service/verification/api"));
+});
+
+test("a settings submit that mailed nothing starts the verification itself", async () => {
+  const { fetchImpl } = kratosStub({
+    "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+    "GET /self-service/settings/api": () => Response.json({ id: "S" }),
+    "POST /self-service/settings?flow=S": () => Response.json({ id: "S" }),
+    "POST /self-service/verification?flow=V": () =>
+      Response.json({ id: "V", state: "sent_email" }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("recovery-email", { email: "ana@gmail.example", password: "pw" }, signedInCookie),
+  );
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("set-cookie") ?? "", /tornad_flow=verification%3AV;/);
+});
+
+test("the recovery email cannot be the account's own address, and a wrong password saves nothing", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+    "POST /self-service/login?flow=L": () =>
+      Response.json(
+        { ui: { messages: [{ id: 4000006, type: "error" }] } },
+        { status: 400 },
+      ),
+  });
+  const a = auth(fetchImpl);
+  const same = await a.handler(
+    post("recovery-email", { email: "ANA@example", password: "pw" }, signedInCookie),
+  );
+  assert.equal(same.status, 400);
+  const wrong = await a.handler(
+    post("recovery-email", { email: "ana@gmail.example", password: "bad" }, signedInCookie),
+  );
+  assert.equal(wrong.status, 401);
+  assert.ok(!calls.some((c) => c.key.startsWith("GET /self-service/settings")));
+});
+
 test("an old session is asked to sign in again before a settings change", async () => {
   const { fetchImpl } = kratosStub({
     "GET /self-service/settings/api": () => Response.json({ id: "S" }),
