@@ -1031,8 +1031,72 @@ export function createUrbangateAuth(
     return json(200, { status: true });
   }
 
-  // Kratos asks for a privileged session to change a password: the current
-  // one is re-proved by a refresh login on the same session first.
+  // Kratos asks for a privileged session to change a password or an address:
+  // the current one is re-proved by a refresh login on the same session first.
+  async function reprove(
+    signed: { token: string; identity: NonNullable<KratosSession["identity"]> },
+    password: string,
+  ): Promise<void> {
+    const login = await kratos.start("login", signed.token, { refresh: "true" });
+    await kratos.submit(
+      "login",
+      login.id,
+      {
+        method: "password",
+        identifier: signed.identity.traits?.email ?? "",
+        password,
+        ...brand,
+      },
+      signed.token,
+    );
+  }
+
+  async function recoveryEmail(request: Request): Promise<Response> {
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const email = signed.identity.traits?.recovery_email ?? null;
+    const verified = email
+      ? (signed.identity.verifiable_addresses?.some(
+          (a) => a.value === email && a.verified,
+        ) ?? false)
+      : false;
+    return json(200, { email, verified });
+  }
+
+  // The address is saved before it is proved: Kratos verifies an address it
+  // already holds, and the code it mails comes back on the verification flow
+  // the settings submit continues with.
+  async function setRecoveryEmail(request: Request): Promise<Response> {
+    const b = await body(request);
+    const email = str(b, "email").trim().toLowerCase();
+    const password = typeof b.password === "string" ? b.password : "";
+    if (!email || !password)
+      return failure("invalid_input", 400, "email and password are required");
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    if (email === signed.identity.traits?.email?.toLowerCase())
+      return failure("same_as_account", 400);
+    await reprove(signed, password);
+    const settings = await kratos.start("settings", signed.token);
+    const saved = await kratos.submit(
+      "settings",
+      settings.id,
+      {
+        method: "profile",
+        traits: { ...signed.identity.traits, recovery_email: email },
+        ...brand,
+      },
+      signed.token,
+    );
+    const pending = continueWith(saved.continue_with, "show_verification_ui");
+    const flowId = pending
+      ? pending.flow.id
+      : (await sendCodeOn("verification", email)).flowId;
+    return json(200, { sent: true }, [
+      cookie(names.flow, `verification:${flowId}`, FLOW_MAX_AGE),
+    ]);
+  }
+
   async function changePassword(request: Request): Promise<Response> {
     const b = await body(request);
     const current =
@@ -1046,18 +1110,7 @@ export function createUrbangateAuth(
       );
     const signed = await signedInIdentity(request);
     if (!signed) return failure("sign_in_required", 401);
-    const login = await kratos.start("login", signed.token, { refresh: "true" });
-    await kratos.submit(
-      "login",
-      login.id,
-      {
-        method: "password",
-        identifier: signed.identity.traits?.email ?? "",
-        password: current,
-        ...brand,
-      },
-      signed.token,
-    );
+    await reprove(signed, current);
     const settings = await kratos.start("settings", signed.token);
     await setPassword(settings.id, next, signed.token);
     const othersRevoked =
@@ -1247,6 +1300,8 @@ export function createUrbangateAuth(
     "POST delete-account": deleteAccount,
     "POST update-user": updateUser,
     "POST change-password": changePassword,
+    "GET recovery-email": recoveryEmail,
+    "POST recovery-email": setRecoveryEmail,
     "GET get-session": session,
     "GET core-token": coreToken,
     "GET profile": profile,

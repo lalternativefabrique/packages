@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AuthClientResult } from "../types";
 import type {
+  RecoveryEmail,
   UrbangateAuthClient,
   UrbangateClientSession,
 } from "./client.ts";
@@ -212,6 +213,11 @@ export function createUrbangateNativeClient(
     signOut,
     updateUser: (input) => call("POST", "update-user", input),
     changePassword: (input) => call("POST", "change-password", input),
+    recoveryEmail: {
+      get: () => call<RecoveryEmail>("GET", "recovery-email"),
+      set: (input) => call("POST", "recovery-email", input),
+      verify: (input) => call("POST", "email-otp/verify-email", input),
+    },
     getSession,
     cookieHeader,
     fetch: authorizedFetch,

@@ -292,6 +292,8 @@ export function createDevAuth(config: DevAuthConfig): UrbangateAuth {
     "POST second-factor/verify": async () => json(200, { reset: true }),
     "POST change-password": async () => json(200, { status: true, othersRevoked: false }),
     "POST update-user": updateUser,
+    "GET recovery-email": async () => json(200, { email: null, verified: false }),
+    "POST recovery-email": async () => json(200, { sent: true }),
     "POST sign-out": async () => json(200, { signedOut: true }, signedOut()),
     "POST delete-account": deleteAccount,
     "GET get-session": async (request) => json(200, await getSession(request.headers)),

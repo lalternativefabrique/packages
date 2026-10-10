@@ -49,6 +49,11 @@ export type UrbangateAuthClient = Omit<
     newPassword: string;
     revokeOtherSessions?: boolean;
   }): Promise<AuthClientResult>;
+  recoveryEmail: {
+    get(): Promise<Result<RecoveryEmail>>;
+    set(input: { email: string; password: string }): Promise<AuthClientResult>;
+    verify(input: { email: string; otp: string }): Promise<AuthClientResult>;
+  };
   getSession(): Promise<{
     data: UrbangateClientSession | null;
     error: AuthClientResult["error"];
@@ -61,6 +66,11 @@ export type UrbangateAuthClient = Omit<
    */
   fetch(input: string | URL, init?: RequestInit): Promise<Response>;
 };
+
+export interface RecoveryEmail {
+  email: string | null;
+  verified: boolean;
+}
 
 type Result<T = unknown> = { data: T | null; error: AuthClientResult["error"] };
 
@@ -167,6 +177,11 @@ export function createUrbangateAuthClient(
     signOut: () => call("POST", "sign-out"),
     updateUser: (input) => call("POST", "update-user", input),
     changePassword: (input) => call("POST", "change-password", input),
+    recoveryEmail: {
+      get: () => call<RecoveryEmail>("GET", "recovery-email"),
+      set: (input) => call("POST", "recovery-email", input),
+      verify: (input) => call("POST", "email-otp/verify-email", input),
+    },
     getSession: () => call<UrbangateClientSession | null>("GET", "get-session"),
     fetch: coreFetch,
     useSession() {
