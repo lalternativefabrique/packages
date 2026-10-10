@@ -25,6 +25,7 @@ export type Labels = {
   idea: string;
   other: string;
   placeholder: string;
+  placeholder_bug: string;
   thanks: string;
   capture: string;
   capturing: string;
@@ -40,14 +41,15 @@ export type Labels = {
 };
 
 const FR_LABELS: Labels = {
-  title: 'Feedback',
+  title: 'Votre avis',
   send: 'Envoyer',
   sending: 'Envoi…',
   close: 'Fermer',
   bug: 'Bug',
-  idea: 'Idée',
+  idea: 'Avis ou idée',
   other: 'Autre',
-  placeholder: 'Décrivez votre retour…',
+  placeholder: 'Ce qui vous plaît, ce qui manque, une idée…',
+  placeholder_bug: 'Qu’est-ce qui ne marche pas ? Que faisiez-vous ?',
   thanks: 'Merci pour votre retour !',
   capture: 'Capturer l’écran',
   capturing: 'Capture…',
@@ -57,7 +59,7 @@ const FR_LABELS: Labels = {
   email_placeholder: 'Votre email (pour une réponse)',
   email_invalid: 'Email invalide',
   hide: 'Masquer le bouton',
-  show: 'Afficher le bouton feedback',
+  show: 'Afficher le bouton avis',
   nudge: 'Un souci ? Dites-le-nous',
   context_attached: 'Détails techniques joints',
 };
@@ -68,9 +70,10 @@ const EN_LABELS: Labels = {
   sending: 'Sending…',
   close: 'Close',
   bug: 'Bug',
-  idea: 'Idea',
+  idea: 'Opinion or idea',
   other: 'Other',
-  placeholder: 'Tell us what happened…',
+  placeholder: 'What you like, what’s missing, an idea…',
+  placeholder_bug: 'What isn’t working? What were you doing?',
   thanks: 'Thanks for your feedback!',
   capture: 'Capture screen',
   capturing: 'Capturing…',
@@ -222,7 +225,7 @@ const STYLES = `
     bottom: calc(var(--skalpai-fab-inset-block) + var(--skalpai-panel-gap));
     left: var(--skalpai-fab-inset-inline);
     z-index: 2147483647;
-    width: 320px; max-width: calc(100vw - 32px);
+    width: 420px; max-width: calc(100vw - 32px);
     background: var(--skalpai-panel); color: var(--skalpai-fg);
     border: 1px solid var(--skalpai-border); border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0,0,0,.35); overflow: hidden;
@@ -264,22 +267,22 @@ const STYLES = `
     bottom: calc(100% + 8px);
     left: 0;
     right: auto;
-    max-width: min(320px, calc(100vw - 32px));
+    max-width: min(420px, calc(100vw - 32px));
   }
   .head {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 16px; border-bottom: 1px solid var(--skalpai-border-soft);
-    font-size: 14px; font-weight: 500;
+    padding: 14px 20px; border-bottom: 1px solid var(--skalpai-border-soft);
+    font-size: 16px; font-weight: 600;
   }
   .close {
     background: none; border: 0; cursor: pointer; font-size: 18px;
     color: var(--skalpai-muted); padding: 2px 8px; border-radius: 4px; line-height: 1;
   }
   .close:hover { background: var(--skalpai-muted-soft); color: var(--skalpai-fg); }
-  .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
   .types { display: flex; gap: 6px; }
   .type {
-    flex: 0 0 auto; padding: 6px 14px; border: 0; border-radius: 8px;
+    flex: 0 0 auto; padding: 8px 16px; border: 0; border-radius: 8px;
     background: var(--skalpai-muted-soft); color: var(--skalpai-fg);
     font-size: 13px; font-weight: 500; cursor: pointer;
     transition: background .15s;
@@ -287,9 +290,9 @@ const STYLES = `
   .type:hover { background: var(--skalpai-muted-soft-hover); }
   .type[aria-pressed="true"] { background: var(--skalpai-fg); color: var(--skalpai-bg); }
   textarea {
-    width: 100%; min-height: 90px; padding: 10px 12px;
+    width: 100%; min-height: 150px; padding: 12px 14px;
     border: 1px solid var(--skalpai-border); border-radius: 8px;
-    font: inherit; font-size: 13px; resize: vertical;
+    font: inherit; font-size: 14px; resize: vertical;
     background: var(--skalpai-input); color: var(--skalpai-fg);
   }
   textarea::placeholder { color: var(--skalpai-muted); }
@@ -380,7 +383,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
 
   private root: ShadowRoot;
   private open = false;
-  private type: FeedbackType = 'other';
+  private type: FeedbackType = 'idea';
   private message = '';
   private state: 'idle' | 'loading' | 'sent' | 'error' = 'idle';
   private errorMsg = '';
@@ -852,7 +855,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.state = 'sent';
       this.message = '';
-      this.type = 'other';
+      this.type = 'idea';
       this.source = 'manual';
       this.context = {};
       this.emailTouched = false;
@@ -914,7 +917,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
             <form class="body">
               ${this.state === 'error' ? `<div class="err">${escapeHtml(this.errorMsg)}</div>` : ''}
               <div class="types">
-                ${(['bug', 'idea', 'other'] as FeedbackType[])
+                ${(['idea', 'bug'] as FeedbackType[])
                   .map(
                     (t) => `
                   <button class="type" type="button" data-type="${t}" aria-pressed="${this.type === t}">${L[t]}</button>
@@ -929,7 +932,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
                   ? `<div class="email-hint">${L.email_invalid}</div>`
                   : ''
               }
-              <textarea placeholder="${L.placeholder}" rows="3">${escapeHtml(this.message)}</textarea>
+              <textarea placeholder="${this.type === 'bug' ? L.placeholder_bug : L.placeholder}" rows="5">${escapeHtml(this.message)}</textarea>
               <div class="capture-row">
                 <button class="capture-btn" type="button" ${this.capturing ? 'disabled' : ''} aria-label="${L.capture}">
                   <span aria-hidden="true">📷</span>
