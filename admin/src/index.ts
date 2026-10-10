@@ -10,6 +10,7 @@ export type {
   AdminApp,
   AdminAppTone,
   AdminLayoutProps,
+  AdminSignedInAccount,
   AdminHomeProps,
   AdminHomeLabels,
   UsersTableProps,
