@@ -107,7 +107,17 @@ export interface AdminLayoutProps {
   app?: AdminApp
   /** Header title. Defaults to "Administration". */
   title?: string
+  /** The person signed in, shown at the right of the header. */
+  account?: AdminSignedInAccount
   children: ReactNode
+}
+
+export interface AdminSignedInAccount {
+  email: string
+  name?: string
+  role?: string
+  /** Router-supplied sign-out link or button. */
+  signOut?: ReactNode
 }
 
 export interface AdminHomeLabels {

@@ -1,4 +1,9 @@
-import type { AdminApp, AdminAppTone, AdminLayoutProps } from "../types"
+import type {
+  AdminApp,
+  AdminAppTone,
+  AdminLayoutProps,
+  AdminSignedInAccount,
+} from "../types"
 
 /**
  * Back-office shell: a sticky header carrying the section name, the app's nav
@@ -49,11 +54,37 @@ function AppBadge({ name, tone = "neutral", logo }: AdminApp) {
   )
 }
 
+function SignedInAccount({ email, name, role, signOut }: AdminSignedInAccount) {
+  return (
+    <div className="flex shrink-0 items-center gap-3 text-sm">
+      <div className="flex min-w-0 flex-col items-end leading-tight">
+        <span className="max-w-56 truncate font-medium" title={email}>
+          {name || email}
+        </span>
+        {name ? (
+          <span className="max-w-56 truncate text-xs text-muted-foreground">
+            {email}
+          </span>
+        ) : null}
+      </div>
+      {role ? (
+        <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {role}
+        </span>
+      ) : null}
+      {signOut ? (
+        <div className="text-muted-foreground">{signOut}</div>
+      ) : null}
+    </div>
+  )
+}
+
 export function AdminLayout({
   nav,
   backToApp,
   app,
   title = "Administration",
+  account,
   children,
 }: AdminLayoutProps) {
   return (
@@ -83,9 +114,15 @@ export function AdminLayout({
               </nav>
             </>
           ) : null}
-          {backToApp ? (
-            <div className="ml-auto shrink-0 text-sm text-muted-foreground">
-              {backToApp}
+          {backToApp || account ? (
+            <div className="ml-auto flex shrink-0 items-center gap-4">
+              {backToApp ? (
+                <div className="text-sm text-muted-foreground">{backToApp}</div>
+              ) : null}
+              {backToApp && account ? (
+                <span aria-hidden className="h-5 w-px bg-border" />
+              ) : null}
+              {account ? <SignedInAccount {...account} /> : null}
             </div>
           ) : null}
         </div>
