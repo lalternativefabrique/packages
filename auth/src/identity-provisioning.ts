@@ -231,6 +231,51 @@ export async function updateIdentityPassword(
   }
 }
 
+export type RecoveryEmailOutcome =
+  | { status: "saved" }
+  | { status: "rejected"; reason: string }
+  | { status: "unavailable" }
+
+/**
+ * Writes the recovery address of an identity the product enrols. Kratos'
+ * settings cannot, by design: its profile method is disabled so the account's
+ * own address never changes.
+ */
+export async function updateRecoveryEmail(
+  config: IdentityProvisioningConfig,
+  request: { identityId: string; email: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<RecoveryEmailOutcome> {
+  const token = await accessToken(config, fetchImpl)
+  if (!token) return { status: "unavailable" }
+
+  const base = config.issuer.replace(/\/$/, "")
+  try {
+    const response = await fetchImpl(`${base}/api/machine/recovery-emails`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        identity_id: request.identityId,
+        recovery_email: request.email.trim().toLowerCase(),
+      }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+    if (response.ok) return { status: "saved" }
+    if (response.status >= 500) return { status: "unavailable" }
+    if (response.status === 401) {
+      tokenCache.delete(`${config.issuer}|${config.clientId}`)
+      return { status: "unavailable" }
+    }
+    const body = (await response.json().catch(() => ({}))) as { error?: string }
+    return { status: "rejected", reason: body.error ?? `http_${response.status}` }
+  } catch {
+    return { status: "unavailable" }
+  }
+}
+
 export type DeletionOutcome =
   | { status: "requested"; eventId: string }
   | { status: "rejected"; reason: string }
