@@ -120,6 +120,10 @@ scopes:
     - "lalter/sdk-node/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
+  skalpai-feedback-native:
+    - "skalpai/sdk-feedback-native/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
 
 steps:
   # Unscoped: a key can land in any file. This repository is public, so a
@@ -438,6 +442,15 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk test
       npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk typecheck
       npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk build
+
+  - name: skalpai-feedback-native
+    scope: [skalpai-feedback-native]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native test
+      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native build
 
   - name: spore-sdk
     scope: [spore-sdk]
