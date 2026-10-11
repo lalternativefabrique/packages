@@ -71,6 +71,8 @@ export async function submitFeedback(
   const res = await fetchImpl(submitUrl(s.endpoint, s.projectId), {
     method: 'POST',
     body: buildForm(s),
+    // On React Native a hand-set Cookie header is replaced by the native cookie store unless credentials are omitted.
+    credentials: 'omit',
     headers: { ...s.headers, ...(s.apiKey ? { 'x-api-key': s.apiKey } : {}) },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
