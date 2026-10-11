@@ -37,6 +37,7 @@ export interface FeedbackProviderProps {
   endpoint: string;
   projectId: string;
   apiKey?: string;
+  getHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
   userEmail?: string;
   lang?: string;
   labels?: Partial<Labels>;
@@ -71,6 +72,7 @@ export function FeedbackProvider({
   endpoint,
   projectId,
   apiKey,
+  getHeaders,
   userEmail,
   lang,
   labels: labelOverrides,
@@ -247,6 +249,7 @@ export function FeedbackProvider({
         endpoint,
         projectId,
         apiKey,
+        headers: getHeaders ? await getHeaders() : undefined,
         type,
         message,
         source,
