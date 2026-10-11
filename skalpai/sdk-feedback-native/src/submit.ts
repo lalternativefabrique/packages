@@ -37,6 +37,7 @@ export interface FeedbackSubmission {
   endpoint: string;
   projectId: string;
   apiKey?: string;
+  headers?: Record<string, string>;
   type: FeedbackType;
   message: string;
   source: string;
@@ -70,7 +71,7 @@ export async function submitFeedback(
   const res = await fetchImpl(submitUrl(s.endpoint, s.projectId), {
     method: 'POST',
     body: buildForm(s),
-    headers: s.apiKey ? { 'x-api-key': s.apiKey } : {},
+    headers: { ...s.headers, ...(s.apiKey ? { 'x-api-key': s.apiKey } : {}) },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }

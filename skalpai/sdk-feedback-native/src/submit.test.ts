@@ -110,6 +110,13 @@ describe('submitFeedback', () => {
     expect(init.headers).toEqual({ 'x-api-key': 'k' });
   });
 
+  it('merges host headers such as a session cookie', async () => {
+    vi.stubGlobal('FormData', RecordingFormData);
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    await submitFeedback({ ...base, headers: { cookie: 'session=abc' } }, fetchImpl as unknown as typeof fetch);
+    expect(fetchImpl.mock.calls[0][1].headers).toEqual({ cookie: 'session=abc', 'x-api-key': 'k' });
+  });
+
   it('throws on a non-2xx response', async () => {
     vi.stubGlobal('FormData', RecordingFormData);
     const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 503 });
