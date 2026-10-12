@@ -6,12 +6,17 @@ export interface CookieOptions {
 }
 
 export function readCookie(headers: Headers, name: string): string | undefined {
+  return readCookies(headers, name)[0];
+}
+
+export function readCookies(headers: Headers, name: string): Array<string> {
   const raw = headers.get("cookie") ?? "";
+  const values: Array<string> = [];
   for (const part of raw.split(";")) {
     const [k, ...v] = part.trim().split("=");
-    if (k === name) return decodeURIComponent(v.join("="));
+    if (k === name) values.push(decodeURIComponent(v.join("=")));
   }
-  return undefined;
+  return values;
 }
 
 /**

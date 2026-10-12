@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
+import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
 
 test("readCookie finds a value among several and decodes it", () => {
   const headers = new Headers({ cookie: "a=1; tornad_session=ory%3Dst; b=2" });
@@ -52,4 +52,15 @@ test("a malformed domain is refused rather than written into the header", () => 
     );
     assert.throws(() => clearCookie("s", true, domain), /invalid cookie domain/);
   }
+});
+
+test("readCookies keeps every value of a duplicated name in sent order", () => {
+  const headers = new Headers({
+    cookie: "synthiz_flow=recovery%3AOLD; other=x; synthiz_flow=recovery%3ANEW",
+  });
+  assert.deepEqual(readCookies(headers, "synthiz_flow"), [
+    "recovery:OLD",
+    "recovery:NEW",
+  ]);
+  assert.equal(readCookie(headers, "synthiz_flow"), "recovery:OLD");
 });

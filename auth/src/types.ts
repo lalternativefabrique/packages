@@ -361,6 +361,8 @@ export interface ResetPasswordFormLabels {
   secondFactorHint?: string
   secondFactorSubmit?: string
   secondFactorInvalid?: string
+  passwordReused?: string
+  passwordRefused?: string
 }
 
 export interface ResetPasswordFormProps extends AuthThemeProps, AuthNavProps {
