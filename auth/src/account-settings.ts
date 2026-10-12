@@ -1,4 +1,4 @@
-export const MIN_PASSWORD_LENGTH = 8
+export const MIN_PASSWORD_LENGTH = 12
 
 export type PasswordChangeProblem = "missing" | "too_short" | "mismatch" | "unchanged"
 

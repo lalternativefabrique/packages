@@ -6,9 +6,9 @@ import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
+import { MIN_PASSWORD_LENGTH } from "../account-settings"
 import { SocialButtons } from "./social-buttons"
 
-const MIN_PASSWORD_LENGTH = 8
 
 const DEFAULTS: Required<RegisterFormLabels> = {
   title: "Créer un compte",

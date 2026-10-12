@@ -15,7 +15,7 @@ import {
   updateRecoveryEmail,
   updateIdentityPassword,
 } from "../identity-provisioning.ts";
-import { clearCookie, readCookie, serializeCookie } from "./cookies.ts";
+import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { ExchangeConfig, PersonToken } from "./exchange.ts";
 import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
@@ -209,6 +209,7 @@ const FAILURE_STATUS: Record<KratosFailure["status"], number> = {
   already_registered: 409,
   account_not_found: 404,
   password_refused: 422,
+  password_reused: 422,
   invalid_input: 400,
   flow_expired: 410,
   unavailable: 503,
@@ -324,6 +325,16 @@ export function createUrbangateAuth(
 
   const clear = (name: string) => clearCookie(name, secure, domain);
 
+  // A host-only and a Domain flow cookie can coexist under one name, and the
+  // browser sends both; each write expires the other so only one survives.
+  const otherFlowVariant = () =>
+    domain ? [clearCookie(names.flow, secure)] : [];
+  const writeFlow = (value: string) => [
+    ...otherFlowVariant(),
+    cookie(names.flow, value, FLOW_MAX_AGE),
+  ];
+  const clearFlow = () => [...otherFlowVariant(), clear(names.flow)];
+
   // The cookies the product's Better Auth server used to set, expired on
   // every sign-in and sign-out until no browser carries them any more.
   const staleCookies = () => [
@@ -336,7 +347,7 @@ export function createUrbangateAuth(
     if (!token) return [];
     return [
       cookie(names.session, token, SESSION_MAX_AGE),
-      clear(names.flow),
+      ...clearFlow(),
       ...staleCookies(),
     ];
   };
@@ -756,11 +767,7 @@ export function createUrbangateAuth(
     const cookies = signedIn(result);
     if (verification)
       cookies.push(
-        cookie(
-          names.flow,
-          `verification:${verification.flow.id}:${OPENED}`,
-          FLOW_MAX_AGE,
-        ),
+        ...writeFlow(`verification:${verification.flow.id}:${OPENED}`),
       );
     return json(
       200,
@@ -785,10 +792,8 @@ export function createUrbangateAuth(
     const stillOpening =
       sent.kind === "verification" && flowOpensAccount(request.headers);
     return json(200, { sent: true }, [
-      cookie(
-        names.flow,
+      ...writeFlow(
         `${sent.kind}:${sent.flowId}${stillOpening ? `:${OPENED}` : ""}`,
-        FLOW_MAX_AGE,
       ),
     ]);
   }
@@ -838,14 +843,19 @@ export function createUrbangateAuth(
     return { kind, flowId: flow.id };
   }
 
+  // Cookies of one name and path come oldest first, so the last is the newest.
+  function currentFlow(headers: Headers): string {
+    return readCookies(headers, names.flow).at(-1) ?? "";
+  }
+
   function pendingFlow(headers: Headers, kind: string): string | null {
-    const raw = readCookie(headers, names.flow) ?? "";
+    const raw = currentFlow(headers);
     const [k, id] = raw.split(":");
     return k === kind && id ? id : null;
   }
 
   function flowOpensAccount(headers: Headers): boolean {
-    const [k, , mark] = (readCookie(headers, names.flow) ?? "").split(":");
+    const [k, , mark] = currentFlow(headers).split(":");
     return k === "verification" && mark === OPENED;
   }
 
@@ -899,7 +909,7 @@ export function createUrbangateAuth(
       ...brand,
     });
     if (flow.state !== "passed_challenge") return failure("invalid_code", 400);
-    const cookies = [clear(names.flow)];
+    const cookies = clearFlow();
     const sessionToken = readCookie(request.headers, names.session);
     if ((config.onAccountOpened || config.nakoda) && sessionToken && flowOpensAccount(request.headers)) {
       const session = await kratos.whoami(sessionToken).catch(() => null);
@@ -913,6 +923,13 @@ export function createUrbangateAuth(
     const b = await body(request);
     const code = str(b, "otp");
     const password = typeof b.password === "string" ? b.password : "";
+    const held = readCookie(request.headers, names.session);
+    const refusedFlow = pendingFlow(request.headers, "settings");
+    if (refusedFlow && held) {
+      if (!password)
+        return failure("invalid_input", 400, "password is required");
+      return finishReset(refusedFlow, password, held, true);
+    }
     const flowId = pendingFlow(request.headers, "recovery");
     if (!flowId) return failure("flow_expired", 410);
     if (!code || !password)
@@ -928,30 +945,64 @@ export function createUrbangateAuth(
     )?.ory_session_token;
     const settings = continueWith(recovered.continue_with, "show_settings_ui");
     if (!token || !settings) return failure("invalid_code", 400);
+    return finishReset(settings.flow.id, password, token, false);
+  }
+
+  // The recovery code is spent once it verified, so whatever stops the password
+  // here keeps the recovery session and its settings flow for the next attempt.
+  async function finishReset(
+    settingsFlowId: string,
+    password: string,
+    token: string,
+    retrying: boolean,
+  ): Promise<Response> {
+    const held = (pending: string) => [
+      cookie(names.session, token, SESSION_MAX_AGE),
+      ...writeFlow(pending),
+    ];
+    let flowId = settingsFlowId;
     try {
-      await setPassword(settings.flow.id, password, token);
+      try {
+        await setPassword(flowId, password, token);
+      } catch (error) {
+        if (
+          !retrying ||
+          !(error instanceof KratosError) ||
+          error.failure.status !== "flow_expired"
+        ) {
+          throw error;
+        }
+        flowId = (await kratos.start("settings", token)).id;
+        await setPassword(flowId, password, token);
+      }
     } catch (error) {
-      // The recovery code is spent by now; an identity holding a second
-      // factor is refused the settings flow at aal1, so the session and the
-      // settings flow are kept for the second-factor step instead of lost.
-      if (
-        error instanceof KratosError &&
-        error.failure.status === "second_factor_required"
-      ) {
+      if (!(error instanceof KratosError)) throw error;
+      const f = error.failure;
+      if (f.status === "second_factor_required") {
         return json(
           403,
           { error: { code: "second_factor_required", status: 403 } },
-          [
-            cookie(names.session, token, SESSION_MAX_AGE),
-            cookie(names.flow, `settings2fa:${settings.flow.id}`, FLOW_MAX_AGE),
-          ],
+          held(`settings2fa:${flowId}`),
+        );
+      }
+      if (f.status === "password_refused" || f.status === "password_reused") {
+        return json(
+          422,
+          {
+            error: {
+              code: f.status,
+              status: 422,
+              ...("message" in f && f.message ? { message: f.message } : {}),
+            },
+          },
+          held(`settings:${flowId}`),
         );
       }
       throw error;
     }
     return json(200, { reset: true }, [
       cookie(names.session, token, SESSION_MAX_AGE),
-      clear(names.flow),
+      ...clearFlow(),
     ]);
   }
 
@@ -1001,7 +1052,7 @@ export function createUrbangateAuth(
     }
     return json(200, { reset: true }, [
       cookie(names.session, session, SESSION_MAX_AGE),
-      clear(names.flow),
+      ...clearFlow(),
     ]);
   }
 
@@ -1092,7 +1143,7 @@ export function createUrbangateAuth(
     if (saved.status === "rejected") return failure(saved.reason, 400);
     const sent = await sendCodeOn("verification", email);
     return json(200, { sent: true }, [
-      cookie(names.flow, `verification:${sent.flowId}`, FLOW_MAX_AGE),
+      ...writeFlow(`verification:${sent.flowId}`),
     ]);
   }
 
@@ -1122,7 +1173,7 @@ export function createUrbangateAuth(
   const signedOut = () => [
     clear(names.session),
     clear(names.token),
-    clear(names.flow),
+    ...clearFlow(),
     ...staleCookies(),
     ...(sso
       ? [
@@ -1197,7 +1248,7 @@ export function createUrbangateAuth(
     return redirect(pending.landing, [
       clear(names.sso),
       clear(names.session),
-      clear(names.flow),
+      ...clearFlow(),
       clear(names.profile),
       cookie(names.token, outcome.tokens.accessToken, TOKEN_MAX_AGE),
       cookie(names.admin, outcome.tokens.refreshToken, ADMIN_MAX_AGE),

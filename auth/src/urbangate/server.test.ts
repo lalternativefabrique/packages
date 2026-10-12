@@ -1569,3 +1569,133 @@ test("ownedDomains needs a coreUrl", () => {
     }),
   );
 });
+
+const reusedRefusal = () =>
+  Response.json(
+    { id: "S", ui: { nodes: [{ messages: [{ id: 4000039, type: "error" }] }] } },
+    { status: 400 },
+  );
+
+test("a reset refused for reusing the password keeps the recovery session and settings flow", async () => {
+  const { fetchImpl } = recoveryStub(reusedRefusal);
+  const res = await auth(fetchImpl).handler(
+    post(
+      "email-otp/reset-password",
+      { email: "ana@example", otp: "123456", password: "the-old-password" },
+      "tornad_flow=recovery%3ARC",
+    ),
+  );
+  assert.equal(res.status, 422);
+  assert.equal(
+    ((await res.json()) as { error: { code: string } }).error.code,
+    "password_reused",
+  );
+  const cookies = res.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(cookies.some((c) => c.startsWith("tornad_flow=settings%3AS")));
+});
+
+test("a reset retried after a refusal sets the password on the kept settings flow without the spent code", async () => {
+  const { fetchImpl, calls } = recoveryStub(() =>
+    Response.json({ id: "S", state: "success" }),
+  );
+  const res = await auth(fetchImpl).handler(
+    post(
+      "email-otp/reset-password",
+      { email: "ana@example", otp: "123456", password: "a-new-password" },
+      "tornad_session=ory_st; tornad_flow=settings%3AS",
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(!calls.some((c) => c.key.startsWith("POST /self-service/recovery")));
+  const settings = calls.find((c) => c.key === "POST /self-service/settings?flow=S");
+  assert.equal(settings?.headers.get("x-session-token"), "ory_st");
+  assert.ok(
+    res.headers.getSetCookie().some((c) => /^tornad_flow=;.*Max-Age=0/.test(c)),
+  );
+});
+
+test("a retry on an expired kept settings flow opens a fresh one on the recovery session", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "POST /self-service/settings?flow=S": () =>
+      Response.json({ error: { code: 410 } }, { status: 410 }),
+    "GET /self-service/settings/api": () => Response.json({ id: "S2" }),
+    "POST /self-service/settings?flow=S2": () =>
+      Response.json({ id: "S2", state: "success" }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post(
+      "email-otp/reset-password",
+      { email: "ana@example", otp: "", password: "a-new-password" },
+      "tornad_session=ory_st; tornad_flow=settings%3AS",
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(calls.some((c) => c.key === "POST /self-service/settings?flow=S2"));
+});
+
+test("a resent recovery code replaces a kept settings flow and reads the newest of duplicated flow cookies", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/recovery/api": () => Response.json({ id: "RC2" }),
+    "POST /self-service/recovery?flow=RC2": (init) => {
+      const b = JSON.parse(init.body as string) as { code?: string };
+      return b.code
+        ? Response.json(
+            {
+              id: "RC2",
+              continue_with: [
+                { action: "set_ory_session_token", ory_session_token: "ory_st2" },
+                { action: "show_settings_ui", flow: { id: "S2" } },
+              ],
+            },
+            { status: 422 },
+          )
+        : Response.json({ id: "RC2", state: "sent_email" });
+    },
+    "POST /self-service/settings?flow=S2": () =>
+      Response.json({ id: "S2", state: "success" }),
+  });
+  const a = auth(fetchImpl);
+  const sent = await a.handler(
+    post(
+      "email-otp/send-verification-otp",
+      { email: "ana@example", type: "forget-password" },
+      "tornad_session=ory_st; tornad_flow=settings%3AS",
+    ),
+  );
+  assert.ok(
+    sent.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=recovery%3ARC2")),
+  );
+  const res = await a.handler(
+    post(
+      "email-otp/reset-password",
+      { email: "ana@example", otp: "654321", password: "a-new-password" },
+      "tornad_session=ory_st; tornad_flow=recovery%3ASTALE; tornad_flow=recovery%3ARC2",
+    ),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(calls.some((c) => c.key === "POST /self-service/settings?flow=S2"));
+});
+
+test("a flow cookie written under a cookie domain expires its host-only twin", async () => {
+  const { fetchImpl } = kratosStub({
+    "GET /self-service/recovery/api": () => Response.json({ id: "RC" }),
+    "POST /self-service/recovery?flow=RC": () =>
+      Response.json({ id: "RC", state: "sent_email" }),
+  });
+  const res = await authWith(fetchImpl, {
+    cookie: { domain: ".tornad.dev" },
+  }).handler(
+    post("email-otp/send-verification-otp", {
+      email: "ana@example",
+      type: "forget-password",
+    }),
+  );
+  const flows = res.headers
+    .getSetCookie()
+    .filter((c) => c.startsWith("tornad_flow="));
+  assert.equal(flows.length, 2);
+  assert.match(flows[0], /^tornad_flow=;.*Max-Age=0/);
+  assert.doesNotMatch(flows[0], /Domain=/);
+  assert.match(flows[1], /^tornad_flow=recovery%3ARC;.*Domain=\.tornad\.dev/);
+});

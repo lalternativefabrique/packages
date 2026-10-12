@@ -5,8 +5,8 @@ import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthOtpField, OTP_LENGTH } from "./auth-otp-field"
 import { AuthSubmit } from "./auth-submit"
+import { MIN_PASSWORD_LENGTH } from "../account-settings"
 
-const MIN_PASSWORD_LENGTH = 8
 
 const DEFAULTS: Required<ResetPasswordFormLabels> = {
   title: "Nouveau mot de passe",
@@ -34,6 +34,10 @@ const DEFAULTS: Required<ResetPasswordFormLabels> = {
   secondFactorHint: "Les 6 chiffres affichés, ou un de tes codes de secours.",
   secondFactorSubmit: "Valider",
   secondFactorInvalid: "Ce code n'est pas le bon. Réessaie.",
+  passwordReused:
+    "Ce mot de passe est celui que tu utilises déjà. Choisis-en un nouveau.",
+  passwordRefused:
+    "Ce mot de passe est trop faible ou déjà apparu dans une fuite de données. Choisis-en un autre.",
 }
 
 const CODE_SPENT = new Set(["invalid_code", "flow_expired"])
@@ -99,9 +103,13 @@ export function ResetPasswordForm({
           return
         }
         setError(
-          code && CODE_SPENT.has(code)
-            ? t.codeSpent
-            : (body?.message ?? t.resetFailed),
+          code === "password_reused"
+            ? t.passwordReused
+            : code === "password_refused"
+              ? t.passwordRefused
+              : code && CODE_SPENT.has(code)
+                ? t.codeSpent
+                : t.resetFailed,
         )
         return
       }

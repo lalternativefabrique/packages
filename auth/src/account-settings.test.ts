@@ -11,20 +11,20 @@ test("a password change needs both passwords", () => {
   assert.equal(passwordChangeProblem({ current: "old-pass", next: "", confirm: "" }), "missing")
 })
 
-test("a new password shorter than eight characters is refused", () => {
-  assert.equal(passwordChangeProblem({ current: "old-pass", next: "short", confirm: "short" }), "too_short")
+test("a new password shorter than twelve characters is refused", () => {
+  assert.equal(passwordChangeProblem({ current: "old-pass", next: "elevenchars", confirm: "elevenchars" }), "too_short")
 })
 
 test("the confirmation must match the new password", () => {
-  assert.equal(passwordChangeProblem({ current: "old-pass", next: "new-pass1", confirm: "new-pass2" }), "mismatch")
+  assert.equal(passwordChangeProblem({ current: "old-pass", next: "new-password-1", confirm: "new-password-2" }), "mismatch")
 })
 
 test("the new password must differ from the current one", () => {
-  assert.equal(passwordChangeProblem({ current: "same-pass", next: "same-pass", confirm: "same-pass" }), "unchanged")
+  assert.equal(passwordChangeProblem({ current: "same-password", next: "same-password", confirm: "same-password" }), "unchanged")
 })
 
 test("a valid password change has no problem", () => {
-  assert.equal(passwordChangeProblem({ current: "old-pass", next: "new-pass1", confirm: "new-pass1" }), undefined)
+  assert.equal(passwordChangeProblem({ current: "old-pass", next: "new-password-1", confirm: "new-password-1" }), undefined)
 })
 
 test("an address without a domain is invalid", () => {
