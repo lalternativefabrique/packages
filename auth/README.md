@@ -86,9 +86,11 @@ answering 401 `sign_in_required`, 403 `forbidden`, or 503
 `identity_provider_unavailable` when urbangate cannot answer — never 401 for
 an outage. A core that refuses the person with 403 `account_erased` (the
 `membership` tombstone of a deleted account) is answered 401
-`account_erased` with the product's cookies cleared: the session is still
-good at urbangate, so only a sign-out ends the refusals, and the sign-in
-that follows reopens the account once the tombstone's window has passed.
+`account_erased` with the product's cookies cleared, and the core's
+`reopens_at` relayed when it gives one: the session is still good at
+urbangate, so only a sign-out ends the refusals, and the sign-in that
+follows reopens the account once the tombstone's window has passed. The
+login page should tell the person to come back at that time.
 
 `cookie: { domain }` (1.10) shares the session across an apex domain's
 sub-domains: a product served on `app.messag.eco` behind the same web that

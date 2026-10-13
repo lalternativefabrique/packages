@@ -963,7 +963,10 @@ test("coreProxy signs the person out when the core answers account_erased", asyn
   const proxy = auth(fetchImpl).coreProxy({ coreUrl: "http://core:8080" });
   const original = globalThis.fetch;
   globalThis.fetch = (async () =>
-    Response.json({ error: "account_erased" }, { status: 403 })) as typeof fetch;
+    Response.json(
+      { error: "account_erased", reopens_at: "2026-10-13T17:11:25Z" },
+      { status: 403 },
+    )) as typeof fetch;
   let res: Response;
   try {
     res = await proxy(
@@ -975,8 +978,9 @@ test("coreProxy signs the person out when the core answers account_erased", asyn
     globalThis.fetch = original;
   }
   assert.equal(res.status, 401);
-  const body = (await res.json()) as { error: { code: string } };
+  const body = (await res.json()) as { error: { code: string; reopens_at?: string } };
   assert.equal(body.error.code, "account_erased");
+  assert.equal(body.error.reopens_at, "2026-10-13T17:11:25Z");
   const cleared = res.headers.getSetCookie().filter((c) => c.includes("Max-Age=0"));
   assert.ok(cleared.some((c) => c.startsWith("tornad_session=;")));
   assert.ok(cleared.some((c) => c.startsWith("tornad_token=;")));

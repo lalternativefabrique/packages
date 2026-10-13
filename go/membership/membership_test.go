@@ -335,15 +335,19 @@ func TestResolveReopensAnErasedMemberPastTheGrace(t *testing.T) {
 	if _, err := svc.WorkOnce(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := svc.Resolve(ctx, ana); !errors.Is(err, membership.ErrErased) {
+	m, err := svc.Resolve(ctx, ana)
+	if !errors.Is(err, membership.ErrErased) {
 		t.Fatalf("a token inside the grace must be refused: %v", err)
+	}
+	if at, ok := svc.ReopensAt(m); !ok || !at.Equal(m.ErasedAt.Add(time.Hour)) {
+		t.Fatalf("reopens at %v (%v), erased at %v", at, ok, m.ErasedAt)
 	}
 	*now = now.Add(59 * time.Minute)
 	if _, err := svc.Resolve(ctx, ana); !errors.Is(err, membership.ErrErased) {
 		t.Fatalf("still inside the grace: %v", err)
 	}
 	*now = now.Add(2 * time.Minute)
-	m, err := svc.Resolve(ctx, ana)
+	m, err = svc.Resolve(ctx, ana)
 	if err != nil {
 		t.Fatalf("past the grace the identity comes back: %v", err)
 	}
