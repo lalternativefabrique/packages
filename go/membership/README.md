@@ -53,13 +53,15 @@ call. A resource that already exists without this member having made it is
 
 ```
 first token ──► provisioning ──worker──► ready ──deletion_requested──► erasing ──worker──► erased
-                     │                                                   ▲
-                     └──ErrConflict / refused identifier──► conflict ────┘
+                     ▲                                                   ▲                    │
+                     │                                                   │                    │
+                     └──ErrConflict / refused identifier──► conflict ────┘                    │
+                     └────────────── a token past ReopenAfter ────────────────────────────────┘
 ```
 
 | Step | Who | What |
 |---|---|---|
-| `svc.Resolve(ctx, identity)` | the request middleware, once the token is verified | the member; inserts one in `provisioning` on first sight (running `Open` in the same transaction); `ErrErased` for a tombstone, `ErrConflict` for a parked member |
+| `svc.Resolve(ctx, identity)` | the request middleware, once the token is verified | the member; inserts one in `provisioning` on first sight (running `Open` in the same transaction), and moves an `erased` one back there once `Config.ReopenAfter` (1h) has passed since the erasure, `Open` running again since `Purge` dropped the product's rows; `ErrErased` while erasing or inside that window, `ErrConflict` for a parked member |
 | `svc.RunWorker(ctx, poll)` | one goroutine per core | claims due members, calls `Provision` or `Erase` + `Purge`, retries with backoff, `OnStuck` past `MaxAttempts` |
 | `svc.DeletionHandler()` | `consumer.Run` on the suite bus | moves the member to `erasing`; a tombstone for an identity never met |
 | `svc.Reconcile(ctx)` | a daily job | identities with the role at urbangate vs `members` vs `Resources.List`; a `Report`, no correction |
@@ -80,7 +82,7 @@ GET /api/v1/machine/identifiers/{local}   204 free · 400 invalid or reserved ·
 
 `svc.IdentifierHandler()` serves it from `members` and the reserved list;
 urbangate is never consulted. An erased member keeps its address, so an
-address is never handed out twice. An identity that reaches `Resolve` with an
+address is never handed out twice: the person who comes back gets theirs. An identity that reaches `Resolve` with an
 address the product refuses opens in `conflict`, visible to reconciliation.
 
 `svc.MeHandler(identity)` serves `GET /me/membership` (`{state, localId,

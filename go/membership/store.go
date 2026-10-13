@@ -31,9 +31,10 @@ type Store interface {
 	Insert(ctx context.Context, m Member, within Within) (Member, error)
 	// Transition moves the member from one state to another in one write,
 	// answering false when it was not in `from`. The store stamps ReadyAt on
-	// a move to ready and ErasedAt on a move to erased, and resets Attempts
-	// and LastError on both.
-	// within runs in the same transaction once the state has moved.
+	// a move to ready and ErasedAt on a move to erased, clears both on a
+	// move out of erased, and resets Attempts and LastError on all.
+	// within runs in the same transaction once the state has moved; the
+	// LocalID, Address, State and LastError it leaves on the member are kept.
 	Transition(ctx context.Context, identityID string, from, to State, patch Patch, within Within) (bool, error)
 	// ClaimDue hands out the members in provisioning or erasing whose
 	// NextAttemptAt has passed, pushing it by lease so no other worker takes
@@ -113,6 +114,10 @@ func (s *Memory) Transition(ctx context.Context, identityID string, from, to Sta
 		m.ReadyAt = &now
 	case StateErased:
 		m.ErasedAt = &now
+	}
+	if from == StateErased {
+		m.ReadyAt = nil
+		m.ErasedAt = nil
 	}
 	if within != nil {
 		if err := within(ctx, &m); err != nil {

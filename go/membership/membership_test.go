@@ -294,3 +294,87 @@ func toJSON(v any) string {
 	b, _ := json.Marshal(v)
 	return string(b)
 }
+
+func clocked(t *testing.T, res membership.Resources, open func(membership.Identity) string) (*membership.Service, *membership.Memory, *time.Time) {
+	t.Helper()
+	store := membership.NewMemory()
+	if res == nil {
+		res = membership.NewNoop(store)
+	}
+	now := time.Now().UTC()
+	p := membership.Product{
+		Name:       "messag",
+		Resources:  res,
+		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test"},
+	}
+	if open != nil {
+		p.Open = func(_ context.Context, id membership.Identity) (string, error) { return open(id), nil }
+	}
+	svc, err := membership.New(store, p, membership.Config{BaseBackoff: time.Millisecond, MaxBackoff: 2 * time.Millisecond, MaxAttempts: 2, ReopenAfter: time.Hour, Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return svc, store, &now
+}
+
+func TestResolveReopensAnErasedMemberPastTheGrace(t *testing.T) {
+	res := &fakeResources{}
+	opened := 0
+	svc, store, now := clocked(t, res, func(membership.Identity) string { opened++; return "u-" + string(rune('0'+opened)) })
+	ctx := context.Background()
+	ana := membership.Identity{ID: "id-1", Email: "ana@messag.test"}
+	if _, err := svc.Resolve(ctx, ana); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.WorkOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RequestErase(ctx, "id-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.WorkOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Resolve(ctx, ana); !errors.Is(err, membership.ErrErased) {
+		t.Fatalf("a token inside the grace must be refused: %v", err)
+	}
+	*now = now.Add(59 * time.Minute)
+	if _, err := svc.Resolve(ctx, ana); !errors.Is(err, membership.ErrErased) {
+		t.Fatalf("still inside the grace: %v", err)
+	}
+	*now = now.Add(2 * time.Minute)
+	m, err := svc.Resolve(ctx, ana)
+	if err != nil {
+		t.Fatalf("past the grace the identity comes back: %v", err)
+	}
+	if m.State != membership.StateProvisioning || m.LocalID != "u-2" || m.ErasedAt != nil || m.ReadyAt != nil || m.Address != "ana@messag.test" || string(m.Resources) != "{}" || opened != 2 {
+		t.Fatalf("reopened %+v opened=%d", m, opened)
+	}
+	if n, err := svc.WorkOnce(ctx); err != nil || n != 1 {
+		t.Fatalf("reprovision: %d %v", n, err)
+	}
+	m, _ = store.Get(ctx, "id-1")
+	if m.State != membership.StateReady || len(res.held) != 2 {
+		t.Fatalf("after reprovisioning %+v held=%v", m, res.held)
+	}
+	if _, err := svc.Resolve(ctx, ana); err != nil {
+		t.Fatalf("a reopened member is admitted: %v", err)
+	}
+}
+
+func TestATombstoneReopensToo(t *testing.T) {
+	svc, _, now := clocked(t, nil, nil)
+	ctx := context.Background()
+	if err := svc.RequestErase(ctx, "never-seen"); err != nil {
+		t.Fatal(err)
+	}
+	id := membership.Identity{ID: "never-seen", Email: "x@messag.test"}
+	if _, err := svc.Resolve(ctx, id); !errors.Is(err, membership.ErrErased) {
+		t.Fatalf("tombstone ignored: %v", err)
+	}
+	*now = now.Add(time.Hour)
+	m, err := svc.Resolve(ctx, id)
+	if err != nil || m.State != membership.StateProvisioning || m.Address != "x@messag.test" {
+		t.Fatalf("tombstone not reopened: %+v %v", m, err)
+	}
+}

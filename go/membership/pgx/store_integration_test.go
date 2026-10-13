@@ -176,3 +176,27 @@ func TestHooksRunInTheMemberTransaction(t *testing.T) {
 		t.Fatalf("purge not committed with the tombstone: %d", users)
 	}
 }
+
+func TestTransitionOutOfErasedReopensTheMember(t *testing.T) {
+	ctx := context.Background()
+	store := mpgx.New(pool(t))
+	now := time.Now().UTC()
+	if _, err := store.Insert(ctx, membership.Member{IdentityID: "id-9", LocalID: "id-9", State: membership.StateErased, ErasedAt: &now}, nil); err != nil {
+		t.Fatal(err)
+	}
+	ok, err := store.Transition(ctx, "id-9", membership.StateErased, membership.StateProvisioning, membership.Patch{Resources: json.RawMessage(`{}`), NextAttemptAt: now}, func(_ context.Context, m *membership.Member) error {
+		m.LocalID = "u-9"
+		m.Address = "nine@messag.test"
+		return nil
+	})
+	if err != nil || !ok {
+		t.Fatalf("reopen: ok=%v err=%v", ok, err)
+	}
+	m, err := store.Get(ctx, "id-9")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.State != membership.StateProvisioning || m.LocalID != "u-9" || m.Address != "nine@messag.test" || m.ErasedAt != nil || m.ReadyAt != nil {
+		t.Fatalf("reopened %+v", m)
+	}
+}
