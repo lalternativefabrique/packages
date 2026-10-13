@@ -61,7 +61,7 @@ first token ──► provisioning ──worker──► ready ──deletion_re
 
 | Step | Who | What |
 |---|---|---|
-| `svc.Resolve(ctx, identity)` | the request middleware, once the token is verified | the member; inserts one in `provisioning` on first sight (running `Open` in the same transaction), and moves an `erased` one back there once `Config.ReopenAfter` (1h) has passed since the erasure, `Open` running again since `Purge` dropped the product's rows; `ErrErased` while erasing or inside that window, `ErrConflict` for a parked member |
+| `svc.Resolve(ctx, identity)` | the request middleware, once the token is verified | the member; inserts one in `provisioning` on first sight (running `Open` in the same transaction), and moves an `erased` one back there once `Config.ReopenAfter` (20 min, past any token signed before the deletion revoked the sessions) has passed since the erasure, `Open` running again since `Purge` dropped the product's rows; `ErrErased` while erasing or inside that window (`svc.ReopensAt(member)` says when, for the refusal to tell the person), `ErrConflict` for a parked member |
 | `svc.RunWorker(ctx, poll)` | one goroutine per core | claims due members, calls `Provision` or `Erase` + `Purge`, retries with backoff, `OnStuck` past `MaxAttempts` |
 | `svc.DeletionHandler()` | `consumer.Run` on the suite bus | moves the member to `erasing`; a tombstone for an identity never met |
 | `svc.Reconcile(ctx)` | a daily job | identities with the role at urbangate vs `members` vs `Resources.List`; a `Report`, no correction |

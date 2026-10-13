@@ -179,13 +179,18 @@ export interface UrbangateAuth {
 // tombstone) with this body. The session is still good at urbangate, so
 // the person would keep hitting it on every call: signing them out of the
 // product is the one answer that ends it.
-async function accountErased(upstream: Response): Promise<boolean> {
-  if (upstream.status !== 403) return false;
+async function accountErased(
+  upstream: Response,
+): Promise<{ reopensAt?: string } | null> {
+  if (upstream.status !== 403) return null;
   const body = (await upstream
     .clone()
     .json()
-    .catch(() => null)) as { error?: unknown } | null;
-  return body?.error === "account_erased";
+    .catch(() => null)) as { error?: unknown; reopens_at?: unknown } | null;
+  if (body?.error !== "account_erased") return null;
+  return typeof body.reopens_at === "string"
+    ? { reopensAt: body.reopens_at }
+    : {};
 }
 
 /** The answer a route gives when a core call did not happen. */
@@ -1451,10 +1456,17 @@ export function createUrbangateAuth(
       } catch {
         return failure("core_unavailable", 502);
       }
-      if (token && (await accountErased(upstream))) {
+      const erased = token ? await accountErased(upstream) : null;
+      if (erased) {
         return json(
           401,
-          { error: { code: "account_erased", status: 401 } },
+          {
+            error: {
+              code: "account_erased",
+              status: 401,
+              ...(erased.reopensAt ? { reopens_at: erased.reopensAt } : {}),
+            },
+          },
           signedOut(),
         );
       }

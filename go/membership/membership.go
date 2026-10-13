@@ -135,7 +135,7 @@ func (c *Config) withDefaults() {
 		c.MaxAttempts = 5
 	}
 	if c.ReopenAfter <= 0 {
-		c.ReopenAfter = time.Hour
+		c.ReopenAfter = 20 * time.Minute
 	}
 	if c.BaseBackoff <= 0 {
 		c.BaseBackoff = 5 * time.Second
@@ -229,10 +229,17 @@ func (s *Service) admit(m Member) error {
 // reopens is an erased member whose tombstone has done its work: the identity
 // belongs to the person, not to the product, and a deletion is not a ban.
 func (s *Service) reopens(m Member) bool {
+	at, ok := s.ReopensAt(m)
+	return ok && !s.cfg.Now().Before(at)
+}
+
+// ReopensAt is when a token of the erased member opens it again, for the
+// refusal to say so. False for a member that is not erased.
+func (s *Service) ReopensAt(m Member) (time.Time, bool) {
 	if m.State != StateErased || m.ErasedAt == nil {
-		return false
+		return time.Time{}, false
 	}
-	return !s.cfg.Now().Before(m.ErasedAt.Add(s.cfg.ReopenAfter))
+	return m.ErasedAt.Add(s.cfg.ReopenAfter), true
 }
 
 // reopen moves the erased member back to provisioning. Purge dropped the
