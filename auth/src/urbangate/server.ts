@@ -175,6 +175,19 @@ export interface UrbangateAuth {
   requireAdmin(headers: Headers): Promise<Guarded>;
 }
 
+// A core refuses an identity whose account it erased (membership's
+// tombstone) with this body. The session is still good at urbangate, so
+// the person would keep hitting it on every call: signing them out of the
+// product is the one answer that ends it.
+async function accountErased(upstream: Response): Promise<boolean> {
+  if (upstream.status !== 403) return false;
+  const body = (await upstream
+    .clone()
+    .json()
+    .catch(() => null)) as { error?: unknown } | null;
+  return body?.error === "account_erased";
+}
+
 /** The answer a route gives when a core call did not happen. */
 export function coreRefusal(
   call: Exclude<CoreCall, { status: "ok" }>,
@@ -1437,6 +1450,13 @@ export function createUrbangateAuth(
         } as RequestInit);
       } catch {
         return failure("core_unavailable", 502);
+      }
+      if (token && (await accountErased(upstream))) {
+        return json(
+          401,
+          { error: { code: "account_erased", status: 401 } },
+          signedOut(),
+        );
       }
       const out = relayedHeaders(upstream.headers);
       for (const c of token?.setCookies ?? []) out.append("set-cookie", c);

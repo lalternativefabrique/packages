@@ -136,8 +136,8 @@ func (s *Store) Transition(ctx context.Context, identityID string, from, to memb
 			last_error = $5,
 			attempts = 0,
 			next_attempt_at = COALESCE($6, next_attempt_at),
-			ready_at = CASE WHEN $3 = 'ready' THEN now() ELSE ready_at END,
-			erased_at = CASE WHEN $3 = 'erased' THEN now() ELSE erased_at END,
+			ready_at = CASE WHEN $3 = 'ready' THEN now() WHEN $2 = 'erased' THEN NULL ELSE ready_at END,
+			erased_at = CASE WHEN $3 = 'erased' THEN now() WHEN $2 = 'erased' THEN NULL ELSE erased_at END,
 			updated_at = now()
 		WHERE identity_id = $1 AND state = $2
 		RETURNING `+columns+``,
@@ -149,10 +149,23 @@ func (s *Store) Transition(ctx context.Context, identityID string, from, to memb
 			return err
 		}
 		moved = true
-		if within != nil {
-			return within(ctx, &row)
+		if within == nil {
+			return nil
 		}
-		return nil
+		before := row
+		if err := within(ctx, &row); err != nil {
+			return err
+		}
+		if row.LocalID == before.LocalID && row.Address == before.Address && row.State == before.State && row.LastError == before.LastError {
+			return nil
+		}
+		var address *string
+		if row.Address != "" {
+			address = &row.Address
+		}
+		_, err = tx.Exec(ctx, `UPDATE members SET local_id = $2, address = $3, state = $4, last_error = $5 WHERE identity_id = $1`,
+			identityID, row.LocalID, address, string(row.State), row.LastError)
+		return err
 	})
 	return moved, err
 }

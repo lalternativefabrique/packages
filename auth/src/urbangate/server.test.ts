@@ -957,6 +957,52 @@ test("coreProxy still turns a signed-in non-admin away from an admin-only core",
   assert.equal(seen.length, 0);
 });
 
+test("coreProxy signs the person out when the core answers account_erased", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = await exchangeStub(["tornad:user"]);
+  const proxy = auth(fetchImpl).coreProxy({ coreUrl: "http://core:8080" });
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    Response.json({ error: "account_erased" }, { status: 403 })) as typeof fetch;
+  let res: Response;
+  try {
+    res = await proxy(
+      new Request("https://tornad.dev/api/v1/me", {
+        headers: { cookie: "tornad_session=ory_st" },
+      }),
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.equal(res.status, 401);
+  const body = (await res.json()) as { error: { code: string } };
+  assert.equal(body.error.code, "account_erased");
+  const cleared = res.headers.getSetCookie().filter((c) => c.includes("Max-Age=0"));
+  assert.ok(cleared.some((c) => c.startsWith("tornad_session=;")));
+  assert.ok(cleared.some((c) => c.startsWith("tornad_token=;")));
+});
+
+test("coreProxy relays any other 403 of the core as it came", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = await exchangeStub(["tornad:user"]);
+  const proxy = auth(fetchImpl).coreProxy({ coreUrl: "http://core:8080" });
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    Response.json({ error: "not_authorized" }, { status: 403 })) as typeof fetch;
+  let res: Response;
+  try {
+    res = await proxy(
+      new Request("https://tornad.dev/api/v1/me", {
+        headers: { cookie: "tornad_session=ory_st" },
+      }),
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.equal(res.status, 403);
+  assert.equal(res.headers.getSetCookie().filter((c) => c.includes("Max-Age=0")).length, 0);
+});
+
 test("coreProxy answers 502 when the core cannot be reached", async () => {
   const { fetchImpl } = kratosStub();
   const proxy = auth(fetchImpl).coreProxy({

@@ -120,13 +120,22 @@ type Config struct {
 	BatchSize int
 	// OnStuck is called each time a member fails past MaxAttempts.
 	OnStuck func(m Member, err error)
-	Logger  *slog.Logger
-	Now     func() time.Time
+	// ReopenAfter is how long an erased member stays refused before a token
+	// of the same identity opens it again. It must outlive the longest token
+	// urbangate signed before the deletion revoked the sessions: inside the
+	// window a stale token is the tombstone's whole reason, past it only a
+	// fresh sign-in can carry the identity.
+	ReopenAfter time.Duration
+	Logger      *slog.Logger
+	Now         func() time.Time
 }
 
 func (c *Config) withDefaults() {
 	if c.MaxAttempts <= 0 {
 		c.MaxAttempts = 5
+	}
+	if c.ReopenAfter <= 0 {
+		c.ReopenAfter = time.Hour
 	}
 	if c.BaseBackoff <= 0 {
 		c.BaseBackoff = 5 * time.Second
@@ -150,7 +159,8 @@ func (c *Config) withDefaults() {
 
 var (
 	ErrNotMember = errors.New("not a member")
-	// ErrErased is a token of a member erased or being erased: the tombstone.
+	// ErrErased is a token of a member being erased, or erased less than
+	// Config.ReopenAfter ago: the tombstone.
 	ErrErased = errors.New("member erased")
 	// ErrConflict is a resource that exists outside the member's knowledge, or
 	// an identity whose identifier the product refuses.
@@ -182,14 +192,18 @@ func (s *Service) Product() Product { return s.p }
 
 // Resolve is what the request middleware calls once the token is verified:
 // the member, created in state provisioning when the identity is met for the
-// first time. ErrErased refuses a token that outlived the deletion,
-// ErrConflict a member the product could not provision.
+// first time, and reopened in that state when the identity comes back past
+// Config.ReopenAfter of its erasure. ErrErased refuses a token that outlived
+// the deletion, ErrConflict a member the product could not provision.
 func (s *Service) Resolve(ctx context.Context, id Identity) (Member, error) {
 	if id.ID == "" {
 		return Member{}, errors.New("membership: identity id is required")
 	}
 	m, err := s.store.Get(ctx, id.ID)
 	if err == nil {
+		if s.reopens(m) {
+			return s.reopen(ctx, id, m)
+		}
 		return m, s.admit(m)
 	}
 	if !errors.Is(err, ErrNotMember) {
@@ -212,22 +226,50 @@ func (s *Service) admit(m Member) error {
 	return nil
 }
 
-func (s *Service) open(ctx context.Context, id Identity) (Member, error) {
-	now := s.cfg.Now()
-	m := Member{IdentityID: id.ID, LocalID: id.ID, State: StateProvisioning, Resources: json.RawMessage("{}"), NextAttemptAt: now, OpenedAt: now, UpdatedAt: now}
-	if local, ours := s.p.Identifier.OwnedLocalPart(id.Email); ours {
-		address := local + "@" + s.p.Identifier.OwnedDomain
-		switch err := s.Available(ctx, local); {
-		case err == nil:
-			m.Address = address
-		case errors.Is(err, ErrTaken), errors.Is(err, ErrReserved), errors.Is(err, ErrInvalidIdentifier):
-			m.State = StateConflict
-			m.LastError = address + ": " + err.Error()
-		default:
+// reopens is an erased member whose tombstone has done its work: the identity
+// belongs to the person, not to the product, and a deletion is not a ban.
+func (s *Service) reopens(m Member) bool {
+	if m.State != StateErased || m.ErasedAt == nil {
+		return false
+	}
+	return !s.cfg.Now().Before(m.ErasedAt.Add(s.cfg.ReopenAfter))
+}
+
+// reopen moves the erased member back to provisioning. Purge dropped the
+// product's own rows, so Open runs again in the same transaction. A member
+// that never had an address (a tombstone left for an identity met only by
+// its deletion) claims the one its e-mail names, like a first open. Two
+// requests racing here both end on the reopened member: only one moves it.
+func (s *Service) reopen(ctx context.Context, id Identity, m Member) (Member, error) {
+	claimed := Member{State: StateProvisioning}
+	if m.Address == "" {
+		if err := s.claimAddress(ctx, id, &claimed); err != nil {
 			return Member{}, err
 		}
 	}
-	inserted, err := s.store.Insert(ctx, m, func(ctx context.Context, m *Member) error {
+	within := func(ctx context.Context, m *Member) error {
+		if claimed.Address != "" {
+			m.Address = claimed.Address
+		}
+		if claimed.State == StateConflict {
+			m.State = StateConflict
+			m.LastError = claimed.LastError
+		}
+		return s.opener(id)(ctx, m)
+	}
+	_, err := s.store.Transition(ctx, id.ID, StateErased, StateProvisioning, Patch{Resources: json.RawMessage("{}"), NextAttemptAt: s.cfg.Now()}, within)
+	if err != nil {
+		return Member{}, err
+	}
+	m, err = s.store.Get(ctx, id.ID)
+	if err != nil {
+		return Member{}, err
+	}
+	return m, s.admit(m)
+}
+
+func (s *Service) opener(id Identity) Within {
+	return func(ctx context.Context, m *Member) error {
 		if s.p.Open == nil {
 			return nil
 		}
@@ -239,7 +281,36 @@ func (s *Service) open(ctx context.Context, id Identity) (Member, error) {
 			m.LocalID = local
 		}
 		return nil
-	})
+	}
+}
+
+// claimAddress gives the member the address its e-mail names under the owned
+// domain, or parks it in conflict when the product refuses that identifier.
+func (s *Service) claimAddress(ctx context.Context, id Identity, m *Member) error {
+	local, ours := s.p.Identifier.OwnedLocalPart(id.Email)
+	if !ours {
+		return nil
+	}
+	address := local + "@" + s.p.Identifier.OwnedDomain
+	switch err := s.Available(ctx, local); {
+	case err == nil:
+		m.Address = address
+	case errors.Is(err, ErrTaken), errors.Is(err, ErrReserved), errors.Is(err, ErrInvalidIdentifier):
+		m.State = StateConflict
+		m.LastError = address + ": " + err.Error()
+	default:
+		return err
+	}
+	return nil
+}
+
+func (s *Service) open(ctx context.Context, id Identity) (Member, error) {
+	now := s.cfg.Now()
+	m := Member{IdentityID: id.ID, LocalID: id.ID, State: StateProvisioning, Resources: json.RawMessage("{}"), NextAttemptAt: now, OpenedAt: now, UpdatedAt: now}
+	if err := s.claimAddress(ctx, id, &m); err != nil {
+		return Member{}, err
+	}
+	inserted, err := s.store.Insert(ctx, m, s.opener(id))
 	if err != nil {
 		return Member{}, err
 	}

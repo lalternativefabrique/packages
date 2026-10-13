@@ -84,7 +84,11 @@ session at urbangate when the token is missing or within a minute of its end
 and hands back the `Set-Cookie` to append; `coreProxy` does that and forwards,
 answering 401 `sign_in_required`, 403 `forbidden`, or 503
 `identity_provider_unavailable` when urbangate cannot answer — never 401 for
-an outage.
+an outage. A core that refuses the person with 403 `account_erased` (the
+`membership` tombstone of a deleted account) is answered 401
+`account_erased` with the product's cookies cleared: the session is still
+good at urbangate, so only a sign-out ends the refusals, and the sign-in
+that follows reopens the account once the tombstone's window has passed.
 
 `cookie: { domain }` (1.10) shares the session across an apex domain's
 sub-domains: a product served on `app.messag.eco` behind the same web that
