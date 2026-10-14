@@ -27,6 +27,16 @@ func TestIdentifierHandler(t *testing.T) {
 			t.Errorf("GET %s = %d, want %d: %s", path, rec.Code, want, rec.Body)
 		}
 	}
+	claimed, _ := newService(t, nil, func(p *membership.Product) {
+		p.Unreserve = func(_ context.Context, _, claim string) (bool, error) { return claim == "ok", nil }
+	})
+	for query, want := range map[string]int{"?claim=ok": http.StatusNoContent, "?claim=no": http.StatusBadRequest, "": http.StatusBadRequest} {
+		rec := httptest.NewRecorder()
+		claimed.IdentifierHandler().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/v1/machine/identifiers/postmaster"+query, nil))
+		if rec.Code != want {
+			t.Errorf("claim %q = %d, want %d", query, rec.Code, want)
+		}
+	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/v1/machine/identifiers/free", nil))
 	if rec.Code != http.StatusMethodNotAllowed {

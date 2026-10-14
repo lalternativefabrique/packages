@@ -384,3 +384,34 @@ func TestATombstoneReopensToo(t *testing.T) {
 		t.Fatalf("tombstone not reopened: %+v %v", m, err)
 	}
 }
+
+func TestUnreserveLiftsAReservedIdentifier(t *testing.T) {
+	var asked []string
+	svc, _ := newService(t, nil, func(p *membership.Product) {
+		p.Unreserve = func(_ context.Context, local, claim string) (bool, error) {
+			asked = append(asked, local+"|"+claim)
+			return local == "sylvain" && (claim == "ok" || claim == ""), nil
+		}
+	})
+	ctx := context.Background()
+	if err := svc.AvailableWithClaim(ctx, "sylvain", "ok"); err != nil {
+		t.Fatalf("claimed: %v", err)
+	}
+	if err := svc.AvailableWithClaim(ctx, "postmaster", "ok"); !errors.Is(err, membership.ErrReserved) {
+		t.Fatalf("other name: %v", err)
+	}
+	if err := svc.AvailableWithClaim(ctx, "free", "ok"); err != nil {
+		t.Fatalf("free: %v", err)
+	}
+	m, err := svc.Resolve(ctx, membership.Identity{ID: "id-1", Email: "sylvain@messag.test"})
+	if err != nil || m.Address != "sylvain@messag.test" {
+		t.Fatalf("open: %+v %v", m, err)
+	}
+	if err := svc.AvailableWithClaim(ctx, "sylvain", "ok"); !errors.Is(err, membership.ErrTaken) {
+		t.Fatalf("after open: %v", err)
+	}
+	want := []string{"sylvain|ok", "postmaster|ok", "sylvain|", "sylvain|ok"}
+	if strings.Join(asked, ",") != strings.Join(want, ",") {
+		t.Fatalf("asked %v, want %v", asked, want)
+	}
+}

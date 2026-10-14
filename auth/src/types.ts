@@ -153,6 +153,8 @@ export interface AuthClientSurface {
       email: string
       password: string
       callbackURL?: string
+      /** An operator's claim on a reserved name under an owned domain */
+      claim?: string
     }): Promise<AuthClientResult>
   }
   emailOtp: {
