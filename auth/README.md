@@ -74,8 +74,9 @@ Refusals come back as `{ error: { code, status, message? } }`: `invalid_credenti
 Kratos' reason, `flow_expired` 410, `account_disabled`,
 `second_factor_required` and `invitation_required` 403 (urbangate's core
 refused the person on a product that opens on invitation; the Kratos session
-is closed again and `LoginForm` shows « Demander un accès »), `unavailable`
-503. A sign-in asks urbangate's core at once whether the person enters, so
+is closed again and `LoginForm` shows « Demander un accès »),
+`email_not_verified` 403 (the address was never proved: `LoginForm` routes
+to the code screen through `onEmailNotVerified`), `unavailable` 503. A sign-in asks urbangate's core at once whether the person enters, so
 the refusal is a screen and not a session every later call rejects. `sign-in/social` answers 501
 until Kratos' social providers are wired.
 
@@ -165,8 +166,8 @@ The client needs the `authorization_code` and `refresh_token` grants and
 `<appUrl>/api/auth/callback/urbangate` in its `redirect_uris`, as urbangate
 declares for every `-admin` client. The errors on `loginPath` are
 `sso_state` (the sign-in was started elsewhere or too long ago),
-`sso_refused`, `not_admin`, `unavailable`, and `invitation_required` or
-`inactive` when urbangate's core refused the person (ADR 0017): the
+`sso_refused`, `not_admin`, `unavailable`, and `invitation_required`,
+`email_not_verified` or `inactive` when urbangate's core refused the person (ADR 0017): the
 `LoginForm` reads `?error=invitation_required` itself and shows the
 « Demander un accès » link.
 
