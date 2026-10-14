@@ -11,6 +11,7 @@ packages:
   - "admin"
   - "editor"
   - "meet"
+  - "booking"
 allowBuilds:
   '@openapitools/openapi-generator-cli': true
   '@scarf/scarf': false
