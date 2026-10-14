@@ -1,11 +1,16 @@
 import {
+  DEFAULT_CHAT_ENDPOINT,
   DEFAULT_HELP_ENDPOINT,
   HelpError,
   escalateHelp,
   linkify,
+  listRoomPosts,
   loadThread,
+  postToRoom,
   saveThread,
   sendHelpTurn,
+  subjectOf,
+  supportReplies,
   visitorId,
   type HelpErrorKind,
   type HelpThread,
@@ -14,6 +19,7 @@ import {
 export * from './help.js';
 
 export const HELP_ESCALATED_EVENT = 'skalpai-help-escalated';
+const ROOM_POLL_MS = 5000;
 
 export interface HelpEscalatedDetail {
   room: string;
@@ -77,6 +83,7 @@ export type Labels = {
   help_go_feedback: string;
   help_you: string;
   help_assistant: string;
+  help_support: string;
 };
 
 const FR_LABELS: Labels = {
@@ -117,6 +124,7 @@ const FR_LABELS: Labels = {
   help_go_feedback: 'Laisser un message',
   help_you: 'Vous',
   help_assistant: 'Aide',
+  help_support: 'Support',
 };
 
 const EN_LABELS: Labels = {
@@ -157,6 +165,7 @@ const EN_LABELS: Labels = {
   help_go_feedback: 'Leave a message',
   help_you: 'You',
   help_assistant: 'Help',
+  help_support: 'Support',
 };
 
 const LABELS_BY_LANG: Record<FeedbackLang, Labels> = { fr: FR_LABELS, en: EN_LABELS };
@@ -444,7 +453,7 @@ const STYLES = `
   }
   .msg { padding: 8px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; overflow-wrap: anywhere; }
   .msg-user { align-self: flex-end; background: var(--skalpai-fg); color: var(--skalpai-bg); }
-  .msg-assistant { align-self: flex-start; background: var(--skalpai-muted-soft); }
+  .msg-assistant, .msg-support { align-self: flex-start; background: var(--skalpai-muted-soft); }
   .msg a { color: inherit; text-decoration: underline; }
   .help-intro, .help-pending, .help-notice { margin: 0; font-size: 13px; color: var(--skalpai-muted); }
   .help-form { display: flex; flex-direction: column; gap: 8px; }
@@ -476,7 +485,7 @@ const HTMLElementCtor: typeof HTMLElement =
     : (class {} as unknown as typeof HTMLElement);
 
 export class SkalpaiFeedbackElement extends HTMLElementCtor {
-  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'lang', 'theme', 'user-email', 'placement', 'collapsed', 'help-app', 'help-endpoint'];
+  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'lang', 'theme', 'user-email', 'placement', 'collapsed', 'help-app', 'help-endpoint', 'chat-endpoint'];
 
   private root: ShadowRoot;
   private open = false;
@@ -504,6 +513,8 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   private helpNotice: 'sign_in' | 'escalated' | null = null;
   private helpEscalating = false;
   private helpAnnounce = false;
+  private roomTimer: ReturnType<typeof setInterval> | null = null;
+  private roomPolling = false;
 
   getHelpToken: (() => Promise<string | null>) | null = null;
 
@@ -622,6 +633,46 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     return { endpoint: this.helpEndpoint, app: this.helpApp };
   }
 
+  get chatEndpoint(): string {
+    return this.getAttribute('chat-endpoint') || DEFAULT_CHAT_ENDPOINT;
+  }
+  set chatEndpoint(v: string) {
+    if (v) this.setAttribute('chat-endpoint', v);
+    else this.removeAttribute('chat-endpoint');
+  }
+
+  private async helpToken(): Promise<string | null> {
+    try {
+      return this.getHelpToken ? await this.getHelpToken() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async pollRoom(): Promise<void> {
+    const thread = this.thread;
+    if (!thread.room || this.roomPolling || !this.open || this.tab !== 'help') return;
+    const token = await this.helpToken();
+    if (!token) return;
+    this.roomPolling = true;
+    try {
+      const posts = await listRoomPosts({ endpoint: this.chatEndpoint }, token, thread.room);
+      const { messages, lastSeq } = supportReplies(posts, subjectOf(token), thread.lastSeq ?? 0);
+      if (lastSeq === thread.lastSeq) return;
+      thread.lastSeq = lastSeq;
+      if (messages.length) {
+        thread.messages.push(...messages);
+        this.helpAnnounce = true;
+      }
+      saveThread(this.helpApp, thread);
+      if (messages.length) this.render();
+    } catch {
+      // the next tick retries; a lost poll only delays a reply
+    } finally {
+      this.roomPolling = false;
+    }
+  }
+
   hide(): void {
     this.collapsed = true;
   }
@@ -729,6 +780,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     document.addEventListener('click', this.onDocumentClick, true);
     window.addEventListener(OPEN_EVENT, this.onOpenEvent);
     window.addEventListener(NUDGE_EVENT, this.onNudgeEvent);
+    this.roomTimer = setInterval(() => void this.pollRoom(), ROOM_POLL_MS);
   }
 
   disconnectedCallback(): void {
@@ -736,6 +788,8 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     document.removeEventListener('click', this.onDocumentClick, true);
     window.removeEventListener(OPEN_EVENT, this.onOpenEvent);
     window.removeEventListener(NUDGE_EVENT, this.onNudgeEvent);
+    if (this.roomTimer) clearInterval(this.roomTimer);
+    this.roomTimer = null;
     this.stopNudge();
     this.themeObserver?.disconnect();
     this.themeObserver = null;
@@ -1034,6 +1088,10 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     this.helpFailedMessage = '';
     saveThread(app, thread);
     this.render();
+    if (thread.room) {
+      await this.sendToRoom(thread.room, message);
+      return;
+    }
     try {
       const res = await sendHelpTurn(this.helpConfig, {
         ...(thread.conversationId ? { conversation_id: thread.conversationId } : {}),
@@ -1084,6 +1142,9 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
         reason: this.thread.messages.filter((m) => m.role === 'user').at(-1)?.text ?? '',
       });
       this.helpNotice = 'escalated';
+      this.thread.room = res.room;
+      this.thread.lastSeq = 0;
+      saveThread(this.helpApp, this.thread);
       this.dispatchEvent(
         new CustomEvent<HelpEscalatedDetail>(HELP_ESCALATED_EVENT, {
           bubbles: true,
@@ -1104,10 +1165,28 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     }
   }
 
+  private async sendToRoom(room: string, message: string): Promise<void> {
+    try {
+      const token = await this.helpToken();
+      if (!token) throw new HelpError('unauthorized');
+      await postToRoom({ endpoint: this.chatEndpoint }, token, room, message);
+    } catch (err) {
+      const kind = err instanceof HelpError ? err.kind : 'network';
+      if (kind === 'unauthorized') this.helpNotice = 'sign_in';
+      else {
+        this.helpError = kind;
+        this.helpFailedMessage = message;
+      }
+    } finally {
+      this.helpPending = false;
+      this.render();
+    }
+  }
+
   private renderHelpBody(): string {
     const L = this.labels;
     const thread = this.thread;
-    const canEscalate = !!thread.conversationId && this.helpNotice !== 'escalated';
+    const canEscalate = !!thread.conversationId && !thread.room && this.helpNotice !== 'escalated';
     return `
       <div class="body help-body" role="tabpanel" id="skalpai-panel-help" aria-labelledby="skalpai-tab-help">
         <div class="msgs" aria-live="polite" aria-relevant="additions">
@@ -1160,7 +1239,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       el.className = `msg msg-${m.role}`;
       const who = document.createElement('span');
       who.className = 'sr-only';
-      who.textContent = `${m.role === 'user' ? L.help_you : L.help_assistant}: `;
+      who.textContent = `${m.role === 'user' ? L.help_you : m.role === 'support' ? m.who || L.help_support : L.help_assistant}: `;
       el.appendChild(who);
       for (const seg of linkify(m.text)) {
         if ('href' in seg) {

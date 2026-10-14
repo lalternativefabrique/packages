@@ -1,4 +1,5 @@
 export const DEFAULT_HELP_ENDPOINT = 'https://nakoda.club';
+export const DEFAULT_CHAT_ENDPOINT = 'https://chat.messag.eco';
 
 export type HelpErrorKind = 'rate_limited' | 'unavailable' | 'unauthorized' | 'server' | 'network';
 
@@ -41,8 +42,9 @@ export interface HelpEscalateResponse {
 }
 
 export interface HelpMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'support';
   text: string;
+  who?: string;
 }
 
 export function helpUrl(cfg: HelpConfig, action: 'turns' | 'escalate'): string {
@@ -144,6 +146,8 @@ export function visitorId(app: string, store: () => KeyValueStore = local): stri
 export interface HelpThread {
   conversationId: string | null;
   messages: HelpMessage[];
+  room?: string;
+  lastSeq?: number;
 }
 
 export function loadThread(app: string, store: () => KeyValueStore = session): HelpThread {
@@ -154,10 +158,14 @@ export function loadThread(app: string, store: () => KeyValueStore = session): H
     const messages = Array.isArray(parsed.messages)
       ? parsed.messages.filter(
           (m): m is HelpMessage =>
-            !!m && (m.role === 'user' || m.role === 'assistant') && typeof m.text === 'string',
+            !!m && (m.role === 'user' || m.role === 'assistant' || m.role === 'support') && typeof m.text === 'string',
         )
       : [];
-    return { conversationId: typeof parsed.conversationId === 'string' ? parsed.conversationId : null, messages };
+    return {
+      conversationId: typeof parsed.conversationId === 'string' ? parsed.conversationId : null,
+      messages,
+      ...(typeof parsed.room === 'string' ? { room: parsed.room, lastSeq: typeof parsed.lastSeq === 'number' ? parsed.lastSeq : 0 } : {}),
+    };
   } catch {
     return { conversationId: null, messages: [] };
   }
@@ -165,6 +173,81 @@ export function loadThread(app: string, store: () => KeyValueStore = session): H
 
 export function saveThread(app: string, thread: HelpThread, store: () => KeyValueStore = session): void {
   storageWrite(store, `skalpai-help:thread:${app}`, JSON.stringify(thread));
+}
+
+export interface ChatConfig {
+  endpoint: string;
+  fetch?: typeof fetch;
+}
+
+export interface RoomPost {
+  seq: number;
+  sender_sub: string;
+  sender_handle: string;
+  body: string;
+  author: string;
+  imported: boolean;
+  status: string;
+}
+
+function roomPostsUrl(cfg: ChatConfig, room: string): string {
+  const base = (cfg.endpoint || DEFAULT_CHAT_ENDPOINT).replace(/\/+$/, '');
+  return `${base}/v1/rooms/${encodeURIComponent(room)}/posts`;
+}
+
+async function chatCall(cfg: ChatConfig, url: string, token: string, init: RequestInit = {}): Promise<Response> {
+  const doFetch = cfg.fetch ?? fetch;
+  let res: Response;
+  try {
+    res = await doFetch(url, {
+      ...init,
+      credentials: 'omit',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new HelpError('network');
+  }
+  if (!res.ok) throw new HelpError(errorKindForStatus(res.status), res.status);
+  return res;
+}
+
+export async function listRoomPosts(cfg: ChatConfig, token: string, room: string): Promise<RoomPost[]> {
+  const res = await chatCall(cfg, `${roomPostsUrl(cfg, room)}?limit=100`, token);
+  let rows: unknown;
+  try {
+    rows = await res.json();
+  } catch {
+    throw new HelpError('server', res.status);
+  }
+  if (!Array.isArray(rows)) throw new HelpError('server', res.status);
+  return (rows as RoomPost[]).filter((p) => typeof p?.seq === 'number').sort((a, b) => a.seq - b.seq);
+}
+
+export async function postToRoom(cfg: ChatConfig, token: string, room: string, body: string): Promise<void> {
+  await chatCall(cfg, roomPostsUrl(cfg, room), token, { method: 'POST', body: JSON.stringify({ body }) });
+}
+
+export function subjectOf(token: string): string {
+  try {
+    const part = token.split('.')[1] ?? '';
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/'));
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub;
+    return typeof sub === 'string' ? sub : '';
+  } catch {
+    return '';
+  }
+}
+
+export function supportReplies(posts: RoomPost[], mySub: string, afterSeq: number): { messages: HelpMessage[]; lastSeq: number } {
+  let lastSeq = afterSeq;
+  const messages: HelpMessage[] = [];
+  for (const p of posts) {
+    if (p.seq <= afterSeq) continue;
+    lastSeq = Math.max(lastSeq, p.seq);
+    if (p.imported || p.status !== 'published' || (mySub && p.sender_sub === mySub)) continue;
+    messages.push({ role: 'support', text: p.body, who: p.sender_handle });
+  }
+  return { messages, lastSeq };
 }
 
 export type TextSegment = { text: string } | { text: string; href: string };
