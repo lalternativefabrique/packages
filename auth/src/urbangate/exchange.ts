@@ -23,7 +23,10 @@ export type ExchangeOutcome =
   | { status: "ok"; token: PersonToken }
   | { status: "session_gone" }
   | { status: "refused"; reason: ExchangeRefusal }
-  | { status: "unavailable"; reason: string };
+  | { status: "unavailable"; reason: string }
+  | { status: "misconfigured"; reason: CredentialRefusal };
+
+export type CredentialRefusal = "provisioner_refused" | "admin_refused";
 
 export function exchangeRefusalOf(error: unknown): ExchangeRefusal {
   return error === "invitation_required" || error === "email_not_verified"
@@ -34,6 +37,17 @@ export function exchangeRefusalOf(error: unknown): ExchangeRefusal {
 const JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 const EXCHANGE_SCOPE = "urbangate:sessions:exchange";
 const REFRESH_MARGIN_MS = 60_000;
+
+// Hydra answers a wrong client id or secret with invalid_client, as a 401
+// or, for client_secret_post, sometimes a 400.
+async function refusesClient(res: Response): Promise<boolean> {
+  if (res.status !== 400 && res.status !== 401) return false;
+  const body = (await res
+    .clone()
+    .json()
+    .catch(() => ({}))) as { error?: unknown };
+  return body.error === "invalid_client";
+}
 
 function basic(id: string, secret: string) {
   return "Basic " + btoa(`${id}:${secret}`);
@@ -63,6 +77,8 @@ export class Exchange {
 
   async exchange(sessionToken: string): Promise<ExchangeOutcome> {
     const machine = await this.machineToken();
+    if (machine === "refused")
+      return { status: "misconfigured", reason: "provisioner_refused" };
     if (!machine) return { status: "unavailable", reason: "machine_token" };
     const url = new URL(
       "/api/machine/sessions/exchange",
@@ -132,6 +148,8 @@ export class Exchange {
     } catch {
       return { status: "unavailable", reason: "hydra" };
     }
+    if (await refusesClient(res))
+      return { status: "misconfigured", reason: "admin_refused" };
     if (!res.ok)
       return { status: "unavailable", reason: `hydra_${res.status}` };
     const body = (await res.json()) as {
@@ -149,7 +167,7 @@ export class Exchange {
     };
   }
 
-  private async machineToken(): Promise<string | null> {
+  private async machineToken(): Promise<string | "refused" | null> {
     if (
       this.machine &&
       this.machine.expiresAt - Date.now() > REFRESH_MARGIN_MS
@@ -179,6 +197,7 @@ export class Exchange {
     } catch {
       return null;
     }
+    if (await refusesClient(res)) return "refused";
     if (!res.ok) return null;
     const body = (await res.json()) as {
       access_token: string;

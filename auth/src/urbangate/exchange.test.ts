@@ -145,3 +145,42 @@ test("needsRefresh and decodeToken agree on the token's end", () => {
   assert.equal(new Exchange(config).needsRefresh(null), true);
   assert.equal(decodeToken("not-a-jwt"), null);
 });
+
+test("a client credential urbangate refuses is a misconfiguration, not an outage", async () => {
+  const invalidClient = () =>
+    Response.json({ error: "invalid_client" }, { status: 401 });
+  const provisioner = new Exchange(
+    config,
+    stub({ "/oauth2/token:client_credentials": invalidClient }).fetchImpl,
+  );
+  assert.deepEqual(await provisioner.exchange("t"), {
+    status: "misconfigured",
+    reason: "provisioner_refused",
+  });
+  const admin = new Exchange(
+    config,
+    stub({
+      "/oauth2/token:client_credentials": () =>
+        Response.json({ access_token: "m", expires_in: 3600 }),
+      "/api/machine/sessions/exchange": () =>
+        Response.json({ assertion: "a.b.c", identity_id: "8f3a", roles: [] }),
+      "/oauth2/token:urn:ietf:params:oauth:grant-type:jwt-bearer": () =>
+        Response.json({ error: "invalid_client" }, { status: 400 }),
+    }).fetchImpl,
+  );
+  assert.deepEqual(await admin.exchange("t"), {
+    status: "misconfigured",
+    reason: "admin_refused",
+  });
+  const down = new Exchange(
+    config,
+    stub({
+      "/oauth2/token:client_credentials": () =>
+        new Response("", { status: 401 }),
+    }).fetchImpl,
+  );
+  assert.deepEqual(await down.exchange("t"), {
+    status: "unavailable",
+    reason: "machine_token",
+  });
+});
