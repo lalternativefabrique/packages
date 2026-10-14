@@ -1279,10 +1279,12 @@ export function createUrbangateAuth(
     if (!code) {
       // urbangate's consent carries its reason in error_description
       // (ADR 0017); anything else is a plain refusal.
-      const reason = params.get("error_description");
+        const reason = params.get("error_description");
       return refused(
         params.get("error") === "access_denied" &&
-          (reason === "invitation_required" || reason === "inactive")
+          (reason === "invitation_required" ||
+            reason === "email_not_verified" ||
+            reason === "inactive")
           ? reason
           : "sso_refused",
       );

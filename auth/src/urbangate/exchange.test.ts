@@ -111,6 +111,18 @@ test("a session urbangate no longer knows, an inactive identity, and an outage a
     status: "refused",
     reason: "invitation_required",
   });
+  const unverified = new Exchange(
+    config,
+    stub({
+      ...machine,
+      "/api/machine/sessions/exchange": () =>
+        Response.json({ error: "email_not_verified" }, { status: 403 }),
+    }).fetchImpl,
+  );
+  assert.deepEqual(await unverified.exchange("t"), {
+    status: "refused",
+    reason: "email_not_verified",
+  });
   const down = new Exchange(
     config,
     stub({

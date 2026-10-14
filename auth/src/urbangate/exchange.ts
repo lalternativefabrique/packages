@@ -14,7 +14,10 @@ export interface PersonToken {
   roles: Array<string>;
 }
 
-export type ExchangeRefusal = "invitation_required" | "inactive";
+export type ExchangeRefusal =
+  | "invitation_required"
+  | "email_not_verified"
+  | "inactive";
 
 export type ExchangeOutcome =
   | { status: "ok"; token: PersonToken }
@@ -23,7 +26,9 @@ export type ExchangeOutcome =
   | { status: "unavailable"; reason: string };
 
 export function exchangeRefusalOf(error: unknown): ExchangeRefusal {
-  return error === "invitation_required" ? "invitation_required" : "inactive";
+  return error === "invitation_required" || error === "email_not_verified"
+    ? error
+    : "inactive";
 }
 
 const JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
