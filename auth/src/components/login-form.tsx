@@ -8,6 +8,11 @@ import { SocialButtons } from "./social-buttons"
 import { MessagSignIn } from "./messag-sign-in"
 import { AUTH_HINT_LINK_CLASS, AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { oauthErrorCallback } from "../oauth-error"
+import {
+  initialInvitationRefusal,
+  isInvitationRequired,
+} from "../messag-sign-in"
+import { clearOAuthError } from "../oauth-error"
 
 const DEFAULTS: Required<LoginFormLabels> = {
   title: "Connexion",
@@ -31,6 +36,9 @@ const DEFAULTS: Required<LoginFormLabels> = {
     "Cette adresse est déjà associée à un mot de passe. Connecte-toi avec ton mot de passe.",
   socialCancelled: "Connexion annulée.",
   socialFailed: "La connexion a échoué. Réessaie.",
+  invitationRequired:
+    "Ce produit ouvre les comptes sur invitation. Ton compte existe, mais il n'y a pas encore de place pour toi ici.",
+  requestAccess: "Demander un accès",
 }
 
 export function LoginForm({
@@ -50,12 +58,19 @@ export function LoginForm({
   defaultEmail,
   authClient,
   messag,
+  requestAccessUrl,
 }: LoginFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [email, setEmail] = useState(defaultEmail ?? "")
   const [password, setPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
+  const [invitationRefused, setInvitationRefused] = useState(() => {
+    const refused = initialInvitationRefusal()
+    if (refused) clearOAuthError()
+    return refused
+  })
+  const accessUrl = requestAccessUrl ?? registerUrl
 
   // What the person just did outranks what happened before they arrived.
   const error = ownError ?? externalError
@@ -72,6 +87,7 @@ export function LoginForm({
       return
     }
     setError(undefined)
+    setInvitationRefused(false)
     setIsPending(true)
     try {
       const res = await authClient.signIn.email({
@@ -79,6 +95,10 @@ export function LoginForm({
         password,
       })
       if (res?.error) {
+        if (isInvitationRequired(res.error)) {
+          setInvitationRefused(true)
+          return
+        }
         if (isEmailNotVerified(res.error) && onEmailNotVerified) {
           onEmailNotVerified(email.trim())
           return
@@ -124,6 +144,23 @@ export function LoginForm({
   return (
     <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
+      {invitationRefused && (
+        <AuthAlert>
+          {t.invitationRequired}
+          {accessUrl && (
+            <>
+              {" "}
+              <AuthLink
+                to={accessUrl}
+                as={linkComponent}
+                className={AUTH_LINK_CLASS}
+              >
+                {t.requestAccess}
+              </AuthLink>
+            </>
+          )}
+        </AuthAlert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
         <AuthField

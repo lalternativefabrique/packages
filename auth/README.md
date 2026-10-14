@@ -71,8 +71,12 @@ Routes the handler serves under `/api/auth/`, all JSON:
 
 Refusals come back as `{ error: { code, status, message? } }`: `invalid_credentials`
 401, `invalid_code` 400, `already_registered` 409, `password_refused` 422 with
-Kratos' reason, `flow_expired` 410, `account_disabled` and
-`second_factor_required` 403, `unavailable` 503. `sign-in/social` answers 501
+Kratos' reason, `flow_expired` 410, `account_disabled`,
+`second_factor_required` and `invitation_required` 403 (urbangate's core
+refused the person on a product that opens on invitation; the Kratos session
+is closed again and `LoginForm` shows « Demander un accès »), `unavailable`
+503. A sign-in asks urbangate's core at once whether the person enters, so
+the refusal is a screen and not a session every later call rejects. `sign-in/social` answers 501
 until Kratos' social providers are wired.
 
 Cookies, all httpOnly and Lax: `<product>_session` holds the Kratos session
@@ -161,7 +165,10 @@ The client needs the `authorization_code` and `refresh_token` grants and
 `<appUrl>/api/auth/callback/urbangate` in its `redirect_uris`, as urbangate
 declares for every `-admin` client. The errors on `loginPath` are
 `sso_state` (the sign-in was started elsewhere or too long ago),
-`sso_refused`, `not_admin` and `unavailable`.
+`sso_refused`, `not_admin`, `unavailable`, and `invitation_required` or
+`inactive` when urbangate's core refused the person (ADR 0017): the
+`LoginForm` reads `?error=invitation_required` itself and shows the
+« Demander un accès » link.
 
 With `sso`, `admin` comes from that sign-in only: a session opened on the
 product's screens reads as `user` whatever its token carries. The cores do

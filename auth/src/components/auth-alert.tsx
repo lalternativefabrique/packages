@@ -1,5 +1,7 @@
+import type { ReactNode } from "react"
+
 interface AuthAlertProps {
-  children?: string
+  children?: ReactNode
   tone?: "error" | "success"
 }
 

@@ -1749,3 +1749,57 @@ test("a flow cookie written under a cookie domain expires its host-only twin", a
   assert.doesNotMatch(flows[0], /Domain=/);
   assert.match(flows[1], /^tornad_flow=recovery%3ARC;.*Domain=\.tornad\.dev/);
 });
+
+test("a sign-in the core refuses on invitation answers 403 and closes the Kratos session", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "POST /oauth2/token": () =>
+      Response.json({ access_token: "m", expires_in: 3600 }),
+    "POST /api/machine/sessions/exchange": () =>
+      Response.json({ error: "invitation_required" }, { status: 403 }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error: { code: string } };
+  assert.equal(body.error.code, "invitation_required");
+  assert.ok(!(res.headers.get("set-cookie") ?? "").includes("tornad_session=ory_st"));
+  const logout = calls.find((c) => c.key === "DELETE /self-service/logout/api");
+  assert.deepEqual(logout?.body, { session_token: "ory_st" });
+});
+
+test("a sign-in the core admits carries the person's token with the session", async () => {
+  const fresh = await jwt({
+    sub: "8f3a",
+    roles: ["tornad:user"],
+    exp: Math.floor(Date.now() / 1000) + 900,
+  });
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": (init) => {
+      const form = init.body as URLSearchParams;
+      return form.get("grant_type") === "client_credentials"
+        ? Response.json({ access_token: "m", expires_in: 3600 })
+        : Response.json({ access_token: fresh, expires_in: 900 });
+    },
+    "POST /api/machine/sessions/exchange": () =>
+      Response.json({ assertion: "a.b.c", identity_id: "8f3a", roles: ["tornad:user"] }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 200);
+  const cookies = res.headers.getSetCookie();
+  assert.ok(cookies.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(cookies.some((c) => c.startsWith(`tornad_token=${fresh}`)));
+});
+
+test("a sign-in still opens when urbangate cannot answer the exchange", async () => {
+  const { fetchImpl } = kratosStub({
+    "POST /oauth2/token": () => new Response(null, { status: 503 }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(res.headers.getSetCookie().some((c) => c.startsWith("tornad_session=ory_st")));
+});

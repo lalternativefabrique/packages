@@ -98,7 +98,19 @@ test("a session urbangate no longer knows, an inactive identity, and an outage a
         Response.json({ error: "inactive" }, { status: 403 }),
     }).fetchImpl,
   );
-  assert.deepEqual(await inactive.exchange("t"), { status: "inactive" });
+  assert.deepEqual(await inactive.exchange("t"), { status: "refused", reason: "inactive" });
+  const invitation = new Exchange(
+    config,
+    stub({
+      ...machine,
+      "/api/machine/sessions/exchange": () =>
+        Response.json({ error: "invitation_required" }, { status: 403 }),
+    }).fetchImpl,
+  );
+  assert.deepEqual(await invitation.exchange("t"), {
+    status: "refused",
+    reason: "invitation_required",
+  });
   const down = new Exchange(
     config,
     stub({
