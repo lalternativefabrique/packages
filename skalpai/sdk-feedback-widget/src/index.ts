@@ -1,3 +1,26 @@
+import {
+  DEFAULT_HELP_ENDPOINT,
+  HelpError,
+  escalateHelp,
+  linkify,
+  loadThread,
+  saveThread,
+  sendHelpTurn,
+  visitorId,
+  type HelpErrorKind,
+  type HelpThread,
+} from './help.js';
+
+export * from './help.js';
+
+export const HELP_ESCALATED_EVENT = 'skalpai-help-escalated';
+
+export interface HelpEscalatedDetail {
+  room: string;
+  uri: string;
+  conversation_id: string;
+}
+
 export type FeedbackType = 'bug' | 'idea' | 'other';
 
 export type FeedbackSource = 'manual' | 'error' | 'nudge';
@@ -38,6 +61,22 @@ export type Labels = {
   show: string;
   nudge: string;
   context_attached: string;
+  tab_help: string;
+  tab_feedback: string;
+  help_title: string;
+  help_placeholder: string;
+  help_intro: string;
+  help_pending: string;
+  help_rate_limited: string;
+  help_error: string;
+  help_retry: string;
+  help_human: string;
+  help_escalating: string;
+  help_escalated: string;
+  help_sign_in: string;
+  help_go_feedback: string;
+  help_you: string;
+  help_assistant: string;
 };
 
 const FR_LABELS: Labels = {
@@ -62,6 +101,22 @@ const FR_LABELS: Labels = {
   show: 'Afficher le bouton avis',
   nudge: 'Un souci ? Dites-le-nous',
   context_attached: 'Détails techniques joints',
+  tab_help: 'Aide',
+  tab_feedback: 'Votre avis',
+  help_title: 'Aide',
+  help_placeholder: 'Posez votre question…',
+  help_intro: 'Une question ? Écrivez-la, on vous répond tout de suite.',
+  help_pending: 'Réponse en cours…',
+  help_rate_limited: 'Trop de demandes, réessaie dans un instant.',
+  help_error: 'La réponse n’a pas pu arriver.',
+  help_retry: 'Réessayer',
+  help_human: 'Parler à une personne',
+  help_escalating: 'Mise en relation…',
+  help_escalated: 'Une personne du support va te répondre.',
+  help_sign_in: 'Connecte-toi pour parler à une personne, ou laisse-nous un message.',
+  help_go_feedback: 'Laisser un message',
+  help_you: 'Vous',
+  help_assistant: 'Aide',
 };
 
 const EN_LABELS: Labels = {
@@ -86,6 +141,22 @@ const EN_LABELS: Labels = {
   show: 'Show the feedback button',
   nudge: 'Something wrong? Tell us',
   context_attached: 'Technical details attached',
+  tab_help: 'Help',
+  tab_feedback: 'Feedback',
+  help_title: 'Help',
+  help_placeholder: 'Ask your question…',
+  help_intro: 'A question? Type it, you get an answer right away.',
+  help_pending: 'Answering…',
+  help_rate_limited: 'Too many requests, try again in a moment.',
+  help_error: 'The answer could not get through.',
+  help_retry: 'Retry',
+  help_human: 'Talk to a person',
+  help_escalating: 'Connecting…',
+  help_escalated: 'Someone from support will answer you.',
+  help_sign_in: 'Sign in to talk to a person, or leave us a message.',
+  help_go_feedback: 'Leave a message',
+  help_you: 'You',
+  help_assistant: 'Help',
 };
 
 const LABELS_BY_LANG: Record<FeedbackLang, Labels> = { fr: FR_LABELS, en: EN_LABELS };
@@ -360,6 +431,32 @@ const STYLES = `
   .btn-fab.nudging { outline: 2px solid var(--skalpai-accent); outline-offset: 2px; }
   @keyframes skalpai-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
   @media (prefers-reduced-motion: reduce) { .nudge { animation: none; } }
+  .tabs { display: flex; gap: 4px; padding: 10px 20px 0; }
+  .tab {
+    padding: 6px 12px; border: 0; border-bottom: 2px solid transparent; background: none;
+    color: var(--skalpai-muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .tab[aria-selected="true"] { color: var(--skalpai-fg); border-bottom-color: var(--skalpai-accent); }
+  .tab:focus-visible { outline: 2px solid var(--skalpai-accent); outline-offset: 2px; }
+  .msgs {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 320px; overflow-y: auto; font-size: 14px; line-height: 1.45;
+  }
+  .msg { padding: 8px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg-user { align-self: flex-end; background: var(--skalpai-fg); color: var(--skalpai-bg); }
+  .msg-assistant { align-self: flex-start; background: var(--skalpai-muted-soft); }
+  .msg a { color: inherit; text-decoration: underline; }
+  .help-intro, .help-pending, .help-notice { margin: 0; font-size: 13px; color: var(--skalpai-muted); }
+  .help-form { display: flex; flex-direction: column; gap: 8px; }
+  .help-form textarea { min-height: 64px; }
+  .link {
+    background: none; border: 0; padding: 0; font: inherit; color: inherit;
+    text-decoration: underline; cursor: pointer;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
   .ok { padding: 28px 16px; text-align: center; font-size: 13px; color: var(--skalpai-muted); }
 `;
 
@@ -379,7 +476,7 @@ const HTMLElementCtor: typeof HTMLElement =
     : (class {} as unknown as typeof HTMLElement);
 
 export class SkalpaiFeedbackElement extends HTMLElementCtor {
-  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'lang', 'theme', 'user-email', 'placement', 'collapsed'];
+  static observedAttributes = ['api-key', 'endpoint', 'project-id', 'labels', 'lang', 'theme', 'user-email', 'placement', 'collapsed', 'help-app', 'help-endpoint'];
 
   private root: ShadowRoot;
   private open = false;
@@ -396,6 +493,19 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   private nudging = false;
   private nudgeTimer: ReturnType<typeof setTimeout> | null = null;
   private recentClicks: Array<{ t: number; x: number; y: number }> = [];
+  private tab: 'help' | 'feedback' = 'help';
+  private helpUnavailable = false;
+  private helpThread: HelpThread | null = null;
+  private helpThreadApp = '';
+  private helpDraft = '';
+  private helpPending = false;
+  private helpError: HelpErrorKind | null = null;
+  private helpFailedMessage = '';
+  private helpNotice: 'sign_in' | 'escalated' | null = null;
+  private helpEscalating = false;
+  private helpAnnounce = false;
+
+  getHelpToken: (() => Promise<string | null>) | null = null;
 
   /**
    * Optional user email used as the reply-to identity. Pre-filled from the
@@ -480,6 +590,38 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     else this.removeAttribute('collapsed');
   }
 
+  get helpApp(): string {
+    return this.getAttribute('help-app') ?? '';
+  }
+  set helpApp(v: string) {
+    if (v) this.setAttribute('help-app', v);
+    else this.removeAttribute('help-app');
+  }
+
+  get helpEndpoint(): string {
+    return this.getAttribute('help-endpoint') || DEFAULT_HELP_ENDPOINT;
+  }
+  set helpEndpoint(v: string) {
+    if (v) this.setAttribute('help-endpoint', v);
+    else this.removeAttribute('help-endpoint');
+  }
+
+  private get helpEnabled(): boolean {
+    return !!this.helpApp && !this.helpUnavailable;
+  }
+
+  private get thread(): HelpThread {
+    if (!this.helpThread || this.helpThreadApp !== this.helpApp) {
+      this.helpThread = loadThread(this.helpApp);
+      this.helpThreadApp = this.helpApp;
+    }
+    return this.helpThread;
+  }
+
+  private get helpConfig() {
+    return { endpoint: this.helpEndpoint, app: this.helpApp };
+  }
+
   hide(): void {
     this.collapsed = true;
   }
@@ -491,6 +633,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   openPanel(options: OpenFeedbackOptions = {}): void {
     this.stopNudge();
     if (this.collapsed) this.setCollapsed(false);
+    if (options.type || (options.source && options.source !== 'manual')) this.tab = 'feedback';
     if (options.type) this.type = options.type;
     if (options.message !== undefined) this.message = options.message;
     this.source = options.source ?? 'manual';
@@ -615,6 +758,11 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       this.dispatchEvent(
         new CustomEvent('skalpai-feedback-collapse', { detail: { collapsed: this.collapsed } }),
       );
+    }
+    if (name === 'help-app') {
+      this.helpUnavailable = false;
+      this.helpError = null;
+      this.helpNotice = null;
     }
     if (this.root.firstChild) this.render();
   }
@@ -874,8 +1022,235 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
     }
   }
 
+  private async sendHelp(text: string): Promise<void> {
+    const message = text.trim();
+    if (!message || this.helpPending || !this.helpEnabled) return;
+    const app = this.helpApp;
+    const thread = this.thread;
+    if (this.helpFailedMessage !== message) thread.messages.push({ role: 'user', text: message });
+    this.helpDraft = '';
+    this.helpPending = true;
+    this.helpError = null;
+    this.helpFailedMessage = '';
+    saveThread(app, thread);
+    this.render();
+    try {
+      const res = await sendHelpTurn(this.helpConfig, {
+        ...(thread.conversationId ? { conversation_id: thread.conversationId } : {}),
+        visitor_id: visitorId(app),
+        message,
+      });
+      thread.conversationId = res.conversation_id;
+      thread.messages.push({ role: 'assistant', text: res.reply });
+      saveThread(app, thread);
+      this.helpAnnounce = true;
+    } catch (err) {
+      const kind = err instanceof HelpError ? err.kind : 'network';
+      if (kind === 'unavailable') {
+        this.helpUnavailable = true;
+        this.tab = 'feedback';
+      } else {
+        this.helpError = kind;
+        this.helpFailedMessage = message;
+      }
+    } finally {
+      this.helpPending = false;
+      this.render();
+    }
+  }
+
+  private async escalate(): Promise<void> {
+    if (this.helpEscalating) return;
+    const conversationId = this.thread.conversationId;
+    if (!conversationId) return;
+    let token: string | null = null;
+    try {
+      token = this.getHelpToken ? await this.getHelpToken() : null;
+    } catch {
+      token = null;
+    }
+    if (!token) {
+      this.helpNotice = 'sign_in';
+      this.render();
+      return;
+    }
+    this.helpEscalating = true;
+    this.helpError = null;
+    this.render();
+    try {
+      const res = await escalateHelp(this.helpConfig, token, {
+        conversation_id: conversationId,
+        visitor_id: visitorId(this.helpApp),
+        reason: this.thread.messages.filter((m) => m.role === 'user').at(-1)?.text ?? '',
+      });
+      this.helpNotice = 'escalated';
+      this.dispatchEvent(
+        new CustomEvent<HelpEscalatedDetail>(HELP_ESCALATED_EVENT, {
+          bubbles: true,
+          composed: true,
+          detail: { room: res.room, uri: res.uri, conversation_id: conversationId },
+        }),
+      );
+    } catch (err) {
+      const kind = err instanceof HelpError ? err.kind : 'network';
+      if (kind === 'unauthorized') this.helpNotice = 'sign_in';
+      else if (kind === 'unavailable') {
+        this.helpUnavailable = true;
+        this.tab = 'feedback';
+      } else this.helpError = kind;
+    } finally {
+      this.helpEscalating = false;
+      this.render();
+    }
+  }
+
+  private renderHelpBody(): string {
+    const L = this.labels;
+    const thread = this.thread;
+    const canEscalate = !!thread.conversationId && this.helpNotice !== 'escalated';
+    return `
+      <div class="body help-body" role="tabpanel" id="skalpai-panel-help" aria-labelledby="skalpai-tab-help">
+        <div class="msgs" aria-live="polite" aria-relevant="additions">
+          ${thread.messages.length ? '' : `<p class="help-intro">${escapeHtml(L.help_intro)}</p>`}
+        </div>
+        ${this.helpPending ? `<div class="help-pending" role="status">${escapeHtml(L.help_pending)}</div>` : ''}
+        ${
+          this.helpError
+            ? `<div class="err" role="alert">${escapeHtml(
+                this.helpError === 'rate_limited' ? L.help_rate_limited : L.help_error,
+              )}${
+                this.helpFailedMessage
+                  ? ` <button class="link help-retry" type="button">${escapeHtml(L.help_retry)}</button>`
+                  : ''
+              }</div>`
+            : ''
+        }
+        ${
+          this.helpNotice === 'sign_in'
+            ? `<div class="help-notice" role="status">${escapeHtml(L.help_sign_in)}
+                <button class="link help-go-feedback" type="button">${escapeHtml(L.help_go_feedback)}</button></div>`
+            : this.helpNotice === 'escalated'
+              ? `<div class="help-notice" role="status">${escapeHtml(L.help_escalated)}</div>`
+              : ''
+        }
+        <form class="help-form">
+          <textarea class="help-input" rows="2" placeholder="${escapeHtml(L.help_placeholder)}" aria-label="${escapeHtml(L.help_placeholder)}">${escapeHtml(this.helpDraft)}</textarea>
+          <button class="submit help-send" type="submit" ${this.helpPending || !this.helpDraft.trim() ? 'disabled' : ''}>${escapeHtml(L.send)}</button>
+        </form>
+        ${
+          canEscalate
+            ? `<button class="capture-btn help-human" type="button" ${this.helpEscalating ? 'disabled' : ''}>${escapeHtml(
+                this.helpEscalating ? L.help_escalating : L.help_human,
+              )}</button>`
+            : ''
+        }
+      </div>
+    `;
+  }
+
+  private fillHelpMessages(): void {
+    const box = this.root.querySelector<HTMLElement>('.msgs');
+    if (!box) return;
+    const L = this.labels;
+    const messages = this.thread.messages;
+    const announce = this.helpAnnounce;
+    this.helpAnnounce = false;
+    const build = (m: HelpThread['messages'][number]): HTMLElement => {
+      const el = document.createElement('div');
+      el.className = `msg msg-${m.role}`;
+      const who = document.createElement('span');
+      who.className = 'sr-only';
+      who.textContent = `${m.role === 'user' ? L.help_you : L.help_assistant}: `;
+      el.appendChild(who);
+      for (const seg of linkify(m.text)) {
+        if ('href' in seg) {
+          const a = document.createElement('a');
+          a.href = seg.href;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = seg.text;
+          el.appendChild(a);
+        } else {
+          el.appendChild(document.createTextNode(seg.text));
+        }
+      }
+      return el;
+    };
+    const settled = announce ? messages.slice(0, -1) : messages;
+    for (const m of settled) box.appendChild(build(m));
+    if (announce && messages.length) {
+      const last = messages[messages.length - 1];
+      requestAnimationFrame(() => {
+        if (box.isConnected) {
+          box.appendChild(build(last));
+          box.scrollTop = box.scrollHeight;
+        }
+      });
+    }
+    box.scrollTop = box.scrollHeight;
+  }
+
+  private bindHelp(): void {
+    const input = this.root.querySelector<HTMLTextAreaElement>('.help-input');
+    const send = this.root.querySelector<HTMLButtonElement>('.help-send');
+    if (input) {
+      input.addEventListener('input', () => {
+        this.helpDraft = input.value;
+        if (send) send.disabled = this.helpPending || !this.helpDraft.trim();
+      });
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          void this.sendHelp(this.helpDraft);
+        }
+      });
+      if (this.open && !this.helpPending) input.focus();
+    }
+    this.root.querySelector('.help-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      void this.sendHelp(this.helpDraft);
+    });
+    this.root.querySelector('.help-retry')?.addEventListener('click', () => {
+      void this.sendHelp(this.helpFailedMessage);
+    });
+    this.root.querySelector('.help-human')?.addEventListener('click', () => {
+      void this.escalate();
+    });
+    this.root.querySelector('.help-go-feedback')?.addEventListener('click', () => this.selectTab('feedback'));
+    this.fillHelpMessages();
+  }
+
+  private selectTab(tab: 'help' | 'feedback'): void {
+    if (this.tab === tab) return;
+    this.tab = tab;
+    this.render();
+    this.root.querySelector<HTMLElement>(`#skalpai-tab-${tab}`)?.focus();
+  }
+
+  private renderTabs(): string {
+    const L = this.labels;
+    const tab = (id: 'help' | 'feedback', label: string): string => `
+      <button class="tab" type="button" role="tab" id="skalpai-tab-${id}" data-tab="${id}"
+        aria-selected="${this.tab === id}" aria-controls="skalpai-panel-${id}" tabindex="${this.tab === id ? 0 : -1}">${escapeHtml(label)}</button>`;
+    return `<div class="tabs" role="tablist">${tab('help', L.tab_help)}${tab('feedback', L.tab_feedback)}</div>`;
+  }
+
+  private bindTabs(): void {
+    this.root.querySelectorAll<HTMLButtonElement>('.tab').forEach((btn) => {
+      btn.addEventListener('click', () => this.selectTab(btn.dataset.tab as 'help' | 'feedback'));
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          this.selectTab(this.tab === 'help' ? 'feedback' : 'help');
+        }
+      });
+    });
+  }
+
   private render(): void {
     const L = this.labels;
+    const withHelp = this.helpEnabled;
+    const helpTab = withHelp && this.tab === 'help';
     const device = window.innerWidth < 768 ? 'mobile' : 'desktop';
 
     if (this.collapsed) {
@@ -907,14 +1282,17 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
           ? `
         <div class="panel" role="dialog" aria-label="${L.title}">
           <div class="head">
-            <span>${L.title}</span>
+            <span>${helpTab ? L.help_title : L.title}</span>
             <button class="close" type="button" aria-label="${L.close}">×</button>
           </div>
+          ${withHelp ? this.renderTabs() : ''}
           ${
-            this.state === 'sent'
+            helpTab
+              ? this.renderHelpBody()
+              : this.state === 'sent'
               ? `<div class="ok">${L.thanks}</div>`
               : `
-            <form class="body">
+            <form class="body"${withHelp ? ' role="tabpanel" id="skalpai-panel-feedback" aria-labelledby="skalpai-tab-feedback"' : ''}>
               ${this.state === 'error' ? `<div class="err">${escapeHtml(this.errorMsg)}</div>` : ''}
               <div class="types">
                 ${(['idea', 'bug'] as FeedbackType[])
@@ -975,6 +1353,9 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       }
     `;
 
+    if (withHelp && this.open) this.bindTabs();
+    if (helpTab && this.open) this.bindHelp();
+
     this.root.querySelector('.btn-fab')?.addEventListener('click', () => {
       if (this.open) {
         this.open = false;
@@ -1007,7 +1388,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
         if (this.emailTouched) this.render();
       });
     }
-    const ta = this.root.querySelector('textarea');
+    const ta = this.root.querySelector<HTMLTextAreaElement>('form.body textarea');
     if (ta) {
       ta.addEventListener('input', (e) => {
         this.message = (e.target as HTMLTextAreaElement).value;

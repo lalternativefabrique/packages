@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/skalpai-feedback-widget",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Skalpai feedback widget — framework-agnostic Web Component",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,14 +20,17 @@
   "scripts": {
     "build": "tsup",
     "prepublishOnly": "pnpm build",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "html2canvas-pro": "^1.5.8"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.0"
   },
   "keywords": [
     "skalpai",
