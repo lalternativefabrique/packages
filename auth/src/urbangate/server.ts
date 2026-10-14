@@ -419,7 +419,7 @@ export function createUrbangateAuth(
     const renewed: Array<string> = [];
     if (sessionToken) {
       const outcome = await exchange.exchange(sessionToken);
-      if (outcome.status === "session_gone" || outcome.status === "inactive")
+      if (outcome.status === "session_gone" || outcome.status === "refused")
         return null;
       if (outcome.status === "unavailable") throw outage();
       fresh = outcome.token.accessToken;
@@ -670,6 +670,26 @@ export function createUrbangateAuth(
   const str = (b: Record<string, unknown>, key: string) =>
     typeof b[key] === "string" ? (b[key] as string).trim() : "";
 
+  // The product's core decides whether the person enters (urbangate ADR
+  // 0017). Asked here, at sign-in, so a refusal is a screen rather than a
+  // session that every later call rejects. An outage leaves the exchange to
+  // the first core call, as before.
+  async function admitted(
+    result: KratosSessionResult,
+  ): Promise<{ refused: Response } | { cookies: Array<string> }> {
+    const token = result.session_token;
+    if (!token) return { cookies: [] };
+    const outcome = await exchange.exchange(token);
+    if (outcome.status === "refused") {
+      await kratos.logout(token);
+      return { refused: failure(outcome.reason, 403) };
+    }
+    if (outcome.status !== "ok") return { cookies: [] };
+    return {
+      cookies: [cookie(names.token, outcome.token.accessToken, TOKEN_MAX_AGE)],
+    };
+  }
+
   async function signInEmail(request: Request): Promise<Response> {
     const b = await body(request);
     const email = str(b, "email");
@@ -683,10 +703,12 @@ export function createUrbangateAuth(
       password,
       ...brand,
     });
+    const entry = await admitted(result);
+    if ("refused" in entry) return entry.refused;
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
-      signedIn(result),
+      [...signedIn(result), ...entry.cookies],
     );
   }
 
@@ -900,6 +922,8 @@ export function createUrbangateAuth(
           code,
           ...brand,
         });
+    const entry = await admitted(result);
+    if ("refused" in entry) return entry.refused;
     const opened =
       registration && !login
         ? await accountOpened(
@@ -911,7 +935,7 @@ export function createUrbangateAuth(
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
-      [...signedIn(result), ...opened],
+      [...signedIn(result), ...entry.cookies, ...opened],
     );
   }
 
@@ -1252,7 +1276,17 @@ export function createUrbangateAuth(
     if (!pending || !params.get("state") || params.get("state") !== pending.state)
       return refused("sso_state");
     const code = params.get("code");
-    if (!code) return refused("sso_refused");
+    if (!code) {
+      // urbangate's consent carries its reason in error_description
+      // (ADR 0017); anything else is a plain refusal.
+      const reason = params.get("error_description");
+      return refused(
+        params.get("error") === "access_denied" &&
+          (reason === "invitation_required" || reason === "inactive")
+          ? reason
+          : "sso_refused",
+      );
+    }
     const outcome = await sso!.exchangeCode(code, pending.verifier);
     if (outcome.status === "refused") return refused("sso_refused");
     if (outcome.status === "unavailable") return refused("unavailable");

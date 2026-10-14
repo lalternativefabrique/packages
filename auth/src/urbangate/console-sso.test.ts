@@ -603,3 +603,15 @@ test("a refused messag sign-in returns to the sign-in page", async () => {
   );
   assert.equal(res.headers.get("location"), "/sign-in?error=sso_refused");
 });
+
+test("a messag sign-in refused on invitation says so on the sign-in page", async () => {
+  const { fetchImpl } = hydraStub();
+  const pending = encodePending({ state: "st", verifier: "v", landing: "/", messag: true });
+  const res = await auth(fetchImpl).handler(
+    get(
+      "callback/urbangate?error=access_denied&error_description=invitation_required&state=st",
+      `partage_sso=${pending}`,
+    ),
+  );
+  assert.equal(res.headers.get("location"), "/sign-in?error=invitation_required");
+});

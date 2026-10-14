@@ -75,6 +75,8 @@ export interface LoginFormLabels {
   accountNotLinked?: string
   socialCancelled?: string
   socialFailed?: string
+  invitationRequired?: string
+  requestAccess?: string
 }
 
 export interface RegisterFormLabels {
@@ -98,6 +100,8 @@ export interface RegisterFormLabels {
   alreadyRegistered?: string
   socialCancelled?: string
   socialFailed?: string
+  messagAddress?: string
+  messagSignUp?: string
 }
 
 /**
@@ -240,6 +244,11 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps {
   authClient: AuthClientSurface
   /** Offers "Se connecter avec messag" under the providers */
   messag?: boolean | { callbackURL?: string; label?: string }
+  /**
+   * Where a person refused on invitation asks for access. Defaults to
+   * `registerUrl`, which on an invitation-only product serves that form.
+   */
+  requestAccessUrl?: string
 }
 
 export interface EmailCodeSignInFormLabels {
@@ -311,6 +320,13 @@ export interface RegisterFormProps extends AuthThemeProps, AuthNavProps {
   labels?: RegisterFormLabels
   /** The urbangate client */
   authClient: AuthClientSurface
+  /**
+   * An address under this domain is created on messag, never here: the form
+   * sends the person there and back. Defaults to messag.eco.
+   */
+  messagDomain?: string
+  /** messag's sign-up, which returns to `return=` once the address exists */
+  messagSignUpUrl?: string
 }
 
 export interface ForgotPasswordFormLabels {

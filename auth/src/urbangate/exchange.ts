@@ -14,11 +14,17 @@ export interface PersonToken {
   roles: Array<string>;
 }
 
+export type ExchangeRefusal = "invitation_required" | "inactive";
+
 export type ExchangeOutcome =
   | { status: "ok"; token: PersonToken }
   | { status: "session_gone" }
-  | { status: "inactive" }
+  | { status: "refused"; reason: ExchangeRefusal }
   | { status: "unavailable"; reason: string };
+
+export function exchangeRefusalOf(error: unknown): ExchangeRefusal {
+  return error === "invitation_required" ? "invitation_required" : "inactive";
+}
 
 const JWT_BEARER = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 const EXCHANGE_SCOPE = "urbangate:sessions:exchange";
@@ -78,7 +84,10 @@ export class Exchange {
         ? { status: "session_gone" }
         : { status: "unavailable", reason: "exchange_401" };
     }
-    if (res.status === 403) return { status: "inactive" };
+    if (res.status === 403) {
+      const body = (await res.json().catch(() => ({}))) as { error?: unknown };
+      return { status: "refused", reason: exchangeRefusalOf(body.error) };
+    }
     if (!res.ok)
       return { status: "unavailable", reason: `exchange_${res.status}` };
     const answer = (await res.json()) as {

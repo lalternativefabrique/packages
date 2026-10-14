@@ -2,6 +2,12 @@ import { useState, type FormEvent } from "react"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 import { withSignUpName } from "../signup-name"
 import { oauthErrorCallback } from "../oauth-error"
+import {
+  MESSAG_DOMAIN,
+  MESSAG_SIGN_UP_URL,
+  isMessagAddress,
+  messagRegisterUrl,
+} from "../messag-sign-in"
 import type { RegisterFormLabels, RegisterFormProps } from "../types"
 import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
@@ -36,6 +42,8 @@ const DEFAULTS: Required<RegisterFormLabels> = {
     "Cette adresse a déjà un compte. Connecte-toi avec ton mot de passe.",
   socialCancelled: "Inscription annulée.",
   socialFailed: "La création du compte a échoué. Réessaie.",
+  messagAddress: "Tu utilises une adresse messag ?",
+  messagSignUp: "Crée ton compte sur messag",
 }
 
 export function RegisterForm({
@@ -52,6 +60,8 @@ export function RegisterForm({
   linkComponent,
   collectName = true,
   authClient,
+  messagDomain = MESSAG_DOMAIN,
+  messagSignUpUrl = MESSAG_SIGN_UP_URL,
 }: RegisterFormProps) {
   const t = { ...DEFAULTS, ...labels }
   const [name, setName] = useState("")
@@ -65,6 +75,11 @@ export function RegisterForm({
   const error = ownError ?? externalError
   const setError = setOwnError
 
+  const messagAddress = isMessagAddress(email, messagDomain)
+  const messagSignUp = messagRegisterUrl(
+    typeof window !== "undefined" ? window.location.href : "/",
+    messagSignUpUrl,
+  )
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH
   const mismatch = confirmPassword.length > 0 && confirmPassword !== password
 
@@ -74,6 +89,7 @@ export function RegisterForm({
       setError(t.emailRequired)
       return
     }
+    if (messagAddress) return
     if (password.length < MIN_PASSWORD_LENGTH) {
       setError(t.passwordTooShort)
       return
@@ -132,6 +148,14 @@ export function RegisterForm({
   return (
     <div className="space-y-7">
       <AuthAlert>{error}</AuthAlert>
+      {messagAddress && (
+        <AuthAlert>
+          {t.messagAddress}{" "}
+          <a href={messagSignUp} className={AUTH_LINK_CLASS}>
+            {t.messagSignUp}
+          </a>
+        </AuthAlert>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-[1.125rem]" noValidate>
         {collectName && (
@@ -211,7 +235,7 @@ export function RegisterForm({
       <SocialButtons
         providers={socialProviders}
         onSelect={handleSocial}
-        disabled={isPending}
+        disabled={messagAddress || isPending}
       />
 
       <p className="text-center text-sm text-muted-foreground">
