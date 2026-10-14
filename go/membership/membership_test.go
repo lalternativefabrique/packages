@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -50,7 +51,7 @@ func newService(t *testing.T, res membership.Resources, opts ...func(*membership
 	p := membership.Product{
 		Name:       "messag",
 		Resources:  res,
-		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test", Reserved: []string{"postmaster", "sylvain", "codesyl"}},
+		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test", Reserved: []string{"postmaster", "sylvain", "codesyl"}, Refuse: func(bare string) bool { return strings.HasPrefix(bare, "president") }},
 	}
 	for _, o := range opts {
 		o(&p)
@@ -138,6 +139,7 @@ func TestAvailable(t *testing.T) {
 		"postmaster":  membership.ErrReserved,
 		"post.master": membership.ErrReserved,
 		"code_syl":    membership.ErrReserved,
+		"president.x": membership.ErrReserved,
 		"..bad":       membership.ErrInvalidIdentifier,
 		"":            membership.ErrInvalidIdentifier,
 	}

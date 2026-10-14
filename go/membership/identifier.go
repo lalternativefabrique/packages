@@ -25,6 +25,9 @@ type IdentifierPolicy struct {
 	Reserved []string
 	// Pattern defaults to DefaultPattern.
 	Pattern *regexp.Regexp
+	// Refuse, when set, is asked about every well-formed local part, without
+	// separators, for rules a list cannot hold (prefixes, catalogs).
+	Refuse func(bare string) bool
 }
 
 var separators = strings.NewReplacer(".", "", "_", "", "-", "")
@@ -44,6 +47,9 @@ func (p IdentifierPolicy) Check(local string) error {
 		if bare == separators.Replace(strings.ToLower(r)) {
 			return ErrReserved
 		}
+	}
+	if p.Refuse != nil && p.Refuse(bare) {
+		return ErrReserved
 	}
 	return nil
 }
