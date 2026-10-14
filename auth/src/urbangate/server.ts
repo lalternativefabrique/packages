@@ -17,7 +17,7 @@ import {
 } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
-import type { ExchangeConfig, PersonToken } from "./exchange.ts";
+import type { CredentialRefusal, ExchangeConfig, PersonToken } from "./exchange.ts";
 import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
 import { Jwks } from "./jwks.ts";
 import { coreTarget, keptCookies, onCore, relayedHeaders } from "./relay.ts";
@@ -106,7 +106,21 @@ export interface AccountOpened {
 export type CoreCall =
   | { status: "ok"; response: Response; setCookies: Array<string> }
   | { status: "signed_out" }
-  | { status: "unavailable"; cause: "identity_provider" | "core" };
+  | { status: "unavailable"; cause: "identity_provider" | "core" }
+  | { status: "misconfigured"; reason: CredentialRefusal };
+
+/** urbangate refused this product's own client credential: a deploy fault, not an outage. */
+export class AuthMisconfigured extends Error {
+  readonly reason: CredentialRefusal;
+  constructor(reason: CredentialRefusal) {
+    super(reason);
+    this.reason = reason;
+  }
+}
+
+function misconfigured(): Response {
+  return failure("auth_misconfigured", 500);
+}
 
 export type Guarded =
   | { session: UrbangateSession; setCookies: Array<string> }
@@ -198,6 +212,7 @@ export function coreRefusal(
   call: Exclude<CoreCall, { status: "ok" }>,
 ): Response {
   if (call.status === "signed_out") return failure("sign_in_required", 401);
+  if (call.status === "misconfigured") return misconfigured();
   return call.cause === "core"
     ? failure("core_unavailable", 502)
     : failure("identity_provider_unavailable", 503);
@@ -421,7 +436,16 @@ export function createUrbangateAuth(
       const outcome = await exchange.exchange(sessionToken);
       if (outcome.status === "session_gone" || outcome.status === "refused")
         return null;
-      if (outcome.status === "unavailable") throw outage();
+      if (outcome.status === "misconfigured") {
+        console.error(
+          `[auth] urbangate refused ${product}'s client credential (${outcome.reason}): the secret in this app's store no longer matches Hydra`,
+        );
+        throw new AuthMisconfigured(outcome.reason);
+      }
+      if (outcome.status === "unavailable") {
+        console.warn(`[auth] session exchange unavailable: ${outcome.reason}`);
+        throw outage();
+      }
       fresh = outcome.token.accessToken;
     } else {
       const outcome = await sso!.refresh(refreshToken!);
@@ -545,7 +569,8 @@ export function createUrbangateAuth(
     try {
       const t = await tokenFor(headers, owner);
       return { roles: t?.roles ?? [], setCookies: t?.setCookies ?? [] };
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthMisconfigured) throw error;
       return { roles: [], setCookies: [], unknown: true };
     }
   }
@@ -554,7 +579,8 @@ export function createUrbangateAuth(
     let resolved;
     try {
       resolved = await resolveSession(headers);
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthMisconfigured) return { response: misconfigured() };
       return { response: failure("identity_provider_unavailable", 503) };
     }
     if (!resolved) return { response: failure("sign_in_required", 401) };
@@ -579,7 +605,9 @@ export function createUrbangateAuth(
     let token: AccessToken | null;
     try {
       token = await accessToken(headers);
-    } catch {
+    } catch (error) {
+      if (error instanceof AuthMisconfigured)
+        return { status: "misconfigured", reason: error.reason };
       return { status: "unavailable", cause: "identity_provider" };
     }
     if (!token) return { status: "signed_out" };
@@ -1460,7 +1488,8 @@ export function createUrbangateAuth(
                 new Headers({ ...cookieHeader(request.headers, names, token) }),
               )
             : null;
-        } catch {
+        } catch (error) {
+          if (error instanceof AuthMisconfigured) return misconfigured();
           return failure("identity_provider_unavailable", 503);
         }
         if (!token || !resolved) {

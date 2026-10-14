@@ -1247,6 +1247,26 @@ test("coreFetch calls the core as the person and tells a refusal from an outage"
     cause: "identity_provider",
   });
   assert.equal(coreRefusal(noIdp as never).status, 503);
+
+  resetProvisioningTokenCache();
+  const refused = kratosStub({
+    "POST /oauth2/token": () =>
+      Response.json({ error: "invalid_client" }, { status: 401 }),
+  });
+  const wrongSecret = await authWith(refused.fetchImpl).coreFetch(
+    new Headers({ cookie: "tornad_session=ory_st" }),
+    "/me",
+  );
+  assert.deepEqual(wrongSecret, {
+    status: "misconfigured",
+    reason: "provisioner_refused",
+  });
+  const answer = coreRefusal(wrongSecret as never);
+  assert.equal(answer.status, 500);
+  assert.equal(
+    ((await answer.json()) as { error: { code: string } }).error.code,
+    "auth_misconfigured",
+  );
 });
 
 test("requireAdmin: admin passes, user is 403, unknown roles are 503, signed out is 401", async () => {
