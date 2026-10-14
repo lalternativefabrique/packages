@@ -11,6 +11,8 @@ if (script && typeof document !== 'undefined') {
   const placement = script.dataset.placement;
   const lang = script.dataset.lang;
   const collapsed = script.dataset.collapsed;
+  const helpApp = script.dataset.helpApp;
+  const helpEndpoint = script.dataset.helpEndpoint;
   if (apiKey) el.setAttribute('api-key', apiKey);
   if (endpoint) el.setAttribute('endpoint', endpoint);
   if (projectId) el.setAttribute('project-id', projectId);
@@ -18,6 +20,8 @@ if (script && typeof document !== 'undefined') {
   if (userEmail) el.setAttribute('user-email', userEmail);
   if (placement) el.setAttribute('placement', placement);
   if (lang) el.setAttribute('lang', lang);
+  if (helpApp) el.setAttribute('help-app', helpApp);
+  if (helpEndpoint) el.setAttribute('help-endpoint', helpEndpoint);
   if (collapsed === 'true' || collapsed === '') el.setAttribute('collapsed', '');
 
   if (document.body) {
