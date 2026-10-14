@@ -1,0 +1,201 @@
+/*
+ * Every colour, radius and font falls back to the host page, so the widget
+ * reads as part of wherever it lands. Override the variables on an ancestor:
+ *   --booking-fg, --booking-muted, --booking-border, --booking-surface,
+ *   --booking-accent, --booking-accent-fg, --booking-radius, --booking-font
+ */
+.lab-booking {
+  --lab-fg: var(--booking-fg, currentColor);
+  --lab-muted: var(--booking-muted, color-mix(in oklab, currentColor 65%, transparent));
+  --lab-border: var(--booking-border, color-mix(in oklab, currentColor 22%, transparent));
+  --lab-surface: var(--booking-surface, transparent);
+  --lab-accent: var(--booking-accent, currentColor);
+  --lab-accent-fg: var(--booking-accent-fg, Canvas);
+  --lab-radius: var(--booking-radius, 0.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--lab-fg);
+  font-family: var(--booking-font, inherit);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.lab-booking button,
+.lab-booking input,
+.lab-booking textarea {
+  font: inherit;
+  color: inherit;
+}
+.lab-booking button {
+  cursor: pointer;
+}
+.lab-booking button:disabled {
+  cursor: default;
+}
+.lab-booking :focus-visible {
+  outline: 2px solid var(--lab-accent);
+  outline-offset: 2px;
+}
+.lab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.lab-strong {
+  font-weight: 600;
+}
+.lab-muted {
+  color: var(--lab-muted);
+  margin: 0;
+}
+.lab-small {
+  font-size: 0.75rem;
+}
+.lab-error {
+  margin: 0;
+  font-size: 0.875rem;
+}
+.lab-arrows {
+  display: flex;
+  gap: 0.25rem;
+}
+.lab-icon {
+  display: inline-flex;
+  padding: 0.375rem;
+  border: 0;
+  border-radius: calc(var(--lab-radius) / 2);
+  background: transparent;
+}
+.lab-icon:disabled {
+  opacity: 0.3;
+}
+.lab-days {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+@container (min-width: 28rem) {
+  .lab-days {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+@media (min-width: 28rem) {
+  .lab-days {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+.lab-day {
+  padding: 0.5rem 0.25rem;
+  border: 1px solid var(--lab-border);
+  border-radius: calc(var(--lab-radius) * 0.75);
+  background: var(--lab-surface);
+  font-size: 0.75rem;
+}
+.lab-day::first-letter {
+  text-transform: uppercase;
+}
+.lab-day:not(:disabled):hover,
+.lab-slot:hover {
+  border-color: var(--lab-accent);
+}
+.lab-day[aria-pressed='true'] {
+  border-color: var(--lab-accent);
+  font-weight: 600;
+}
+.lab-day:disabled {
+  color: var(--lab-muted);
+  opacity: 0.4;
+}
+.lab-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.lab-slot {
+  min-width: 4.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--lab-border);
+  border-radius: 999px;
+  background: var(--lab-surface);
+  font-size: 0.875rem;
+}
+.lab-form {
+  gap: 0.75rem;
+}
+.lab-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--lab-muted);
+  font-size: 0.875rem;
+}
+.lab-capitalize::first-letter {
+  text-transform: uppercase;
+}
+.lab-fields {
+  display: grid;
+  gap: 0.75rem;
+}
+@media (min-width: 28rem) {
+  .lab-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.lab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.lab-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--lab-border);
+  border-radius: var(--lab-radius);
+  background: var(--lab-surface);
+  font-weight: 400;
+}
+.lab-input::placeholder {
+  color: var(--lab-muted);
+}
+.lab-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.lab-primary {
+  align-self: flex-start;
+  padding: 0.625rem 1.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lab-accent);
+  color: var(--lab-accent-fg);
+  font-weight: 500;
+}
+.lab-primary:disabled {
+  opacity: 0.6;
+}
+.lab-link {
+  color: var(--lab-accent);
+  font-size: 0.875rem;
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.lab-link:hover {
+  text-decoration: underline;
+}
+.lab-confirmed p {
+  margin: 0;
+}
+.lab-confirmed {
+  gap: 0.5rem;
+}

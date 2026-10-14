@@ -1,0 +1,50 @@
+{
+  "name": "@lalternative/booking",
+  "version": "0.1.0",
+  "description": "Slot picker and visitor form shared by L'Alternative apps: a headless hook, a widget styled by CSS variables so it matches the host page, and an adapter for the messag public booking API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./styles.css": "./dist/index.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build",
+    "test": "node --experimental-strip-types --test \"src/**/*.test.ts\""
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.7.0"
+  },
+  "keywords": [
+    "booking",
+    "appointment",
+    "scheduling",
+    "react"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lalternative/packages.git",
+    "directory": "booking"
+  }
+}
