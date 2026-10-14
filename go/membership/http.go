@@ -15,7 +15,8 @@ type MembershipDTO struct {
 }
 
 // IdentifierHandler answers whether the last path segment is available under
-// the owned domain: 204 free, 400 invalid or reserved, 409 taken. Mount it
+// the owned domain: 204 free, 400 invalid or reserved, 409 taken. A ?claim=
+// goes to Product.Unreserve. Mount it
 // publicly, rate-limited by the product, as GET /machine/identifiers/{local}.
 func (s *Service) IdentifierHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +25,7 @@ func (s *Service) IdentifierHandler() http.Handler {
 			return
 		}
 		local := r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:]
-		switch err := s.Available(r.Context(), local); {
+		switch err := s.AvailableWithClaim(r.Context(), local, r.URL.Query().Get("claim")); {
 		case err == nil:
 			w.WriteHeader(http.StatusNoContent)
 		case errors.Is(err, ErrTaken):

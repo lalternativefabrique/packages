@@ -750,8 +750,9 @@ export function createUrbangateAuth(
   // The core owns the identifier under a domain the product provides: it
   // holds the members and the reserved names, and answers before Kratos so
   // no identity is created for an address the product would then refuse.
-  async function identifierFree(local: string): Promise<Response | null> {
-    const url = `${config.coreUrl!.replace(/\/$/, "")}/api/v1/machine/identifiers/${encodeURIComponent(local)}`;
+  async function identifierFree(local: string, claim: string): Promise<Response | null> {
+    const query = claim ? `?claim=${encodeURIComponent(claim)}` : "";
+    const url = `${config.coreUrl!.replace(/\/$/, "")}/api/v1/machine/identifiers/${encodeURIComponent(local)}${query}`;
     let res: Response;
     try {
       res = await (config.fetch ?? fetch)(url, { signal: AbortSignal.timeout(5000) });
@@ -774,8 +775,9 @@ export function createUrbangateAuth(
     local: string,
     password: string,
     name: string,
+    claim: string,
   ): Promise<Response> {
-    const refused = await identifierFree(local);
+    const refused = await identifierFree(local, claim);
     if (refused) return refused;
     const created = await provisionIdentity(
       provisioner,
@@ -816,7 +818,7 @@ export function createUrbangateAuth(
       return failure("invalid_input", 400, "email and password are required");
     const local = ownedLocalPart(email);
     if (local !== null)
-      return signUpOwned(request, email.toLowerCase(), local, password, str(b, "name"));
+      return signUpOwned(request, email.toLowerCase(), local, password, str(b, "name"), str(b, "claim"));
     const flow = await kratos.start("registration");
     const result = await kratos.submit<KratosSessionResult>(
       "registration",

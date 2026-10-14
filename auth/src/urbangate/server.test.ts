@@ -1558,6 +1558,18 @@ test("a sign-up under an owned domain asks the core, provisions verified, signs 
   assert.deepEqual(opened, [{ email: "ana@example", verified: true }]);
 });
 
+test("a sign-up under an owned domain hands its claim to the core's identifier check", async () => {
+  const { fetchImpl, calls } = ownedStub({
+    "GET /api/v1/machine/identifiers/ana?claim=t%2B1": () => new Response(null, { status: 204 }),
+  });
+  const a = authWith(fetchImpl, { ownedDomains: ["messag.eco"] });
+  const res = await a.handler(
+    post("sign-up/email", { email: "ana@messag.eco", password: "pw", claim: "t+1" }),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(calls.some((c) => c.key === "GET /api/v1/machine/identifiers/ana?claim=t%2B1"));
+});
+
 test("the core refuses the identifier before anything is created", async () => {
   for (const [status, body, code] of [
     [409, { error: "taken" }, "already_registered"],

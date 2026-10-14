@@ -104,6 +104,10 @@ type Product struct {
 	Purge func(ctx context.Context, m Member) error
 	// Identities enables Reconcile.
 	Identities Identities
+	// Unreserve, when set, lets a reserved identifier through: with the claim
+	// a sign-up presents to the identifier check, then with an empty claim
+	// when the member opens under that address.
+	Unreserve func(ctx context.Context, local, claim string) (bool, error)
 }
 
 // Role is the urbangate role a member of the product carries.
@@ -336,12 +340,27 @@ func (s *Service) Get(ctx context.Context, identityID string) (Member, error) {
 // ErrInvalidIdentifier, ErrReserved, ErrTaken, or nil. A product without an
 // owned domain answers ErrInvalidIdentifier for everything.
 func (s *Service) Available(ctx context.Context, local string) error {
+	return s.AvailableWithClaim(ctx, local, "")
+}
+
+// AvailableWithClaim is Available where Product.Unreserve may lift ErrReserved
+// for the claim.
+func (s *Service) AvailableWithClaim(ctx context.Context, local, claim string) error {
 	if s.p.Identifier.OwnedDomain == "" {
 		return fmt.Errorf("%w: no owned domain", ErrInvalidIdentifier)
 	}
 	local = strings.ToLower(strings.TrimSpace(local))
 	if err := s.p.Identifier.Check(local); err != nil {
-		return err
+		if !errors.Is(err, ErrReserved) || s.p.Unreserve == nil {
+			return err
+		}
+		lifted, uerr := s.p.Unreserve(ctx, local, claim)
+		if uerr != nil {
+			return uerr
+		}
+		if !lifted {
+			return err
+		}
 	}
 	taken, err := s.store.AddressTaken(ctx, local+"@"+s.p.Identifier.OwnedDomain)
 	if err != nil {
