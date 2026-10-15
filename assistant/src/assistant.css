@@ -1,0 +1,480 @@
+/*
+ * Every colour reads a --lalt-assistant-* variable so the host maps its own
+ * theme onto the panel; the fallbacks render a neutral light theme.
+ */
+
+.lalt-assistant {
+  --_bg: var(--lalt-assistant-bg, #ffffff);
+  --_surface: var(--lalt-assistant-surface, #fafaf9);
+  --_hover: var(--lalt-assistant-hover, rgba(11, 11, 11, 0.05));
+  --_border: var(--lalt-assistant-border, #e5e5e2);
+  --_text: var(--lalt-assistant-text, #1c1c1a);
+  --_muted: var(--lalt-assistant-muted, #77756f);
+  --_accent: var(--lalt-assistant-accent, #1c1c1a);
+  --_accent-text: var(--lalt-assistant-accent-text, #ffffff);
+  --_danger: var(--lalt-assistant-danger, #d03b3b);
+  --_radius: var(--lalt-assistant-radius, 12px);
+  --_font: var(--lalt-assistant-font, inherit);
+  color: var(--_text);
+  font-family: var(--_font);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.lalt-assistant *,
+.lalt-assistant *::before,
+.lalt-assistant *::after {
+  box-sizing: border-box;
+}
+
+.lalt-assistant button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lalt-assistant button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.lalt-assistant-launcher {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+}
+
+.lalt-assistant-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--_radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.lalt-assistant-launch-secondary {
+  border: 1px solid var(--_border);
+  background: var(--_bg);
+}
+
+.lalt-assistant-launch-secondary:hover {
+  background: var(--_surface);
+}
+
+.lalt-assistant-launch-primary {
+  border: 0;
+  background: var(--_accent);
+  color: var(--_accent-text) !important;
+}
+
+.lalt-assistant-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-left: 1px solid var(--_border);
+  background: var(--_bg);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-width: 640px) {
+  .lalt-assistant-panel {
+    width: var(--lalt-assistant-width, 520px);
+  }
+}
+
+.lalt-assistant-resize {
+  display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+  cursor: col-resize;
+}
+
+.lalt-assistant-resize:hover {
+  background: color-mix(in srgb, var(--_accent) 25%, transparent);
+}
+
+.lalt-assistant-wide-only {
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  .lalt-assistant-resize {
+    display: block;
+  }
+  .lalt-assistant-wide-only {
+    display: inline-flex !important;
+  }
+}
+
+.lalt-assistant-dropzone {
+  position: absolute;
+  inset: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--_accent);
+  border-radius: var(--_radius);
+  background: color-mix(in srgb, var(--_bg) 88%, transparent);
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.lalt-assistant-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 56px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--_border);
+  flex-shrink: 0;
+}
+
+.lalt-assistant-menu {
+  position: relative;
+}
+
+.lalt-assistant-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  font-weight: 500;
+}
+
+.lalt-assistant-menu-content {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 3;
+  width: 288px;
+  padding: 4px;
+  border: 1px solid var(--_border);
+  border-radius: 10px;
+  background: var(--_bg);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+}
+
+.lalt-assistant-menu-content button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+}
+
+.lalt-assistant-menu-content button:hover {
+  background: var(--_hover);
+}
+
+.lalt-assistant-menu-label {
+  padding: 6px 8px 2px;
+  font-size: 12px;
+  color: var(--_muted);
+}
+
+.lalt-assistant-menu-separator {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--_border);
+}
+
+.lalt-assistant-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.lalt-assistant-truncate {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lalt-assistant-muted {
+  color: var(--_muted);
+}
+
+.lalt-assistant-small {
+  font-size: 12px;
+}
+
+.lalt-assistant-scope-label {
+  max-width: 160px;
+}
+
+.lalt-assistant-select {
+  height: 32px;
+  max-width: 160px;
+  padding: 0 8px;
+  border: 1px solid var(--_border);
+  border-radius: 8px;
+  background: var(--_bg);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+}
+
+.lalt-assistant-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+}
+
+.lalt-assistant-icon-button:hover {
+  background: var(--_hover);
+}
+
+.lalt-assistant-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.lalt-assistant-empty-title {
+  margin: 24px 0 4px;
+  font-size: 20px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.lalt-assistant-intro {
+  margin: 0 0 24px;
+  font-size: 12px;
+  color: var(--_muted);
+  text-align: center;
+}
+
+.lalt-assistant-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.lalt-assistant-action {
+  padding: 10px 12px;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius);
+  background: var(--_surface);
+  text-align: left;
+}
+
+.lalt-assistant-action:hover:not(:disabled) {
+  background: var(--_hover);
+}
+
+.lalt-assistant-action-label {
+  font-weight: 500;
+}
+
+.lalt-assistant-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lalt-assistant-user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: var(--_radius);
+  background: var(--_hover);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lalt-assistant-sent-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.lalt-assistant-sent-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--_muted);
+}
+
+.lalt-assistant-plain {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lalt-assistant-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lalt-assistant-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid var(--_border);
+  border-top-color: var(--_muted);
+  border-radius: 50%;
+  animation: lalt-assistant-spin 0.8s linear infinite;
+}
+
+@keyframes lalt-assistant-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lalt-assistant-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--_danger);
+}
+
+.lalt-assistant-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lalt-assistant-history button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+
+.lalt-assistant-history button:hover {
+  background: var(--_hover);
+}
+
+.lalt-assistant-history-empty {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.lalt-assistant-footer {
+  padding: 12px;
+  border-top: 1px solid var(--_border);
+  flex-shrink: 0;
+}
+
+.lalt-assistant-composer {
+  padding: 8px;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius);
+  background: var(--_surface);
+}
+
+.lalt-assistant-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.lalt-assistant-chips .lalt-assistant-error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.lalt-assistant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 4px 4px 4px 6px;
+  border: 1px solid var(--_border);
+  border-radius: 8px;
+  background: var(--_bg);
+}
+
+.lalt-assistant-chip[data-status="error"] {
+  border-color: var(--_danger);
+}
+
+.lalt-assistant-chip[data-status="error"] .lalt-assistant-muted {
+  color: var(--_danger);
+}
+
+.lalt-assistant-chip-preview {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.lalt-assistant-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.lalt-assistant-chip-remove {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+}
+
+.lalt-assistant-chip-remove:hover {
+  background: var(--_hover);
+}
+
+.lalt-assistant-textarea {
+  display: block;
+  width: 100%;
+  padding: 0 4px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.lalt-assistant-composer-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.lalt-assistant-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--_accent);
+  color: var(--_accent-text) !important;
+}
