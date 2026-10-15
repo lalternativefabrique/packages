@@ -134,6 +134,9 @@ func (s *Store) scan(row pgx.CollectableRow) (connect.Connection, error) {
 		return c, err
 	}
 	c.Status = connect.Status(status)
+	if len(refresh) == 0 {
+		return c, nil
+	}
 	var err error
 	c.RefreshToken, err = s.sealer.Open(refresh, c.Owner)
 	return c, err
