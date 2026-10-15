@@ -9,6 +9,7 @@ packages:
   - "keys"
   - "legal"
   - "admin"
+  - "assistant"
   - "editor"
   - "meet"
   - "booking"
