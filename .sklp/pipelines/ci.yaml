@@ -84,6 +84,8 @@ scopes:
     - "go/busevents/**"
   language:
     - "go/language/**"
+  connect:
+    - "go/connect/**"
   membership:
     - "go/membership/**"
     - "go/busevents/**"
@@ -281,6 +283,27 @@ steps:
     run: |
       cd go/membership
       go test -count=1 -v -tags integration ./pgx/...
+
+  - name: connect
+    scope: [connect]
+    tools: [go]
+    run: |
+      cd go/connect
+      go build ./...
+      go vet ./...
+      go vet -tags integration ./...
+      go test -count=1 ./...
+
+  - name: connect-integration
+    scope: [connect]
+    depends_on: [connect]
+    tools: [go]
+    services: [postgres-test]
+    env:
+      DATABASE_URL: "postgres://packages:packages@postgres-test:5432/packages_test?sslmode=disable"
+    run: |
+      cd go/connect
+      go test -count=1 -v -tags integration ./pgstore/...
 
   - name: webhooks
     scope: [webhooks]
