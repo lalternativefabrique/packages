@@ -64,6 +64,13 @@ Routes the handler serves under `/api/auth/`, all JSON:
 | `POST sign-in/email-otp` `{email,otp}` | login by code, second step |
 | `POST email-otp/reset-password` `{email,otp,password}` | recovery, then settings with the recovered session; 403 `second_factor_required` when the identity holds one |
 | `POST second-factor/verify` `{code,password}` | login at `aal2` (TOTP, or a backup code), then the pending settings flow |
+| `POST sign-in/second-factor` `{code}` | login at `aal2` (6 digits: TOTP, otherwise a backup code) for a sign-in answered `second_factor_required`; then signs in as `sign-in/email` does |
+| `GET two-factor` | settings flow nodes: `{totp, backupCodes}` |
+| `POST two-factor/totp/start` `{password?}` | settings, TOTP: `{qr, secret}` to scan or type |
+| `POST two-factor/totp/confirm` `{code,password?}` | settings, TOTP link |
+| `POST two-factor/totp/disable` `{password?}` | settings, TOTP unlink |
+| `POST two-factor/backup-codes` `{password?,reveal?}` | settings, lookup_secret: new codes (`confirmed: false`), or the current ones with `reveal` |
+| `POST two-factor/backup-codes/confirm` `{password?}` | settings, lookup_secret confirm of the codes just generated |
 | `POST update-user` `{name}` | settings, profile; the other traits are kept |
 | `POST change-password` `{currentPassword,newPassword,revokeOtherSessions?}` | login with `refresh` to re-prove the current password, then settings, password; `DELETE /sessions` when asked |
 | `POST sign-out` | logout |
@@ -72,7 +79,7 @@ Routes the handler serves under `/api/auth/`, all JSON:
 Refusals come back as `{ error: { code, status, message? } }`: `invalid_credentials`
 401, `invalid_code` 400, `already_registered` 409, `password_refused` 422 with
 Kratos' reason, `flow_expired` 410, `account_disabled`,
-`second_factor_required` and `invitation_required` 403 (urbangate's core
+`second_factor_required` (a password or code sign-in whose identity holds TOTP or backup codes: no session cookie yet, the aal1 session waits in `<product>_flow` until `sign-in/second-factor`), `reauth_required` (a `two-factor/*` change Kratos holds for a privileged session: send it again with `password`) and `invitation_required` 403 (urbangate's core
 refused the person on a product that opens on invitation; the Kratos session
 is closed again and `LoginForm` shows « Demander un accès »),
 `email_not_verified` 403 (the address was never proved: `LoginForm` routes
