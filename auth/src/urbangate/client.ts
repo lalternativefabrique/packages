@@ -88,6 +88,7 @@ export type UrbangateAuthClient = Omit<
 export interface RecoveryEmail {
   email: string | null;
   verified: boolean;
+  manageable: boolean;
 }
 
 export interface TwoFactorStatus {
