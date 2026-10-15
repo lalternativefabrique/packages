@@ -1,6 +1,7 @@
 import { getSource } from "@lalternative/nakoda-sdk-browser";
 import { useEffect, useState } from "react";
 import type { AuthClientResult, AuthClientSurface } from "../types";
+import { twoFactorClient } from "./two-factor-client.ts";
 
 export interface UrbangateAuthClientConfig {
   baseURL?: string;
@@ -41,6 +42,23 @@ export type UrbangateAuthClient = Omit<
       code: string;
       password: string;
     }): Promise<AuthClientResult>;
+    /** Finishes a sign-in answered `second_factor_required`. */
+    signIn(input: { code: string }): Promise<AuthClientResult>;
+  };
+  /**
+   * The signed-in person's second factor. A call answered `reauth_required`
+   * is sent again with the person's `password`.
+   */
+  twoFactor: {
+    status(): Promise<Result<TwoFactorStatus>>;
+    startTotp(input?: { password?: string }): Promise<Result<TotpEnrolment>>;
+    confirmTotp(input: { code: string; password?: string }): Promise<AuthClientResult>;
+    disableTotp(input?: { password?: string }): Promise<AuthClientResult>;
+    backupCodes(input?: {
+      password?: string;
+      reveal?: boolean;
+    }): Promise<Result<BackupCodes>>;
+    confirmBackupCodes(input?: { password?: string }): Promise<AuthClientResult>;
   };
   signOut(): Promise<AuthClientResult>;
   updateUser(input: { name: string }): Promise<AuthClientResult>;
@@ -72,7 +90,25 @@ export interface RecoveryEmail {
   verified: boolean;
 }
 
-type Result<T = unknown> = { data: T | null; error: AuthClientResult["error"] };
+export interface TwoFactorStatus {
+  totp: boolean;
+  backupCodes: boolean;
+}
+
+export interface TotpEnrolment {
+  /** A data: URI of the QR code to scan. */
+  qr: string;
+  /** The same secret, to type by hand. */
+  secret: string;
+}
+
+export interface BackupCodes {
+  codes: Array<string>;
+  /** False until `confirmBackupCodes` saves freshly generated codes. */
+  confirmed: boolean;
+}
+
+export type Result<T = unknown> = { data: T | null; error: AuthClientResult["error"] };
 
 export function createUrbangateAuthClient(
   config: UrbangateAuthClientConfig = {},
@@ -173,7 +209,9 @@ export function createUrbangateAuthClient(
     },
     secondFactor: {
       verify: (input) => call("POST", "second-factor/verify", input),
+      signIn: (input) => call("POST", "sign-in/second-factor", input),
     },
+    twoFactor: twoFactorClient(call),
     signOut: () => call("POST", "sign-out"),
     updateUser: (input) => call("POST", "update-user", input),
     changePassword: (input) => call("POST", "change-password", input),

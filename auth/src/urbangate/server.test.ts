@@ -1835,3 +1835,279 @@ test("a sign-in still opens when urbangate cannot answer the exchange", async ()
   assert.equal(res.status, 200);
   assert.ok(res.headers.getSetCookie().some((c) => c.startsWith("tornad_session=ory_st")));
 });
+
+const aal1 = { ...session, authenticator_assurance_level: "aal1" };
+const aal2 = { ...session, authenticator_assurance_level: "aal2" };
+const errorOf = async (res: Response) =>
+  ((await res.json()) as { error: { code: string } }).error.code;
+
+function twoFactorLogin(enrolled: boolean) {
+  return kratosStub({
+    "POST /self-service/login?flow=L": () =>
+      Response.json({ session_token: "ory_st", session: aal1 }),
+    "GET /self-service/login/api?aal=aal2": () =>
+      enrolled
+        ? Response.json({
+            id: "L2",
+            ui: { nodes: [{ attributes: { name: "totp_code" } }] },
+          })
+        : Response.json(
+            { error: { message: "no second factor" } },
+            { status: 400 },
+          ),
+    "POST /self-service/login?flow=L2": (init) => {
+      const b = JSON.parse(init.body as string) as { totp_code?: string };
+      return b.totp_code === "123456"
+        ? Response.json({ session: aal2 })
+        : Response.json(
+            { id: "L2", ui: { messages: [{ id: 4000008, type: "error" }] } },
+            { status: 400 },
+          );
+    },
+  });
+}
+
+test("a password sign-in without a second factor signs in at once", async () => {
+  const { fetchImpl } = twoFactorLogin(false);
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(res.status, 200);
+  assert.ok(
+    res.headers.getSetCookie().some((c) => c.startsWith("tornad_session=ory_st")),
+  );
+});
+
+test("a sign-in holding TOTP asks the code before the session is set", async () => {
+  const { fetchImpl, calls } = twoFactorLogin(true);
+  const a = auth(fetchImpl);
+  const first = await a.handler(
+    post("sign-in/email", { email: "ana@example", password: "pw" }),
+  );
+  assert.equal(first.status, 403);
+  assert.equal(await errorOf(first), "second_factor_required");
+  const cookies = first.headers.getSetCookie();
+  assert.ok(!cookies.some((c) => c.startsWith("tornad_session=")));
+  assert.ok(
+    cookies.some((c) => c.startsWith("tornad_flow=login2fa%3AL2%3Aory_st")),
+  );
+  const pending = "tornad_flow=login2fa%3AL2%3Aory_st";
+
+  const wrong = await a.handler(
+    post("sign-in/second-factor", { code: "000000" }, pending),
+  );
+  assert.equal(wrong.status, 400);
+  assert.equal(await errorOf(wrong), "invalid_code");
+
+  const ok = await a.handler(
+    post("sign-in/second-factor", { code: "123 456" }, pending),
+  );
+  assert.equal(ok.status, 200);
+  assert.equal(
+    ((await ok.json()) as { user: { email: string } }).user.email,
+    "ana@example",
+  );
+  const set = ok.headers.getSetCookie();
+  assert.ok(set.some((c) => c.startsWith("tornad_session=ory_st")));
+  assert.ok(set.some((c) => /^tornad_flow=;/.test(c)));
+  const step = calls.find((c) => c.key === "POST /self-service/login?flow=L2");
+  assert.equal(step?.headers.get("x-session-token"), "ory_st");
+});
+
+test("a code sign-in holding a second factor steps up too", async () => {
+  const { fetchImpl } = twoFactorLogin(true);
+  const res = await auth(fetchImpl).handler(
+    post(
+      "sign-in/email-otp",
+      { email: "ana@example", otp: "123456" },
+      "tornad_flow=login%3AL",
+    ),
+  );
+  assert.equal(res.status, 403);
+  assert.equal(await errorOf(res), "second_factor_required");
+});
+
+test("the second factor without a pending sign-in is flow_expired", async () => {
+  const { fetchImpl } = twoFactorLogin(true);
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/second-factor", { code: "123456" }),
+  );
+  assert.equal(res.status, 410);
+  assert.equal(await errorOf(res), "flow_expired");
+});
+
+test("an expired second-factor flow answers flow_expired", async () => {
+  const { fetchImpl } = kratosStub({
+    "POST /self-service/login?flow=L2": () =>
+      Response.json({ error: { id: "self_service_flow_expired" } }, { status: 410 }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post(
+      "sign-in/second-factor",
+      { code: "123456" },
+      "tornad_flow=login2fa%3AL2%3Aory_st",
+    ),
+  );
+  assert.equal(res.status, 410);
+});
+
+function settingsStub(
+  nodes: Array<Record<string, unknown>>,
+  submit: (body: Record<string, unknown>) => Response = () =>
+    Response.json({ id: "S", state: "success" }),
+  extra: Record<string, (init: RequestInit) => Response> = {},
+) {
+  return kratosStub({
+    ...extra,
+    "GET /self-service/settings/api": () =>
+      Response.json({ id: "S", ui: { nodes } }),
+    "POST /self-service/settings?flow=S": (init) =>
+      submit(JSON.parse(init.body as string)),
+  });
+}
+
+const totpNodes = [
+  { attributes: { id: "totp_qr", src: "data:image/png;base64,QR" } },
+  { attributes: { id: "totp_secret_key", text: { text: "JBSWY3DP" } } },
+  { attributes: { name: "totp_code" } },
+];
+
+test("two-factor reads what the identity holds", async () => {
+  const { fetchImpl } = settingsStub([
+    { attributes: { name: "totp_unlink" } },
+    { attributes: { name: "lookup_secret_regenerate" } },
+  ]);
+  const res = await auth(fetchImpl).handler(get("two-factor", signedInCookie));
+  assert.deepEqual(await res.json(), { totp: true, backupCodes: false });
+});
+
+test("TOTP enrolment hands the QR and secret, then confirms the code", async () => {
+  const { fetchImpl, calls } = settingsStub(totpNodes);
+  const a = auth(fetchImpl);
+  const start = await a.handler(post("two-factor/totp/start", {}, signedInCookie));
+  assert.equal(start.status, 200);
+  assert.deepEqual(await start.json(), {
+    qr: "data:image/png;base64,QR",
+    secret: "JBSWY3DP",
+  });
+  assert.ok(
+    start.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=totp%3AS")),
+  );
+  const confirm = await a.handler(
+    post(
+      "two-factor/totp/confirm",
+      { code: "123456" },
+      `${signedInCookie}; tornad_flow=totp%3AS`,
+    ),
+  );
+  assert.equal(confirm.status, 200);
+  const submitted = calls.find((c) => c.key === "POST /self-service/settings?flow=S");
+  assert.equal((submitted?.body as { totp_code: string }).totp_code, "123456");
+  assert.equal(submitted?.headers.get("x-session-token"), "ory_st");
+});
+
+test("a wrong enrolment code answers invalid_code", async () => {
+  const { fetchImpl } = settingsStub(totpNodes, () =>
+    Response.json(
+      { id: "S", ui: { messages: [{ id: 4000008, type: "error" }] } },
+      { status: 400 },
+    ),
+  );
+  const res = await auth(fetchImpl).handler(
+    post(
+      "two-factor/totp/confirm",
+      { code: "000000" },
+      `${signedInCookie}; tornad_flow=totp%3AS`,
+    ),
+  );
+  assert.equal(res.status, 400);
+  assert.equal(await errorOf(res), "invalid_code");
+});
+
+test("disabling TOTP unlinks it, and a stale session answers reauth_required", async () => {
+  let fresh = false;
+  const { fetchImpl, calls } = settingsStub(
+    [{ attributes: { name: "totp_unlink" } }],
+    () =>
+      fresh
+        ? Response.json({ id: "S", state: "success" })
+        : Response.json(
+            { error: { id: "session_refresh_required" } },
+            { status: 403 },
+          ),
+    {
+      "GET /self-service/login/api?refresh=true": () =>
+        Response.json({ id: "RF" }),
+      "POST /self-service/login?flow=RF": () =>
+        Response.json({ session_token: "ory_st", session }),
+    },
+  );
+  const a = auth(fetchImpl);
+  const stale = await a.handler(post("two-factor/totp/disable", {}, signedInCookie));
+  assert.equal(stale.status, 403);
+  assert.equal(await errorOf(stale), "reauth_required");
+  fresh = true;
+  const ok = await a.handler(
+    post("two-factor/totp/disable", { password: "pw" }, signedInCookie),
+  );
+  assert.equal(ok.status, 200);
+  assert.ok(calls.some((c) => c.key === "GET /self-service/login/api?refresh=true"));
+  const unlink = calls.filter((c) => c.key === "POST /self-service/settings?flow=S").at(-1);
+  assert.equal((unlink?.body as { totp_unlink: boolean }).totp_unlink, true);
+});
+
+test("backup codes are generated, shown without the used ones, then confirmed", async () => {
+  const { fetchImpl, calls } = settingsStub([], (b) =>
+    b.lookup_secret_regenerate
+      ? Response.json({
+          id: "S",
+          ui: {
+            nodes: [
+              {
+                attributes: {
+                  id: "lookup_secret_codes",
+                  text: {
+                    context: {
+                      secrets: [
+                        { id: 1050009, text: "ab12cd34" },
+                        { id: 1050014, text: "used" },
+                        { id: 1050009, text: "ef56gh78" },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        })
+      : Response.json({ id: "S", state: "success" }),
+  );
+  const a = auth(fetchImpl);
+  const shown = await a.handler(post("two-factor/backup-codes", {}, signedInCookie));
+  assert.equal(shown.status, 200);
+  assert.deepEqual(await shown.json(), {
+    codes: ["ab12cd34", "ef56gh78"],
+    confirmed: false,
+  });
+  assert.ok(
+    shown.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=lookup%3AS")),
+  );
+  const confirmed = await a.handler(
+    post(
+      "two-factor/backup-codes/confirm",
+      {},
+      `${signedInCookie}; tornad_flow=lookup%3AS`,
+    ),
+  );
+  assert.equal(confirmed.status, 200);
+  assert.equal(
+    (calls.at(-1)?.body as { lookup_secret_confirm: boolean }).lookup_secret_confirm,
+    true,
+  );
+});
+
+test("two-factor needs a session", async () => {
+  const { fetchImpl } = settingsStub([]);
+  const res = await auth(fetchImpl).handler(get("two-factor"));
+  assert.equal(res.status, 401);
+});

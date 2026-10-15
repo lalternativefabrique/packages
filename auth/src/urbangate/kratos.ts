@@ -4,13 +4,21 @@ export interface KratosFlow {
   id: string;
   ui?: {
     messages?: Array<KratosMessage>;
-    nodes?: Array<{
-      attributes?: { name?: string; value?: unknown };
-      messages?: Array<KratosMessage>;
-    }>;
+    nodes?: Array<KratosNode>;
   };
   state?: string;
   continue_with?: Array<ContinueWith>;
+}
+
+export interface KratosNode {
+  attributes?: {
+    id?: string;
+    name?: string;
+    value?: unknown;
+    src?: string;
+    text?: KratosMessage & { context?: { secrets?: Array<KratosMessage> } };
+  };
+  messages?: Array<KratosMessage>;
 }
 
 export interface KratosMessage {
@@ -24,6 +32,7 @@ export interface KratosSession {
   active?: boolean;
   expires_at?: string;
   authenticated_at?: string;
+  authenticator_assurance_level?: string;
   identity?: {
     id: string;
     state?: string;
@@ -126,6 +135,13 @@ export function csrfOf(flow: KratosFlow): string | undefined {
   return typeof node?.attributes?.value === "string"
     ? node.attributes.value
     : undefined;
+}
+
+/** A node of a flow's UI, by its input name or, for an image or text node, its id. */
+export function nodeOf(flow: KratosFlow, key: string): KratosNode | undefined {
+  return flow.ui?.nodes?.find(
+    (n) => n.attributes?.name === key || n.attributes?.id === key,
+  );
 }
 
 export type FlowKind =

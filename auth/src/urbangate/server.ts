@@ -18,7 +18,7 @@ import {
 import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { CredentialRefusal, ExchangeConfig, PersonToken } from "./exchange.ts";
-import { KratosError, KratosFlows, codeWasSent } from "./kratos.ts";
+import { KratosError, KratosFlows, codeWasSent, nodeOf } from "./kratos.ts";
 import { Jwks } from "./jwks.ts";
 import { coreTarget, keptCookies, onCore, relayedHeaders } from "./relay.ts";
 import { ConsoleSso, decodePending, encodePending, localPath } from "./sso.ts";
@@ -27,6 +27,7 @@ import type {
   ContinueWith,
   Fetch,
   KratosFailure,
+  KratosFlow,
   KratosSession,
   KratosSessionResult,
 } from "./kratos.ts";
@@ -223,6 +224,7 @@ const FLOW_MAX_AGE = 600;
 const TOKEN_MAX_AGE = 15 * 60;
 const OPENED = "opened";
 const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;
+const LOOKUP_SECRET_USED = 1050014;
 
 type OtpType = "email-verification" | "forget-password" | "sign-in";
 
@@ -731,13 +733,66 @@ export function createUrbangateAuth(
       password,
       ...brand,
     });
+    return (await stepUp(result)) ?? finishSignIn(result);
+  }
+
+  async function finishSignIn(
+    result: KratosSessionResult,
+    extra: Array<string> = [],
+  ): Promise<Response> {
     const entry = await admitted(result);
     if ("refused" in entry) return entry.refused;
     return json(
       200,
       { user: result.session ? userOf(result.session, [], product) : null },
-      [...signedIn(result), ...entry.cookies],
+      [...signedIn(result), ...entry.cookies, ...extra],
     );
+  }
+
+  // An aal1 session whose identity holds a second factor is kept out of the
+  // browser: its token waits in the flow cookie until the factor is proved.
+  async function stepUp(result: KratosSessionResult): Promise<Response | null> {
+    const token = result.session_token;
+    if (!token || result.session?.authenticator_assurance_level !== "aal1")
+      return null;
+    let flow: KratosFlow;
+    try {
+      flow = await kratos.start("login", token, { aal: "aal2" });
+    } catch (error) {
+      if (error instanceof KratosError && error.failure.status !== "unavailable")
+        return null;
+      throw error;
+    }
+    if (!nodeOf(flow, "totp_code") && !nodeOf(flow, "lookup_secret")) return null;
+    return json(
+      403,
+      { error: { code: "second_factor_required", status: 403 } },
+      writeFlow(`login2fa:${flow.id}:${token}`),
+    );
+  }
+
+  const factorBody = (code: string) =>
+    /^\d{6}$/.test(code)
+      ? { method: "totp", totp_code: code, ...brand }
+      : { method: "lookup_secret", lookup_secret: code };
+
+  async function signInSecondFactor(request: Request): Promise<Response> {
+    const b = await body(request);
+    const code = str(b, "code").replace(/\s+/g, "");
+    const [kind, flowId, token] = currentFlow(request.headers).split(":");
+    if (kind !== "login2fa" || !flowId || !token)
+      return failure("flow_expired", 410);
+    if (!code) return failure("invalid_input", 400, "code is required");
+    const stepped = await kratos.submit<KratosSessionResult>(
+      "login",
+      flowId,
+      factorBody(code),
+      token,
+    );
+    const sessionToken = stepped.session_token ?? token;
+    const session = stepped.session ?? (await kratos.whoami(sessionToken));
+    if (!session?.active) return failure("flow_expired", 410);
+    return finishSignIn({ session_token: sessionToken, session });
   }
 
   function ownedLocalPart(email: string): string | null {
@@ -952,6 +1007,10 @@ export function createUrbangateAuth(
           code,
           ...brand,
         });
+    if (login) {
+      const step = await stepUp(result);
+      if (step) return step;
+    }
     const entry = await admitted(result);
     if ("refused" in entry) return entry.refused;
     const opened =
@@ -1104,9 +1163,7 @@ export function createUrbangateAuth(
     const stepped = await kratos.submit<KratosSessionResult>(
       "login",
       login.id,
-      /^\d{6}$/.test(code)
-        ? { method: "totp", totp_code: code, ...brand }
-        : { method: "lookup_secret", lookup_secret: code },
+      factorBody(code),
       token,
     );
     const session = stepped.session_token ?? token;
@@ -1218,6 +1275,125 @@ export function createUrbangateAuth(
       ...writeFlow(`verification:${sent.flowId}`),
     ]);
   }
+
+  type Signed = NonNullable<Awaited<ReturnType<typeof signedInIdentity>>>;
+
+  // A settings change Kratos holds for a privileged session: a password in the
+  // body re-proves it first, and without one the refusal tells the screen to
+  // ask for it.
+  async function privileged(
+    request: Request,
+    run: (signed: Signed, b: Record<string, unknown>) => Promise<Response>,
+  ): Promise<Response> {
+    const b = await body(request);
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const password = typeof b.password === "string" ? b.password : "";
+    try {
+      if (password) await reprove(signed, password);
+      return await run(signed, b);
+    } catch (error) {
+      if (
+        error instanceof KratosError &&
+        error.failure.status === "session_refresh_required"
+      )
+        return failure("reauth_required", 403);
+      throw error;
+    }
+  }
+
+  async function twoFactorStatus(request: Request): Promise<Response> {
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const flow = await kratos.start("settings", signed.token);
+    return json(200, {
+      totp: Boolean(nodeOf(flow, "totp_unlink")),
+      backupCodes: Boolean(nodeOf(flow, "lookup_secret_reveal")),
+    });
+  }
+
+  const startTotp = (request: Request) =>
+    privileged(request, async (signed) => {
+      const flow = await kratos.start("settings", signed.token);
+      if (nodeOf(flow, "totp_unlink")) return failure("totp_already_enabled", 409);
+      const qr = nodeOf(flow, "totp_qr")?.attributes?.src ?? "";
+      const secret = nodeOf(flow, "totp_secret_key")?.attributes?.text?.text ?? "";
+      if (!qr && !secret) return failure("unavailable", 503);
+      return json(200, { qr, secret }, writeFlow(`totp:${flow.id}`));
+    });
+
+  const confirmTotp = (request: Request) =>
+    privileged(request, async (signed, b) => {
+      const code = str(b, "code").replace(/\s+/g, "");
+      const flowId = pendingFlow(request.headers, "totp");
+      if (!flowId) return failure("flow_expired", 410);
+      if (!code) return failure("invalid_input", 400, "code is required");
+      await kratos.submit(
+        "settings",
+        flowId,
+        { method: "totp", totp_code: code, ...brand },
+        signed.token,
+      );
+      return json(200, { totp: true }, clearFlow());
+    });
+
+  const disableTotp = (request: Request) =>
+    privileged(request, async (signed) => {
+      const flow = await kratos.start("settings", signed.token);
+      if (!nodeOf(flow, "totp_unlink")) return json(200, { totp: false });
+      await kratos.submit(
+        "settings",
+        flow.id,
+        { method: "totp", totp_unlink: true, ...brand },
+        signed.token,
+      );
+      return json(200, { totp: false });
+    });
+
+  const codesOf = (flow: KratosFlow) =>
+    (nodeOf(flow, "lookup_secret_codes")?.attributes?.text?.context?.secrets ?? [])
+      .filter((s) => s.id !== LOOKUP_SECRET_USED)
+      .map((s) => s.text ?? "")
+      .filter(Boolean);
+
+  // Regenerated codes count only once confirmed; revealed ones already do.
+  const backupCodes = (request: Request) =>
+    privileged(request, async (signed, b) => {
+      const flow = await kratos.start("settings", signed.token);
+      const reveal = b.reveal === true;
+      const shown = await kratos.submit(
+        "settings",
+        flow.id,
+        {
+          method: "lookup_secret",
+          ...(reveal
+            ? { lookup_secret_reveal: true }
+            : { lookup_secret_regenerate: true }),
+          ...brand,
+        },
+        signed.token,
+      );
+      const codes = codesOf(shown);
+      if (!codes.length && !reveal) return failure("unavailable", 503);
+      return json(
+        200,
+        { codes, confirmed: reveal },
+        reveal ? [] : writeFlow(`lookup:${shown.id || flow.id}`),
+      );
+    });
+
+  const confirmBackupCodes = (request: Request) =>
+    privileged(request, async (signed) => {
+      const flowId = pendingFlow(request.headers, "lookup");
+      if (!flowId) return failure("flow_expired", 410);
+      await kratos.submit(
+        "settings",
+        flowId,
+        { method: "lookup_secret", lookup_secret_confirm: true, ...brand },
+        signed.token,
+      );
+      return json(200, { confirmed: true }, clearFlow());
+    });
 
   async function changePassword(request: Request): Promise<Response> {
     const b = await body(request);
@@ -1430,6 +1606,13 @@ export function createUrbangateAuth(
     "POST email-otp/verify-email": verifyEmail,
     "POST email-otp/reset-password": resetPassword,
     "POST second-factor/verify": verifySecondFactor,
+    "POST sign-in/second-factor": signInSecondFactor,
+    "GET two-factor": twoFactorStatus,
+    "POST two-factor/totp/start": startTotp,
+    "POST two-factor/totp/confirm": confirmTotp,
+    "POST two-factor/totp/disable": disableTotp,
+    "POST two-factor/backup-codes": backupCodes,
+    "POST two-factor/backup-codes/confirm": confirmBackupCodes,
     "POST sign-out": signOut,
     "POST delete-account": deleteAccount,
     "POST update-user": updateUser,

@@ -5,6 +5,7 @@ import type {
   UrbangateAuthClient,
   UrbangateClientSession,
 } from "./client.ts";
+import { twoFactorClient } from "./two-factor-client.ts";
 
 export interface NativeStorage {
   getItem(key: string): Promise<string | null>;
@@ -209,7 +210,9 @@ export function createUrbangateNativeClient(
     },
     secondFactor: {
       verify: (input) => call("POST", "second-factor/verify", input),
+      signIn: (input) => call("POST", "sign-in/second-factor", input),
     },
+    twoFactor: twoFactorClient(call),
     signOut,
     updateUser: (input) => call("POST", "update-user", input),
     changePassword: (input) => call("POST", "change-password", input),
