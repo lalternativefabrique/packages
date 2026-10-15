@@ -276,6 +276,42 @@ export async function updateRecoveryEmail(
   }
 }
 
+/**
+ * Whether urbangate lets this product write the identity's recovery address.
+ * Anything but a clear answer reads as manageable, so a product facing an
+ * urbangate without the route keeps offering the setting.
+ */
+export async function recoveryEmailManageable(
+  config: IdentityProvisioningConfig,
+  request: { identityId: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  const token = await accessToken(config, fetchImpl)
+  if (!token) return true
+
+  const base = config.issuer.replace(/\/$/, "")
+  try {
+    const response = await fetchImpl(
+      `${base}/api/machine/recovery-emails?identity_id=${encodeURIComponent(request.identityId)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      },
+    )
+    if (response.status === 401) {
+      tokenCache.delete(`${config.issuer}|${config.clientId}`)
+      return true
+    }
+    if (!response.ok) return true
+    const body = (await response.json().catch(() => ({}))) as {
+      manageable?: unknown
+    }
+    return body.manageable !== false
+  } catch {
+    return true
+  }
+}
+
 export type DeletionOutcome =
   | { status: "requested"; eventId: string }
   | { status: "rejected"; reason: string }

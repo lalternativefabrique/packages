@@ -13,6 +13,7 @@ import {
   provisionIdentity,
   requestAccountDeletion,
   updateRecoveryEmail,
+  recoveryEmailManageable,
   updateIdentityPassword,
 } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
@@ -1241,7 +1242,12 @@ export function createUrbangateAuth(
           (a) => a.value === email && a.verified,
         ) ?? false)
       : false;
-    return json(200, { email, verified });
+    const manageable = await recoveryEmailManageable(
+      provisioner,
+      { identityId: signed.identity.id },
+      config.fetch,
+    );
+    return json(200, { email, verified, manageable });
   }
 
   // The address is saved before it is proved: Kratos verifies an address the
@@ -1258,13 +1264,7 @@ export function createUrbangateAuth(
       return failure("same_as_account", 400);
     await reprove(signed, password);
     const saved = await updateRecoveryEmail(
-      {
-        issuer: config.urbangate.issuerUrl,
-        clientId: config.urbangate.provisioner.clientId,
-        clientSecret: config.urbangate.provisioner.clientSecret,
-        role: `${product}:user`,
-        product,
-      },
+      provisioner,
       { identityId: signed.identity.id, email },
       config.fetch,
     );

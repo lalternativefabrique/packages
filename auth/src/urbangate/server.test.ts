@@ -721,15 +721,53 @@ test("recovery-email reads the address and whether it was proved", async () => {
   });
   const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { email: "ana@gmail.example", verified: false });
+  assert.deepEqual(await res.json(), {
+    email: "ana@gmail.example",
+    verified: false,
+    manageable: true,
+  });
 });
 
 test("recovery-email is null for an identity that never set one, and needs a session", async () => {
   const { fetchImpl } = kratosStub();
   const a = auth(fetchImpl);
   const res = await a.handler(get("recovery-email", signedInCookie));
-  assert.deepEqual(await res.json(), { email: null, verified: false });
+  assert.deepEqual(await res.json(), { email: null, verified: false, manageable: true });
   assert.equal((await a.handler(get("recovery-email"))).status, 401);
+});
+
+test("recovery-email says when urbangate keeps the address out of the product's hands", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl, calls } = kratosStub({
+    "POST /oauth2/token": () =>
+      Response.json({ access_token: "machine", expires_in: 3600 }),
+    "GET /api/machine/recovery-emails?identity_id=8f3a": () =>
+      Response.json({ manageable: false }),
+  });
+  const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
+  assert.deepEqual(await res.json(), { email: null, verified: false, manageable: false });
+  const read = calls.find((c) => c.key.startsWith("GET /api/machine/recovery-emails"));
+  assert.equal(read?.headers.get("authorization"), "Bearer machine");
+});
+
+test("recovery-email stays manageable when urbangate lacks the route or is down", async () => {
+  for (const answer of [
+    () => new Response(null, { status: 404 }),
+    () => new Response(null, { status: 405 }),
+    () => new Response(null, { status: 503 }),
+    () => {
+      throw new TypeError("fetch failed");
+    },
+  ]) {
+    resetProvisioningTokenCache();
+    const { fetchImpl } = kratosStub({
+      "POST /oauth2/token": () =>
+        Response.json({ access_token: "machine", expires_in: 3600 }),
+      "GET /api/machine/recovery-emails?identity_id=8f3a": answer,
+    });
+    const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
+    assert.equal(((await res.json()) as { manageable: boolean }).manageable, true);
+  }
 });
 
 const urbangateWrites = {
