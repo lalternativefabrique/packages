@@ -42,8 +42,11 @@ type HandlerConfig struct {
 	// Mappable says whether a resource can be linked; nil links any.
 	Mappable func(Resource) bool
 	// CallbackRedirect, when set, makes the callback redirect there with
-	// ?<product>=connected|error instead of answering JSON.
+	// ?<product>=connected|error&reason=<outcome> instead of answering JSON.
 	CallbackRedirect string
+	// CallbackWithoutSession finishes the consent from its state alone, for a
+	// callback served where the browser carries no session.
+	CallbackWithoutSession bool
 }
 
 type Handler struct {
@@ -55,14 +58,22 @@ func NewHandler(g *Grants, cfg HandlerConfig) *Handler {
 	return &Handler{grants: g, cfg: cfg}
 }
 
-// Register mounts the routes on a group the host already authenticated.
-func (h *Handler) Register(g *echo.Group) {
-	g.GET("/connections", h.List)
+// Register mounts the routes on a group the host already authenticated, the
+// callback included unless CallbackWithoutSession asks to mount it apart with
+// RegisterCallback. The middlewares guard every route but the callback.
+func (h *Handler) Register(g *echo.Group, mw ...echo.MiddlewareFunc) {
+	g.GET("/connections", h.List, mw...)
+	if !h.cfg.CallbackWithoutSession {
+		h.RegisterCallback(g)
+	}
+	g.POST("/connections/:product", h.Start, mw...)
+	g.DELETE("/connections/:product", h.Disconnect, mw...)
+	g.GET("/connections/:product/resources", h.Resources, mw...)
+	g.PUT("/connections/:product/links", h.SetLink, mw...)
+}
+
+func (h *Handler) RegisterCallback(g *echo.Group) {
 	g.GET("/connections/callback", h.Callback)
-	g.POST("/connections/:product", h.Start)
-	g.DELETE("/connections/:product", h.Disconnect)
-	g.GET("/connections/:product/resources", h.Resources)
-	g.PUT("/connections/:product/links", h.SetLink)
 }
 
 func failure(c echo.Context, status int, reason string) error {
@@ -154,12 +165,21 @@ func (h *Handler) Start(c echo.Context) error {
 // @Router   /connections/callback [get]
 // @ID       finishConnection
 func (h *Handler) Callback(c echo.Context) error {
-	who, err := h.cfg.Identify(c)
-	if err != nil {
-		return err
+	state, code, authErr := c.QueryParam("state"), c.QueryParam("code"), c.QueryParam("error")
+	var (
+		product string
+		outcome Outcome
+		err     error
+	)
+	if h.cfg.CallbackWithoutSession {
+		product, outcome, err = h.grants.FinishByState(c.Request().Context(), state, code, authErr)
+	} else {
+		who, ierr := h.cfg.Identify(c)
+		if ierr != nil {
+			return ierr
+		}
+		product, outcome, err = h.grants.Finish(c.Request().Context(), who.Owner, state, code, authErr)
 	}
-	product, outcome, err := h.grants.Finish(c.Request().Context(), who.Owner,
-		c.QueryParam("state"), c.QueryParam("code"), c.QueryParam("error"))
 	if err != nil {
 		return err
 	}
@@ -181,7 +201,11 @@ func callbackTarget(base, product string, outcome Outcome) string {
 	if strings.Contains(base, "?") {
 		sep = "&"
 	}
-	return base + sep + url.QueryEscape(product) + "=" + result
+	target := base + sep + url.QueryEscape(product) + "=" + result
+	if outcome != OutcomeConnected && outcome != "" {
+		target += "&reason=" + url.QueryEscape(string(outcome))
+	}
+	return target
 }
 
 // Resources godoc

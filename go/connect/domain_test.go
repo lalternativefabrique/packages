@@ -7,7 +7,6 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
 )
 
 func TestChallengeIsRFC7636S256(t *testing.T) {
@@ -43,7 +42,7 @@ func TestAPendingIsBoundToItsOwnerAndTime(t *testing.T) {
 
 func TestTheAuthorizeURLAsksForOneProduct(t *testing.T) {
 	p := Pending{State: "st", Verifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk", Product: "lungor"}
-	raw := AuthorizeURL("https://id.urbangate.dev/", "host-connect", "https://host.example/api/connect/callback", p, Product{ID: p.Product})
+	raw := AuthorizeURL("https://id.urbangate.dev/", "host-connect", "https://host.example/api/connect/callback", "", p, Product{ID: p.Product})
 	u, err := url.Parse(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -75,7 +74,7 @@ func TestTheAuthorizeURLAsksForOneProduct(t *testing.T) {
 
 func TestAProductNamesItsOwnAudienceAndScopes(t *testing.T) {
 	p := Pending{State: "st", Verifier: "v", Product: "partage"}
-	raw := AuthorizeURL("https://id.urbangate.dev", "c", "https://h/cb", p, Product{ID: "partage", Audience: "partage-api", Scopes: []string{"partage:publish"}})
+	raw := AuthorizeURL("https://id.urbangate.dev", "c", "https://h/cb", "", p, Product{ID: "partage", Audience: "partage-api", Scopes: []string{"partage:publish"}})
 	u, _ := url.Parse(raw)
 	if u.Query().Get("audience") != "partage-api" || u.Query().Get("scope") != "offline_access partage:publish" {
 		t.Fatalf("query = %v", u.Query())

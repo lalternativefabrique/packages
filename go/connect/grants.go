@@ -41,6 +41,8 @@ type Config struct {
 	// ErrNotConnected; otherwise it is kept revoked and the call answers
 	// ErrAccessRemoved.
 	ForgetRemoved bool
+	// Prompt is urbangate's prompt parameter, DefaultPrompt when empty.
+	Prompt string
 }
 
 // Grants obtains, refreshes and uses owners' grants. It is unavailable, and
@@ -116,7 +118,7 @@ func (g *Grants) Start(ctx context.Context, owner, product string) (string, erro
 	if err := g.store.AddPending(ctx, pending); err != nil {
 		return "", err
 	}
-	return AuthorizeURL(g.cfg.Issuer, g.cfg.ClientID, g.cfg.RedirectURI, pending, p), nil
+	return AuthorizeURL(g.cfg.Issuer, g.cfg.ClientID, g.cfg.RedirectURI, g.cfg.Prompt, pending, p), nil
 }
 
 type Outcome string
@@ -131,6 +133,16 @@ const (
 // Finish turns what urbangate sent to the redirect URI into a grant. Only a
 // store failure is an error; everything else is an outcome.
 func (g *Grants) Finish(ctx context.Context, owner, state, code, authErr string) (string, Outcome, error) {
+	return g.finish(ctx, &owner, state, code, authErr)
+}
+
+// FinishByState is Finish for a callback that carries no session: the owner
+// is the one who started the consent, and the single-use state proves it.
+func (g *Grants) FinishByState(ctx context.Context, state, code, authErr string) (string, Outcome, error) {
+	return g.finish(ctx, nil, state, code, authErr)
+}
+
+func (g *Grants) finish(ctx context.Context, caller *string, state, code, authErr string) (string, Outcome, error) {
 	if !g.Available() {
 		return "", OutcomeUnavailable, nil
 	}
@@ -140,6 +152,10 @@ func (g *Grants) Finish(ctx context.Context, owner, state, code, authErr string)
 	}
 	if err != nil {
 		return "", "", err
+	}
+	owner := pending.Owner
+	if caller != nil {
+		owner = *caller
 	}
 	if err := pending.Check(owner, g.now()); err != nil {
 		return pending.Product, OutcomeInvalid, nil

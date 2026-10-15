@@ -62,10 +62,13 @@ func randomToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
+// DefaultPrompt makes the person sign in to the account that owns the data,
+// then choose again what they share.
+const DefaultPrompt = "login consent"
+
 // AuthorizeURL names exactly one audience: urbangate refuses a request that
-// mixes them. prompt=login makes the person sign in to the account that owns
-// the data; prompt=consent lets them choose again what they share.
-func AuthorizeURL(issuer, clientID, redirectURI string, p Pending, product Product) string {
+// mixes them.
+func AuthorizeURL(issuer, clientID, redirectURI, prompt string, p Pending, product Product) string {
 	q := url.Values{}
 	q.Set("client_id", clientID)
 	q.Set("response_type", "code")
@@ -75,7 +78,10 @@ func AuthorizeURL(issuer, clientID, redirectURI string, p Pending, product Produ
 	q.Set("state", p.State)
 	q.Set("code_challenge", Challenge(p.Verifier))
 	q.Set("code_challenge_method", "S256")
-	q.Set("prompt", "login consent")
+	if prompt == "" {
+		prompt = DefaultPrompt
+	}
+	q.Set("prompt", prompt)
 	return strings.TrimRight(issuer, "/") + "/oauth2/auth?" + q.Encode()
 }
 

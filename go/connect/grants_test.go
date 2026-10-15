@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -453,7 +454,7 @@ func TestTheCallbackRedirectsToTheAppWhenConfigured(t *testing.T) {
 	h := newHarness(Config{}, HandlerConfig{CallbackRedirect: "/settings/connections"})
 	p := h.start(t)
 	rec := h.call(http.MethodGet, "/?state="+p.State+"&error=access_denied", "", h.handler.Callback, "")
-	if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/settings/connections?partage=error" {
+	if rec.Code != http.StatusFound || rec.Header().Get("Location") != "/settings/connections?partage=error&reason=refused" {
 		t.Fatalf("status %d location %q", rec.Code, rec.Header().Get("Location"))
 	}
 }
@@ -562,5 +563,34 @@ func TestWithoutAStoreEveryRouteButTheListIsUnavailable(t *testing.T) {
 	}
 	if rec := hn.call(http.MethodPost, "/", "", h.Start, "nope"); rec.Code != http.StatusNotFound {
 		t.Fatalf("unknown product %d", rec.Code)
+	}
+}
+
+func TestACallbackWithoutSessionConnectsTheOwnerWhoStarted(t *testing.T) {
+	h := newHarness(Config{}, HandlerConfig{CallbackWithoutSession: true})
+	p := h.start(t)
+	h.handler.cfg.Identify = func(echo.Context) (Who, error) {
+		return Who{}, echo.NewHTTPError(http.StatusUnauthorized)
+	}
+	h.tokens.exchange = func(string, string) (Tokens, error) {
+		return Tokens{Access: "a", Refresh: "r", ExpiresAt: h.now.Add(time.Hour)}, nil
+	}
+	if out := h.callback("state=" + p.State + "&code=abc"); out.Outcome != string(OutcomeConnected) {
+		t.Fatalf("outcome %q", out.Outcome)
+	}
+	if c := h.conn(); c.Owner != owner || c.RefreshToken != "r" {
+		t.Fatalf("connection = %+v", c)
+	}
+}
+
+func TestThePromptIsConfigurable(t *testing.T) {
+	p := Pending{State: "s", Verifier: "v", Owner: "o", Product: "partage"}
+	got, _ := url.Parse(AuthorizeURL("https://id", "c", "https://h/cb", "consent", p, Product{ID: "partage"}))
+	if got.Query().Get("prompt") != "consent" {
+		t.Fatalf("prompt %q", got.Query().Get("prompt"))
+	}
+	def, _ := url.Parse(AuthorizeURL("https://id", "c", "https://h/cb", "", p, Product{ID: "partage"}))
+	if def.Query().Get("prompt") != DefaultPrompt {
+		t.Fatalf("default prompt %q", def.Query().Get("prompt"))
 	}
 }
