@@ -4,8 +4,11 @@ import { AuthAlert } from "./auth-alert"
 import { AuthField } from "./auth-field"
 import { AuthSubmit } from "./auth-submit"
 import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
+import { isSecondFactorRequired } from "../second-factor-sign-in"
+import { SECOND_FACTOR_DEFAULTS, SecondFactorStep } from "./second-factor-step"
 
 const DEFAULTS: Required<EmailCodeSignInFormLabels> = {
+  ...SECOND_FACTOR_DEFAULTS,
   title: "Code de connexion",
   subtitle: "Recevoir un code par e-mail",
   emailPlaceholder: "Adresse e-mail",
@@ -20,7 +23,7 @@ const DEFAULTS: Required<EmailCodeSignInFormLabels> = {
   usePassword: "Se connecter avec un mot de passe",
 }
 
-type Step = "email" | "code"
+type Step = "email" | "code" | "second-factor"
 
 // An unknown address is signed up by the same code, so this screen is also
 // the passwordless way in for someone who has no account yet.
@@ -64,9 +67,18 @@ export function EmailCodeSignInForm({
       otp: code.trim(),
     })
     if (failed) {
+      if (isSecondFactorRequired(failed) && authClient.secondFactor?.signIn) {
+        setCode("")
+        setStep("second-factor")
+        return
+      }
       setOwnError(refusal(failed.status, t.invalidCode))
       return
     }
+    await completeSignIn()
+  }
+
+  const completeSignIn = async () => {
     if (coreTokenUrl) await fetch(coreTokenUrl, { credentials: "include" }).catch(() => null)
     onSuccess?.()
   }
@@ -80,6 +92,24 @@ export function EmailCodeSignInForm({
     } finally {
       setPending(false)
     }
+  }
+
+  const secondFactorSignIn = authClient.secondFactor?.signIn
+  if (step === "second-factor" && secondFactorSignIn) {
+    return (
+      <SecondFactorStep
+        signIn={(input) => secondFactorSignIn.call(authClient.secondFactor, input)}
+        onSignedIn={completeSignIn}
+        onRestart={(message) => {
+          setStep("email")
+          setOwnError(message)
+        }}
+        refusalMessage={(message) => message ?? t.invalidCode}
+        labels={t}
+        submitClassName={submitClassName}
+        fieldClassName={fieldClassName}
+      />
+    )
   }
 
   return (
