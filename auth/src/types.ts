@@ -58,7 +58,17 @@ export interface InvitationLandingProps extends AuthNavProps {
  * given falls back to the French defaults, matching the
  * apps consuming this package. Pass a full set to render another language.
  */
-export interface LoginFormLabels {
+export interface SecondFactorStepLabels {
+  secondFactorLabel?: string
+  secondFactorHint?: string
+  secondFactorSubmit?: string
+  secondFactorPending?: string
+  secondFactorBack?: string
+  secondFactorInvalid?: string
+  secondFactorExpired?: string
+}
+
+export interface LoginFormLabels extends SecondFactorStepLabels {
   title?: string
   subtitle?: string
   emailPlaceholder?: string
@@ -172,6 +182,8 @@ export interface AuthClientSurface {
   /** The second step of a password reset for an identity holding a second factor. */
   secondFactor?: {
     verify(input: { code: string; password: string }): Promise<AuthClientResult>
+    /** Finishes a sign-in answered `second_factor_required` */
+    signIn?(input: { code: string }): Promise<AuthClientResult>
   }
 }
 
@@ -253,7 +265,7 @@ export interface LoginFormProps extends AuthThemeProps, AuthNavProps {
   requestAccessUrl?: string
 }
 
-export interface EmailCodeSignInFormLabels {
+export interface EmailCodeSignInFormLabels extends SecondFactorStepLabels {
   title?: string
   subtitle?: string
   emailPlaceholder?: string
@@ -277,6 +289,10 @@ export interface EmailCodeSignInClientSurface {
   }
   signIn: {
     emailOtp(input: { email: string; otp: string }): Promise<AuthClientResult>
+  }
+  /** Finishes a sign-in answered `second_factor_required` */
+  secondFactor?: {
+    signIn?(input: { code: string }): Promise<AuthClientResult>
   }
 }
 

@@ -2,6 +2,7 @@
 export type {
   LoginFormProps,
   LoginFormLabels,
+  SecondFactorStepLabels,
   EmailCodeSignInFormProps,
   EmailCodeSignInFormLabels,
   EmailCodeSignInClientSurface,

@@ -13,8 +13,11 @@ import {
   isInvitationRequired,
 } from "../messag-sign-in"
 import { clearOAuthError } from "../oauth-error"
+import { isSecondFactorRequired } from "../second-factor-sign-in"
+import { SECOND_FACTOR_DEFAULTS, SecondFactorStep } from "./second-factor-step"
 
 const DEFAULTS: Required<LoginFormLabels> = {
+  ...SECOND_FACTOR_DEFAULTS,
   title: "Connexion",
   subtitle: "Content de te revoir. Entre tes identifiants pour continuer.",
   emailPlaceholder: "Adresse e-mail",
@@ -65,6 +68,7 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [ownError, setOwnError] = useState<string | undefined>()
   const [isPending, setIsPending] = useState(false)
+  const [secondFactor, setSecondFactor] = useState(false)
   const [invitationRefused, setInvitationRefused] = useState(() => {
     const refused = initialInvitationRefusal()
     if (refused) clearOAuthError()
@@ -75,6 +79,14 @@ export function LoginForm({
   // What the person just did outranks what happened before they arrived.
   const error = ownError ?? externalError
   const setError = setOwnError
+
+  const completeSignIn = async () => {
+    // Skipped when the app sets the core's token itself, or has no core.
+    if (coreTokenUrl) {
+      await fetch(coreTokenUrl, { credentials: "include" })
+    }
+    onSuccess?.()
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -99,6 +111,11 @@ export function LoginForm({
           setInvitationRefused(true)
           return
         }
+        if (isSecondFactorRequired(res.error) && authClient.secondFactor?.signIn) {
+          setPassword("")
+          setSecondFactor(true)
+          return
+        }
         if (isEmailNotVerified(res.error) && onEmailNotVerified) {
           onEmailNotVerified(email.trim())
           return
@@ -110,11 +127,7 @@ export function LoginForm({
         )
         return
       }
-      // Skipped when the app sets the core's token itself, or has no core.
-      if (coreTokenUrl) {
-        await fetch(coreTokenUrl, { credentials: "include" })
-      }
-      onSuccess?.()
+      await completeSignIn()
     } catch (err) {
       setError(err instanceof Error ? err.message : t.invalidCredentials)
     } finally {
@@ -139,6 +152,24 @@ export function LoginForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : t.socialFailed)
     }
+  }
+
+  const secondFactorSignIn = authClient.secondFactor?.signIn
+  if (secondFactor && secondFactorSignIn) {
+    return (
+      <SecondFactorStep
+        signIn={(input) => secondFactorSignIn.call(authClient.secondFactor, input)}
+        onSignedIn={completeSignIn}
+        onRestart={(message) => {
+          setSecondFactor(false)
+          setError(message)
+        }}
+        refusalMessage={(message) => message ?? t.invalidCredentials}
+        labels={t}
+        submitClassName={submitClassName}
+        fieldClassName={fieldClassName}
+      />
+    )
   }
 
   return (

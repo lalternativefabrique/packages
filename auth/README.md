@@ -285,6 +285,12 @@ navigation only follows it.
 `EmailCodeSignInForm` is the sign-in by e-mail code, both steps, with a link
 back to the password form; an unknown address is signed up by the same code.
 
+`LoginForm` and `EmailCodeSignInForm` handle the second factor themselves
+(2.15): a sign-in answered `second_factor_required` turns the card into a
+« Code de vérification » step that calls `secondFactor.signIn`, then the same
+`onSuccess`. A wrong code stays on the step; `flow_expired` goes back to the
+first step. The copy is overridable through the `secondFactor*` labels.
+
 ### A domain the product owns (1.11)
 
 A product that mints its own mailboxes (messag on `@messag.eco`) has nowhere
