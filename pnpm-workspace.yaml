@@ -7,6 +7,7 @@ packages:
   - "vvaves/*"
   - "auth"
   - "keys"
+  - "connect"
   - "legal"
   - "admin"
   - "assistant"

@@ -56,6 +56,8 @@ services:
 scopes:
   auth:
     - "auth/**"
+  connect-react:
+    - "connect/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
   nakoda-sdk:
@@ -152,6 +154,15 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/auth test
       npx -y pnpm@11.3.0 --filter @lalternative/auth typecheck
       npx -y pnpm@11.3.0 --filter @lalternative/auth build
+
+  - name: connect-react
+    scope: [connect-react]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/connect test
+      npx -y pnpm@11.3.0 --filter @lalternative/connect typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/connect build
 
   - name: nakoda-sdk
     scope: [nakoda-sdk]

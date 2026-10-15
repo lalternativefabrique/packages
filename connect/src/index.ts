@@ -1,0 +1,5 @@
+export { Connections, defaultClasses } from './Connections'
+export type { Classes, ConnectionsProps } from './Connections'
+export { frenchTexts } from './texts'
+export type { Texts } from './texts'
+export * from './model'
