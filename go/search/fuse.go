@@ -25,21 +25,25 @@ const rrfK = 60.0
 // so one slow backend does not hold up the others.
 func Merge(ctx context.Context, providers []Provider, q Query, deadline time.Duration) (*Response, error) {
 	type outcome struct {
-		res *Response
-		err error
+		priority int
+		res      *Response
+		err      error
 	}
 	done := make(chan outcome, len(providers))
-	for _, p := range providers {
-		go func(p Provider) {
+	for i, p := range providers {
+		go func(i int, p Provider) {
 			res, err := p.Search(ctx, q)
-			done <- outcome{res: res, err: err}
-		}(p)
+			done <- outcome{priority: i, res: res, err: err}
+		}(i, p)
 	}
 
 	timer := time.NewTimer(deadline)
 	defer timer.Stop()
 
-	lists := make([][]Result, 0, len(providers))
+	// lists is indexed by the provider's position, so the fusion reads them
+	// in priority order whatever order they arrived in.
+	lists := make([][]Result, len(providers))
+	answered := 0
 	var firstErr error
 	for range providers {
 		select {
@@ -48,15 +52,16 @@ func Merge(ctx context.Context, providers []Provider, q Query, deadline time.Dur
 				firstErr = out.err
 				continue
 			}
-			lists = append(lists, out.res.Results)
+			lists[out.priority] = out.res.Results
+			answered++
 		case <-timer.C:
-			if len(lists) == 0 {
+			if answered == 0 {
 				// Nothing to show yet: a slow answer beats an empty one.
 				out := <-done
 				if out.err != nil {
 					return nil, out.err
 				}
-				lists = append(lists, out.res.Results)
+				lists[out.priority] = out.res.Results
 			}
 			return &Response{
 				Query:   q.Text,
@@ -67,34 +72,47 @@ func Merge(ctx context.Context, providers []Provider, q Query, deadline time.Dur
 			return nil, ctx.Err()
 		}
 	}
-	if len(lists) == 0 {
+	if answered == 0 {
 		return nil, firstErr
 	}
 
 	return &Response{
 		Query:   q.Text,
 		Results: fuseByRank(lists, q.Limit),
-		Partial: len(lists) < len(providers),
+		Partial: answered < len(providers),
 	}, nil
 }
 
+// fuseByRank reads lists in provider priority order (index 0 first), so a
+// URL several providers return keeps the fields of the highest-priority one,
+// and equal scores rank by that provider's priority, then by URL: the same
+// inputs give the same output whichever provider answered first.
 func fuseByRank(lists [][]Result, limit int) []Result {
 	scores := make(map[string]float64)
 	best := make(map[string]Result)
+	priority := make(map[string]int)
 	order := make([]string, 0)
 
-	for _, list := range lists {
+	for p, list := range lists {
 		for rank, r := range list {
 			if _, known := best[r.URL]; !known {
 				best[r.URL] = r
+				priority[r.URL] = p
 				order = append(order, r.URL)
 			}
 			scores[r.URL] += 1.0 / (rrfK + float64(rank+1))
 		}
 	}
 
-	sort.SliceStable(order, func(i, j int) bool {
-		return scores[order[i]] > scores[order[j]]
+	sort.Slice(order, func(i, j int) bool {
+		a, b := order[i], order[j]
+		if scores[a] != scores[b] {
+			return scores[a] > scores[b]
+		}
+		if priority[a] != priority[b] {
+			return priority[a] < priority[b]
+		}
+		return a < b
 	})
 
 	if limit > 0 && len(order) > limit {
