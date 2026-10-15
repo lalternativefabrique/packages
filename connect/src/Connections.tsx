@@ -70,6 +70,8 @@ export type ConnectionsProps = {
   formatDate?: (iso: string) => string
   classes?: Partial<Classes>
   navigate?: (url: string) => void
+  /** False hides "Créer", for a host whose entities are not made from a resource. */
+  allowCreate?: boolean
 }
 
 type Async<T> =
@@ -109,6 +111,7 @@ export function Connections({
   formatDate = defaultDate,
   classes,
   navigate = (url) => window.location.assign(url),
+  allowCreate = true,
 }: ConnectionsProps) {
   const c = { ...defaultClasses, ...classes }
   const list = useCallback(() => client.list(), [client])
@@ -147,6 +150,7 @@ export function Connections({
             c={c}
             formatDate={formatDate}
             navigate={navigate}
+            allowCreate={allowCreate}
             onChange={reload}
           />
         ))
@@ -163,10 +167,11 @@ type CardProps = {
   c: Classes
   formatDate: (iso: string) => string
   navigate: (url: string) => void
+  allowCreate: boolean
   onChange: () => void
 }
 
-function ProductCard({ connection, client, entities, texts, c, formatDate, navigate, onChange }: CardProps) {
+function ProductCard({ connection, client, entities, texts, c, formatDate, navigate, allowCreate, onChange }: CardProps) {
   const active = connection.status === 'active'
   const load = useCallback(() => client.resources(connection.product), [client, connection.product])
   const [resources, reload] = useAsync(load, active)
@@ -228,6 +233,7 @@ function ProductCard({ connection, client, entities, texts, c, formatDate, navig
                     product={connection.product}
                     resource={r}
                     entities={entities}
+                    allowCreate={allowCreate}
                     client={client}
                     texts={texts}
                     c={c}
@@ -350,6 +356,7 @@ function ResourceChoice({
   product,
   resource,
   entities,
+  allowCreate,
   client,
   texts,
   c,
@@ -358,6 +365,7 @@ function ResourceChoice({
   product: string
   resource: Resource
   entities: Entity[]
+  allowCreate: boolean
   client: ConnectClient
   texts: Texts
   c: Classes
@@ -402,7 +410,7 @@ function ResourceChoice({
             ))}
           </optgroup>
         )}
-        <option value="create">{texts.create(resource.label)}</option>
+        {allowCreate && <option value="create">{texts.create(resource.label)}</option>}
         <option value="ignore">{texts.ignore}</option>
       </select>
       <button type="submit" className={c.button} disabled={choice === '' || stored || save.state === 'busy'}>

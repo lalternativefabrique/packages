@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/connect",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Shared Connections page for L'Alternative apps: connect a suite product through urbangate and link what it shares (go/connect)",
   "type": "module",
   "main": "./dist/index.js",
