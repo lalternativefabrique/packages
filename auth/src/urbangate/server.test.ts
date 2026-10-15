@@ -770,6 +770,9 @@ test("a recovery email urbangate refuses is not mailed", async () => {
     post("recovery-email", { email: "ana@gmail.example", password: "pw" }, signedInCookie),
   );
   assert.equal(res.status, 400);
+  const { error } = (await res.json()) as { error: { code: string; manageAt: string } };
+  assert.equal(error.code, "role");
+  assert.match(error.manageAt, /\/settings\?section=recovery$/);
   assert.ok(!calls.some((c) => c.key.startsWith("GET /self-service/verification")));
 });
 

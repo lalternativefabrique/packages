@@ -1212,6 +1212,14 @@ export function createUrbangateAuth(
       config.fetch,
     );
     if (saved.status === "unavailable") return failure("unavailable", 503);
+    if (saved.status === "rejected" && saved.reason === "role")
+      return json(400, {
+        error: {
+          code: "role",
+          status: 400,
+          manageAt: `${config.urbangate.issuerUrl.replace(/\/$/, "")}/settings?section=recovery`,
+        },
+      });
     if (saved.status === "rejected") return failure(saved.reason, 400);
     const sent = await sendCodeOn("verification", email);
     return json(200, { sent: true }, [
