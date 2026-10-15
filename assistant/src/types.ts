@@ -5,6 +5,13 @@ export interface AssistantScope {
   label: string;
 }
 
+export interface AssistantScopePicker {
+  scopes: AssistantScope[];
+  scopeId: string;
+  label: string;
+  onChange: (scopeId: string) => void;
+}
+
 export interface AssistantQuickAction {
   id: string;
   label: string;
@@ -114,6 +121,7 @@ export interface AssistantPanelProps {
   pasteAsFileThreshold?: number;
   labels?: Partial<AssistantLabels>;
   renderMarkdown?: (text: string) => ReactNode;
+  renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;
   renderMessageFooter?: (message: AssistantMessage) => ReactNode;
   readScreen?: () => AssistantScreen | undefined;
   widthStorageKey?: string;

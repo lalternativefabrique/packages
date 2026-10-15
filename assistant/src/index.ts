@@ -12,6 +12,7 @@ export type {
   AssistantPanelProps,
   AssistantQuickAction,
   AssistantScope,
+  AssistantScopePicker,
   AssistantScreen,
   AssistantSendInput,
   AssistantSendResult,

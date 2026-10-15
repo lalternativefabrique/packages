@@ -70,6 +70,7 @@ export function AssistantPanel({
   pasteAsFileThreshold,
   labels: labelOverrides,
   renderMarkdown,
+  renderScopePicker,
   renderMessageFooter,
   readScreen,
   widthStorageKey = "lalt.assistant.width",
@@ -275,6 +276,16 @@ export function AssistantPanel({
           <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-truncate lalt-assistant-scope-label">
             {scopeLabel}
           </span>
+        ) : renderScopePicker ? (
+          renderScopePicker({
+            scopes,
+            scopeId,
+            label: labels.scope,
+            onChange: (id) => {
+              onScopeChange?.(id);
+              newConversation();
+            },
+          })
         ) : (
           <select
             value={scopeId}
