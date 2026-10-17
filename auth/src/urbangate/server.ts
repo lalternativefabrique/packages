@@ -779,6 +779,56 @@ export function createUrbangateAuth(
     );
   }
 
+  // Kratos hands WebAuthn options as JSON in a hidden node, wrapped in
+  // `publicKey` (and, for an enrolment, in `credentialOptions` too); the
+  // platform APIs take the bare `publicKey` object.
+  function passkeyOptions(
+    flow: KratosFlow,
+    node: string,
+  ): Record<string, unknown> | null {
+    const raw = nodeOf(flow, node)?.attributes?.value;
+    if (typeof raw !== "string" || !raw) return null;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+    const wrapped = (parsed.credentialOptions ?? parsed) as Record<
+      string,
+      unknown
+    >;
+    return (wrapped.publicKey ?? wrapped) as Record<string, unknown>;
+  }
+
+  function credentialOf(b: Record<string, unknown>): string {
+    if (typeof b.credential === "string") return b.credential;
+    if (b.credential && typeof b.credential === "object")
+      return JSON.stringify(b.credential);
+    return "";
+  }
+
+  async function beginPasskeySignIn(): Promise<Response> {
+    const flow = await kratos.start("login");
+    const options = passkeyOptions(flow, "passkey_challenge");
+    if (!options) return failure("not_supported", 501);
+    return json(200, { options }, writeFlow(`passkey:${flow.id}`));
+  }
+
+  async function finishPasskeySignIn(request: Request): Promise<Response> {
+    const credential = credentialOf(await body(request));
+    const flowId = pendingFlow(request.headers, "passkey");
+    if (!flowId) return failure("flow_expired", 410);
+    if (!credential)
+      return failure("invalid_input", 400, "credential is required");
+    const result = await kratos.submit<KratosSessionResult>("login", flowId, {
+      method: "passkey",
+      passkey_login: credential,
+      ...brand,
+    });
+    return (await stepUp(result)) ?? finishSignIn(result);
+  }
+
   const factorBody = (code: string) =>
     /^\d{6}$/.test(code)
       ? { method: "totp", totp_code: code, ...brand }
@@ -1417,6 +1467,30 @@ export function createUrbangateAuth(
     }
   }
 
+  const startPasskey = (request: Request) =>
+    privileged(request, async (signed) => {
+      const flow = await kratos.start("settings", signed.token);
+      const options = passkeyOptions(flow, "passkey_create_data");
+      if (!options) return failure("not_supported", 501);
+      return json(200, { options }, writeFlow(`passkeyadd:${flow.id}`));
+    });
+
+  const confirmPasskey = (request: Request) =>
+    privileged(request, async (signed, b) => {
+      const credential = credentialOf(b);
+      const flowId = pendingFlow(request.headers, "passkeyadd");
+      if (!flowId) return failure("flow_expired", 410);
+      if (!credential)
+        return failure("invalid_input", 400, "credential is required");
+      await kratos.submit(
+        "settings",
+        flowId,
+        { method: "passkey", passkey_settings_register: credential, ...brand },
+        signed.token,
+      );
+      return json(200, { passkey: true }, clearFlow());
+    });
+
   async function twoFactorStatus(request: Request): Promise<Response> {
     const signed = await signedInIdentity(request);
     if (!signed) return failure("sign_in_required", 401);
@@ -1723,6 +1797,10 @@ export function createUrbangateAuth(
     "POST recovery/choose": chooseRecoveredAccount,
     "POST second-factor/verify": verifySecondFactor,
     "POST sign-in/second-factor": signInSecondFactor,
+    "POST sign-in/passkey/begin": beginPasskeySignIn,
+    "POST sign-in/passkey/finish": finishPasskeySignIn,
+    "POST passkey/start": startPasskey,
+    "POST passkey/confirm": confirmPasskey,
     "GET two-factor": twoFactorStatus,
     "POST two-factor/totp/start": startTotp,
     "POST two-factor/totp/confirm": confirmTotp,
