@@ -20,6 +20,11 @@ function PlayButton({ messageId }: { messageId: string }) {
 }
 ```
 
+`toggle` pauses and resumes. For a full player the hook also returns
+`position`, `buffered` and `duration` (seconds; `duration` is `null` until the
+stream ends), `seek(seconds)` clamped to what is decoded, `skip(delta)`, and
+`rate` / `setRate(rate)` within 0.5..3.
+
 The server side is the Go `client` package of this module: `client.New` with
 the application's `Key` for `PrimeOpening`, and `signed.NewSigner` with the
 same key for the URL the endpoint above returns.
