@@ -704,20 +704,17 @@ const get = (path: string, cookie = "") =>
     headers: cookie ? { cookie } : {},
   });
 
-test("recovery-email reads the address and whether it was proved", async () => {
-  const withRecovery = {
-    ...session,
-    identity: {
-      ...identity,
-      traits: { ...identity.traits, recovery_email: "ana@gmail.example" },
-      verifiable_addresses: [
-        ...identity.verifiable_addresses,
-        { value: "ana@gmail.example", verified: false },
-      ],
-    },
-  };
-  const { fetchImpl } = kratosStub({
-    "GET /sessions/whoami": () => Response.json(withRecovery),
+const machineToken = {
+  "POST /oauth2/token": () =>
+    Response.json({ access_token: "machine", expires_in: 3600 }),
+};
+
+test("recovery-email reads the address urbangate holds, not Kratos traits", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl, calls } = kratosStub({
+    ...machineToken,
+    "GET /api/machine/recovery-emails?identity_id=8f3a": () =>
+      Response.json({ manageable: true, email: "ana@gmail.example", verified: false }),
   });
   const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
   assert.equal(res.status, 200);
@@ -726,34 +723,26 @@ test("recovery-email reads the address and whether it was proved", async () => {
     verified: false,
     manageable: true,
   });
-});
-
-test("recovery-email is null for an identity that never set one, and needs a session", async () => {
-  const { fetchImpl } = kratosStub();
-  const a = auth(fetchImpl);
-  const res = await a.handler(get("recovery-email", signedInCookie));
-  assert.deepEqual(await res.json(), { email: null, verified: false, manageable: true });
-  assert.equal((await a.handler(get("recovery-email"))).status, 401);
-});
-
-test("recovery-email says when urbangate keeps the address out of the product's hands", async () => {
-  resetProvisioningTokenCache();
-  const { fetchImpl, calls } = kratosStub({
-    "POST /oauth2/token": () =>
-      Response.json({ access_token: "machine", expires_in: 3600 }),
-    "GET /api/machine/recovery-emails?identity_id=8f3a": () =>
-      Response.json({ manageable: false }),
-  });
-  const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
-  assert.deepEqual(await res.json(), { email: null, verified: false, manageable: false });
   const read = calls.find((c) => c.key.startsWith("GET /api/machine/recovery-emails"));
   assert.equal(read?.headers.get("authorization"), "Bearer machine");
 });
 
-test("recovery-email stays manageable when urbangate lacks the route or is down", async () => {
+test("recovery-email is null for an identity that never set one, and needs a session", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl } = kratosStub({
+    ...machineToken,
+    "GET /api/machine/recovery-emails?identity_id=8f3a": () =>
+      Response.json({ manageable: false, email: null, verified: false }),
+  });
+  const a = auth(fetchImpl);
+  const res = await a.handler(get("recovery-email", signedInCookie));
+  assert.deepEqual(await res.json(), { email: null, verified: false, manageable: false });
+  assert.equal((await a.handler(get("recovery-email"))).status, 401);
+});
+
+test("recovery-email answers unavailable when urbangate cannot be read", async () => {
   for (const answer of [
     () => new Response(null, { status: 404 }),
-    () => new Response(null, { status: 405 }),
     () => new Response(null, { status: 503 }),
     () => {
       throw new TypeError("fetch failed");
@@ -761,44 +750,95 @@ test("recovery-email stays manageable when urbangate lacks the route or is down"
   ]) {
     resetProvisioningTokenCache();
     const { fetchImpl } = kratosStub({
-      "POST /oauth2/token": () =>
-        Response.json({ access_token: "machine", expires_in: 3600 }),
+      ...machineToken,
       "GET /api/machine/recovery-emails?identity_id=8f3a": answer,
     });
     const res = await auth(fetchImpl).handler(get("recovery-email", signedInCookie));
-    assert.equal(((await res.json()) as { manageable: boolean }).manageable, true);
+    assert.equal(res.status, 503);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, "unavailable");
   }
 });
 
-const urbangateWrites = {
-  "POST /oauth2/token": () =>
-    Response.json({ access_token: "machine", expires_in: 3600 }),
-  "PUT /api/machine/recovery-emails": () => Response.json({ identity_id: "8f3a" }),
+const sharedRecoveries = {
+  ...machineToken,
+  "POST /api/machine/recoveries": () =>
+    Response.json({ sent: true }, { status: 202 }),
 };
 
-test("setting a recovery email re-proves the password, has urbangate write it, then mails the code", async () => {
+const urbangateWrites = {
+  ...machineToken,
+  "PUT /api/machine/recovery-emails": () =>
+    Response.json({ identity_id: "8f3a", sent: true }),
+};
+
+test("setting a recovery email re-proves the password and lets urbangate write and mail it", async () => {
   resetProvisioningTokenCache();
   const { fetchImpl, calls } = kratosStub({
     ...urbangateWrites,
     "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
-    "POST /self-service/verification?flow=V": () =>
-      Response.json({ id: "V", state: "sent_email" }),
   });
   const res = await auth(fetchImpl).handler(
     post("recovery-email", { email: " Ana@Gmail.example ", password: "pw" }, signedInCookie),
   );
   assert.equal(res.status, 200);
-  assert.match(res.headers.get("set-cookie") ?? "", /tornad_flow=verification%3AV;/);
+  assert.match(res.headers.get("set-cookie") ?? "", /tornad_flow=recoveryemail%3Asent;/);
   const write = calls.find((c) => c.key === "PUT /api/machine/recovery-emails");
   assert.deepEqual(write?.body, { identity_id: "8f3a", recovery_email: "ana@gmail.example" });
-  const verification = calls.find((c) => c.key === "POST /self-service/verification?flow=V");
-  assert.equal((verification?.body as { email: string }).email, "ana@gmail.example");
+  assert.ok(!calls.some((c) => c.key.includes("/self-service/verification")));
   assert.ok(!calls.some((c) => c.key.includes("/self-service/settings")));
 });
 
-test("a recovery email urbangate refuses is not mailed", async () => {
+test("urbangate's refusals of a recovery email map to stable codes", async () => {
+  const cases: Array<[number, unknown, number, string]> = [
+    [422, { error: "email" }, 422, "invalid_email"],
+    [422, { error: "same_as_account" }, 400, "same_as_account"],
+    [403, { error: "role" }, 400, "role"],
+    [404, { error: "not_found" }, 503, "unavailable"],
+    [503, { error: "unavailable" }, 503, "unavailable"],
+  ];
+  for (const [status, answer, expected, code] of cases) {
+    resetProvisioningTokenCache();
+    const { fetchImpl } = kratosStub({
+      ...urbangateWrites,
+      "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
+      "PUT /api/machine/recovery-emails": () => Response.json(answer, { status }),
+    });
+    const res = await auth(fetchImpl).handler(
+      post("recovery-email", { email: "ana@gmail.example", password: "pw" }, signedInCookie),
+    );
+    assert.equal(res.status, expected, code);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+  }
+});
+
+test("the confirmation of a recovery address goes to urbangate with the signed-in identity", async () => {
+  const flow = "tornad_flow=recoveryemail%3Asent";
+  const cases: Array<[() => Response, number, string | null]> = [
+    [() => Response.json({ verified: true }), 200, null],
+    [() => Response.json({ error: "invalid_code" }, { status: 422 }), 400, "invalid_code"],
+    [() => Response.json({ error: "expired" }, { status: 410 }), 410, "flow_expired"],
+  ];
+  for (const [answer, expected, code] of cases) {
+    resetProvisioningTokenCache();
+    const { fetchImpl, calls } = kratosStub({
+      ...machineToken,
+      "POST /api/machine/recovery-emails/verify": answer,
+    });
+    const res = await auth(fetchImpl).handler(
+      post("email-otp/verify-email", { email: "ana@gmail.example", otp: "123456" }, `${signedInCookie}; ${flow}`),
+    );
+    assert.equal(res.status, expected);
+    if (code)
+      assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+    const sent = calls.find((c) => c.key === "POST /api/machine/recovery-emails/verify");
+    assert.deepEqual(sent?.body, { identity_id: "8f3a", code: "123456" });
+    assert.ok(!calls.some((c) => c.key.includes("/self-service/verification")));
+  }
+});
+
+test("a recovery email urbangate refuses keeps the manage link", async () => {
   resetProvisioningTokenCache();
-  const { fetchImpl, calls } = kratosStub({
+  const { fetchImpl } = kratosStub({
     ...urbangateWrites,
     "GET /self-service/login/api?refresh=true": () => Response.json({ id: "L" }),
     "PUT /api/machine/recovery-emails": () =>
@@ -811,7 +851,6 @@ test("a recovery email urbangate refuses is not mailed", async () => {
   const { error } = (await res.json()) as { error: { code: string; manageAt: string } };
   assert.equal(error.code, "role");
   assert.match(error.manageAt, /\/settings\?section=recovery$/);
-  assert.ok(!calls.some((c) => c.key.startsWith("GET /self-service/verification")));
 });
 
 test("the recovery email cannot be the account's own address, and a wrong password saves nothing", async () => {
@@ -1759,6 +1798,7 @@ test("a retry on an expired kept settings flow opens a fresh one on the recovery
 
 test("a resent recovery code replaces a kept settings flow and reads the newest of duplicated flow cookies", async () => {
   const { fetchImpl, calls } = kratosStub({
+    ...sharedRecoveries,
     "GET /self-service/recovery/api": () => Response.json({ id: "RC2" }),
     "POST /self-service/recovery?flow=RC2": (init) => {
       const b = JSON.parse(init.body as string) as { code?: string };
@@ -1802,6 +1842,7 @@ test("a resent recovery code replaces a kept settings flow and reads the newest 
 
 test("a flow cookie written under a cookie domain expires its host-only twin", async () => {
   const { fetchImpl } = kratosStub({
+    ...sharedRecoveries,
     "GET /self-service/recovery/api": () => Response.json({ id: "RC" }),
     "POST /self-service/recovery?flow=RC": () =>
       Response.json({ id: "RC", state: "sent_email" }),
@@ -2151,4 +2192,127 @@ test("two-factor needs a session", async () => {
   const { fetchImpl } = settingsStub([]);
   const res = await auth(fetchImpl).handler(get("two-factor"));
   assert.equal(res.status, 401);
+});
+
+const recoveryByAddress = {
+  ...sharedRecoveries,
+  "POST /self-service/recovery?flow=RC": () =>
+    Response.json(
+      { ui: { messages: [{ id: 4060006, type: "error" }] } },
+      { status: 400 },
+    ),
+  "POST /api/machine/recoveries/redeem": () =>
+    Response.json({
+      recovery_code: "778899",
+      recovery_link: "https://kratos.example/self-service/recovery?flow=AF",
+    }),
+  "POST /self-service/recovery?flow=AF": () =>
+    Response.json(
+      {
+        id: "AF",
+        continue_with: [
+          { action: "set_ory_session_token", ory_session_token: "ory_st3" },
+          { action: "show_settings_ui", flow: { id: "S3" } },
+        ],
+      },
+      { status: 422 },
+    ),
+  "POST /self-service/settings?flow=S3": () =>
+    Response.json({ id: "S3", state: "success" }),
+};
+
+const reset = (cookie = "tornad_flow=recovery%3ARC") =>
+  post(
+    "email-otp/reset-password",
+    { email: "ana@gmail.example", otp: "123456", password: "a-new-password" },
+    cookie,
+  );
+
+test("a forgotten password also asks urbangate to mail the accounts sharing that recovery address", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl, calls } = kratosStub({
+    ...sharedRecoveries,
+    "GET /self-service/recovery/api": () => Response.json({ id: "RC" }),
+    "POST /self-service/recovery?flow=RC": () =>
+      Response.json({ id: "RC", state: "sent_email" }),
+  });
+  const res = await auth(fetchImpl).handler(
+    post("email-otp/send-verification-otp", { email: "Ana@Gmail.example", type: "forget-password" }),
+  );
+  assert.equal(res.status, 200);
+  const asked = calls.find((c) => c.key === "POST /api/machine/recoveries");
+  assert.deepEqual(asked?.body, { email: "ana@gmail.example" });
+});
+
+test("a code Kratos does not know is redeemed through urbangate for the one account of the address", async () => {
+  resetProvisioningTokenCache();
+  const { fetchImpl, calls } = kratosStub({
+    ...recoveryByAddress,
+    "POST /api/machine/recoveries/verify": () =>
+      Response.json({ ticket: "T1", accounts: [{ identity_id: "8f3a", email: "ana@example" }] }),
+  });
+  const res = await auth(fetchImpl).handler(reset());
+  assert.equal(res.status, 200);
+  const verify = calls.find((c) => c.key === "POST /api/machine/recoveries/verify");
+  assert.deepEqual(verify?.body, { email: "ana@gmail.example", code: "123456" });
+  const redeem = calls.find((c) => c.key === "POST /api/machine/recoveries/redeem");
+  assert.deepEqual(redeem?.body, { ticket: "T1", identity_id: "8f3a" });
+  const recovered = calls.find((c) => c.key === "POST /self-service/recovery?flow=AF");
+  assert.equal((recovered?.body as { code: string }).code, "778899");
+  assert.ok(calls.some((c) => c.key === "POST /self-service/settings?flow=S3"));
+});
+
+test("an address shared by several accounts asks the person to choose, then resets the chosen one", async () => {
+  resetProvisioningTokenCache();
+  const accounts = [
+    { identity_id: "8f3a", email: "ana@example" },
+    { identity_id: "9b4c", email: "bob@example" },
+  ];
+  const { fetchImpl, calls } = kratosStub({
+    ...recoveryByAddress,
+    "POST /api/machine/recoveries/verify": () => Response.json({ ticket: "T2", accounts }),
+  });
+  const a = auth(fetchImpl);
+  const res = await a.handler(reset());
+  assert.equal(res.status, 409);
+  const { error } = (await res.json()) as { error: { code: string; accounts: unknown } };
+  assert.equal(error.code, "choose_account");
+  assert.deepEqual(error.accounts, accounts);
+  assert.ok(res.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=recoveryticket%3AT2")));
+  assert.ok(!calls.some((c) => c.key === "POST /api/machine/recoveries/redeem"));
+
+  const chosen = await a.handler(
+    post("recovery/choose", { identity_id: "9b4c", password: "a-new-password" }, "tornad_flow=recoveryticket%3AT2"),
+  );
+  assert.equal(chosen.status, 200);
+  const redeem = calls.find((c) => c.key === "POST /api/machine/recoveries/redeem");
+  assert.deepEqual(redeem?.body, { ticket: "T2", identity_id: "9b4c" });
+  assert.equal((await a.handler(post("recovery/choose", { identity_id: "9b4c", password: "x" }))).status, 410);
+});
+
+test("urbangate's refusals of a recovery code map to stable codes", async () => {
+  const cases: Array<[string, () => Response, number, string]> = [
+    ["POST /api/machine/recoveries/verify", () => Response.json({ error: "invalid_code" }, { status: 422 }), 400, "invalid_code"],
+    ["POST /api/machine/recoveries/verify", () => Response.json({ error: "expired" }, { status: 410 }), 410, "flow_expired"],
+    ["POST /api/machine/recoveries/verify", () => new Response(null, { status: 503 }), 503, "unavailable"],
+  ];
+  for (const [key, answer, expected, code] of cases) {
+    resetProvisioningTokenCache();
+    const { fetchImpl } = kratosStub({ ...recoveryByAddress, [key]: answer });
+    const res = await auth(fetchImpl).handler(reset());
+    assert.equal(res.status, expected, code);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+  }
+  for (const [answer, expected, code] of [
+    [() => Response.json({ error: "not_in_ticket" }, { status: 422 }), 422, "not_in_ticket"],
+    [() => Response.json({ error: "expired" }, { status: 410 }), 410, "flow_expired"],
+  ] as Array<[() => Response, number, string]>) {
+    resetProvisioningTokenCache();
+    const { fetchImpl } = kratosStub({ ...recoveryByAddress, "POST /api/machine/recoveries/redeem": answer });
+    const res = await auth(fetchImpl).handler(
+      post("recovery/choose", { identity_id: "zz", password: "a-new-password" }, "tornad_flow=recoveryticket%3AT"),
+    );
+    assert.equal(res.status, expected, code);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+  }
 });

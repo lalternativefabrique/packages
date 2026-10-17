@@ -231,85 +231,220 @@ export async function updateIdentityPassword(
   }
 }
 
+type MachineAnswer =
+  | { status: number; body: Record<string, unknown> }
+  | { status: "unavailable" }
+
+async function machineCall(
+  config: IdentityProvisioningConfig,
+  method: "GET" | "PUT" | "POST",
+  path: string,
+  payload: unknown,
+  fetchImpl: typeof fetch,
+): Promise<MachineAnswer> {
+  const token = await accessToken(config, fetchImpl)
+  if (!token) return { status: "unavailable" }
+  const base = config.issuer.replace(/\/$/, "")
+  try {
+    const response = await fetchImpl(`${base}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(payload === undefined ? {} : { "Content-Type": "application/json" }),
+      },
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+    if (response.status === 401) {
+      tokenCache.delete(`${config.issuer}|${config.clientId}`)
+      return { status: "unavailable" }
+    }
+    if (response.status >= 500) return { status: "unavailable" }
+    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>
+    return { status: response.status, body }
+  } catch {
+    return { status: "unavailable" }
+  }
+}
+
+function errorOf(answer: { body: Record<string, unknown> }): string {
+  return typeof answer.body.error === "string" ? answer.body.error : ""
+}
+
+export type RecoveryEmailState =
+  | { status: "read"; manageable: boolean; email: string | null; verified: boolean }
+  | { status: "unavailable" }
+
+/** The identity's recovery address as urbangate holds it, outside Kratos. */
+export async function readRecoveryEmail(
+  config: IdentityProvisioningConfig,
+  request: { identityId: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<RecoveryEmailState> {
+  const answer = await machineCall(
+    config,
+    "GET",
+    `/api/machine/recovery-emails?identity_id=${encodeURIComponent(request.identityId)}`,
+    undefined,
+    fetchImpl,
+  )
+  if (answer.status === "unavailable" || answer.status !== 200)
+    return { status: "unavailable" }
+  const { manageable, email, verified } = answer.body
+  return {
+    status: "read",
+    manageable: manageable !== false,
+    email: typeof email === "string" && email ? email : null,
+    verified: verified === true,
+  }
+}
+
 export type RecoveryEmailOutcome =
-  | { status: "saved" }
-  | { status: "rejected"; reason: string }
+  | { status: "sent" }
+  | { status: "rejected"; reason: "invalid_email" | "same_as_account" | "role" }
   | { status: "unavailable" }
 
 /**
- * Writes the recovery address of an identity the product enrols. Kratos'
- * settings cannot, by design: its profile method is disabled so the account's
- * own address never changes.
+ * Writes the recovery address of an identity the product enrols; urbangate
+ * mails the verification code itself.
  */
 export async function updateRecoveryEmail(
   config: IdentityProvisioningConfig,
   request: { identityId: string; email: string },
   fetchImpl: typeof fetch = fetch,
 ): Promise<RecoveryEmailOutcome> {
-  const token = await accessToken(config, fetchImpl)
-  if (!token) return { status: "unavailable" }
+  const answer = await machineCall(
+    config,
+    "PUT",
+    "/api/machine/recovery-emails",
+    {
+      identity_id: request.identityId,
+      recovery_email: request.email.trim().toLowerCase(),
+    },
+    fetchImpl,
+  )
+  if (answer.status === "unavailable") return answer
+  if (answer.status === 200) return { status: "sent" }
+  const error = errorOf(answer)
+  if (answer.status === 422 && error === "email")
+    return { status: "rejected", reason: "invalid_email" }
+  if (answer.status === 422 && error === "same_as_account")
+    return { status: "rejected", reason: "same_as_account" }
+  if (answer.status === 403) return { status: "rejected", reason: "role" }
+  return { status: "unavailable" }
+}
 
-  const base = config.issuer.replace(/\/$/, "")
-  try {
-    const response = await fetchImpl(`${base}/api/machine/recovery-emails`, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        identity_id: request.identityId,
-        recovery_email: request.email.trim().toLowerCase(),
-      }),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-    })
-    if (response.ok) return { status: "saved" }
-    if (response.status >= 500) return { status: "unavailable" }
-    if (response.status === 401) {
-      tokenCache.delete(`${config.issuer}|${config.clientId}`)
-      return { status: "unavailable" }
-    }
-    const body = (await response.json().catch(() => ({}))) as { error?: string }
-    return { status: "rejected", reason: body.error ?? `http_${response.status}` }
-  } catch {
+export type CodeOutcome<T = object> =
+  | ({ status: "verified" } & T)
+  | { status: "invalid_code" }
+  | { status: "flow_expired" }
+  | { status: "unavailable" }
+
+function codeRefusal(answer: { status: number; body: Record<string, unknown> }) {
+  if (answer.status === 422 && errorOf(answer) === "invalid_code")
+    return { status: "invalid_code" as const }
+  if (answer.status === 410) return { status: "flow_expired" as const }
+  return { status: "unavailable" as const }
+}
+
+export async function verifyRecoveryEmail(
+  config: IdentityProvisioningConfig,
+  request: { identityId: string; code: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<CodeOutcome> {
+  const answer = await machineCall(
+    config,
+    "POST",
+    "/api/machine/recovery-emails/verify",
+    { identity_id: request.identityId, code: request.code },
+    fetchImpl,
+  )
+  if (answer.status === "unavailable") return answer
+  if (answer.status === 200 && answer.body.verified === true)
+    return { status: "verified" }
+  return codeRefusal(answer)
+}
+
+/** Mails a code to every account that holds this address as its recovery address. */
+export async function requestRecovery(
+  config: IdentityProvisioningConfig,
+  request: { email: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ status: "sent" } | { status: "unavailable" }> {
+  const answer = await machineCall(
+    config,
+    "POST",
+    "/api/machine/recoveries",
+    { email: request.email.trim().toLowerCase() },
+    fetchImpl,
+  )
+  if (answer.status === "unavailable") return answer
+  return answer.status === 202 || answer.status === 200
+    ? { status: "sent" }
+    : { status: "unavailable" }
+}
+
+export interface RecoveryAccount {
+  identityId: string
+  email: string
+}
+
+export async function verifyRecovery(
+  config: IdentityProvisioningConfig,
+  request: { email: string; code: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<CodeOutcome<{ ticket: string; accounts: Array<RecoveryAccount> }>> {
+  const answer = await machineCall(
+    config,
+    "POST",
+    "/api/machine/recoveries/verify",
+    { email: request.email.trim().toLowerCase(), code: request.code },
+    fetchImpl,
+  )
+  if (answer.status === "unavailable") return answer
+  if (answer.status !== 200) return codeRefusal(answer)
+  const { ticket, accounts } = answer.body
+  if (typeof ticket !== "string" || !Array.isArray(accounts))
     return { status: "unavailable" }
+  return {
+    status: "verified",
+    ticket,
+    accounts: (accounts as Array<{ identity_id?: unknown; email?: unknown }>)
+      .filter((a) => typeof a.identity_id === "string")
+      .map((a) => ({
+        identityId: a.identity_id as string,
+        email: typeof a.email === "string" ? a.email : "",
+      })),
   }
 }
 
-/**
- * Whether urbangate lets this product write the identity's recovery address.
- * Anything but a clear answer reads as manageable, so a product facing an
- * urbangate without the route keeps offering the setting.
- */
-export async function recoveryEmailManageable(
-  config: IdentityProvisioningConfig,
-  request: { identityId: string },
-  fetchImpl: typeof fetch = fetch,
-): Promise<boolean> {
-  const token = await accessToken(config, fetchImpl)
-  if (!token) return true
+export type RedeemOutcome =
+  | { status: "redeemed"; recoveryCode: string; recoveryLink: string }
+  | { status: "flow_expired" }
+  | { status: "not_in_ticket" }
+  | { status: "unavailable" }
 
-  const base = config.issuer.replace(/\/$/, "")
-  try {
-    const response = await fetchImpl(
-      `${base}/api/machine/recovery-emails?identity_id=${encodeURIComponent(request.identityId)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      },
-    )
-    if (response.status === 401) {
-      tokenCache.delete(`${config.issuer}|${config.clientId}`)
-      return true
-    }
-    if (!response.ok) return true
-    const body = (await response.json().catch(() => ({}))) as {
-      manageable?: unknown
-    }
-    return body.manageable !== false
-  } catch {
-    return true
-  }
+/** Trades a verified ticket for a Kratos recovery code on one of its accounts. */
+export async function redeemRecovery(
+  config: IdentityProvisioningConfig,
+  request: { ticket: string; identityId: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<RedeemOutcome> {
+  const answer = await machineCall(
+    config,
+    "POST",
+    "/api/machine/recoveries/redeem",
+    { ticket: request.ticket, identity_id: request.identityId },
+    fetchImpl,
+  )
+  if (answer.status === "unavailable") return answer
+  const { recovery_code: code, recovery_link: link } = answer.body
+  if (answer.status === 200 && typeof code === "string" && typeof link === "string")
+    return { status: "redeemed", recoveryCode: code, recoveryLink: link }
+  if (answer.status === 410) return { status: "flow_expired" }
+  if (answer.status === 422 && errorOf(answer) === "not_in_ticket")
+    return { status: "not_in_ticket" }
+  return { status: "unavailable" }
 }
 
 export type DeletionOutcome =

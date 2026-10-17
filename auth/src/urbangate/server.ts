@@ -13,7 +13,11 @@ import {
   provisionIdentity,
   requestAccountDeletion,
   updateRecoveryEmail,
-  recoveryEmailManageable,
+  readRecoveryEmail,
+  verifyRecoveryEmail,
+  requestRecovery,
+  verifyRecovery,
+  redeemRecovery,
   updateIdentityPassword,
 } from "../identity-provisioning.ts";
 import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
@@ -226,6 +230,9 @@ const TOKEN_MAX_AGE = 15 * 60;
 const OPENED = "opened";
 const ADMIN_MAX_AGE = 30 * 24 * 60 * 60;
 const LOOKUP_SECRET_USED = 1050014;
+
+const RECOVERY_EMAIL_FLOW = "recoveryemail";
+const TICKET_FLOW = "recoveryticket";
 
 type OtpType = "email-verification" | "forget-password" | "sign-in";
 
@@ -915,6 +922,10 @@ export function createUrbangateAuth(
     if (!email || !kind)
       return failure("invalid_input", 400, "email and type are required");
     const sent = await sendCode(kind, email);
+    if (kind === "recovery") {
+      const shared = await requestRecovery(provisioner, { email }, config.fetch);
+      if (shared.status === "unavailable") return failure("unavailable", 503);
+    }
     const stillOpening =
       sent.kind === "verification" && flowOpensAccount(request.headers);
     return json(200, { sent: true }, [
@@ -1032,6 +1043,8 @@ export function createUrbangateAuth(
   async function verifyEmail(request: Request): Promise<Response> {
     const b = await body(request);
     const code = str(b, "otp");
+    if (pendingFlow(request.headers, RECOVERY_EMAIL_FLOW))
+      return verifyRecoveryAddress(request, code);
     const flowId = pendingFlow(request.headers, "verification");
     if (!flowId) return failure("flow_expired", 410);
     if (!code) return failure("invalid_input", 400, "otp is required");
@@ -1051,6 +1064,106 @@ export function createUrbangateAuth(
     return json(200, { verified: true }, cookies);
   }
 
+  async function verifyRecoveryAddress(
+    request: Request,
+    code: string,
+  ): Promise<Response> {
+    if (!code) return failure("invalid_input", 400, "otp is required");
+    const signed = await signedInIdentity(request);
+    if (!signed) return failure("sign_in_required", 401);
+    const verified = await verifyRecoveryEmail(
+      provisioner,
+      { identityId: signed.identity.id, code },
+      config.fetch,
+    );
+    if (verified.status === "verified")
+      return json(200, { verified: true }, clearFlow());
+    if (verified.status === "invalid_code") return failure("invalid_code", 400);
+    if (verified.status === "flow_expired") return failure("flow_expired", 410);
+    return failure("unavailable", 503);
+  }
+
+  // A code that is not Kratos' own may be the one urbangate mailed to a
+  // recovery address, which can be shared by several accounts.
+  async function recoverByAddress(
+    email: string,
+    code: string,
+    password: string,
+  ): Promise<Response> {
+    const verified = await verifyRecovery(provisioner, { email, code }, config.fetch);
+    if (verified.status === "invalid_code") return failure("invalid_code", 400);
+    if (verified.status === "flow_expired") return failure("flow_expired", 410);
+    if (verified.status === "unavailable") return failure("unavailable", 503);
+    const [only, ...others] = verified.accounts;
+    if (!only) return failure("invalid_code", 400);
+    if (others.length === 0) return redeem(verified.ticket, only.identityId, password);
+    return json(
+      409,
+      {
+        error: {
+          code: "choose_account",
+          status: 409,
+          accounts: verified.accounts.map((a) => ({
+            identity_id: a.identityId,
+            email: a.email,
+          })),
+        },
+      },
+      writeFlow(`${TICKET_FLOW}:${verified.ticket}`),
+    );
+  }
+
+  async function chooseRecoveredAccount(request: Request): Promise<Response> {
+    const b = await body(request);
+    const identityId = str(b, "identity_id");
+    const password = typeof b.password === "string" ? b.password : "";
+    const ticket = pendingFlow(request.headers, TICKET_FLOW);
+    if (!ticket) return failure("flow_expired", 410);
+    if (!identityId || !password)
+      return failure("invalid_input", 400, "identity_id and password are required");
+    return redeem(ticket, identityId, password);
+  }
+
+  async function redeem(
+    ticket: string,
+    identityId: string,
+    password: string,
+  ): Promise<Response> {
+    const redeemed = await redeemRecovery(
+      provisioner,
+      { ticket, identityId },
+      config.fetch,
+    );
+    if (redeemed.status === "flow_expired") return failure("flow_expired", 410);
+    if (redeemed.status === "not_in_ticket") return failure("not_in_ticket", 422);
+    if (redeemed.status === "unavailable") return failure("unavailable", 503);
+    const flowId = new URL(redeemed.recoveryLink).searchParams.get("flow");
+    if (!flowId) return failure("unavailable", 503);
+    return (
+      (await completeRecovery(flowId, redeemed.recoveryCode, password)) ??
+      failure("flow_expired", 410)
+    );
+  }
+
+  async function completeRecovery(
+    flowId: string,
+    code: string,
+    password: string,
+  ): Promise<Response | null> {
+    const recovered = await kratos.submit<KratosSessionResult>(
+      "recovery",
+      flowId,
+      { method: "code", code, ...brand },
+    );
+    const token = continueWith(
+      recovered.continue_with,
+      "set_ory_session_token",
+    )?.ory_session_token;
+    const settings = continueWith(recovered.continue_with, "show_settings_ui");
+    if (!token || !settings) return null;
+    return finishReset(settings.flow.id, password, token, false);
+  }
+
   async function resetPassword(request: Request): Promise<Response> {
     const b = await body(request);
     const code = str(b, "otp");
@@ -1066,18 +1179,19 @@ export function createUrbangateAuth(
     if (!flowId) return failure("flow_expired", 410);
     if (!code || !password)
       return failure("invalid_input", 400, "otp and password are required");
-    const recovered = await kratos.submit<KratosSessionResult>(
-      "recovery",
-      flowId,
-      { method: "code", code, ...brand },
-    );
-    const token = continueWith(
-      recovered.continue_with,
-      "set_ory_session_token",
-    )?.ory_session_token;
-    const settings = continueWith(recovered.continue_with, "show_settings_ui");
-    if (!token || !settings) return failure("invalid_code", 400);
-    return finishReset(settings.flow.id, password, token, false);
+    const email = str(b, "email");
+    try {
+      const reset = await completeRecovery(flowId, code, password);
+      if (reset) return reset;
+    } catch (error) {
+      if (
+        !(error instanceof KratosError) ||
+        error.failure.status !== "invalid_code"
+      )
+        throw error;
+    }
+    if (!email) return failure("invalid_code", 400);
+    return recoverByAddress(email, code, password);
   }
 
   // The recovery code is spent once it verified, so whatever stops the password
@@ -1236,22 +1350,16 @@ export function createUrbangateAuth(
   async function recoveryEmail(request: Request): Promise<Response> {
     const signed = await signedInIdentity(request);
     if (!signed) return failure("sign_in_required", 401);
-    const email = signed.identity.traits?.recovery_email ?? null;
-    const verified = email
-      ? (signed.identity.verifiable_addresses?.some(
-          (a) => a.value === email && a.verified,
-        ) ?? false)
-      : false;
-    const manageable = await recoveryEmailManageable(
+    const state = await readRecoveryEmail(
       provisioner,
       { identityId: signed.identity.id },
       config.fetch,
     );
+    if (state.status === "unavailable") return failure("unavailable", 503);
+    const { email, verified, manageable } = state;
     return json(200, { email, verified, manageable });
   }
 
-  // The address is saved before it is proved: Kratos verifies an address the
-  // identity already holds.
   async function setRecoveryEmail(request: Request): Promise<Response> {
     const b = await body(request);
     const email = str(b, "email").trim().toLowerCase();
@@ -1277,11 +1385,10 @@ export function createUrbangateAuth(
           manageAt: `${config.urbangate.issuerUrl.replace(/\/$/, "")}/settings?section=recovery`,
         },
       });
+    if (saved.status === "rejected" && saved.reason === "invalid_email")
+      return failure("invalid_email", 422);
     if (saved.status === "rejected") return failure(saved.reason, 400);
-    const sent = await sendCodeOn("verification", email);
-    return json(200, { sent: true }, [
-      ...writeFlow(`verification:${sent.flowId}`),
-    ]);
+    return json(200, { sent: true }, writeFlow(`${RECOVERY_EMAIL_FLOW}:sent`));
   }
 
   type Signed = NonNullable<Awaited<ReturnType<typeof signedInIdentity>>>;
@@ -1613,6 +1720,7 @@ export function createUrbangateAuth(
     "POST email-otp/send-verification-otp": sendOtp,
     "POST email-otp/verify-email": verifyEmail,
     "POST email-otp/reset-password": resetPassword,
+    "POST recovery/choose": chooseRecoveredAccount,
     "POST second-factor/verify": verifySecondFactor,
     "POST sign-in/second-factor": signInSecondFactor,
     "GET two-factor": twoFactorStatus,
