@@ -2316,3 +2316,104 @@ test("urbangate's refusals of a recovery code map to stable codes", async () => 
     assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
   }
 });
+
+const passkeyChallenge = JSON.stringify({
+  publicKey: { challenge: "Y2g", rpId: "id.urbangate.dev", userVerification: "required" },
+});
+
+test("a passkey sign-in hands the bare WebAuthn options, then signs in with the assertion", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "GET /self-service/login/api": () =>
+      Response.json({
+        id: "L",
+        ui: { nodes: [{ attributes: { name: "passkey_challenge", value: passkeyChallenge } }] },
+      }),
+  });
+  const a = auth(fetchImpl);
+  const begin = await a.handler(post("sign-in/passkey/begin", {}));
+  assert.equal(begin.status, 200);
+  assert.deepEqual(await begin.json(), {
+    options: { challenge: "Y2g", rpId: "id.urbangate.dev", userVerification: "required" },
+  });
+  assert.ok(
+    begin.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=passkey%3AL")),
+  );
+
+  const finish = await a.handler(
+    post(
+      "sign-in/passkey/finish",
+      { credential: { id: "cred", type: "public-key" } },
+      "tornad_flow=passkey%3AL",
+    ),
+  );
+  assert.equal(finish.status, 200);
+  assert.ok(finish.headers.getSetCookie().some((c) => c.startsWith("tornad_session=ory_st")));
+  const submitted = calls.find((c) => c.key === "POST /self-service/login?flow=L");
+  assert.equal((submitted?.body as { method: string }).method, "passkey");
+  assert.equal(
+    (submitted?.body as { passkey_login: string }).passkey_login,
+    JSON.stringify({ id: "cred", type: "public-key" }),
+  );
+});
+
+test("a passkey sign-in without passkeys enabled answers not_supported", async () => {
+  const { fetchImpl } = kratosStub();
+  const res = await auth(fetchImpl).handler(post("sign-in/passkey/begin", {}));
+  assert.equal(res.status, 501);
+  assert.equal(await errorOf(res), "not_supported");
+});
+
+test("a passkey assertion without a pending flow is flow_expired", async () => {
+  const { fetchImpl, calls } = kratosStub();
+  const res = await auth(fetchImpl).handler(
+    post("sign-in/passkey/finish", { credential: { id: "cred" } }, "tornad_flow=login2fa%3AL"),
+  );
+  assert.equal(res.status, 410);
+  assert.equal(await errorOf(res), "flow_expired");
+  assert.ok(!calls.some((c) => c.key.startsWith("POST /self-service/login")));
+});
+
+test("passkey enrolment unwraps the creation options and registers the credential", async () => {
+  const createData = JSON.stringify({
+    credentialOptions: { publicKey: { challenge: "Y2c", rp: { id: "id.urbangate.dev" } } },
+    displayName: "ana@example",
+  });
+  const { fetchImpl, calls } = settingsStub([
+    { attributes: { name: "passkey_create_data", value: createData } },
+  ]);
+  const a = auth(fetchImpl);
+  const start = await a.handler(post("passkey/start", {}, signedInCookie));
+  assert.equal(start.status, 200);
+  assert.deepEqual(await start.json(), {
+    options: { challenge: "Y2c", rp: { id: "id.urbangate.dev" } },
+  });
+  assert.ok(
+    start.headers.getSetCookie().some((c) => c.startsWith("tornad_flow=passkeyadd%3AS")),
+  );
+
+  const confirm = await a.handler(
+    post(
+      "passkey/confirm",
+      { credential: '{"id":"new"}' },
+      `${signedInCookie}; tornad_flow=passkeyadd%3AS`,
+    ),
+  );
+  assert.equal(confirm.status, 200);
+  assert.deepEqual(await confirm.json(), { passkey: true });
+  const submitted = calls.find((c) => c.key === "POST /self-service/settings?flow=S");
+  assert.equal(
+    (submitted?.body as { passkey_settings_register: string }).passkey_settings_register,
+    '{"id":"new"}',
+  );
+  assert.equal(submitted?.headers.get("x-session-token"), "ory_st");
+});
+
+test("passkey enrolment on a stale session answers reauth_required", async () => {
+  const { fetchImpl } = kratosStub({
+    "GET /self-service/settings/api": () =>
+      Response.json({ error: { id: "session_refresh_required" } }, { status: 403 }),
+  });
+  const res = await auth(fetchImpl).handler(post("passkey/start", {}, signedInCookie));
+  assert.equal(res.status, 403);
+  assert.equal(await errorOf(res), "reauth_required");
+});
