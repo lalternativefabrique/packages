@@ -38,9 +38,21 @@ const DEFAULTS: Required<ResetPasswordFormLabels> = {
     "Ce mot de passe est celui que tu utilises déjà. Choisis-en un nouveau.",
   passwordRefused:
     "Ce mot de passe est trop faible ou déjà apparu dans une fuite de données. Choisis-en un autre.",
+  chooseAccountTitle:
+    "Cette adresse de secours protège plusieurs comptes. Choisis celui dont tu changes le mot de passe.",
 }
 
 const CODE_SPENT = new Set(["invalid_code", "flow_expired"])
+
+interface RecoveredAccount {
+  identity_id: string
+  email: string
+}
+
+function accountsOf(body: unknown): Array<RecoveredAccount> {
+  const accounts = (body as { error?: { accounts?: unknown } } | null)?.error?.accounts
+  return Array.isArray(accounts) ? (accounts as Array<RecoveredAccount>) : []
+}
 
 function errorCodeOf(body: unknown): string | undefined {
   const b = body as { code?: unknown; error?: { code?: unknown } } | null
@@ -68,6 +80,7 @@ export function ResetPasswordForm({
   const [resendMessage, setResendMessage] = useState<string | undefined>()
   const [secondFactor, setSecondFactor] = useState(false)
   const [factorCode, setFactorCode] = useState("")
+  const [accounts, setAccounts] = useState<Array<RecoveredAccount>>([])
 
   const tooShort = password.length > 0 && password.length < MIN_PASSWORD_LENGTH
   const mismatch = confirmPassword.length > 0 && confirmPassword !== password
@@ -86,20 +99,29 @@ export function ResetPasswordForm({
       setError(t.passwordMismatch)
       return
     }
+    await reset("/api/auth/email-otp/reset-password", { email, otp, password })
+  }
+
+  const reset = async (path: string, payload: unknown) => {
     setError(undefined)
     setResendMessage(undefined)
     setIsResetting(true)
     try {
-      const res = await fetch("/api/auth/email-otp/reset-password", {
+      const res = await fetch(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, password }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => null)
         const code = errorCodeOf(body)
         if (code === "second_factor_required" && authClient.secondFactor) {
+          setAccounts([])
           setSecondFactor(true)
+          return
+        }
+        if (code === "choose_account") {
+          setAccounts(accountsOf(body))
           return
         }
         setError(
@@ -172,7 +194,27 @@ export function ResetPasswordForm({
       <AuthAlert>{error}</AuthAlert>
       <AuthAlert tone="success">{resendMessage}</AuthAlert>
 
-      {secondFactor ? (
+      {accounts.length > 0 && !secondFactor ? (
+        <div className="space-y-[1.125rem]">
+          <p className="text-sm text-muted-foreground">{t.chooseAccountTitle}</p>
+          {accounts.map((account) => (
+            <button
+              key={account.identity_id}
+              type="button"
+              disabled={isResetting}
+              onClick={() =>
+                void reset("/api/auth/recovery/choose", {
+                  identity_id: account.identity_id,
+                  password,
+                })
+              }
+              className={submitClassName ?? "w-full rounded border px-4 py-2 text-sm font-medium disabled:opacity-55"}
+            >
+              {account.email}
+            </button>
+          ))}
+        </div>
+      ) : secondFactor ? (
         <form
           onSubmit={handleSecondFactor}
           className="space-y-[1.125rem]"
