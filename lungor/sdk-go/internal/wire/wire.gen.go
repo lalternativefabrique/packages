@@ -34,6 +34,7 @@ const (
 	CosttrackingCostEntryViewCategoryApi          CosttrackingCostEntryViewCategory = "api"
 	CosttrackingCostEntryViewCategoryInfra        CosttrackingCostEntryViewCategory = "infra"
 	CosttrackingCostEntryViewCategoryOther        CosttrackingCostEntryViewCategory = "other"
+	CosttrackingCostEntryViewCategoryStaff        CosttrackingCostEntryViewCategory = "staff"
 	CosttrackingCostEntryViewCategorySubscription CosttrackingCostEntryViewCategory = "subscription"
 )
 
@@ -42,6 +43,7 @@ const (
 	CosttrackingCostReportRowViewCategoryApi          CosttrackingCostReportRowViewCategory = "api"
 	CosttrackingCostReportRowViewCategoryInfra        CosttrackingCostReportRowViewCategory = "infra"
 	CosttrackingCostReportRowViewCategoryOther        CosttrackingCostReportRowViewCategory = "other"
+	CosttrackingCostReportRowViewCategoryStaff        CosttrackingCostReportRowViewCategory = "staff"
 	CosttrackingCostReportRowViewCategorySubscription CosttrackingCostReportRowViewCategory = "subscription"
 )
 
@@ -50,6 +52,7 @@ const (
 	CosttrackingCreateRecurringCostRequestCategoryApi          CosttrackingCreateRecurringCostRequestCategory = "api"
 	CosttrackingCreateRecurringCostRequestCategoryInfra        CosttrackingCreateRecurringCostRequestCategory = "infra"
 	CosttrackingCreateRecurringCostRequestCategoryOther        CosttrackingCreateRecurringCostRequestCategory = "other"
+	CosttrackingCreateRecurringCostRequestCategoryStaff        CosttrackingCreateRecurringCostRequestCategory = "staff"
 	CosttrackingCreateRecurringCostRequestCategorySubscription CosttrackingCreateRecurringCostRequestCategory = "subscription"
 )
 
@@ -70,6 +73,7 @@ const (
 // Defines values for CosttrackingImportLLMPricesRequestProvider.
 const (
 	Deepseek CosttrackingImportLLMPricesRequestProvider = "deepseek"
+	Mistral  CosttrackingImportLLMPricesRequestProvider = "mistral"
 	Ovh      CosttrackingImportLLMPricesRequestProvider = "ovh"
 	Scaleway CosttrackingImportLLMPricesRequestProvider = "scaleway"
 )
@@ -79,6 +83,7 @@ const (
 	CosttrackingInvoiceReadingViewCategoryApi          CosttrackingInvoiceReadingViewCategory = "api"
 	CosttrackingInvoiceReadingViewCategoryInfra        CosttrackingInvoiceReadingViewCategory = "infra"
 	CosttrackingInvoiceReadingViewCategoryOther        CosttrackingInvoiceReadingViewCategory = "other"
+	CosttrackingInvoiceReadingViewCategoryStaff        CosttrackingInvoiceReadingViewCategory = "staff"
 	CosttrackingInvoiceReadingViewCategorySubscription CosttrackingInvoiceReadingViewCategory = "subscription"
 )
 
@@ -101,6 +106,7 @@ const (
 	CosttrackingRecordDirectCostRequestCategoryApi          CosttrackingRecordDirectCostRequestCategory = "api"
 	CosttrackingRecordDirectCostRequestCategoryInfra        CosttrackingRecordDirectCostRequestCategory = "infra"
 	CosttrackingRecordDirectCostRequestCategoryOther        CosttrackingRecordDirectCostRequestCategory = "other"
+	CosttrackingRecordDirectCostRequestCategoryStaff        CosttrackingRecordDirectCostRequestCategory = "staff"
 	CosttrackingRecordDirectCostRequestCategorySubscription CosttrackingRecordDirectCostRequestCategory = "subscription"
 )
 
@@ -109,6 +115,7 @@ const (
 	CosttrackingRecurringCostViewCategoryApi          CosttrackingRecurringCostViewCategory = "api"
 	CosttrackingRecurringCostViewCategoryInfra        CosttrackingRecurringCostViewCategory = "infra"
 	CosttrackingRecurringCostViewCategoryOther        CosttrackingRecurringCostViewCategory = "other"
+	CosttrackingRecurringCostViewCategoryStaff        CosttrackingRecurringCostViewCategory = "staff"
 	CosttrackingRecurringCostViewCategorySubscription CosttrackingRecurringCostViewCategory = "subscription"
 )
 
@@ -116,6 +123,12 @@ const (
 const (
 	CosttrackingRecurringCostViewIntervalMonth CosttrackingRecurringCostViewInterval = "month"
 	CosttrackingRecurringCostViewIntervalYear  CosttrackingRecurringCostViewInterval = "year"
+)
+
+// Defines values for CosttrackingSkillNeedsViewLang.
+const (
+	En CosttrackingSkillNeedsViewLang = "en"
+	Fr CosttrackingSkillNeedsViewLang = "fr"
 )
 
 // Defines values for FinanceCheckoutRequestBuyerKind.
@@ -175,6 +188,7 @@ type CosttrackingAppCustomerCostResponse struct {
 	ByModel       *[]CosttrackingAppCustomerModelCostResponse `json:"by_model,omitempty"`
 	Calls         *int                                        `json:"calls,omitempty"`
 	CostMicros    *int                                        `json:"cost_micros,omitempty"`
+	Currency      *string                                     `json:"currency,omitempty"`
 	CustomerEmail *string                                     `json:"customer_email,omitempty"`
 	CustomerId    *string                                     `json:"customer_id,omitempty"`
 	CustomerName  *string                                     `json:"customer_name,omitempty"`
@@ -194,6 +208,7 @@ type CosttrackingAppCustomerModelCostResponse struct {
 type CosttrackingAppModelCostResponse struct {
 	Calls      *int    `json:"calls,omitempty"`
 	CostMicros *int    `json:"cost_micros,omitempty"`
+	Currency   *string `json:"currency,omitempty"`
 	Model      *string `json:"model,omitempty"`
 	Provider   *string `json:"provider,omitempty"`
 	Tokens     *int    `json:"tokens,omitempty"`
@@ -211,6 +226,25 @@ type CosttrackingCostAttachmentView struct {
 
 // CosttrackingCostAttachmentViewContentType defines model for CosttrackingCostAttachmentView.ContentType.
 type CosttrackingCostAttachmentViewContentType string
+
+// CosttrackingCostClientView defines model for costtracking.costClientView.
+type CosttrackingCostClientView struct {
+	AmountMicros *int `json:"amount_micros,omitempty"`
+
+	// Currency Currency is empty for a linked client with no cost in the period.
+	Currency       *string `json:"currency,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// Label Label is empty when neither the producer named the client nor Lungor
+	// knows it as a customer.
+	Label       *string `json:"label,omitempty"`
+	LinkedAppId *string `json:"linked_app_id,omitempty"`
+	Records     *int    `json:"records,omitempty"`
+
+	// RevokedAt RevokedAt is set when the producer said the client no longer exists;
+	// its history stays.
+	RevokedAt *string `json:"revoked_at,omitempty"`
+}
 
 // CosttrackingCostDeclarerView defines model for costtracking.costDeclarerView.
 type CosttrackingCostDeclarerView struct {
@@ -252,14 +286,19 @@ type CosttrackingCostItemView struct {
 	Active *bool `json:"active,omitempty"`
 
 	// Attached Attached is only meaningful on the per-app listing.
-	Attached         *bool                      `json:"attached,omitempty"`
-	Code             *string                    `json:"code,omitempty"`
-	Currency         *string                    `json:"currency,omitempty"`
-	CurrentPrice     *CosttrackingCostPriceView `json:"current_price,omitempty"`
-	Id               *string                    `json:"id,omitempty"`
-	Name             *string                    `json:"name,omitempty"`
-	OwnerAppId       *string                    `json:"owner_app_id,omitempty"`
-	PricingCheckedAt *string                    `json:"pricing_checked_at,omitempty"`
+	Attached        *bool                      `json:"attached,omitempty"`
+	Code            *string                    `json:"code,omitempty"`
+	Currency        *string                    `json:"currency,omitempty"`
+	CurrentPrice    *CosttrackingCostPriceView `json:"current_price,omitempty"`
+	Id              *string                    `json:"id,omitempty"`
+	Name            *string                    `json:"name,omitempty"`
+	OwnerAppId      *string                    `json:"owner_app_id,omitempty"`
+	PriceSourceCode *string                    `json:"price_source_code,omitempty"`
+
+	// PriceSourceItemId PriceSourceItemID is the item whose every price version this one copies;
+	// such an item cannot be priced by hand.
+	PriceSourceItemId *string `json:"price_source_item_id,omitempty"`
+	PricingCheckedAt  *string `json:"pricing_checked_at,omitempty"`
 
 	// PricingReviewPending PricingReviewPending is set when the watched pricing page changed and
 	// no one has reviewed it yet.
@@ -276,8 +315,17 @@ type CosttrackingCostLineRequest struct {
 	// AppId AppID records the line against another app of the same tenant, on its
 	// behalf: that app must have delegated cost declaration to the caller, and
 	// code, price and external_user_id are then read in that app.
-	AppId          *string `json:"app_id,omitempty"`
-	Code           *string `json:"code,omitempty"`
+	AppId *string `json:"app_id,omitempty"`
+
+	// ClientName ClientName is how the caller names external_user_id (an API key's
+	// name, a workspace): shown in the console to tell clients apart.
+	ClientName *string `json:"client_name,omitempty"`
+	Code       *string `json:"code,omitempty"`
+
+	// EndUserId EndUserID is the user of external_user_id when that client is itself an
+	// app: once the client is linked to an app of the tenant, the cost is
+	// imputed to that app for this user.
+	EndUserId      *string `json:"end_user_id,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
 
 	// IdempotencyKey IdempotencyKey is unique per app: a retry with the same key records nothing twice.
@@ -323,6 +371,13 @@ type CosttrackingCostReportView struct {
 	To      *string                          `json:"to,omitempty"`
 }
 
+// CosttrackingCostSourceView defines model for costtracking.costSourceView.
+type CosttrackingCostSourceView struct {
+	CreatedAt      *string `json:"created_at,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	ProducerAppId  *string `json:"producer_app_id,omitempty"`
+}
+
 // CosttrackingCostSummaryByCustomerResponse defines model for costtracking.costSummaryByCustomerResponse.
 type CosttrackingCostSummaryByCustomerResponse struct {
 	CostMicros  *int                                   `json:"cost_micros,omitempty"`
@@ -330,15 +385,23 @@ type CosttrackingCostSummaryByCustomerResponse struct {
 	Customers   *[]CosttrackingAppCustomerCostResponse `json:"customers,omitempty"`
 	PeriodEnd   *string                                `json:"period_end,omitempty"`
 	PeriodStart *string                                `json:"period_start,omitempty"`
+	Totals      *[]CosttrackingCurrencyTotalResponse   `json:"totals,omitempty"`
 }
 
 // CosttrackingCostSummaryResponse defines model for costtracking.costSummaryResponse.
 type CosttrackingCostSummaryResponse struct {
-	ByModel     *[]CosttrackingAppModelCostResponse `json:"by_model,omitempty"`
-	CostMicros  *int                                `json:"cost_micros,omitempty"`
-	Currency    *string                             `json:"currency,omitempty"`
-	PeriodEnd   *string                             `json:"period_end,omitempty"`
-	PeriodStart *string                             `json:"period_start,omitempty"`
+	ByModel     *[]CosttrackingAppModelCostResponse  `json:"by_model,omitempty"`
+	CostMicros  *int                                 `json:"cost_micros,omitempty"`
+	Currency    *string                              `json:"currency,omitempty"`
+	PeriodEnd   *string                              `json:"period_end,omitempty"`
+	PeriodStart *string                              `json:"period_start,omitempty"`
+	Totals      *[]CosttrackingCurrencyTotalResponse `json:"totals,omitempty"`
+}
+
+// CosttrackingCostVisibilityView defines model for costtracking.costVisibilityView.
+type CosttrackingCostVisibilityView struct {
+	Public *bool   `json:"public,omitempty"`
+	Slug   *string `json:"slug,omitempty"`
 }
 
 // CosttrackingCreateRecurringCostRequest defines model for costtracking.createRecurringCostRequest.
@@ -366,6 +429,12 @@ type CosttrackingCreateRecurringCostRequestCategory string
 
 // CosttrackingCreateRecurringCostRequestInterval defines model for CosttrackingCreateRecurringCostRequest.Interval.
 type CosttrackingCreateRecurringCostRequestInterval string
+
+// CosttrackingCurrencyTotalResponse defines model for costtracking.currencyTotalResponse.
+type CosttrackingCurrencyTotalResponse struct {
+	CostMicros *int    `json:"cost_micros,omitempty"`
+	Currency   *string `json:"currency,omitempty"`
+}
 
 // CosttrackingDetectedAmountView defines model for costtracking.detectedAmountView.
 type CosttrackingDetectedAmountView struct {
@@ -453,6 +522,12 @@ type CosttrackingInvoiceReadingViewCategory string
 // CosttrackingInvoiceReadingViewConfidence Confidence is high when supplier, date and an amount were all read.
 type CosttrackingInvoiceReadingViewConfidence string
 
+// CosttrackingLinkCostClientRequest defines model for costtracking.linkCostClientRequest.
+type CosttrackingLinkCostClientRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	LinkedAppId    *string `json:"linked_app_id,omitempty"`
+}
+
 // CosttrackingLlmUsageBatch defines model for costtracking.llmUsageBatch.
 type CosttrackingLlmUsageBatch struct {
 	// BucketStart BucketStart is the window's start, floored server-side to the aggregation
@@ -480,10 +555,11 @@ type CosttrackingLlmUsageBatch struct {
 
 // CosttrackingMyCostReportResponse defines model for costtracking.myCostReportResponse.
 type CosttrackingMyCostReportResponse struct {
-	CostMicros  *int    `json:"cost_micros,omitempty"`
-	Currency    *string `json:"currency,omitempty"`
-	PeriodEnd   *string `json:"period_end,omitempty"`
-	PeriodStart *string `json:"period_start,omitempty"`
+	CostMicros  *int                                 `json:"cost_micros,omitempty"`
+	Currency    *string                              `json:"currency,omitempty"`
+	PeriodEnd   *string                              `json:"period_end,omitempty"`
+	PeriodStart *string                              `json:"period_start,omitempty"`
+	Totals      *[]CosttrackingCurrencyTotalResponse `json:"totals,omitempty"`
 }
 
 // CosttrackingPricingReviewView defines model for costtracking.pricingReviewView.
@@ -506,6 +582,51 @@ type CosttrackingPricingSnapshotView struct {
 
 // CosttrackingPricingSnapshotViewStatus defines model for CosttrackingPricingSnapshotView.Status.
 type CosttrackingPricingSnapshotViewStatus string
+
+// CosttrackingPublicAppCostView defines model for costtracking.publicAppCostView.
+type CosttrackingPublicAppCostView struct {
+	CatalogCents *int    `json:"catalog_cents,omitempty"`
+	LlmCents     *int    `json:"llm_cents,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	StaffCents   *int    `json:"staff_cents,omitempty"`
+	TotalCents   *int    `json:"total_cents,omitempty"`
+}
+
+// CosttrackingPublicCostAmountsView defines model for costtracking.publicCostAmountsView.
+type CosttrackingPublicCostAmountsView struct {
+	CatalogCents *int `json:"catalog_cents,omitempty"`
+	LlmCents     *int `json:"llm_cents,omitempty"`
+	StaffCents   *int `json:"staff_cents,omitempty"`
+	TotalCents   *int `json:"total_cents,omitempty"`
+}
+
+// CosttrackingPublicCostReportView defines model for costtracking.publicCostReportView.
+type CosttrackingPublicCostReportView struct {
+	Apps     *[]CosttrackingPublicAppCostView   `json:"apps,omitempty"`
+	Currency *string                            `json:"currency,omitempty"`
+	Items    *[]CosttrackingPublicItemCostView  `json:"items,omitempty"`
+	Month    *string                            `json:"month,omitempty"`
+	Months   *[]string                          `json:"months,omitempty"`
+	Tenant   *CosttrackingPublicCostTenantView  `json:"tenant,omitempty"`
+	Totals   *CosttrackingPublicCostAmountsView `json:"totals,omitempty"`
+}
+
+// CosttrackingPublicCostTenantView defines model for costtracking.publicCostTenantView.
+type CosttrackingPublicCostTenantView struct {
+	Name *string `json:"name,omitempty"`
+	Slug *string `json:"slug,omitempty"`
+}
+
+// CosttrackingPublicItemCostView defines model for costtracking.publicItemCostView.
+type CosttrackingPublicItemCostView struct {
+	App          *string `json:"app,omitempty"`
+	CatalogCents *int    `json:"catalog_cents,omitempty"`
+	Category     *string `json:"category,omitempty"`
+	LlmCents     *int    `json:"llm_cents,omitempty"`
+	Name         *string `json:"name,omitempty"`
+	StaffCents   *int    `json:"staff_cents,omitempty"`
+	TotalCents   *int    `json:"total_cents,omitempty"`
+}
 
 // CosttrackingRecordCostsRequest defines model for costtracking.recordCostsRequest.
 type CosttrackingRecordCostsRequest struct {
@@ -601,6 +722,45 @@ type CosttrackingRecurringCostViewCategory string
 // CosttrackingRecurringCostViewInterval defines model for CosttrackingRecurringCostView.Interval.
 type CosttrackingRecurringCostViewInterval string
 
+// CosttrackingRegisterClientRequest defines model for costtracking.registerClientRequest.
+type CosttrackingRegisterClientRequest struct {
+	Name *string `json:"name,omitempty"`
+
+	// RevokedAt RevokedAt marks the client as gone; omit it, or send null, for an active one.
+	RevokedAt *string `json:"revoked_at,omitempty"`
+}
+
+// CosttrackingReplaceSkillNeedsRequest defines model for costtracking.replaceSkillNeedsRequest.
+type CosttrackingReplaceSkillNeedsRequest struct {
+	Needs *[]CosttrackingSkillNeedView `json:"needs,omitempty"`
+}
+
+// CosttrackingSetCostVisibilityRequest defines model for costtracking.setCostVisibilityRequest.
+type CosttrackingSetCostVisibilityRequest struct {
+	Public *bool `json:"public,omitempty"`
+}
+
+// CosttrackingSetPriceSourceRequest defines model for costtracking.setPriceSourceRequest.
+type CosttrackingSetPriceSourceRequest struct {
+	SourceItemId *string `json:"source_item_id,omitempty"`
+}
+
+// CosttrackingSkillNeedView defines model for costtracking.skillNeedView.
+type CosttrackingSkillNeedView struct {
+	Covers   *string `json:"covers,omitempty"`
+	Expects  *string `json:"expects,omitempty"`
+	Function *string `json:"function,omitempty"`
+}
+
+// CosttrackingSkillNeedsView defines model for costtracking.skillNeedsView.
+type CosttrackingSkillNeedsView struct {
+	Lang  *CosttrackingSkillNeedsViewLang `json:"lang,omitempty"`
+	Needs *[]CosttrackingSkillNeedView    `json:"needs,omitempty"`
+}
+
+// CosttrackingSkillNeedsViewLang defines model for CosttrackingSkillNeedsView.Lang.
+type CosttrackingSkillNeedsViewLang string
+
 // CosttrackingUpdateRecurringCostRequest defines model for costtracking.updateRecurringCostRequest.
 type CosttrackingUpdateRecurringCostRequest struct {
 	// AmountMicros AmountMicros applies from the next due date; posted lines keep their amount.
@@ -635,6 +795,41 @@ type CreateEndpointResult struct {
 // EchoHTTPError defines model for echo.HTTPError.
 type EchoHTTPError struct {
 	Message *interface{} `json:"message,omitempty"`
+}
+
+// FinanceAddonDefinitionView defines model for finance.addonDefinitionView.
+type FinanceAddonDefinitionView struct {
+	AmountCents   *int      `json:"amount_cents,omitempty"`
+	Code          *string   `json:"code,omitempty"`
+	Currency      *string   `json:"currency,omitempty"`
+	Interval      *string   `json:"interval,omitempty"`
+	IntervalCount *int      `json:"interval_count,omitempty"`
+	Name          *string   `json:"name,omitempty"`
+	RequiresPlans *[]string `json:"requires_plans,omitempty"`
+	Unit          *string   `json:"unit,omitempty"`
+}
+
+// FinanceAddonError defines model for finance.addonError.
+type FinanceAddonError struct {
+	CheckoutUrl *string `json:"checkout_url,omitempty"`
+	Error       *string `json:"error,omitempty"`
+}
+
+// FinanceAddonView defines model for finance.addonView.
+type FinanceAddonView struct {
+	AmountCents   *int    `json:"amount_cents,omitempty"`
+	Code          *string `json:"code,omitempty"`
+	Currency      *string `json:"currency,omitempty"`
+	Interval      *string `json:"interval,omitempty"`
+	IntervalCount *int    `json:"interval_count,omitempty"`
+	Name          *string `json:"name,omitempty"`
+	Quantity      *int    `json:"quantity,omitempty"`
+	Unit          *string `json:"unit,omitempty"`
+}
+
+// FinanceAddonsResponse defines model for finance.addonsResponse.
+type FinanceAddonsResponse struct {
+	Addons *[]FinanceAddonView `json:"addons,omitempty"`
 }
 
 // FinanceAppCancelRequest defines model for finance.appCancelRequest.
@@ -898,6 +1093,17 @@ type FinancePlansResponse struct {
 	Seller *FinanceSellerTermsView   `json:"seller,omitempty"`
 }
 
+// FinancePutAddonReq defines model for finance.putAddonReq.
+type FinancePutAddonReq struct {
+	AmountCents   *int      `json:"amount_cents,omitempty"`
+	Currency      *string   `json:"currency,omitempty"`
+	Interval      *string   `json:"interval,omitempty"`
+	IntervalCount *int      `json:"interval_count,omitempty"`
+	Name          *string   `json:"name,omitempty"`
+	RequiresPlans *[]string `json:"requires_plans,omitempty"`
+	Unit          *string   `json:"unit,omitempty"`
+}
+
 // FinanceSellerTermsView defines model for finance.sellerTermsView.
 type FinanceSellerTermsView struct {
 	MediatorName     *string                                 `json:"mediator_name,omitempty"`
@@ -912,6 +1118,19 @@ type FinanceSellerTermsView struct {
 
 // FinanceSellerTermsViewWithdrawalPolicy defines model for FinanceSellerTermsView.WithdrawalPolicy.
 type FinanceSellerTermsViewWithdrawalPolicy string
+
+// FinanceSetAddonQuantityRequest defines model for finance.setAddonQuantityRequest.
+type FinanceSetAddonQuantityRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	Quantity       *int    `json:"quantity,omitempty"`
+}
+
+// FinanceSetAddonQuantityResponse defines model for finance.setAddonQuantityResponse.
+type FinanceSetAddonQuantityResponse struct {
+	Code          *string `json:"code,omitempty"`
+	ProratedCents *int    `json:"prorated_cents,omitempty"`
+	Quantity      *int    `json:"quantity,omitempty"`
+}
 
 // ListEndpointsResult defines model for list_endpoints.Result.
 type ListEndpointsResult struct {
@@ -1094,6 +1313,12 @@ type UpdateEndpointUpdateEndpointRequest struct {
 	Url         *string   `json:"url,omitempty"`
 }
 
+// AppListAddonsParams defines parameters for AppListAddons.
+type AppListAddonsParams struct {
+	// ExternalUserId External user ID
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+}
+
 // GetEntitlementParams defines parameters for GetEntitlement.
 type GetEntitlementParams struct {
 	// ExternalUserId External user ID
@@ -1160,6 +1385,39 @@ type GetUsageBalanceParams struct {
 	Unit string `form:"unit" json:"unit"`
 }
 
+// GetPublicCostReportParams defines parameters for GetPublicCostReport.
+type GetPublicCostReportParams struct {
+	// Month YYYY-MM. Defaults to the current UTC month.
+	Month *string `form:"month,omitempty" json:"month,omitempty"`
+}
+
+// GetPublicSkillNeedsParams defines parameters for GetPublicSkillNeeds.
+type GetPublicSkillNeedsParams struct {
+	// Lang fr (default) or en
+	Lang *string `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
+// HideAppCostClientParams defines parameters for HideAppCostClient.
+type HideAppCostClientParams struct {
+	// ExternalUserId Client
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+}
+
+// ListAppCostClientsParams defines parameters for ListAppCostClients.
+type ListAppCostClientsParams struct {
+	// From Start (RFC3339). Defaults to the first of the current month.
+	From *string `form:"from,omitempty" json:"from,omitempty"`
+
+	// To End, exclusive (RFC3339). Defaults to now.
+	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// UnlinkAppCostClientParams defines parameters for UnlinkAppCostClient.
+type UnlinkAppCostClientParams struct {
+	// ExternalUserId Client
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+}
+
 // GetBalanceParams defines parameters for GetBalance.
 type GetBalanceParams struct {
 	// From Start (RFC3339). Defaults to the first of the current month.
@@ -1214,6 +1472,18 @@ type GetCustomerUsageParams struct {
 	AppId *string `form:"app_id,omitempty" json:"app_id,omitempty"`
 }
 
+// ListSkillNeedsParams defines parameters for ListSkillNeeds.
+type ListSkillNeedsParams struct {
+	// Lang fr (default) or en
+	Lang *string `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
+// ReplaceSkillNeedsParams defines parameters for ReplaceSkillNeeds.
+type ReplaceSkillNeedsParams struct {
+	// Lang fr (default) or en
+	Lang *string `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
 // ListWebhookEndpointsParams defines parameters for ListWebhookEndpoints.
 type ListWebhookEndpointsParams struct {
 	// Limit Page size
@@ -1223,11 +1493,17 @@ type ListWebhookEndpointsParams struct {
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 }
 
+// AppSetAddonQuantityJSONRequestBody defines body for AppSetAddonQuantity for application/json ContentType.
+type AppSetAddonQuantityJSONRequestBody = FinanceSetAddonQuantityRequest
+
 // AppRegisterCustomerJSONRequestBody defines body for AppRegisterCustomer for application/json ContentType.
 type AppRegisterCustomerJSONRequestBody = FinanceAppRegisterCustomerRequest
 
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
+
+// RegisterCostClientJSONRequestBody defines body for RegisterCostClient for application/json ContentType.
+type RegisterCostClientJSONRequestBody = CosttrackingRegisterClientRequest
 
 // RecordCostsJSONRequestBody defines body for RecordCosts for application/json ContentType.
 type RecordCostsJSONRequestBody = CosttrackingRecordCostsRequest
@@ -1256,6 +1532,12 @@ type AppGrantSubscriptionJSONRequestBody = FinanceAppGrantRequest
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
 
+// PutAppAddonJSONRequestBody defines body for PutAppAddon for application/json ContentType.
+type PutAppAddonJSONRequestBody = FinancePutAddonReq
+
+// LinkAppCostClientJSONRequestBody defines body for LinkAppCostClient for application/json ContentType.
+type LinkAppCostClientJSONRequestBody = CosttrackingLinkCostClientRequest
+
 // BulkDeleteUsageUnitsJSONRequestBody defines body for BulkDeleteUsageUnits for application/json ContentType.
 type BulkDeleteUsageUnitsJSONRequestBody = MeteringBulkDeleteUnitsRequest
 
@@ -1265,6 +1547,9 @@ type UpdateUsageUnitJSONRequestBody = MeteringUpdateUnitRequest
 // ImportLLMPricesJSONRequestBody defines body for ImportLLMPrices for application/json ContentType.
 type ImportLLMPricesJSONRequestBody = CosttrackingImportLLMPricesRequest
 
+// SetCostItemPriceSourceJSONRequestBody defines body for SetCostItemPriceSource for application/json ContentType.
+type SetCostItemPriceSourceJSONRequestBody = CosttrackingSetPriceSourceRequest
+
 // RecordCommonCostsJSONRequestBody defines body for RecordCommonCosts for application/json ContentType.
 type RecordCommonCostsJSONRequestBody = CosttrackingRecordCostsRequest
 
@@ -1273,6 +1558,9 @@ type RecordDirectCommonCostJSONRequestBody = CosttrackingRecordDirectCostRequest
 
 // ReadInvoiceMultipartRequestBody defines body for ReadInvoice for multipart/form-data ContentType.
 type ReadInvoiceMultipartRequestBody ReadInvoiceMultipartBody
+
+// SetCostVisibilityJSONRequestBody defines body for SetCostVisibility for application/json ContentType.
+type SetCostVisibilityJSONRequestBody = CosttrackingSetCostVisibilityRequest
 
 // AddCostAttachmentMultipartRequestBody defines body for AddCostAttachment for multipart/form-data ContentType.
 type AddCostAttachmentMultipartRequestBody AddCostAttachmentMultipartBody
@@ -1285,6 +1573,9 @@ type UpdateRecurringCostJSONRequestBody = CosttrackingUpdateRecurringCostRequest
 
 // EndRecurringCostJSONRequestBody defines body for EndRecurringCost for application/json ContentType.
 type EndRecurringCostJSONRequestBody = CosttrackingEndRecurringCostRequest
+
+// ReplaceSkillNeedsJSONRequestBody defines body for ReplaceSkillNeeds for application/json ContentType.
+type ReplaceSkillNeedsJSONRequestBody = CosttrackingReplaceSkillNeedsRequest
 
 // CreateWebhookEndpointJSONRequestBody defines body for CreateWebhookEndpoint for application/json ContentType.
 type CreateWebhookEndpointJSONRequestBody = CreateEndpointCreateEndpointRequest
@@ -1365,6 +1656,14 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// AppListAddons request
+	AppListAddons(ctx context.Context, params *AppListAddonsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AppSetAddonQuantityWithBody request with any body
+	AppSetAddonQuantityWithBody(ctx context.Context, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AppSetAddonQuantity(ctx context.Context, code string, body AppSetAddonQuantityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListPublicPlans request
 	ListPublicPlans(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1389,6 +1688,11 @@ type ClientInterface interface {
 
 	// MollieWebhook request
 	MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegisterCostClientWithBody request with any body
+	RegisterCostClientWithBody(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RegisterCostClient(ctx context.Context, externalUserId string, body RegisterCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RecordCostsWithBody request with any body
 	RecordCostsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1433,6 +1737,12 @@ type ClientInterface interface {
 	// ListAppPlans request
 	ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetPublicCostReport request
+	GetPublicCostReport(ctx context.Context, slug string, params *GetPublicCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetPublicSkillNeeds request
+	GetPublicSkillNeeds(ctx context.Context, slug string, params *GetPublicSkillNeedsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AppCancelSubscriptionWithBody request with any body
 	AppCancelSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1453,6 +1763,28 @@ type ClientInterface interface {
 
 	AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAppAddons request
+	ListAppAddons(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutAppAddonWithBody request with any body
+	PutAppAddonWithBody(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutAppAddon(ctx context.Context, tenantId string, appId string, code string, body PutAppAddonJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// HideAppCostClient request
+	HideAppCostClient(ctx context.Context, tenantId string, appId string, params *HideAppCostClientParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAppCostClients request
+	ListAppCostClients(ctx context.Context, tenantId string, appId string, params *ListAppCostClientsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UnlinkAppCostClient request
+	UnlinkAppCostClient(ctx context.Context, tenantId string, appId string, params *UnlinkAppCostClientParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LinkAppCostClientWithBody request with any body
+	LinkAppCostClientWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	LinkAppCostClient(ctx context.Context, tenantId string, appId string, body LinkAppCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAppCostDeclarers request
 	ListAppCostDeclarers(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1461,6 +1793,9 @@ type ClientInterface interface {
 
 	// AddAppCostDeclarer request
 	AddAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAppCostSources request
+	ListAppCostSources(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// BulkDeleteUsageUnitsWithBody request with any body
 	BulkDeleteUsageUnitsWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1489,6 +1824,14 @@ type ClientInterface interface {
 	// ListCostItemPricingReviews request
 	ListCostItemPricingReviews(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ClearCostItemPriceSource request
+	ClearCostItemPriceSource(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetCostItemPriceSourceWithBody request with any body
+	SetCostItemPriceSourceWithBody(ctx context.Context, tenantId string, itemId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetCostItemPriceSource(ctx context.Context, tenantId string, itemId string, body SetCostItemPriceSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CheckCostItemPricing request
 	CheckCostItemPricing(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1510,6 +1853,14 @@ type ClientInterface interface {
 
 	// ReadInvoiceWithBody request with any body
 	ReadInvoiceWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCostVisibility request
+	GetCostVisibility(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetCostVisibilityWithBody request with any body
+	SetCostVisibilityWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetCostVisibility(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListCostAttachments request
 	ListCostAttachments(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1544,6 +1895,14 @@ type ClientInterface interface {
 
 	EndRecurringCost(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSkillNeeds request
+	ListSkillNeeds(ctx context.Context, tenantId string, params *ListSkillNeedsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReplaceSkillNeedsWithBody request with any body
+	ReplaceSkillNeedsWithBody(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ReplaceSkillNeeds(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1565,6 +1924,42 @@ type ClientInterface interface {
 
 	// RotateWebhookSecret request
 	RotateWebhookSecret(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) AppListAddons(ctx context.Context, params *AppListAddonsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppListAddonsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppSetAddonQuantityWithBody(ctx context.Context, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppSetAddonQuantityRequestWithBody(c.Server, code, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppSetAddonQuantity(ctx context.Context, code string, body AppSetAddonQuantityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppSetAddonQuantityRequest(c.Server, code, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListPublicPlans(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1665,6 +2060,30 @@ func (c *Client) GetCheckoutSession(ctx context.Context, sessionId string, reqEd
 
 func (c *Client) MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMollieWebhookRequest(c.Server, credId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterCostClientWithBody(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterCostClientRequestWithBody(c.Server, externalUserId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterCostClient(ctx context.Context, externalUserId string, body RegisterCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterCostClientRequest(c.Server, externalUserId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1867,6 +2286,30 @@ func (c *Client) ListAppPlans(ctx context.Context, reqEditors ...RequestEditorFn
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetPublicCostReport(ctx context.Context, slug string, params *GetPublicCostReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPublicCostReportRequest(c.Server, slug, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetPublicSkillNeeds(ctx context.Context, slug string, params *GetPublicSkillNeedsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetPublicSkillNeedsRequest(c.Server, slug, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) AppCancelSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppCancelSubscriptionRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -1963,6 +2406,102 @@ func (c *Client) AppWithdrawPendingPlan(ctx context.Context, body AppWithdrawPen
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListAppAddons(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAppAddonsRequest(c.Server, tenantId, appId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutAppAddonWithBody(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAppAddonRequestWithBody(c.Server, tenantId, appId, code, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutAppAddon(ctx context.Context, tenantId string, appId string, code string, body PutAppAddonJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAppAddonRequest(c.Server, tenantId, appId, code, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) HideAppCostClient(ctx context.Context, tenantId string, appId string, params *HideAppCostClientParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewHideAppCostClientRequest(c.Server, tenantId, appId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAppCostClients(ctx context.Context, tenantId string, appId string, params *ListAppCostClientsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAppCostClientsRequest(c.Server, tenantId, appId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UnlinkAppCostClient(ctx context.Context, tenantId string, appId string, params *UnlinkAppCostClientParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUnlinkAppCostClientRequest(c.Server, tenantId, appId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LinkAppCostClientWithBody(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLinkAppCostClientRequestWithBody(c.Server, tenantId, appId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LinkAppCostClient(ctx context.Context, tenantId string, appId string, body LinkAppCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLinkAppCostClientRequest(c.Server, tenantId, appId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListAppCostDeclarers(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAppCostDeclarersRequest(c.Server, tenantId, appId)
 	if err != nil {
@@ -1989,6 +2528,18 @@ func (c *Client) RemoveAppCostDeclarer(ctx context.Context, tenantId string, app
 
 func (c *Client) AddAppCostDeclarer(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAddAppCostDeclarerRequest(c.Server, tenantId, appId, declarerAppId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAppCostSources(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAppCostSourcesRequest(c.Server, tenantId, appId)
 	if err != nil {
 		return nil, err
 	}
@@ -2119,6 +2670,42 @@ func (c *Client) ListCostItemPricingReviews(ctx context.Context, tenantId string
 	return c.Client.Do(req)
 }
 
+func (c *Client) ClearCostItemPriceSource(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewClearCostItemPriceSourceRequest(c.Server, tenantId, itemId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetCostItemPriceSourceWithBody(ctx context.Context, tenantId string, itemId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCostItemPriceSourceRequestWithBody(c.Server, tenantId, itemId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetCostItemPriceSource(ctx context.Context, tenantId string, itemId string, body SetCostItemPriceSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCostItemPriceSourceRequest(c.Server, tenantId, itemId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CheckCostItemPricing(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCheckCostItemPricingRequest(c.Server, tenantId, itemId)
 	if err != nil {
@@ -2205,6 +2792,42 @@ func (c *Client) RecordDirectCommonCost(ctx context.Context, tenantId string, bo
 
 func (c *Client) ReadInvoiceWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewReadInvoiceRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCostVisibility(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCostVisibilityRequest(c.Server, tenantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetCostVisibilityWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCostVisibilityRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetCostVisibility(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetCostVisibilityRequest(c.Server, tenantId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2359,6 +2982,42 @@ func (c *Client) EndRecurringCost(ctx context.Context, tenantId string, recurrin
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListSkillNeeds(ctx context.Context, tenantId string, params *ListSkillNeedsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSkillNeedsRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReplaceSkillNeedsWithBody(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceSkillNeedsRequestWithBody(c.Server, tenantId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReplaceSkillNeeds(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReplaceSkillNeedsRequest(c.Server, tenantId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListWebhookEndpointsRequest(c.Server, params)
 	if err != nil {
@@ -2453,6 +3112,98 @@ func (c *Client) RotateWebhookSecret(ctx context.Context, id string, reqEditors 
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewAppListAddonsRequest generates requests for AppListAddons
+func NewAppListAddonsRequest(server string, params *AppListAddonsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/addons")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAppSetAddonQuantityRequest calls the generic AppSetAddonQuantity builder with application/json body
+func NewAppSetAddonQuantityRequest(server string, code string, body AppSetAddonQuantityJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAppSetAddonQuantityRequestWithBody(server, code, "application/json", bodyReader)
+}
+
+// NewAppSetAddonQuantityRequestWithBody generates requests for AppSetAddonQuantity with any type of body
+func NewAppSetAddonQuantityRequestWithBody(server string, code string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "code", runtime.ParamLocationPath, code)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/addons/%s/quantity", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewListPublicPlansRequest generates requests for ListPublicPlans
@@ -2739,6 +3490,53 @@ func NewMollieWebhookRequest(server string, credId string) (*http.Request, error
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewRegisterCostClientRequest calls the generic RegisterCostClient builder with application/json body
+func NewRegisterCostClientRequest(server string, externalUserId string, body RegisterCostClientJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegisterCostClientRequestWithBody(server, externalUserId, "application/json", bodyReader)
+}
+
+// NewRegisterCostClientRequestWithBody generates requests for RegisterCostClient with any type of body
+func NewRegisterCostClientRequestWithBody(server string, externalUserId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "external_user_id", runtime.ParamLocationPath, externalUserId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/clients/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3311,6 +4109,118 @@ func NewListAppPlansRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewGetPublicCostReportRequest generates requests for GetPublicCostReport
+func NewGetPublicCostReportRequest(server string, slug string, params *GetPublicCostReportParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "slug", runtime.ParamLocationPath, slug)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/public/costs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Month != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "month", runtime.ParamLocationQuery, *params.Month); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetPublicSkillNeedsRequest generates requests for GetPublicSkillNeeds
+func NewGetPublicSkillNeedsRequest(server string, slug string, params *GetPublicSkillNeedsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "slug", runtime.ParamLocationPath, slug)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/public/needs/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Lang != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "lang", runtime.ParamLocationQuery, *params.Lang); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewAppCancelSubscriptionRequest calls the generic AppCancelSubscription builder with application/json body
 func NewAppCancelSubscriptionRequest(server string, body AppCancelSubscriptionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3471,6 +4381,359 @@ func NewAppWithdrawPendingPlanRequestWithBody(server string, contentType string,
 	return req, nil
 }
 
+// NewListAppAddonsRequest generates requests for ListAppAddons
+func NewListAppAddonsRequest(server string, tenantId string, appId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/addons", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutAppAddonRequest calls the generic PutAppAddon builder with application/json body
+func NewPutAppAddonRequest(server string, tenantId string, appId string, code string, body PutAppAddonJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutAppAddonRequestWithBody(server, tenantId, appId, code, "application/json", bodyReader)
+}
+
+// NewPutAppAddonRequestWithBody generates requests for PutAppAddon with any type of body
+func NewPutAppAddonRequestWithBody(server string, tenantId string, appId string, code string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "code", runtime.ParamLocationPath, code)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/addons/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewHideAppCostClientRequest generates requests for HideAppCostClient
+func NewHideAppCostClientRequest(server string, tenantId string, appId string, params *HideAppCostClientParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-clients", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAppCostClientsRequest generates requests for ListAppCostClients
+func NewListAppCostClientsRequest(server string, tenantId string, appId string, params *ListAppCostClientsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-clients", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.From != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, *params.From); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.To != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUnlinkAppCostClientRequest generates requests for UnlinkAppCostClient
+func NewUnlinkAppCostClientRequest(server string, tenantId string, appId string, params *UnlinkAppCostClientParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-clients/link", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewLinkAppCostClientRequest calls the generic LinkAppCostClient builder with application/json body
+func NewLinkAppCostClientRequest(server string, tenantId string, appId string, body LinkAppCostClientJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewLinkAppCostClientRequestWithBody(server, tenantId, appId, "application/json", bodyReader)
+}
+
+// NewLinkAppCostClientRequestWithBody generates requests for LinkAppCostClient with any type of body
+func NewLinkAppCostClientRequestWithBody(server string, tenantId string, appId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-clients/link", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListAppCostDeclarersRequest generates requests for ListAppCostDeclarers
 func NewListAppCostDeclarersRequest(server string, tenantId string, appId string) (*http.Request, error) {
 	var err error
@@ -3601,6 +4864,47 @@ func NewAddAppCostDeclarerRequest(server string, tenantId string, appId string, 
 	}
 
 	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAppCostSourcesRequest generates requests for ListAppCostSources
+func NewListAppCostSourcesRequest(server string, tenantId string, appId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "app_id", runtime.ParamLocationPath, appId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/apps/%s/cost-sources", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -4028,6 +5332,101 @@ func NewListCostItemPricingReviewsRequest(server string, tenantId string) (*http
 	return req, nil
 }
 
+// NewClearCostItemPriceSourceRequest generates requests for ClearCostItemPriceSource
+func NewClearCostItemPriceSourceRequest(server string, tenantId string, itemId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "item_id", runtime.ParamLocationPath, itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/%s/price-source", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetCostItemPriceSourceRequest calls the generic SetCostItemPriceSource builder with application/json body
+func NewSetCostItemPriceSourceRequest(server string, tenantId string, itemId string, body SetCostItemPriceSourceJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetCostItemPriceSourceRequestWithBody(server, tenantId, itemId, "application/json", bodyReader)
+}
+
+// NewSetCostItemPriceSourceRequestWithBody generates requests for SetCostItemPriceSource with any type of body
+func NewSetCostItemPriceSourceRequestWithBody(server string, tenantId string, itemId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "item_id", runtime.ParamLocationPath, itemId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/cost-items/%s/price-source", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewCheckCostItemPricingRequest generates requests for CheckCostItemPricing
 func NewCheckCostItemPricingRequest(server string, tenantId string, itemId string) (*http.Request, error) {
 	var err error
@@ -4319,6 +5718,87 @@ func NewReadInvoiceRequestWithBody(server string, tenantId string, contentType s
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetCostVisibilityRequest generates requests for GetCostVisibility
+func NewGetCostVisibilityRequest(server string, tenantId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/visibility", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetCostVisibilityRequest calls the generic SetCostVisibility builder with application/json body
+func NewSetCostVisibilityRequest(server string, tenantId string, body SetCostVisibilityJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetCostVisibilityRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewSetCostVisibilityRequestWithBody generates requests for SetCostVisibility with any type of body
+func NewSetCostVisibilityRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/visibility", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -4760,6 +6240,131 @@ func NewEndRecurringCostRequestWithBody(server string, tenantId string, recurrin
 	return req, nil
 }
 
+// NewListSkillNeedsRequest generates requests for ListSkillNeeds
+func NewListSkillNeedsRequest(server string, tenantId string, params *ListSkillNeedsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/skill-needs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Lang != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "lang", runtime.ParamLocationQuery, *params.Lang); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewReplaceSkillNeedsRequest calls the generic ReplaceSkillNeeds builder with application/json body
+func NewReplaceSkillNeedsRequest(server string, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReplaceSkillNeedsRequestWithBody(server, tenantId, params, "application/json", bodyReader)
+}
+
+// NewReplaceSkillNeedsRequestWithBody generates requests for ReplaceSkillNeeds with any type of body
+func NewReplaceSkillNeedsRequestWithBody(server string, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/skill-needs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Lang != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "lang", runtime.ParamLocationQuery, *params.Lang); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListWebhookEndpointsRequest generates requests for ListWebhookEndpoints
 func NewListWebhookEndpointsRequest(server string, params *ListWebhookEndpointsParams) (*http.Request, error) {
 	var err error
@@ -5057,6 +6662,14 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// AppListAddonsWithResponse request
+	AppListAddonsWithResponse(ctx context.Context, params *AppListAddonsParams, reqEditors ...RequestEditorFn) (*AppListAddonsResponse, error)
+
+	// AppSetAddonQuantityWithBodyWithResponse request with any body
+	AppSetAddonQuantityWithBodyWithResponse(ctx context.Context, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppSetAddonQuantityResponse, error)
+
+	AppSetAddonQuantityWithResponse(ctx context.Context, code string, body AppSetAddonQuantityJSONRequestBody, reqEditors ...RequestEditorFn) (*AppSetAddonQuantityResponse, error)
+
 	// ListPublicPlansWithResponse request
 	ListPublicPlansWithResponse(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*ListPublicPlansResponse, error)
 
@@ -5081,6 +6694,11 @@ type ClientWithResponsesInterface interface {
 
 	// MollieWebhookWithResponse request
 	MollieWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*MollieWebhookResponse, error)
+
+	// RegisterCostClientWithBodyWithResponse request with any body
+	RegisterCostClientWithBodyWithResponse(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterCostClientResponse, error)
+
+	RegisterCostClientWithResponse(ctx context.Context, externalUserId string, body RegisterCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterCostClientResponse, error)
 
 	// RecordCostsWithBodyWithResponse request with any body
 	RecordCostsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordCostsResponse, error)
@@ -5125,6 +6743,12 @@ type ClientWithResponsesInterface interface {
 	// ListAppPlansWithResponse request
 	ListAppPlansWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAppPlansResponse, error)
 
+	// GetPublicCostReportWithResponse request
+	GetPublicCostReportWithResponse(ctx context.Context, slug string, params *GetPublicCostReportParams, reqEditors ...RequestEditorFn) (*GetPublicCostReportResponse, error)
+
+	// GetPublicSkillNeedsWithResponse request
+	GetPublicSkillNeedsWithResponse(ctx context.Context, slug string, params *GetPublicSkillNeedsParams, reqEditors ...RequestEditorFn) (*GetPublicSkillNeedsResponse, error)
+
 	// AppCancelSubscriptionWithBodyWithResponse request with any body
 	AppCancelSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppCancelSubscriptionResponse, error)
 
@@ -5145,6 +6769,28 @@ type ClientWithResponsesInterface interface {
 
 	AppWithdrawPendingPlanWithResponse(ctx context.Context, body AppWithdrawPendingPlanJSONRequestBody, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
+	// ListAppAddonsWithResponse request
+	ListAppAddonsWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppAddonsResponse, error)
+
+	// PutAppAddonWithBodyWithResponse request with any body
+	PutAppAddonWithBodyWithResponse(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAppAddonResponse, error)
+
+	PutAppAddonWithResponse(ctx context.Context, tenantId string, appId string, code string, body PutAppAddonJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAppAddonResponse, error)
+
+	// HideAppCostClientWithResponse request
+	HideAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, params *HideAppCostClientParams, reqEditors ...RequestEditorFn) (*HideAppCostClientResponse, error)
+
+	// ListAppCostClientsWithResponse request
+	ListAppCostClientsWithResponse(ctx context.Context, tenantId string, appId string, params *ListAppCostClientsParams, reqEditors ...RequestEditorFn) (*ListAppCostClientsResponse, error)
+
+	// UnlinkAppCostClientWithResponse request
+	UnlinkAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, params *UnlinkAppCostClientParams, reqEditors ...RequestEditorFn) (*UnlinkAppCostClientResponse, error)
+
+	// LinkAppCostClientWithBodyWithResponse request with any body
+	LinkAppCostClientWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*LinkAppCostClientResponse, error)
+
+	LinkAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, body LinkAppCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*LinkAppCostClientResponse, error)
+
 	// ListAppCostDeclarersWithResponse request
 	ListAppCostDeclarersWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostDeclarersResponse, error)
 
@@ -5153,6 +6799,9 @@ type ClientWithResponsesInterface interface {
 
 	// AddAppCostDeclarerWithResponse request
 	AddAppCostDeclarerWithResponse(ctx context.Context, tenantId string, appId string, declarerAppId string, reqEditors ...RequestEditorFn) (*AddAppCostDeclarerResponse, error)
+
+	// ListAppCostSourcesWithResponse request
+	ListAppCostSourcesWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostSourcesResponse, error)
 
 	// BulkDeleteUsageUnitsWithBodyWithResponse request with any body
 	BulkDeleteUsageUnitsWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkDeleteUsageUnitsResponse, error)
@@ -5181,6 +6830,14 @@ type ClientWithResponsesInterface interface {
 	// ListCostItemPricingReviewsWithResponse request
 	ListCostItemPricingReviewsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListCostItemPricingReviewsResponse, error)
 
+	// ClearCostItemPriceSourceWithResponse request
+	ClearCostItemPriceSourceWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*ClearCostItemPriceSourceResponse, error)
+
+	// SetCostItemPriceSourceWithBodyWithResponse request with any body
+	SetCostItemPriceSourceWithBodyWithResponse(ctx context.Context, tenantId string, itemId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostItemPriceSourceResponse, error)
+
+	SetCostItemPriceSourceWithResponse(ctx context.Context, tenantId string, itemId string, body SetCostItemPriceSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostItemPriceSourceResponse, error)
+
 	// CheckCostItemPricingWithResponse request
 	CheckCostItemPricingWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*CheckCostItemPricingResponse, error)
 
@@ -5202,6 +6859,14 @@ type ClientWithResponsesInterface interface {
 
 	// ReadInvoiceWithBodyWithResponse request with any body
 	ReadInvoiceWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReadInvoiceResponse, error)
+
+	// GetCostVisibilityWithResponse request
+	GetCostVisibilityWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetCostVisibilityResponse, error)
+
+	// SetCostVisibilityWithBodyWithResponse request with any body
+	SetCostVisibilityWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
+
+	SetCostVisibilityWithResponse(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
 
 	// ListCostAttachmentsWithResponse request
 	ListCostAttachmentsWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*ListCostAttachmentsResponse, error)
@@ -5236,6 +6901,14 @@ type ClientWithResponsesInterface interface {
 
 	EndRecurringCostWithResponse(ctx context.Context, tenantId string, recurringCostId string, body EndRecurringCostJSONRequestBody, reqEditors ...RequestEditorFn) (*EndRecurringCostResponse, error)
 
+	// ListSkillNeedsWithResponse request
+	ListSkillNeedsWithResponse(ctx context.Context, tenantId string, params *ListSkillNeedsParams, reqEditors ...RequestEditorFn) (*ListSkillNeedsResponse, error)
+
+	// ReplaceSkillNeedsWithBodyWithResponse request with any body
+	ReplaceSkillNeedsWithBodyWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error)
+
+	ReplaceSkillNeedsWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error)
+
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
 
@@ -5257,6 +6930,56 @@ type ClientWithResponsesInterface interface {
 
 	// RotateWebhookSecretWithResponse request
 	RotateWebhookSecretWithResponse(ctx context.Context, id string, reqEditors ...RequestEditorFn) (*RotateWebhookSecretResponse, error)
+}
+
+type AppListAddonsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceAddonsResponse
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppListAddonsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppListAddonsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AppSetAddonQuantityResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceSetAddonQuantityResponse
+	JSON400      *EchoHTTPError
+	JSON402      *FinanceAddonError
+	JSON404      *FinanceAddonError
+	JSON409      *FinanceAddonError
+	JSON422      *FinanceAddonError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppSetAddonQuantityResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppSetAddonQuantityResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListPublicPlansResponse struct {
@@ -5423,6 +7146,27 @@ func (r MollieWebhookResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r MollieWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RegisterCostClientResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RegisterCostClientResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RegisterCostClientResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5698,6 +7442,54 @@ func (r ListAppPlansResponse) StatusCode() int {
 	return 0
 }
 
+type GetPublicCostReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingPublicCostReportView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPublicCostReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPublicCostReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetPublicSkillNeedsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingSkillNeedsView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetPublicSkillNeedsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetPublicSkillNeedsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type AppCancelSubscriptionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5796,6 +7588,138 @@ func (r AppWithdrawPendingPlanResponse) StatusCode() int {
 	return 0
 }
 
+type ListAppAddonsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]FinanceAddonDefinitionView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAppAddonsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAppAddonsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutAppAddonResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceAddonDefinitionView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r PutAppAddonResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutAppAddonResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type HideAppCostClientResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r HideAppCostClientResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r HideAppCostClientResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAppCostClientsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostClientView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAppCostClientsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAppCostClientsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UnlinkAppCostClientResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r UnlinkAppCostClientResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UnlinkAppCostClientResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type LinkAppCostClientResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r LinkAppCostClientResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LinkAppCostClientResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListAppCostDeclarersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5854,6 +7778,28 @@ func (r AddAppCostDeclarerResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AddAppCostDeclarerResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAppCostSourcesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostSourceView
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAppCostSourcesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAppCostSourcesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6019,6 +7965,53 @@ func (r ListCostItemPricingReviewsResponse) StatusCode() int {
 	return 0
 }
 
+type ClearCostItemPriceSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostItemView
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ClearCostItemPriceSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ClearCostItemPriceSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SetCostItemPriceSourceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostItemView
+	JSON404      *EchoHTTPError
+	JSON422      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r SetCostItemPriceSourceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetCostItemPriceSourceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type CheckCostItemPricingResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6160,6 +8153,51 @@ func (r ReadInvoiceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ReadInvoiceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetCostVisibilityResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostVisibilityView
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCostVisibilityResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCostVisibilityResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SetCostVisibilityResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostVisibilityView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r SetCostVisibilityResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetCostVisibilityResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6377,6 +8415,52 @@ func (r EndRecurringCostResponse) StatusCode() int {
 	return 0
 }
 
+type ListSkillNeedsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingSkillNeedsView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSkillNeedsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSkillNeedsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ReplaceSkillNeedsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingSkillNeedsView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ReplaceSkillNeedsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReplaceSkillNeedsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListWebhookEndpointsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6520,6 +8604,32 @@ func (r RotateWebhookSecretResponse) StatusCode() int {
 	return 0
 }
 
+// AppListAddonsWithResponse request returning *AppListAddonsResponse
+func (c *ClientWithResponses) AppListAddonsWithResponse(ctx context.Context, params *AppListAddonsParams, reqEditors ...RequestEditorFn) (*AppListAddonsResponse, error) {
+	rsp, err := c.AppListAddons(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppListAddonsResponse(rsp)
+}
+
+// AppSetAddonQuantityWithBodyWithResponse request with arbitrary body returning *AppSetAddonQuantityResponse
+func (c *ClientWithResponses) AppSetAddonQuantityWithBodyWithResponse(ctx context.Context, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppSetAddonQuantityResponse, error) {
+	rsp, err := c.AppSetAddonQuantityWithBody(ctx, code, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppSetAddonQuantityResponse(rsp)
+}
+
+func (c *ClientWithResponses) AppSetAddonQuantityWithResponse(ctx context.Context, code string, body AppSetAddonQuantityJSONRequestBody, reqEditors ...RequestEditorFn) (*AppSetAddonQuantityResponse, error) {
+	rsp, err := c.AppSetAddonQuantity(ctx, code, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppSetAddonQuantityResponse(rsp)
+}
+
 // ListPublicPlansWithResponse request returning *ListPublicPlansResponse
 func (c *ClientWithResponses) ListPublicPlansWithResponse(ctx context.Context, appId string, reqEditors ...RequestEditorFn) (*ListPublicPlansResponse, error) {
 	rsp, err := c.ListPublicPlans(ctx, appId, reqEditors...)
@@ -6597,6 +8707,23 @@ func (c *ClientWithResponses) MollieWebhookWithResponse(ctx context.Context, cre
 		return nil, err
 	}
 	return ParseMollieWebhookResponse(rsp)
+}
+
+// RegisterCostClientWithBodyWithResponse request with arbitrary body returning *RegisterCostClientResponse
+func (c *ClientWithResponses) RegisterCostClientWithBodyWithResponse(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterCostClientResponse, error) {
+	rsp, err := c.RegisterCostClientWithBody(ctx, externalUserId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterCostClientResponse(rsp)
+}
+
+func (c *ClientWithResponses) RegisterCostClientWithResponse(ctx context.Context, externalUserId string, body RegisterCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterCostClientResponse, error) {
+	rsp, err := c.RegisterCostClient(ctx, externalUserId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterCostClientResponse(rsp)
 }
 
 // RecordCostsWithBodyWithResponse request with arbitrary body returning *RecordCostsResponse
@@ -6738,6 +8865,24 @@ func (c *ClientWithResponses) ListAppPlansWithResponse(ctx context.Context, reqE
 	return ParseListAppPlansResponse(rsp)
 }
 
+// GetPublicCostReportWithResponse request returning *GetPublicCostReportResponse
+func (c *ClientWithResponses) GetPublicCostReportWithResponse(ctx context.Context, slug string, params *GetPublicCostReportParams, reqEditors ...RequestEditorFn) (*GetPublicCostReportResponse, error) {
+	rsp, err := c.GetPublicCostReport(ctx, slug, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPublicCostReportResponse(rsp)
+}
+
+// GetPublicSkillNeedsWithResponse request returning *GetPublicSkillNeedsResponse
+func (c *ClientWithResponses) GetPublicSkillNeedsWithResponse(ctx context.Context, slug string, params *GetPublicSkillNeedsParams, reqEditors ...RequestEditorFn) (*GetPublicSkillNeedsResponse, error) {
+	rsp, err := c.GetPublicSkillNeeds(ctx, slug, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetPublicSkillNeedsResponse(rsp)
+}
+
 // AppCancelSubscriptionWithBodyWithResponse request with arbitrary body returning *AppCancelSubscriptionResponse
 func (c *ClientWithResponses) AppCancelSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppCancelSubscriptionResponse, error) {
 	rsp, err := c.AppCancelSubscriptionWithBody(ctx, contentType, body, reqEditors...)
@@ -6806,6 +8951,76 @@ func (c *ClientWithResponses) AppWithdrawPendingPlanWithResponse(ctx context.Con
 	return ParseAppWithdrawPendingPlanResponse(rsp)
 }
 
+// ListAppAddonsWithResponse request returning *ListAppAddonsResponse
+func (c *ClientWithResponses) ListAppAddonsWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppAddonsResponse, error) {
+	rsp, err := c.ListAppAddons(ctx, tenantId, appId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAppAddonsResponse(rsp)
+}
+
+// PutAppAddonWithBodyWithResponse request with arbitrary body returning *PutAppAddonResponse
+func (c *ClientWithResponses) PutAppAddonWithBodyWithResponse(ctx context.Context, tenantId string, appId string, code string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAppAddonResponse, error) {
+	rsp, err := c.PutAppAddonWithBody(ctx, tenantId, appId, code, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAppAddonResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutAppAddonWithResponse(ctx context.Context, tenantId string, appId string, code string, body PutAppAddonJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAppAddonResponse, error) {
+	rsp, err := c.PutAppAddon(ctx, tenantId, appId, code, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAppAddonResponse(rsp)
+}
+
+// HideAppCostClientWithResponse request returning *HideAppCostClientResponse
+func (c *ClientWithResponses) HideAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, params *HideAppCostClientParams, reqEditors ...RequestEditorFn) (*HideAppCostClientResponse, error) {
+	rsp, err := c.HideAppCostClient(ctx, tenantId, appId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseHideAppCostClientResponse(rsp)
+}
+
+// ListAppCostClientsWithResponse request returning *ListAppCostClientsResponse
+func (c *ClientWithResponses) ListAppCostClientsWithResponse(ctx context.Context, tenantId string, appId string, params *ListAppCostClientsParams, reqEditors ...RequestEditorFn) (*ListAppCostClientsResponse, error) {
+	rsp, err := c.ListAppCostClients(ctx, tenantId, appId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAppCostClientsResponse(rsp)
+}
+
+// UnlinkAppCostClientWithResponse request returning *UnlinkAppCostClientResponse
+func (c *ClientWithResponses) UnlinkAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, params *UnlinkAppCostClientParams, reqEditors ...RequestEditorFn) (*UnlinkAppCostClientResponse, error) {
+	rsp, err := c.UnlinkAppCostClient(ctx, tenantId, appId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUnlinkAppCostClientResponse(rsp)
+}
+
+// LinkAppCostClientWithBodyWithResponse request with arbitrary body returning *LinkAppCostClientResponse
+func (c *ClientWithResponses) LinkAppCostClientWithBodyWithResponse(ctx context.Context, tenantId string, appId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*LinkAppCostClientResponse, error) {
+	rsp, err := c.LinkAppCostClientWithBody(ctx, tenantId, appId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLinkAppCostClientResponse(rsp)
+}
+
+func (c *ClientWithResponses) LinkAppCostClientWithResponse(ctx context.Context, tenantId string, appId string, body LinkAppCostClientJSONRequestBody, reqEditors ...RequestEditorFn) (*LinkAppCostClientResponse, error) {
+	rsp, err := c.LinkAppCostClient(ctx, tenantId, appId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLinkAppCostClientResponse(rsp)
+}
+
 // ListAppCostDeclarersWithResponse request returning *ListAppCostDeclarersResponse
 func (c *ClientWithResponses) ListAppCostDeclarersWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostDeclarersResponse, error) {
 	rsp, err := c.ListAppCostDeclarers(ctx, tenantId, appId, reqEditors...)
@@ -6831,6 +9046,15 @@ func (c *ClientWithResponses) AddAppCostDeclarerWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseAddAppCostDeclarerResponse(rsp)
+}
+
+// ListAppCostSourcesWithResponse request returning *ListAppCostSourcesResponse
+func (c *ClientWithResponses) ListAppCostSourcesWithResponse(ctx context.Context, tenantId string, appId string, reqEditors ...RequestEditorFn) (*ListAppCostSourcesResponse, error) {
+	rsp, err := c.ListAppCostSources(ctx, tenantId, appId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAppCostSourcesResponse(rsp)
 }
 
 // BulkDeleteUsageUnitsWithBodyWithResponse request with arbitrary body returning *BulkDeleteUsageUnitsResponse
@@ -6920,6 +9144,32 @@ func (c *ClientWithResponses) ListCostItemPricingReviewsWithResponse(ctx context
 	return ParseListCostItemPricingReviewsResponse(rsp)
 }
 
+// ClearCostItemPriceSourceWithResponse request returning *ClearCostItemPriceSourceResponse
+func (c *ClientWithResponses) ClearCostItemPriceSourceWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*ClearCostItemPriceSourceResponse, error) {
+	rsp, err := c.ClearCostItemPriceSource(ctx, tenantId, itemId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseClearCostItemPriceSourceResponse(rsp)
+}
+
+// SetCostItemPriceSourceWithBodyWithResponse request with arbitrary body returning *SetCostItemPriceSourceResponse
+func (c *ClientWithResponses) SetCostItemPriceSourceWithBodyWithResponse(ctx context.Context, tenantId string, itemId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostItemPriceSourceResponse, error) {
+	rsp, err := c.SetCostItemPriceSourceWithBody(ctx, tenantId, itemId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCostItemPriceSourceResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetCostItemPriceSourceWithResponse(ctx context.Context, tenantId string, itemId string, body SetCostItemPriceSourceJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostItemPriceSourceResponse, error) {
+	rsp, err := c.SetCostItemPriceSource(ctx, tenantId, itemId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCostItemPriceSourceResponse(rsp)
+}
+
 // CheckCostItemPricingWithResponse request returning *CheckCostItemPricingResponse
 func (c *ClientWithResponses) CheckCostItemPricingWithResponse(ctx context.Context, tenantId string, itemId string, reqEditors ...RequestEditorFn) (*CheckCostItemPricingResponse, error) {
 	rsp, err := c.CheckCostItemPricing(ctx, tenantId, itemId, reqEditors...)
@@ -6988,6 +9238,32 @@ func (c *ClientWithResponses) ReadInvoiceWithBodyWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseReadInvoiceResponse(rsp)
+}
+
+// GetCostVisibilityWithResponse request returning *GetCostVisibilityResponse
+func (c *ClientWithResponses) GetCostVisibilityWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetCostVisibilityResponse, error) {
+	rsp, err := c.GetCostVisibility(ctx, tenantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCostVisibilityResponse(rsp)
+}
+
+// SetCostVisibilityWithBodyWithResponse request with arbitrary body returning *SetCostVisibilityResponse
+func (c *ClientWithResponses) SetCostVisibilityWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error) {
+	rsp, err := c.SetCostVisibilityWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCostVisibilityResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetCostVisibilityWithResponse(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error) {
+	rsp, err := c.SetCostVisibility(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetCostVisibilityResponse(rsp)
 }
 
 // ListCostAttachmentsWithResponse request returning *ListCostAttachmentsResponse
@@ -7095,6 +9371,32 @@ func (c *ClientWithResponses) EndRecurringCostWithResponse(ctx context.Context, 
 	return ParseEndRecurringCostResponse(rsp)
 }
 
+// ListSkillNeedsWithResponse request returning *ListSkillNeedsResponse
+func (c *ClientWithResponses) ListSkillNeedsWithResponse(ctx context.Context, tenantId string, params *ListSkillNeedsParams, reqEditors ...RequestEditorFn) (*ListSkillNeedsResponse, error) {
+	rsp, err := c.ListSkillNeeds(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSkillNeedsResponse(rsp)
+}
+
+// ReplaceSkillNeedsWithBodyWithResponse request with arbitrary body returning *ReplaceSkillNeedsResponse
+func (c *ClientWithResponses) ReplaceSkillNeedsWithBodyWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error) {
+	rsp, err := c.ReplaceSkillNeedsWithBody(ctx, tenantId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceSkillNeedsResponse(rsp)
+}
+
+func (c *ClientWithResponses) ReplaceSkillNeedsWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error) {
+	rsp, err := c.ReplaceSkillNeeds(ctx, tenantId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReplaceSkillNeedsResponse(rsp)
+}
+
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
 func (c *ClientWithResponses) ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error) {
 	rsp, err := c.ListWebhookEndpoints(ctx, params, reqEditors...)
@@ -7163,6 +9465,100 @@ func (c *ClientWithResponses) RotateWebhookSecretWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseRotateWebhookSecretResponse(rsp)
+}
+
+// ParseAppListAddonsResponse parses an HTTP response from a AppListAddonsWithResponse call
+func ParseAppListAddonsResponse(rsp *http.Response) (*AppListAddonsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppListAddonsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceAddonsResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAppSetAddonQuantityResponse parses an HTTP response from a AppSetAddonQuantityWithResponse call
+func ParseAppSetAddonQuantityResponse(rsp *http.Response) (*AppSetAddonQuantityResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppSetAddonQuantityResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceSetAddonQuantityResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 402:
+		var dest FinanceAddonError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON402 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest FinanceAddonError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest FinanceAddonError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest FinanceAddonError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListPublicPlansResponse parses an HTTP response from a ListPublicPlansWithResponse call
@@ -7449,6 +9845,22 @@ func ParseMollieWebhookResponse(rsp *http.Response) (*MollieWebhookResponse, err
 	}
 
 	response := &MollieWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseRegisterCostClientResponse parses an HTTP response from a RegisterCostClientWithResponse call
+func ParseRegisterCostClientResponse(rsp *http.Response) (*RegisterCostClientResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RegisterCostClientResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -7931,6 +10343,86 @@ func ParseListAppPlansResponse(rsp *http.Response) (*ListAppPlansResponse, error
 	return response, nil
 }
 
+// ParseGetPublicCostReportResponse parses an HTTP response from a GetPublicCostReportWithResponse call
+func ParseGetPublicCostReportResponse(rsp *http.Response) (*GetPublicCostReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPublicCostReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingPublicCostReportView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetPublicSkillNeedsResponse parses an HTTP response from a GetPublicSkillNeedsWithResponse call
+func ParseGetPublicSkillNeedsResponse(rsp *http.Response) (*GetPublicSkillNeedsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetPublicSkillNeedsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingSkillNeedsView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseAppCancelSubscriptionResponse parses an HTTP response from a AppCancelSubscriptionWithResponse call
 func ParseAppCancelSubscriptionResponse(rsp *http.Response) (*AppCancelSubscriptionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -8105,6 +10597,153 @@ func ParseAppWithdrawPendingPlanResponse(rsp *http.Response) (*AppWithdrawPendin
 	return response, nil
 }
 
+// ParseListAppAddonsResponse parses an HTTP response from a ListAppAddonsWithResponse call
+func ParseListAppAddonsResponse(rsp *http.Response) (*ListAppAddonsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAppAddonsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []FinanceAddonDefinitionView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutAppAddonResponse parses an HTTP response from a PutAppAddonWithResponse call
+func ParsePutAppAddonResponse(rsp *http.Response) (*PutAppAddonResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutAppAddonResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceAddonDefinitionView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseHideAppCostClientResponse parses an HTTP response from a HideAppCostClientWithResponse call
+func ParseHideAppCostClientResponse(rsp *http.Response) (*HideAppCostClientResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &HideAppCostClientResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListAppCostClientsResponse parses an HTTP response from a ListAppCostClientsWithResponse call
+func ParseListAppCostClientsResponse(rsp *http.Response) (*ListAppCostClientsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAppCostClientsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostClientView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUnlinkAppCostClientResponse parses an HTTP response from a UnlinkAppCostClientWithResponse call
+func ParseUnlinkAppCostClientResponse(rsp *http.Response) (*UnlinkAppCostClientResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UnlinkAppCostClientResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseLinkAppCostClientResponse parses an HTTP response from a LinkAppCostClientWithResponse call
+func ParseLinkAppCostClientResponse(rsp *http.Response) (*LinkAppCostClientResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LinkAppCostClientResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListAppCostDeclarersResponse parses an HTTP response from a ListAppCostDeclarersWithResponse call
 func ParseListAppCostDeclarersResponse(rsp *http.Response) (*ListAppCostDeclarersResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -8158,6 +10797,32 @@ func ParseAddAppCostDeclarerResponse(rsp *http.Response) (*AddAppCostDeclarerRes
 	response := &AddAppCostDeclarerResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListAppCostSourcesResponse parses an HTTP response from a ListAppCostSourcesWithResponse call
+func ParseListAppCostSourcesResponse(rsp *http.Response) (*ListAppCostSourcesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAppCostSourcesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostSourceView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil
@@ -8371,6 +11036,79 @@ func ParseListCostItemPricingReviewsResponse(rsp *http.Response) (*ListCostItemP
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseClearCostItemPriceSourceResponse parses an HTTP response from a ClearCostItemPriceSourceWithResponse call
+func ParseClearCostItemPriceSourceResponse(rsp *http.Response) (*ClearCostItemPriceSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ClearCostItemPriceSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostItemView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetCostItemPriceSourceResponse parses an HTTP response from a SetCostItemPriceSourceWithResponse call
+func ParseSetCostItemPriceSourceResponse(rsp *http.Response) (*SetCostItemPriceSourceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetCostItemPriceSourceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostItemView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
 
 	}
 
@@ -8629,6 +11367,65 @@ func ParseReadInvoiceResponse(rsp *http.Response) (*ReadInvoiceResponse, error) 
 			return nil, err
 		}
 		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCostVisibilityResponse parses an HTTP response from a GetCostVisibilityWithResponse call
+func ParseGetCostVisibilityResponse(rsp *http.Response) (*GetCostVisibilityResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCostVisibilityResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostVisibilityView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetCostVisibilityResponse parses an HTTP response from a SetCostVisibilityWithResponse call
+func ParseSetCostVisibilityResponse(rsp *http.Response) (*SetCostVisibilityResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetCostVisibilityResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostVisibilityView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	}
 
@@ -8948,6 +11745,72 @@ func ParseEndRecurringCostResponse(rsp *http.Response) (*EndRecurringCostRespons
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSkillNeedsResponse parses an HTTP response from a ListSkillNeedsWithResponse call
+func ParseListSkillNeedsResponse(rsp *http.Response) (*ListSkillNeedsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSkillNeedsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingSkillNeedsView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReplaceSkillNeedsResponse parses an HTTP response from a ReplaceSkillNeedsWithResponse call
+func ParseReplaceSkillNeedsResponse(rsp *http.Response) (*ReplaceSkillNeedsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReplaceSkillNeedsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingSkillNeedsView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	}
 
