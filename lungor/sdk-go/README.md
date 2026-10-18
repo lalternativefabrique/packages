@@ -160,6 +160,26 @@ which is what they bought.
 `ErrNotFound` means the user has no subscription. That is an ordinary outcome,
 not a failure: show "nothing to change" rather than an error.
 
+## Quantity add-ons
+
+An add-on is a fixed-price unit sold by quantity on top of a plan (a seat at
+5 EUR/month). Each unit held raises the user's limit of the add-on's unit, so
+`Entitlement` and `Balance` already report plan allocation + quantity.
+
+```go
+addons, err := c.Addons(ctx, userID)            // every add-on, quantity 0 when not bought
+held, err := c.SetAddonQuantity(ctx, userID, "seat", 3)
+switch {
+case errors.Is(err, sdk.ErrAddonPlanRequired): // the user's plan does not allow it
+case errors.Is(err, sdk.ErrPaymentRequired):   // no saved payment method; see *sdk.PaymentRequiredError
+case errors.Is(err, sdk.ErrAddonQuantity):     // negative quantity
+case errors.Is(err, sdk.ErrAddonNotFound):
+}
+```
+
+An increase is charged now, prorated over the paid period; a decrease refunds
+nothing. Lowering below what the app has handed out is the app's check.
+
 ## Checkout
 
 ```go
