@@ -174,3 +174,102 @@ test("sign-out forgets everything even when the server cannot answer", async () 
   assert.equal(error?.status, 0);
   assert.equal(storage.items.size, 0);
 });
+
+test("a passkey sign-in hands Kratos' options to the platform and returns its assertion", async () => {
+  const storage = memoryStorage();
+  const { seen, fetchImpl } = server(({ url }) =>
+    url.endsWith("/sign-in/passkey/begin")
+      ? answer(200, { options: { challenge: "c", rpId: "id.urbangate.dev" } }, [
+          "app_flow=passkey%3AL; Path=/; HttpOnly",
+        ])
+      : answer(200, { user: { id: "u" } }, ["app_session=ory_st; Path=/; HttpOnly"]),
+  );
+  const asked: Array<unknown> = [];
+  const client = createUrbangateNativeClient({
+    baseURL: "https://app.dev",
+    product: "app",
+    storage,
+    fetch: fetchImpl,
+    passkey: {
+      get: async (options) => {
+        asked.push(options);
+        return { id: "cred", response: { signature: "sig" } };
+      },
+      create: async () => assert.fail("no enrolment on sign-in"),
+    },
+  });
+
+  const result = await client.signIn.passkey();
+
+  assert.deepEqual(result, { data: { user: { id: "u" } }, error: null });
+  assert.deepEqual(asked, [{ challenge: "c", rpId: "id.urbangate.dev" }]);
+  assert.equal(seen[1].url, "https://app.dev/api/auth/sign-in/passkey/finish");
+  assert.equal(cookieOf(seen[1]), "app_flow=passkey%3AL");
+  assert.deepEqual(JSON.parse(String(seen[1].init.body)), {
+    credential: { id: "cred", response: { signature: "sig" } },
+  });
+  assert.equal(storage.items.get("app_session"), "ory_st");
+});
+
+test("a cancelled passkey prompt sends nothing to finish", async () => {
+  const { seen, fetchImpl } = server(() => answer(200, { options: {} }));
+  const client = createUrbangateNativeClient({
+    baseURL: "https://app.dev",
+    product: "app",
+    storage: memoryStorage(),
+    fetch: fetchImpl,
+    passkey: {
+      get: async () => {
+        throw new Error("The operation was cancelled");
+      },
+      create: async () => ({}),
+    },
+  });
+
+  const result = await client.signIn.passkey();
+
+  assert.equal(result.error?.code, "passkey_cancelled");
+  assert.equal(seen.length, 1);
+});
+
+test("passkey enrolment re-proves with the password and confirms the new credential", async () => {
+  const { seen, fetchImpl } = server(({ url }) =>
+    url.endsWith("/passkey/start")
+      ? answer(200, { options: { challenge: "c", user: { name: "ana" } } })
+      : answer(200, { passkey: true }),
+  );
+  const client = createUrbangateNativeClient({
+    baseURL: "https://app.dev",
+    product: "app",
+    storage: memoryStorage(),
+    fetch: fetchImpl,
+    passkey: {
+      get: async () => assert.fail("no assertion on enrolment"),
+      create: async () => ({ id: "new" }),
+    },
+  });
+
+  const result = await client.passkey.add({ password: "pw" });
+
+  assert.deepEqual(result, { data: { passkey: true }, error: null });
+  assert.deepEqual(JSON.parse(String(seen[0].init.body)), { password: "pw" });
+  assert.deepEqual(JSON.parse(String(seen[1].init.body)), {
+    password: "pw",
+    credential: { id: "new" },
+  });
+});
+
+test("without a passkey adapter the ceremony is not_supported", async () => {
+  const { seen, fetchImpl } = server(() => answer(200, {}));
+  const client = createUrbangateNativeClient({
+    baseURL: "https://app.dev",
+    product: "app",
+    storage: memoryStorage(),
+    fetch: fetchImpl,
+  });
+
+  const result = await client.signIn.passkey();
+
+  assert.equal(result.error?.code, "not_supported");
+  assert.equal(seen.length, 0);
+});

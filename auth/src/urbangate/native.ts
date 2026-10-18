@@ -13,11 +13,19 @@ export interface NativeStorage {
   deleteItem(key: string): Promise<void>;
 }
 
+export type PasskeyOptions = Record<string, unknown>;
+
+export interface NativePasskey {
+  get(options: PasskeyOptions): Promise<unknown>;
+  create(options: PasskeyOptions): Promise<unknown>;
+}
+
 export interface UrbangateNativeClientConfig {
   baseURL: string;
   product: string;
   storage: NativeStorage;
   fetch?: typeof fetch;
+  passkey?: NativePasskey;
 }
 
 export interface NativeSessionState {
@@ -31,7 +39,12 @@ export type UrbangateNativeClient = Omit<
   UrbangateAuthClient,
   "useSession" | "signIn"
 > & {
-  signIn: Omit<UrbangateAuthClient["signIn"], "urbangate">;
+  signIn: Omit<UrbangateAuthClient["signIn"], "urbangate"> & {
+    passkey(): Promise<Result<{ user: UrbangateClientSession["user"] | null }>>;
+  };
+  passkey: {
+    add(input?: { password?: string }): Promise<Result<{ passkey: true }>>;
+  };
   cookieHeader(): Promise<string>;
   fetch(path: string, init?: RequestInit): Promise<Response>;
   useSession(): NativeSessionState;
@@ -183,6 +196,37 @@ export function createUrbangateNativeClient(
     }
   }
 
+  const noPasskey: Result<never> = {
+    data: null,
+    error: { code: "not_supported", status: 501 },
+  };
+
+  async function ceremony<T>(
+    begin: string,
+    finish: string,
+    perform: (passkey: NativePasskey, options: PasskeyOptions) => Promise<unknown>,
+    input: Record<string, unknown> = {},
+  ): Promise<Result<T>> {
+    const passkey = config.passkey;
+    if (!passkey) return noPasskey;
+    const started = await call<{ options: PasskeyOptions }>("POST", begin, input);
+    if (!started.data) return { data: null, error: started.error };
+    let credential: unknown;
+    try {
+      credential = await perform(passkey, started.data.options);
+    } catch (err) {
+      return {
+        data: null,
+        error: {
+          code: "passkey_cancelled",
+          message: err instanceof Error ? err.message : "cancelled",
+          status: 0,
+        },
+      };
+    }
+    return call<T>("POST", finish, { ...input, credential });
+  }
+
   const getSession = () =>
     call<UrbangateClientSession | null>("GET", "get-session");
 
@@ -198,6 +242,19 @@ export function createUrbangateNativeClient(
       email: (input) => call("POST", "sign-in/email", input),
       emailOtp: (input) => call("POST", "sign-in/email-otp", input),
       social: async () => ({ error: { code: "not_supported", status: 501 } }),
+      passkey: () =>
+        ceremony("sign-in/passkey/begin", "sign-in/passkey/finish", (p, o) =>
+          p.get(o),
+        ),
+    },
+    passkey: {
+      add: (input = {}) =>
+        ceremony(
+          "passkey/start",
+          "passkey/confirm",
+          (p, o) => p.create(o),
+          input,
+        ),
     },
     signUp: {
       email: (input) => call("POST", "sign-up/email", input),
