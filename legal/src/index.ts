@@ -9,3 +9,6 @@ export type { CookiesPageProps, CookieEntry } from './cookies'
 
 export { defaultPaths, resolvePaths } from './types'
 export type { Publisher, Host, Site, LegalPaths, Locale, LegalContext } from './types'
+
+export { PricingTerms } from './pricing-terms'
+export type { PricingTermsProps, UsageUnit } from './pricing-terms'

@@ -45,6 +45,7 @@ export type LegalPaths = {
   terms: string
   aup: string
   dpa: string
+  pricing: string
 }
 
 export const defaultPaths: LegalPaths = {
@@ -54,6 +55,7 @@ export const defaultPaths: LegalPaths = {
   terms: '/cgv',
   aup: '/aup',
   dpa: '/dpa',
+  pricing: '/pricing',
 }
 
 export type Locale = 'fr' | 'en'
