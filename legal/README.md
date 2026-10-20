@@ -68,6 +68,40 @@ flip in the same change that adds the tracker.
 />
 ```
 
+## Pricing terms
+
+The price article of a terms-of-sale page is the same wording for every
+product; only the figures differ. `PricingTerms` renders the two sections
+(prices and billing, price changes) from those figures and the site drops its
+plan table in as children. Nothing about rates or tiers lives in the package.
+
+```tsx
+import { PricingTerms } from '@lalternative/legal'
+
+<PricingTerms
+  publisher={PUBLISHER}
+  site={{ ...SITE, paths: { pricing: '/tarifs' } }}
+  locale="fr"
+  noticeDays={30}
+  usage={[
+    { label: 'transcription audio', rate: '2 crédits par minute entamée' },
+    { label: 'vidéo déjà sous-titrée', rate: '1 crédit par transcription' },
+  ]}
+  bestTier
+  titles={{ pricing: '4. Prix et facturation', revision: '5. Évolution des tarifs' }}
+>
+  <PlanPrices catalogue={catalogue} />
+</PricingTerms>
+```
+
+`usage` is the metered part of the price, when there is one: every rate listed
+must be the one the billing system charges. `bestTier` states that the customer
+is moved to the cheaper plan matching their consumption without asking; pass it
+only when the billing code does exactly that. `noticeDays` is the notice given
+before a price change takes effect, with free termination until that date, which
+is what keeps the clause out of the consumer-law blacklist on unilateral price
+changes. The VAT paragraph follows `publisher.vatExempt`.
+
 ## Styling
 
 The package ships structure, not a look. Every class is overridable through
@@ -75,7 +109,7 @@ The package ships structure, not a look. Every class is overridable through
 
 ## What is deliberately absent
 
-Terms of sale, privacy policy and the DPA are **not** here. They turn on the
+Terms of sale (beyond the price article above), privacy policy and the DPA are **not** here. They turn on the
 product's object, price, subprocessors and retention periods, and on whether the
 product acts as controller or processor — Techtuel is a processor for the media
 its customers submit, Synthiz a controller for its end users. Sharing that
