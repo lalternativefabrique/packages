@@ -1064,7 +1064,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Debits `quantity` of `unit` for a user, and answers whether it was allowed.\n\nWhich ceiling applies is resolved here, from the user's subscription — never sent by the caller, so the cap and the plan cannot disagree:\n\n**Subscription cap** — when the user's plan allocates this unit, the debit is capped on the allowance FOR THE CURRENT BILLING PERIOD, anchored on the subscription's own renewal date (not the 1st of the month). Consumption outside that window does not count, so a user who exhausted last period is served again as soon as it rolls over — no top-up, no manual intervention.\n\n**Prepaid wallet** — a user with no such allocation falls back to a lifetime balance, which must stay >= 0 and is topped up out of band via /metering/usage/topup.\n\nThe check and the write happen in ONE serialized transaction, so two concurrent debits cannot both observe the pre-debit total and both pass.\n\nA refusal is a normal outcome, not a failure: 402 carries the same decision body as 200, with allowed=false and the reason. Do not retry it — a retry cannot lift a cap. `idempotency_key` dedupes retries of the SAME logical debit; a replay writes nothing and re-reports the current state.",
+                "description": "Debits `quantity` of `unit` for a user, and answers whether it was allowed.\n\nWhich ceiling applies is resolved here, from the user's subscription — never sent by the caller, so the cap and the plan cannot disagree:\n\n**Subscription cap** — when the user's plan allocates this unit, the debit is capped on the allowance FOR THE CURRENT BILLING PERIOD, anchored on the subscription's own renewal date (not the 1st of the month). Consumption outside that window does not count, so a user who exhausted last period is served again as soon as it rolls over — no top-up, no manual intervention.\n\n**Prepaid wallet** — a user with no such allocation falls back to a lifetime balance, which must stay >= 0 and is topped up out of band via /metering/usage/topup.\n\nThe check and the write happen in ONE serialized transaction, so two concurrent debits cannot both observe the pre-debit total and both pass.\n\nA refusal is a normal outcome, not a failure: 402 carries the same decision body as 200, with allowed=false and the reason. Do not retry it — a retry cannot lift a cap. `idempotency_key` dedupes retries of the SAME logical debit; a replay writes nothing and re-reports the current state.\n\n**Settled debits** — an app that decided locally and replays from its outbox sends `settled: true` and the action's `occurred_at`. Lungor records it in the period of the action, even past the cap, answers 200 with `overrun: true` when it went past, and never refuses it: the action already happened. `occurred_at` more than 5 minutes ahead of the server clock is a 400.",
                 "tags": [
                     "metering"
                 ],
@@ -1222,6 +1222,79 @@
                 }
             }
         },
+        "/metering/usage/recorded": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Every ledger movement Lungor holds for the app, oldest first, keyed by `idempotency_key`. An app compares it with its outbox and replays what is missing, which covers a Lungor restore as well as a lost response. Start at `since` (or the beginning), then page with `after`, the `next` of the previous page; `after` wins over `since`.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "List the movements recorded for the calling app",
+                "operationId": "listRecordedUsage",
+                "parameters": [
+                    {
+                        "description": "RFC 3339 instant to start from, recorded_at included",
+                        "name": "since",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cursor from the previous page",
+                        "name": "after",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Page size, at most 1000",
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/metering.recordedResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/usage/release": {
             "post": {
                 "security": [
@@ -1229,11 +1302,11 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Gives back `quantity` slots of a CAPACITY unit, previously taken with POST /metering/usage — call it when the app deletes what it had counted (a domain, a seat).\n\nA capacity unit caps what is held right now (every debit minus every release, all time) and never resets at renewal. Releasing more than is held is refused with 409, and releasing a metered unit with 400: served consumption cannot be handed back.\n\nWorks without an active allocation, so a customer whose plan lapsed can still free slots. Idempotent on `idempotency_key`.",
+                "description": "Gives back `quantity` slots of a CAPACITY unit, previously taken with POST /metering/usage — call it when the app deletes what it had counted (a domain, a seat).\n\nA capacity unit caps what is held right now (every debit minus every release, all time) and never resets at renewal. Releasing more than is held is refused with 409.\n\nOn a METERED unit, `releases_key` is required: it names the consumption whose surplus is handed back — a reservation settled below its estimate. The release lands in that consumption's period and is capped at what it debited, net of earlier releases (409 beyond, 422 when the key names no consumption of this user and unit). Without `releases_key` a metered release is a 400: served consumption cannot be handed back.\n\nWorks without an active allocation, so a customer whose plan lapsed can still free slots. Idempotent on `idempotency_key`.",
                 "tags": [
                     "metering"
                 ],
-                "summary": "Release slots of a capacity unit",
+                "summary": "Release slots of a capacity unit, or the surplus of a metered consumption",
                 "operationId": "releaseUsage",
                 "requestBody": {
                     "content": {
@@ -6269,6 +6342,172 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/costs/{record_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a cost common to the tenant entered from the console, a single line of a recurring schedule included, with its attached files. A cost declared through the API cannot be deleted (409 `cost_record_locked`). Answers 503 `attachments_not_configured` when the cost carries files and no object store is set.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Delete a common cost",
+                "operationId": "deleteCommonCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces the label, category, supplier, amount, currency, date and note of a cost common to the tenant, with the same rules as POST /costs/direct: every field is sent, as the form holds it. The item is found or created under `<category>/<slug(label)>` and priced at the amount from the date; a price version only this cost uses is corrected in place rather than duplicated. Only a free-amount cost entered from the console may change (409 `cost_record_locked` otherwise, and for a line posted by a recurring schedule: change the schedule instead). Read `editable` on the listing rather than guessing.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Change a common cost entered as a free amount",
+                "operationId": "updateCommonCost",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Cost record ID",
+                        "name": "record_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.updateCommonCostRequest"
+                            }
+                        }
+                    },
+                    "description": "The cost as it should read",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costEntryView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/costs/{record_id}/attachments": {
             "get": {
                 "security": [
@@ -9302,6 +9541,13 @@
                         "type": "string",
                         "example": "EUR"
                     },
+                    "deletable": {
+                        "type": "boolean"
+                    },
+                    "editable": {
+                        "description": "Editable and Deletable say what PATCH and DELETE /costs/{record_id} accept.",
+                        "type": "boolean"
+                    },
                     "id": {
                         "type": "string"
                     },
@@ -9322,6 +9568,14 @@
                     "recurring": {
                         "description": "Recurring is set on a line a recurring schedule posted.",
                         "type": "boolean"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "console"
+                        ],
+                        "example": "console"
                     },
                     "supplier": {
                         "type": "string",
@@ -10607,6 +10861,47 @@
                     "provider": {
                         "type": "string",
                         "example": "anthropic"
+                    }
+                }
+            },
+            "costtracking.updateCommonCostRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros is the amount paid, in micros of the currency (1 EUR = 1 000 000).",
+                        "type": "integer",
+                        "example": 71960000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "staff",
+                            "other"
+                        ],
+                        "example": "infra"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement OVH"
+                    },
+                    "note": {
+                        "type": "string",
+                        "example": "Facture n° 2026-09-1234"
+                    },
+                    "occurred_at": {
+                        "type": "string",
+                        "example": "2026-09-30T00:00:00Z"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "ovh"
                     }
                 }
             },
@@ -12975,10 +13270,20 @@
                         "type": "string",
                         "example": "msg-8f21"
                     },
+                    "occurred_at": {
+                        "description": "OccurredAt dates the action; omitted means now. A debit replayed from an\noutbox carries the date of the action, so it lands in that period.",
+                        "type": "string",
+                        "example": "2026-10-22T09:15:00Z"
+                    },
                     "quantity": {
                         "description": "Quantity is how much to debit. Integer: a fraction of a unit lost to\nrounding is a unit nobody is billed for.",
                         "type": "integer",
                         "example": 1
+                    },
+                    "settled": {
+                        "description": "Settled says the action already happened. The debit is then recorded\neven past the cap, with overrun=true, and never answered 402.",
+                        "type": "boolean",
+                        "example": false
                     },
                     "subscription_id": {
                         "description": "SubscriptionID scopes the debit when the app tracks several. Optional.",
@@ -13035,6 +13340,11 @@
                         "type": "integer",
                         "example": 95
                     },
+                    "overrun": {
+                        "description": "Overrun reports a settled debit recorded past the cap.",
+                        "type": "boolean",
+                        "example": false
+                    },
                     "reason": {
                         "description": "Reason names why a refusal happened, for display. Empty when allowed.",
                         "type": "string",
@@ -13073,6 +13383,37 @@
                     }
                 }
             },
+            "metering.recordedKeyResponse": {
+                "type": "object",
+                "properties": {
+                    "idempotency_key": {
+                        "type": "string",
+                        "example": "msg-8f21"
+                    },
+                    "recorded_at": {
+                        "type": "string"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "email"
+                    }
+                }
+            },
+            "metering.recordedResponse": {
+                "type": "object",
+                "properties": {
+                    "keys": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/metering.recordedKeyResponse"
+                        }
+                    },
+                    "next": {
+                        "description": "Next is the cursor for the following page; empty on the last one.",
+                        "type": "string"
+                    }
+                }
+            },
             "metering.releaseRequest": {
                 "type": "object",
                 "properties": {
@@ -13088,6 +13429,11 @@
                     "quantity": {
                         "type": "integer",
                         "example": 1
+                    },
+                    "releases_key": {
+                        "description": "ReleasesKey is required on a metered unit: the idempotency_key of the\nconsumption whose surplus is handed back, e.g. a reservation settled\nbelow its estimate. At most what that consumption debited, net of\nearlier releases.",
+                        "type": "string",
+                        "example": "job-42:reserve"
                     },
                     "unit": {
                         "type": "string",

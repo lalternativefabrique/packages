@@ -38,6 +38,12 @@ const (
 	CosttrackingCostEntryViewCategorySubscription CosttrackingCostEntryViewCategory = "subscription"
 )
 
+// Defines values for CosttrackingCostEntryViewSource.
+const (
+	CosttrackingCostEntryViewSourceApi     CosttrackingCostEntryViewSource = "api"
+	CosttrackingCostEntryViewSourceConsole CosttrackingCostEntryViewSource = "console"
+)
+
 // Defines values for CosttrackingCostReportRowViewCategory.
 const (
 	CosttrackingCostReportRowViewCategoryApi          CosttrackingCostReportRowViewCategory = "api"
@@ -129,6 +135,15 @@ const (
 const (
 	En CosttrackingSkillNeedsViewLang = "en"
 	Fr CosttrackingSkillNeedsViewLang = "fr"
+)
+
+// Defines values for CosttrackingUpdateCommonCostRequestCategory.
+const (
+	CosttrackingUpdateCommonCostRequestCategoryApi          CosttrackingUpdateCommonCostRequestCategory = "api"
+	CosttrackingUpdateCommonCostRequestCategoryInfra        CosttrackingUpdateCommonCostRequestCategory = "infra"
+	CosttrackingUpdateCommonCostRequestCategoryOther        CosttrackingUpdateCommonCostRequestCategory = "other"
+	CosttrackingUpdateCommonCostRequestCategoryStaff        CosttrackingUpdateCommonCostRequestCategory = "staff"
+	CosttrackingUpdateCommonCostRequestCategorySubscription CosttrackingUpdateCommonCostRequestCategory = "subscription"
 )
 
 // Defines values for FinanceCheckoutRequestBuyerKind.
@@ -265,21 +280,29 @@ type CosttrackingCostEntryView struct {
 	AttachmentCount *int `json:"attachment_count,omitempty"`
 
 	// Category Category is set on a free-amount entry (code `<category>/<slug>`).
-	Category   *CosttrackingCostEntryViewCategory `json:"category,omitempty"`
-	Currency   *string                            `json:"currency,omitempty"`
-	Id         *string                            `json:"id,omitempty"`
-	ItemCode   *string                            `json:"item_code,omitempty"`
-	ItemName   *string                            `json:"item_name,omitempty"`
-	Note       *string                            `json:"note,omitempty"`
-	OccurredAt *string                            `json:"occurred_at,omitempty"`
+	Category  *CosttrackingCostEntryViewCategory `json:"category,omitempty"`
+	Currency  *string                            `json:"currency,omitempty"`
+	Deletable *bool                              `json:"deletable,omitempty"`
+
+	// Editable Editable and Deletable say what PATCH and DELETE /costs/{record_id} accept.
+	Editable   *bool   `json:"editable,omitempty"`
+	Id         *string `json:"id,omitempty"`
+	ItemCode   *string `json:"item_code,omitempty"`
+	ItemName   *string `json:"item_name,omitempty"`
+	Note       *string `json:"note,omitempty"`
+	OccurredAt *string `json:"occurred_at,omitempty"`
 
 	// Recurring Recurring is set on a line a recurring schedule posted.
-	Recurring *bool   `json:"recurring,omitempty"`
-	Supplier  *string `json:"supplier,omitempty"`
+	Recurring *bool                            `json:"recurring,omitempty"`
+	Source    *CosttrackingCostEntryViewSource `json:"source,omitempty"`
+	Supplier  *string                          `json:"supplier,omitempty"`
 }
 
 // CosttrackingCostEntryViewCategory Category is set on a free-amount entry (code `<category>/<slug>`).
 type CosttrackingCostEntryViewCategory string
+
+// CosttrackingCostEntryViewSource defines model for CosttrackingCostEntryView.Source.
+type CosttrackingCostEntryViewSource string
 
 // CosttrackingCostItemView defines model for costtracking.costItemView.
 type CosttrackingCostItemView struct {
@@ -761,6 +784,21 @@ type CosttrackingSkillNeedsView struct {
 // CosttrackingSkillNeedsViewLang defines model for CosttrackingSkillNeedsView.Lang.
 type CosttrackingSkillNeedsViewLang string
 
+// CosttrackingUpdateCommonCostRequest defines model for costtracking.updateCommonCostRequest.
+type CosttrackingUpdateCommonCostRequest struct {
+	// AmountMicros AmountMicros is the amount paid, in micros of the currency (1 EUR = 1 000 000).
+	AmountMicros *int                                         `json:"amount_micros,omitempty"`
+	Category     *CosttrackingUpdateCommonCostRequestCategory `json:"category,omitempty"`
+	Currency     *string                                      `json:"currency,omitempty"`
+	Label        *string                                      `json:"label,omitempty"`
+	Note         *string                                      `json:"note,omitempty"`
+	OccurredAt   *string                                      `json:"occurred_at,omitempty"`
+	Supplier     *string                                      `json:"supplier,omitempty"`
+}
+
+// CosttrackingUpdateCommonCostRequestCategory defines model for CosttrackingUpdateCommonCostRequest.Category.
+type CosttrackingUpdateCommonCostRequestCategory string
+
 // CosttrackingUpdateRecurringCostRequest defines model for costtracking.updateRecurringCostRequest.
 type CosttrackingUpdateRecurringCostRequest struct {
 	// AmountMicros AmountMicros applies from the next due date; posted lines keep their amount.
@@ -1190,9 +1228,17 @@ type MeteringConsumeRequest struct {
 	// random value, both of which defeat the purpose on the retry that matters.
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 
+	// OccurredAt OccurredAt dates the action; omitted means now. A debit replayed from an
+	// outbox carries the date of the action, so it lands in that period.
+	OccurredAt *string `json:"occurred_at,omitempty"`
+
 	// Quantity Quantity is how much to debit. Integer: a fraction of a unit lost to
 	// rounding is a unit nobody is billed for.
 	Quantity *int `json:"quantity,omitempty"`
+
+	// Settled Settled says the action already happened. The debit is then recorded
+	// even past the cap, with overrun=true, and never answered 402.
+	Settled *bool `json:"settled,omitempty"`
 
 	// SubscriptionId SubscriptionID scopes the debit when the app tracks several. Optional.
 	SubscriptionId *string `json:"subscription_id,omitempty"`
@@ -1222,12 +1268,30 @@ type MeteringDecisionResponse struct {
 	// under a subscription cap, or of the prepaid wallet otherwise.
 	Balance *int `json:"balance,omitempty"`
 
+	// Overrun Overrun reports a settled debit recorded past the cap.
+	Overrun *bool `json:"overrun,omitempty"`
+
 	// Reason Reason names why a refusal happened, for display. Empty when allowed.
 	Reason *string `json:"reason,omitempty"`
 
 	// Recorded Recorded reports whether the ledger was written: false on a refusal, and
 	// false on a duplicate the idempotency key caught.
 	Recorded *bool `json:"recorded,omitempty"`
+}
+
+// MeteringRecordedKeyResponse defines model for metering.recordedKeyResponse.
+type MeteringRecordedKeyResponse struct {
+	IdempotencyKey *string `json:"idempotency_key,omitempty"`
+	RecordedAt     *string `json:"recorded_at,omitempty"`
+	Unit           *string `json:"unit,omitempty"`
+}
+
+// MeteringRecordedResponse defines model for metering.recordedResponse.
+type MeteringRecordedResponse struct {
+	Keys *[]MeteringRecordedKeyResponse `json:"keys,omitempty"`
+
+	// Next Next is the cursor for the following page; empty on the last one.
+	Next *string `json:"next,omitempty"`
 }
 
 // MeteringReleaseRequest defines model for metering.releaseRequest.
@@ -1238,7 +1302,13 @@ type MeteringReleaseRequest struct {
 	// object freed, e.g. "domain-deleted-<id>".
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 	Quantity       *int    `json:"quantity,omitempty"`
-	Unit           *string `json:"unit,omitempty"`
+
+	// ReleasesKey ReleasesKey is required on a metered unit: the idempotency_key of the
+	// consumption whose surplus is handed back, e.g. a reservation settled
+	// below its estimate. At most what that consumption debited, net of
+	// earlier releases.
+	ReleasesKey *string `json:"releases_key,omitempty"`
+	Unit        *string `json:"unit,omitempty"`
 }
 
 // MeteringUnitInUseView defines model for metering.unitInUseView.
@@ -1383,6 +1453,18 @@ type GetUsageBalanceParams struct {
 
 	// Unit Usage unit code
 	Unit string `form:"unit" json:"unit"`
+}
+
+// ListRecordedUsageParams defines parameters for ListRecordedUsage.
+type ListRecordedUsageParams struct {
+	// Since RFC 3339 instant to start from, recorded_at included
+	Since *string `form:"since,omitempty" json:"since,omitempty"`
+
+	// After Cursor from the previous page
+	After *string `form:"after,omitempty" json:"after,omitempty"`
+
+	// Limit Page size, at most 1000
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
 // GetPublicCostReportParams defines parameters for GetPublicCostReport.
@@ -1562,6 +1644,9 @@ type ReadInvoiceMultipartRequestBody ReadInvoiceMultipartBody
 // SetCostVisibilityJSONRequestBody defines body for SetCostVisibility for application/json ContentType.
 type SetCostVisibilityJSONRequestBody = CosttrackingSetCostVisibilityRequest
 
+// UpdateCommonCostJSONRequestBody defines body for UpdateCommonCost for application/json ContentType.
+type UpdateCommonCostJSONRequestBody = CosttrackingUpdateCommonCostRequest
+
 // AddCostAttachmentMultipartRequestBody defines body for AddCostAttachment for multipart/form-data ContentType.
 type AddCostAttachmentMultipartRequestBody AddCostAttachmentMultipartBody
 
@@ -1724,6 +1809,9 @@ type ClientInterface interface {
 	// GetUsageBalance request
 	GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListRecordedUsage request
+	ListRecordedUsage(ctx context.Context, params *ListRecordedUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ReleaseUsageWithBody request with any body
 	ReleaseUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1861,6 +1949,14 @@ type ClientInterface interface {
 	SetCostVisibilityWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	SetCostVisibility(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteCommonCost request
+	DeleteCommonCost(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateCommonCostWithBody request with any body
+	UpdateCommonCostWithBody(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateCommonCost(ctx context.Context, tenantId string, recordId string, body UpdateCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListCostAttachments request
 	ListCostAttachments(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2216,6 +2312,18 @@ func (c *Client) ConsumeUsage(ctx context.Context, body ConsumeUsageJSONRequestB
 
 func (c *Client) GetUsageBalance(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetUsageBalanceRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListRecordedUsage(ctx context.Context, params *ListRecordedUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListRecordedUsageRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2828,6 +2936,42 @@ func (c *Client) SetCostVisibilityWithBody(ctx context.Context, tenantId string,
 
 func (c *Client) SetCostVisibility(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewSetCostVisibilityRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteCommonCost(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteCommonCostRequest(c.Server, tenantId, recordId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateCommonCostWithBody(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateCommonCostRequestWithBody(c.Server, tenantId, recordId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateCommonCost(ctx context.Context, tenantId string, recordId string, body UpdateCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateCommonCostRequest(c.Server, tenantId, recordId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3989,6 +4133,87 @@ func NewGetUsageBalanceRequest(server string, params *GetUsageBalanceParams) (*h
 					queryValues.Add(k, v2)
 				}
 			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListRecordedUsageRequest generates requests for ListRecordedUsage
+func NewListRecordedUsageRequest(server string, params *ListRecordedUsageParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/usage/recorded")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Since != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "since", runtime.ParamLocationQuery, *params.Since); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.After != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "after", runtime.ParamLocationQuery, *params.After); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Limit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "limit", runtime.ParamLocationQuery, *params.Limit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
@@ -5808,6 +6033,101 @@ func NewSetCostVisibilityRequestWithBody(server string, tenantId string, content
 	return req, nil
 }
 
+// NewDeleteCommonCostRequest generates requests for DeleteCommonCost
+func NewDeleteCommonCostRequest(server string, tenantId string, recordId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateCommonCostRequest calls the generic UpdateCommonCost builder with application/json body
+func NewUpdateCommonCostRequest(server string, tenantId string, recordId string, body UpdateCommonCostJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateCommonCostRequestWithBody(server, tenantId, recordId, "application/json", bodyReader)
+}
+
+// NewUpdateCommonCostRequestWithBody generates requests for UpdateCommonCost with any type of body
+func NewUpdateCommonCostRequestWithBody(server string, tenantId string, recordId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "record_id", runtime.ParamLocationPath, recordId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListCostAttachmentsRequest generates requests for ListCostAttachments
 func NewListCostAttachmentsRequest(server string, tenantId string, recordId string) (*http.Request, error) {
 	var err error
@@ -6730,6 +7050,9 @@ type ClientWithResponsesInterface interface {
 	// GetUsageBalanceWithResponse request
 	GetUsageBalanceWithResponse(ctx context.Context, params *GetUsageBalanceParams, reqEditors ...RequestEditorFn) (*GetUsageBalanceResponse, error)
 
+	// ListRecordedUsageWithResponse request
+	ListRecordedUsageWithResponse(ctx context.Context, params *ListRecordedUsageParams, reqEditors ...RequestEditorFn) (*ListRecordedUsageResponse, error)
+
 	// ReleaseUsageWithBodyWithResponse request with any body
 	ReleaseUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error)
 
@@ -6867,6 +7190,14 @@ type ClientWithResponsesInterface interface {
 	SetCostVisibilityWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
 
 	SetCostVisibilityWithResponse(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
+
+	// DeleteCommonCostWithResponse request
+	DeleteCommonCostWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*DeleteCommonCostResponse, error)
+
+	// UpdateCommonCostWithBodyWithResponse request with any body
+	UpdateCommonCostWithBodyWithResponse(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateCommonCostResponse, error)
+
+	UpdateCommonCostWithResponse(ctx context.Context, tenantId string, recordId string, body UpdateCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateCommonCostResponse, error)
 
 	// ListCostAttachmentsWithResponse request
 	ListCostAttachmentsWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*ListCostAttachmentsResponse, error)
@@ -7361,6 +7692,30 @@ func (r GetUsageBalanceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetUsageBalanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListRecordedUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *MeteringRecordedResponse
+	JSON400      *EchoHTTPError
+	JSON401      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListRecordedUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListRecordedUsageResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -8204,6 +8559,53 @@ func (r SetCostVisibilityResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteCommonCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteCommonCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteCommonCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateCommonCostResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostEntryView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
+	JSON422      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateCommonCostResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateCommonCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListCostAttachmentsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -8822,6 +9224,15 @@ func (c *ClientWithResponses) GetUsageBalanceWithResponse(ctx context.Context, p
 	return ParseGetUsageBalanceResponse(rsp)
 }
 
+// ListRecordedUsageWithResponse request returning *ListRecordedUsageResponse
+func (c *ClientWithResponses) ListRecordedUsageWithResponse(ctx context.Context, params *ListRecordedUsageParams, reqEditors ...RequestEditorFn) (*ListRecordedUsageResponse, error) {
+	rsp, err := c.ListRecordedUsage(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListRecordedUsageResponse(rsp)
+}
+
 // ReleaseUsageWithBodyWithResponse request with arbitrary body returning *ReleaseUsageResponse
 func (c *ClientWithResponses) ReleaseUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReleaseUsageResponse, error) {
 	rsp, err := c.ReleaseUsageWithBody(ctx, contentType, body, reqEditors...)
@@ -9264,6 +9675,32 @@ func (c *ClientWithResponses) SetCostVisibilityWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseSetCostVisibilityResponse(rsp)
+}
+
+// DeleteCommonCostWithResponse request returning *DeleteCommonCostResponse
+func (c *ClientWithResponses) DeleteCommonCostWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*DeleteCommonCostResponse, error) {
+	rsp, err := c.DeleteCommonCost(ctx, tenantId, recordId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteCommonCostResponse(rsp)
+}
+
+// UpdateCommonCostWithBodyWithResponse request with arbitrary body returning *UpdateCommonCostResponse
+func (c *ClientWithResponses) UpdateCommonCostWithBodyWithResponse(ctx context.Context, tenantId string, recordId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateCommonCostResponse, error) {
+	rsp, err := c.UpdateCommonCostWithBody(ctx, tenantId, recordId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateCommonCostResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateCommonCostWithResponse(ctx context.Context, tenantId string, recordId string, body UpdateCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateCommonCostResponse, error) {
+	rsp, err := c.UpdateCommonCost(ctx, tenantId, recordId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateCommonCostResponse(rsp)
 }
 
 // ListCostAttachmentsWithResponse request returning *ListCostAttachmentsResponse
@@ -10196,6 +10633,46 @@ func ParseGetUsageBalanceResponse(rsp *http.Response) (*GetUsageBalanceResponse,
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListRecordedUsageResponse parses an HTTP response from a ListRecordedUsageWithResponse call
+func ParseListRecordedUsageResponse(rsp *http.Response) (*ListRecordedUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListRecordedUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest MeteringRecordedResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 
@@ -11426,6 +11903,76 @@ func ParseSetCostVisibilityResponse(rsp *http.Response) (*SetCostVisibilityRespo
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteCommonCostResponse parses an HTTP response from a DeleteCommonCostWithResponse call
+func ParseDeleteCommonCostResponse(rsp *http.Response) (*DeleteCommonCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteCommonCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseUpdateCommonCostResponse parses an HTTP response from a UpdateCommonCostWithResponse call
+func ParseUpdateCommonCostResponse(rsp *http.Response) (*UpdateCommonCostResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateCommonCostResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostEntryView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
 
 	}
 
