@@ -208,3 +208,30 @@ removed: the gate only refuses creation.
 `Release` is refused by Lungor for metered units (consumption already served),
 so on today's ledger the refund after a failed handler only lands for capacity
 units; the failure is logged.
+
+## Debiting inside the app's transaction
+
+`Consume` and `Record` call Lungor synchronously: when it cannot be reached,
+nothing is recorded. `ConsumeTx`, `RecordTx` and `ReleaseTx` take the app's
+own `pgx.Tx` instead. They decide on a local counter and the cached limit,
+and queue the movement in `lungor_outbox`, so the action and its debit commit
+together or not at all. Postgres does the work: the counter row is locked for
+the transaction, the idempotency key is unique, a rollback undoes both.
+
+```go
+// migration: entitlement.OutboxMigration (after entitlement.Migration)
+go gate.RunOutbox(ctx, pool, entitlement.OutboxConfig{})
+
+err := pgx.BeginFunc(ctx, pool, func(tx pgx.Tx) error {
+    if err := messages.MarkSent(ctx, tx, msg); err != nil {
+        return err
+    }
+    return gate.ConsumeTx(ctx, tx, userID, "email", 1, msg.ID) // *LimitError on the cap
+})
+```
+
+`RunOutbox` relays through the generic eda outbox (lease, backoff), as
+settled debits dated at the action. A movement Lungor refuses for good is
+parked as `rejected`; an outage is retried. Each delivery recalibrates the
+counter on Lungor's balance, and `Resync` queues again what Lungor lost. See
+lungor `docs/ADR-usage-outbox.md`.
