@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func validUsage() Usage {
@@ -325,5 +326,74 @@ func TestBalance_ReadsUnlimited(t *testing.T) {
 	}
 	if !got.Unlimited {
 		t.Fatal("an unlimited allocation read as a numeric cap")
+	}
+}
+
+func TestConsume_SettledCarriesTheActionDateAndReportsOverrun(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"allowed": true, "balance": 0, "recorded": true, "overrun": true,
+	})
+	defer srv.Close()
+
+	u := validUsage()
+	u.Settled = true
+	u.OccurredAt = time.Date(2026, 10, 1, 8, 30, 0, 0, time.UTC)
+	d, err := New(srv.URL, "k").Consume(ctx(), u)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !d.Overrun || !d.Allowed {
+		t.Fatalf("decision = %+v", d)
+	}
+	if rec.body["settled"] != true || rec.body["occurred_at"] != "2026-10-01T08:30:00Z" {
+		t.Fatalf("body = %v", rec.body)
+	}
+}
+
+func TestConsume_UnsettledSendsNeitherField(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{"allowed": true, "recorded": true})
+	defer srv.Close()
+
+	if _, err := New(srv.URL, "k").Consume(ctx(), validUsage()); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := rec.body["settled"]; ok {
+		t.Fatalf("settled sent: %v", rec.body)
+	}
+	if _, ok := rec.body["occurred_at"]; ok {
+		t.Fatalf("occurred_at sent: %v", rec.body)
+	}
+}
+
+func TestRelease_NamesTheConsumptionItHandsBack(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{"allowed": true, "recorded": true})
+	defer srv.Close()
+
+	u := validUsage()
+	u.ReleasesKey = "job-1:reserve"
+	if _, err := New(srv.URL, "k").Release(ctx(), u); err != nil {
+		t.Fatal(err)
+	}
+	if rec.body["releases_key"] != "job-1:reserve" || rec.path != "/api/v1/metering/usage/release" {
+		t.Fatalf("%s %v", rec.path, rec.body)
+	}
+}
+
+func TestRecorded_PagesWithTheCursor(t *testing.T) {
+	srv, rec := server(t, http.StatusOK, map[string]any{
+		"keys": []map[string]any{{"idempotency_key": "msg-1", "unit": "email", "recorded_at": "2026-10-22T09:00:00Z"}},
+		"next": "abc",
+	})
+	defer srv.Close()
+
+	page, err := New(srv.URL, "k").Recorded(ctx(), time.Time{}, "prev", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Keys) != 1 || page.Keys[0].IdempotencyKey != "msg-1" || page.Next != "abc" || page.Keys[0].RecordedAt.IsZero() {
+		t.Fatalf("page = %+v", page)
+	}
+	if rec.path != "/api/v1/metering/usage/recorded?after=prev&limit=2" {
+		t.Fatalf("path = %s", rec.path)
 	}
 }

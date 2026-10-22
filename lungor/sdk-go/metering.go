@@ -44,6 +44,15 @@ type Usage struct {
 	// SubscriptionID scopes the usage to a subscription when the app tracks
 	// several. Optional.
 	SubscriptionID string
+	// OccurredAt dates the action; zero means now. A debit replayed later is
+	// imputed to the period of the action, not of the replay.
+	OccurredAt time.Time
+	// Settled says the action already happened: Lungor records the debit even
+	// past the cap, reports Decision.Overrun, and never refuses it.
+	Settled bool
+	// ReleasesKey, on Release of a METERED unit, names the consumption whose
+	// surplus is handed back. Required there, ignored on Consume.
+	ReleasesKey string
 }
 
 // Decision is what Lungor answered about a consumption.
@@ -61,6 +70,8 @@ type Decision struct {
 	// Recorded reports whether the ledger was written. False on a refusal, and
 	// false on a duplicate the idempotency key caught.
 	Recorded bool `json:"recorded"`
+	// Overrun reports a settled debit recorded past the cap.
+	Overrun bool `json:"overrun,omitempty"`
 }
 
 // Consume records a consumption and reports whether it was allowed.
@@ -128,10 +139,14 @@ func (c *Client) Topup(ctx context.Context, in Usage) (Decision, error) {
 // it when the object counted with Consume is deleted. Derive the idempotency
 // key from that object ("domain-deleted-<id>"), so a retry frees it once.
 //
-// Errors: ErrConflict when releasing more than is held, or when the key was
-// already used for another movement; ErrBadRequest on a metered unit, whose
-// consumption was served and cannot be handed back. A user whose plan lapsed
-// can still release. SubscriptionID is ignored.
+// On a METERED unit, set ReleasesKey to the consumption whose surplus is
+// handed back, e.g. a reservation settled below its estimate: the release
+// lands in that consumption's period, at most what it debited.
+//
+// Errors: ErrConflict when releasing more than is held (or than the named
+// consumption debited), or when the key was already used for another
+// movement; ErrBadRequest on a metered unit without ReleasesKey. A user whose
+// plan lapsed can still release. SubscriptionID is ignored.
 func (c *Client) Release(ctx context.Context, in Usage) (Decision, error) {
 	consume, err := in.request()
 	if err != nil {
@@ -145,6 +160,9 @@ func (c *Client) Release(ctx context.Context, in Usage) (Decision, error) {
 		Unit:           consume.Unit,
 		Quantity:       consume.Quantity,
 		IdempotencyKey: consume.IdempotencyKey,
+	}
+	if in.ReleasesKey != "" {
+		body.ReleasesKey = &in.ReleasesKey
 	}
 	var out wire.MeteringDecisionResponse
 	if err := c.send(ctx, &out, func() (*http.Response, error) {
@@ -552,13 +570,21 @@ func (u Usage) request() (wire.MeteringConsumeRequest, error) {
 		return wire.MeteringConsumeRequest{}, fmt.Errorf("%w: an idempotency key is required, or a retry double-counts", ErrBadRequest)
 	}
 	q := int(u.Quantity)
-	return wire.MeteringConsumeRequest{
+	req := wire.MeteringConsumeRequest{
 		ExternalUserId: &u.ExternalUserID,
 		Unit:           &u.Unit,
 		Quantity:       &q,
 		IdempotencyKey: &u.IdempotencyKey,
 		SubscriptionId: &u.SubscriptionID,
-	}, nil
+	}
+	if !u.OccurredAt.IsZero() {
+		at := u.OccurredAt.UTC().Format(time.RFC3339Nano)
+		req.OccurredAt = &at
+	}
+	if u.Settled {
+		req.Settled = &u.Settled
+	}
+	return req, nil
 }
 
 func decisionFrom(w wire.MeteringDecisionResponse) Decision {
@@ -575,5 +601,68 @@ func decisionFrom(w wire.MeteringDecisionResponse) Decision {
 	if w.Recorded != nil {
 		d.Recorded = *w.Recorded
 	}
+	if w.Overrun != nil {
+		d.Overrun = *w.Overrun
+	}
 	return d
+}
+
+// RecordedKey is one movement Lungor holds for the app.
+type RecordedKey struct {
+	IdempotencyKey string
+	Unit           string
+	RecordedAt     time.Time
+}
+
+// RecordedPage is one page of Recorded. Next is empty on the last page.
+type RecordedPage struct {
+	Keys []RecordedKey
+	Next string
+}
+
+// Recorded lists the movements Lungor holds for the app, oldest first, so an
+// outbox can replay what Lungor lacks. Start at since (zero: the beginning),
+// then pass the previous page's Next as after, which wins over since;
+// limit <= 0 uses the server default.
+func (c *Client) Recorded(ctx context.Context, since time.Time, after string, limit int) (RecordedPage, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return RecordedPage{}, ErrNotConfigured
+	}
+	params := &wire.ListRecordedUsageParams{}
+	if !since.IsZero() {
+		at := since.UTC().Format(time.RFC3339Nano)
+		params.Since = &at
+	}
+	if after != "" {
+		params.After = &after
+	}
+	if limit > 0 {
+		params.Limit = &limit
+	}
+	var out wire.MeteringRecordedResponse
+	if err := c.send(ctx, &out, func() (*http.Response, error) {
+		return c.wire.ListRecordedUsage(ctx, params)
+	}); err != nil {
+		return RecordedPage{}, err
+	}
+	page := RecordedPage{}
+	if out.Next != nil {
+		page.Next = *out.Next
+	}
+	if out.Keys != nil {
+		for _, k := range *out.Keys {
+			rk := RecordedKey{}
+			if k.IdempotencyKey != nil {
+				rk.IdempotencyKey = *k.IdempotencyKey
+			}
+			if k.Unit != nil {
+				rk.Unit = *k.Unit
+			}
+			if k.RecordedAt != nil {
+				rk.RecordedAt, _ = time.Parse(time.RFC3339Nano, *k.RecordedAt)
+			}
+			page.Keys = append(page.Keys, rk)
+		}
+	}
+	return page, nil
 }
