@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { CheckoutOutcome, type CheckoutOutcomeLabels } from './CheckoutOutcome.js';
 import { readCheckoutSessionId, type CheckoutSession } from './checkout.js';
 import {
@@ -119,6 +119,8 @@ export interface BillingPageProps {
   labels?: BillingPageLabels;
   outcomeLabels?: CheckoutOutcomeLabels;
   pricingLabels?: PricingTableLabels;
+  /** Shown in the current plan's card under its balances, e.g. the app's own usage meter. */
+  currentPlanExtra?: ReactNode;
   className?: string;
 }
 
@@ -168,6 +170,7 @@ export function BillingPage({
   labels,
   outcomeLabels,
   pricingLabels,
+  currentPlanExtra,
   className = '',
 }: BillingPageProps) {
   const l = { ...DEFAULT_LABELS, ...labels };
@@ -274,6 +277,8 @@ export function BillingPage({
                   </p>
                 ))
               : null}
+
+            {currentPlanExtra}
 
             {subscription.pendingPlanCode ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
