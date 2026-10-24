@@ -94,6 +94,9 @@ type Config struct {
 	MaxSteps       int
 	MaxInputTokens int
 	ContextWindow  int
+	// AuthDescription tells callers on the Agent Card what Bearer to present.
+	// Empty keeps "The token this container was started with."
+	AuthDescription string
 	// Version is what the Agent Card reports.
 	Version string
 	// Turns decides where and when turns run. Nil runs them in this process,
@@ -231,7 +234,7 @@ func (h *Host) Card() a2a.AgentCard {
 		PreferredTransport: a2a.TransportProtocolJSONRPC,
 		Capabilities:       a2a.AgentCapabilities{Streaming: true, Extensions: []a2a.AgentExtension{cortexExtension()}},
 		SecuritySchemes: a2a.NamedSecuritySchemes{
-			"bearer": a2a.HTTPAuthSecurityScheme{Scheme: "Bearer", Description: "The token this container was started with."},
+			"bearer": a2a.HTTPAuthSecurityScheme{Scheme: "Bearer", Description: h.authDescription()},
 		},
 		Security:           []a2a.SecurityRequirements{{"bearer": a2a.SecuritySchemeScopes{}}},
 		DefaultInputModes:  []string{"text/plain"},
@@ -320,4 +323,11 @@ func (h *Host) Context() AgentContext {
 func (h *Host) serveContext(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(h.Context())
+}
+
+func (h *Host) authDescription() string {
+	if h.cfg.AuthDescription != "" {
+		return h.cfg.AuthDescription
+	}
+	return "The token this container was started with."
 }
