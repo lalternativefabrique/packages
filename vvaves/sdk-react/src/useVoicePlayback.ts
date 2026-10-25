@@ -25,6 +25,7 @@ export type VoicePlayback = {
   skip: (delta: number) => void
   rate: number
   setRate: (rate: number) => void
+  text: string | null
 }
 
 type Session = {
@@ -68,6 +69,7 @@ export function useVoicePlayback(resolve: () => Promise<VoiceSource>): VoicePlay
   const [buffered, setBuffered] = useState(0)
   const [duration, setDuration] = useState<number | null>(null)
   const [rate, setRateState] = useState(1)
+  const [text, setText] = useState<string | null>(null)
   const sessionRef = useRef<Session | null>(null)
   const rateRef = useRef(1)
 
@@ -96,6 +98,7 @@ export function useVoicePlayback(resolve: () => Promise<VoiceSource>): VoicePlay
       setPosition(0)
       setBuffered(0)
       setDuration(null)
+      setText(null)
     },
     [silence],
   )
@@ -215,6 +218,7 @@ export function useVoicePlayback(resolve: () => Promise<VoiceSource>): VoicePlay
       try {
         await resumed
         const reading = await resolve()
+        if (!s.cancelled) setText(reading.text ?? null)
         // No credentials: the audio comes from another origin, and what
         // authorises the request is the signature already in the URL.
         const res = await fetch(reading.url, {
@@ -330,5 +334,5 @@ export function useVoicePlayback(resolve: () => Promise<VoiceSource>): VoicePlay
     [teardown],
   )
 
-  return { state, toggle, stop, position, buffered, duration, seek, skip, rate, setRate }
+  return { state, toggle, stop, position, buffered, duration, seek, skip, rate, setRate, text }
 }
