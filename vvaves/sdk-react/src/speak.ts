@@ -2,6 +2,8 @@
 export type VoiceSource = {
   url: string
   body: unknown
+  /** What the voice reads, for a page that follows along. */
+  text?: string
 }
 
 /** The reading an application's server signed a URL for. */
@@ -28,6 +30,7 @@ export type VoiceGender = 'female' | 'male' | 'neutral'
 export function speakSource(reading: SignedReading): VoiceSource {
   return {
     url: reading.url,
+    text: reading.text,
     body: {
       text: reading.text,
       scope: reading.scope,

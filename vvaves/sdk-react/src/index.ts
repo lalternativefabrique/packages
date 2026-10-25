@@ -1,3 +1,5 @@
 export { FRAMES_CONTENT_TYPE, FrameTooLargeError, MAX_FRAME_BYTES, readFrames } from './frames'
 export { speakSource, type SignedReading, type VoiceGender, type VoiceSource } from './speak'
+export { useReadAlong, type ReadAlong, type ReadAlongOptions } from './useReadAlong'
+export { sentences, type Span } from './readAlong'
 export { useVoicePlayback, type VoicePlayback, type VoicePlaybackState } from './useVoicePlayback'

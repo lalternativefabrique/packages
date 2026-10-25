@@ -25,6 +25,29 @@ function PlayButton({ messageId }: { messageId: string }) {
 stream ends), `seek(seconds)` clamped to what is decoded, `skip(delta)`, and
 `rate` / `setRate(rate)` within 0.5..3.
 
+## Following along
+
+`useReadAlong` highlights, in the page the listener reads, the sentence the
+voice is on, and scrolls it back into view while playing:
+
+```tsx
+const playback = useVoicePlayback(resolve)
+const article = useRef<HTMLElement>(null)
+useReadAlong(playback, article)
+return <article ref={article}>{rendered}</article>
+```
+
+```css
+::highlight(vvaves-reading) { background-color: #fde68a; }
+```
+
+The spoken text and the rendered page are matched on their letters, so
+Markdown, list markers and section names read aloud do not get in the way.
+Position is estimated from the reading's progress, exact to the sentence on a
+cached reading, approximate on the first, streamed listen. Drawn with the CSS
+Custom Highlight API, which leaves the DOM alone. `name` changes the highlight,
+`follow: false` stops the scrolling.
+
 The server side is the Go `client` package of this module: `client.New` with
 the application's `Key` for `PrimeOpening`, and `signed.NewSigner` with the
 same key for the URL the endpoint above returns.
