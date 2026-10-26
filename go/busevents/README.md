@@ -17,6 +17,8 @@ go get github.com/lalternative/packages/go/busevents
 | `events.lungor.subscription.past_due` | Lungor, recurring payment failed | `Subscription` |
 | `events.lungor.subscription.canceled` | Lungor, access stops at `effective_at` | `Subscription` |
 | `events.skalpai.analytics.daily` | Skalpai, unique visitors per product per UTC day | `DailyVisitors` |
+| `events.synthiz.synthesis.cached` | Synthiz, a sheet its engine wrote for a public source | `SynthesisCachedEvent` |
+| `events.lalter.synthesis.cached` | L'Alter, a sheet its engine wrote for a public source | `SynthesisCachedEvent` |
 | `events.urbangate.account.deletion_requested` | urbangate (its ADR 0006) | `DeletionRequested` |
 
 Every payload is flat JSON with `event_id` and `occurred_at` at the top level,
