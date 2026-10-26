@@ -70,3 +70,9 @@ func join(parts []string) string {
 	}
 	return out
 }
+
+// ChunkCount is how many blocks the engine groups the segments into, what a
+// sheet's citations are numbered over.
+func ChunkCount(segments []Segment) int {
+	return len(groupSegments(segments))
+}
