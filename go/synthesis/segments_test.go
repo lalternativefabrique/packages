@@ -47,3 +47,10 @@ func TestGroupSegmentsSplitsOnGap(t *testing.T) {
 		t.Fatalf("expected 2 groups due to silence gap, got %d", len(got))
 	}
 }
+
+func TestChunkCountFollowsGrouping(t *testing.T) {
+	in := []Segment{{Text: "a", Start: 0, End: 10}, {Text: "b", Start: 100, End: 110}}
+	if got := ChunkCount(in); got != 2 {
+		t.Fatalf("ChunkCount = %d, want 2", got)
+	}
+}
