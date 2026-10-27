@@ -1,6 +1,5 @@
 packages:
   - "skalpai/*"
-  - "spore/*"
   - "lalter/*"
   - "lungor/*"
   - "nakoda/*"
