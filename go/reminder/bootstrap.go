@@ -40,16 +40,25 @@ type ServiceDeps struct {
 	// PollInterval overrides the default 15s delivery check. Zero keeps the
 	// default.
 	PollInterval time.Duration
+	// Repository replaces the Postgres store built from Pool, e.g. a device's
+	// own SQLite file.
+	Repository domain.Repository
+	// OnDue is told of every reminder that fires, beside or instead of NATS.
+	OnDue func(application.DueEvent)
 }
 
 // NewService wires the context, starts delivering what comes due, and — if
 // Channels is non-empty — starts dispatching fired reminders to them.
 func NewService(ctx context.Context, deps ServiceDeps) (*Service, error) {
-	repo := infrastructure.NewPostgresRepository(deps.Pool)
+	repo := deps.Repository
+	if repo == nil {
+		repo = infrastructure.NewPostgresRepository(deps.Pool)
+	}
 
 	application.NewPoller(application.PollerConfig{
 		Reminders: repo,
 		Nats:      deps.NC,
+		OnDue:     deps.OnDue,
 		Interval:  deps.PollInterval,
 	}).Start(ctx)
 
