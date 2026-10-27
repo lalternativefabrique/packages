@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/lalternative/packages/go/eda/pkg/db"
+	"github.com/lalternativefabrique/eventkit/pkg/db"
 
 	"github.com/lalternative/packages/go/composition"
 )

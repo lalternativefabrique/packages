@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	outboxpgx "github.com/lalternative/packages/go/eda/pkg/outbox/pgx"
+	outboxpgx "github.com/lalternativefabrique/eventkit/pkg/outbox/pgx"
 )
 
 // OutboxTable holds the movements waiting to reach Lungor. It is the generic

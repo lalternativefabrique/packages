@@ -10,8 +10,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/lalternative/packages/go/eda/pkg/outbox"
-	outboxpgx "github.com/lalternative/packages/go/eda/pkg/outbox/pgx"
+	"github.com/lalternativefabrique/eventkit/pkg/outbox"
+	outboxpgx "github.com/lalternativefabrique/eventkit/pkg/outbox/pgx"
 
 	sdk "github.com/lalternative/packages/lungor/sdk-go"
 )

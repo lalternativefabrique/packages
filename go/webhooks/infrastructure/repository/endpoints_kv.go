@@ -7,7 +7,7 @@ import (
 
 	"github.com/nats-io/nats.go/jetstream"
 
-	edakv "github.com/lalternative/packages/go/eda/pkg/kvstore"
+	edakv "github.com/lalternativefabrique/eventkit/pkg/kvstore"
 
 	"github.com/lalternative/packages/go/webhooks/domain/repository"
 )

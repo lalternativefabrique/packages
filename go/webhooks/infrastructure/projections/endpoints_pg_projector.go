@@ -8,8 +8,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
-	"github.com/lalternative/packages/go/eda/pkg/pgprojector"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/pgprojector"
 
 	"github.com/lalternative/packages/go/webhooks/domain/events"
 	"github.com/lalternative/packages/go/webhooks/infrastructure"

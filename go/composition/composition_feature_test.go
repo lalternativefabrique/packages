@@ -7,7 +7,7 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/lalternative/packages/go/eda/pkg/db"
+	"github.com/lalternativefabrique/eventkit/pkg/db"
 
 	"github.com/lalternative/packages/go/composition"
 )

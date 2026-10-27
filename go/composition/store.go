@@ -9,8 +9,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 
-	"github.com/lalternative/packages/go/eda/pkg/db"
-	"github.com/lalternative/packages/go/eda/pkg/ddd"
+	"github.com/lalternativefabrique/eventkit/pkg/db"
+	"github.com/lalternativefabrique/eventkit/pkg/ddd"
 )
 
 const StreamName = "COMPOSITION_EVENTS"

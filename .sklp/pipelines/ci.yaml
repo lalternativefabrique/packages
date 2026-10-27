@@ -64,8 +64,6 @@ scopes:
     - "nakoda/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
-  eda:
-    - "go/eda/**"
   composition:
     - "go/composition/**"
   retrieval:
@@ -96,7 +94,6 @@ scopes:
   membership:
     - "go/membership/**"
     - "go/busevents/**"
-    - "go/eda/**"
   lungor-core:
     - "lungor/core/**"
   lungor-sdk:
@@ -177,18 +174,6 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/nakoda-sdk-browser test
       npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" typecheck
       npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" build
-
-  # eda's pkg/* are SEPARATE modules, so `go test ./...` at the root does not
-  # reach them — outbox/pgx and pgprojector run in production at Lungor and
-  # would otherwise be built by nothing here.
-  - name: eda
-    scope: [eda]
-    tools: [go]
-    run: |
-      cd go/eda
-      for mod in . $(find pkg -name go.mod -printf '%h\n' | sort); do
-        (cd "$mod" && go build ./... && go vet ./... && go test -count=1 ./...)
-      done
 
   - name: composition
     scope: [composition]
@@ -298,7 +283,7 @@ steps:
       go vet ./...
       go test -count=1 ./...
 
-  # The account lifecycle every core imports; replaces go/eda and go/busevents
+  # The account lifecycle every core imports; replaces go/busevents
   # from the tree so a change there is tested against it before it is tagged.
   - name: membership
     scope: [membership]

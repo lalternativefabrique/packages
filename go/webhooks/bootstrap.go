@@ -22,8 +22,8 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
-	"github.com/lalternative/packages/go/eda/pkg/pgprojector"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/pgprojector"
 )
 
 type Service struct {

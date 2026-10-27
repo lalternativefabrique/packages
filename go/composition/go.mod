@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/cucumber/godog v0.16.0
 	github.com/google/uuid v1.6.0
-	github.com/lalternative/packages/go/eda v0.8.0
+	github.com/lalternativefabrique/eventkit v0.10.0
 	github.com/nats-io/nats.go v1.52.0
 )
 
