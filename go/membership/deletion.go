@@ -7,7 +7,7 @@ import (
 	"github.com/nats-io/nats.go"
 
 	"github.com/lalternative/packages/go/busevents"
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
 )
 
 // DeletionHandler consumes urbangate's account.deletion_requested (its ADR

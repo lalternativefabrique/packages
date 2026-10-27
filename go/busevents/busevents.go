@@ -4,7 +4,7 @@
 // build instead of a dashboard.
 //
 // Every payload is flat JSON carrying event_id and occurred_at at the top
-// level: go/eda's consumer reads event_id from the body for idempotency, and
+// level: eventkit's consumer reads event_id from the body for idempotency, and
 // an envelope would hide it. Payloads carry no e-mail and no name, since every
 // consumer of the bus can read them.
 package busevents

@@ -15,7 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
 
 	"github.com/lalternative/packages/go/webhooks/domain/providers"
 	"github.com/lalternative/packages/go/webhooks/infrastructure"

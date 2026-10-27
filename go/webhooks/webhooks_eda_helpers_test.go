@@ -13,7 +13,7 @@ import (
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/require"
 
-	idempotencypgx "github.com/lalternative/packages/go/eda/pkg/idempotency/pgx"
+	idempotencypgx "github.com/lalternativefabrique/eventkit/pkg/idempotency/pgx"
 	"github.com/lalternative/packages/go/webhooks/domain/aggregate"
 )
 

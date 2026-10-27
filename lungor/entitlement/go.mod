@@ -5,10 +5,10 @@ go 1.25.0
 require (
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/labstack/echo/v4 v4.15.2
-	github.com/lalternative/packages/go/eda v0.9.0
-	github.com/lalternative/packages/go/eda/pkg/outbox/pgx v0.0.0-20260809060854-a99c2e13faa0
 	github.com/lalternative/packages/lungor/policy v0.3.0
 	github.com/lalternative/packages/lungor/sdk-go v0.33.0
+	github.com/lalternativefabrique/eventkit v0.10.0
+	github.com/lalternativefabrique/eventkit/pkg/outbox/pgx v0.10.0
 	golang.org/x/sync v0.20.0
 )
 

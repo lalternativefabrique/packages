@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
 	"github.com/lalternative/packages/go/webhooks/domain/aggregate"
 	"github.com/lalternative/packages/go/webhooks/domain/events"
 	"github.com/lalternative/packages/go/webhooks/domain/providers"

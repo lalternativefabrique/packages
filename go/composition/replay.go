@@ -3,7 +3,7 @@ package composition
 import (
 	"time"
 
-	"github.com/lalternative/packages/go/eda/pkg/ddd"
+	"github.com/lalternativefabrique/eventkit/pkg/ddd"
 )
 
 // Version is one point in a composition's history, as an author would read it:

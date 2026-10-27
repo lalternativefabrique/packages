@@ -75,5 +75,5 @@ extracting them means reworking that boundary first.
 
 ## Versioning
 
-Tagged `lungor/core/vX.Y.Z`, matching the `go/eda/vX.Y.Z` convention in this
+Tagged `lungor/core/vX.Y.Z`, matching the path-prefixed tag convention in this
 repository.

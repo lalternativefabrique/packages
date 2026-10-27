@@ -10,8 +10,8 @@ import (
 	"github.com/nats-io/nats.go"
 
 	"github.com/lalternative/packages/go/busevents"
-	"github.com/lalternative/packages/go/eda/pkg/consumer"
-	"github.com/lalternative/packages/go/eda/pkg/consumer/edatest"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer/edatest"
 	"github.com/lalternative/packages/go/membership"
 )
 

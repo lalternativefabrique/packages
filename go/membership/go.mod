@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/lalternative/packages/go/busevents v0.1.0
-	github.com/lalternative/packages/go/eda v0.9.0
+	github.com/lalternativefabrique/eventkit v0.10.0
 	github.com/nats-io/nats.go v1.52.0
 )
 
@@ -22,7 +22,5 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 )
-
-replace github.com/lalternative/packages/go/eda => ../eda
 
 replace github.com/lalternative/packages/go/busevents => ../busevents
