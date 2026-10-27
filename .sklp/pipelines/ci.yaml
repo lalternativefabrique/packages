@@ -81,6 +81,11 @@ scopes:
     - "go/cortex/**"
   transcribe:
     - "go/transcribe/**"
+  reminder:
+    - "go/reminder/**"
+  schedule:
+    - "go/schedule/**"
+    - "go/reminder/**"
   connect:
     - "go/connect/**"
   membership:
@@ -231,6 +236,24 @@ steps:
       go vet ./...
       go test -count=1 ./...
 
+
+  - name: reminder
+    scope: [reminder]
+    tools: [go]
+    run: |
+      cd go/reminder
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: schedule
+    scope: [schedule]
+    tools: [go]
+    run: |
+      cd go/schedule
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
 
   # The ffmpeg-backed tests skip themselves when the binary is absent; the
   # orchestration is tested with fake binaries either way.

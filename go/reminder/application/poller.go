@@ -30,6 +30,8 @@ type DueEvent struct {
 type PollerConfig struct {
 	Reminders domain.Repository
 	Nats      *nats.Conn
+	// OnDue is told of each fired reminder. Nil tells nobody.
+	OnDue func(DueEvent)
 	// Interval is how often the queue is checked. Zero means defaultInterval.
 	// It is also the worst-case lateness of a reminder.
 	Interval time.Duration
@@ -97,6 +99,9 @@ func (p *Poller) tick(ctx context.Context) {
 // atomic across two systems, and delivering twice is worse than logging a
 // miss.
 func (p *Poller) publish(evt DueEvent) {
+	if p.cfg.OnDue != nil {
+		p.cfg.OnDue(evt)
+	}
 	if p.cfg.Nats == nil {
 		return
 	}
