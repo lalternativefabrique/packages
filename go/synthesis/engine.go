@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/lalternative/packages/go/cortex/client"
+	"github.com/lalternative/packages/go/cortex/host"
 	"github.com/lalternative/packages/go/cortex/skill"
 )
 
@@ -20,17 +21,67 @@ const (
 
 var ErrNoSegments = errors.New("synthesis: no segments")
 
-// Engine writes a source's sheet through an agent that declares Skills. A
-// cached sheet belongs to no one, so Call should name no person and use no
-// memory.
+// Runner runs one of Skills for the engine. Input is the skill's input as
+// JSON. A skill declaring an output schema answers Data, checked against that
+// schema; a text skill answers Text.
+type Runner interface {
+	Run(ctx context.Context, run Run) (Answer, error)
+}
+
+type Run struct {
+	Skill host.Skill
+	Input json.RawMessage
+	Call  skill.Call
+}
+
+type Answer struct {
+	Text string
+	Data json.RawMessage
+}
+
+// AgentRunner runs the skills through a cortex agent over A2A whose catalog
+// declares Skills.
+type AgentRunner struct {
+	Agent client.Agent
+}
+
+func (r AgentRunner) Run(ctx context.Context, run Run) (Answer, error) {
+	req := client.Request{
+		Text:            string(run.Input),
+		Context:         run.Call.Context,
+		Subject:         run.Call.Subject,
+		ConversationID:  run.Call.ConversationID,
+		MCPHeaders:      run.Call.MCPHeaders,
+		Skill:           run.Skill.ID,
+		Model:           run.Call.Model,
+		ReasoningEffort: run.Call.ReasoningEffort,
+		NoMemory:        run.Call.NoMemory,
+	}
+	if len(run.Skill.Output) == 0 {
+		text, _, err := client.Say(ctx, r.Agent, req)
+		return Answer{Text: text}, err
+	}
+	// The agent answers a declared skill in the skill's own output schema;
+	// a raw message asks for no other.
+	data, _, err := client.Ask[json.RawMessage](ctx, r.Agent, req)
+	return Answer{Data: data}, err
+}
+
+// Engine writes a source's sheet through a Runner of Skills. A cached sheet
+// belongs to no one, so Call should name no person and use no memory.
 type Engine struct {
-	agent  client.Agent
+	runner Runner
 	call   skill.Call
 	budget int
 }
 
+// New is NewWithRunner through the cortex agent at agent.
 func New(agent client.Agent, call skill.Call) *Engine {
-	return &Engine{agent: agent, call: call, budget: contextWindow - maxOutputTokens - systemPromptTokenBudget}
+	return NewWithRunner(AgentRunner{Agent: agent}, call)
+}
+
+func NewWithRunner(runner Runner, call skill.Call) *Engine {
+	return &Engine{runner: runner, call: call, budget: contextWindow - maxOutputTokens - systemPromptTokenBudget}
 }
 
 // Synthesize groups the segments, writes the sheet in one run or, for a source
@@ -129,9 +180,22 @@ func (e *Engine) mergeDigests(ctx context.Context, merge MergeSourceDigestsInput
 }
 
 func run[In, Out any](ctx context.Context, e *Engine, s skill.Skill[In, Out], in In) (Out, error) {
-	out, _, err := s.Run(ctx, e.agent, in, e.call)
+	var out Out
+	declared := s.Declaration()
+	input, err := json.Marshal(in)
+	if err != nil {
+		return out, fmt.Errorf("skill %q input: %w", declared.ID, err)
+	}
+	answer, err := e.runner.Run(ctx, Run{Skill: declared, Input: input, Call: e.call})
 	if err != nil {
 		return out, classify(err)
+	}
+	if text, ok := any(&out).(*string); ok {
+		*text = answer.Text
+		return out, nil
+	}
+	if err := json.Unmarshal(answer.Data, &out); err != nil {
+		return out, fmt.Errorf("skill %q answer: %w", declared.ID, err)
 	}
 	return out, nil
 }
