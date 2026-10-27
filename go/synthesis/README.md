@@ -12,6 +12,9 @@ go get github.com/lalternative/packages/go/synthesis
   writes the sheet through a cortex agent whose catalog declares
   `synthesis.Skills()`. A cached sheet belongs to no one: give `call` no
   person and no memory.
+- `synthesis.NewWithRunner(runner, call)` writes it through any `Runner`
+  of the skills instead: `New` is the `AgentRunner` over A2A; a product
+  embedding cortex runs them in process.
 - `source.CanonicalizeURL(type, url)` is the cache key's URL. Two products
   that canonicalize differently pay twice for the same source.
 - `EngineVersion` is recorded with each sheet; bump it when a change to the
