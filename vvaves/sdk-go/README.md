@@ -14,6 +14,10 @@ audio, err := c.Speak(ctx, sdk.Reading{Text: text, ID: replyID})
 // Hand a browser one reading, never the key. A customer key (vvaves_key_…)
 // is signed by vvaves itself; any other key signs locally under the issuer.
 su, err := c.Sign(ctx, sdk.Reading{Text: text, ID: replyID})
+
+// Bill a reading to one of your users: vvaves declares it to Lungor with
+// that user as the cost's end user, on calls and on signed URLs alike.
+ctx = sdk.ForEndUser(ctx, userID)
 ```
 
 The browser side is `@lalternative/vvaves-sdk-react`, which plays `su.URL`.

@@ -24,6 +24,11 @@ type Params struct {
 	ID       string
 	TextHash string
 	Expires  time.Time
+	// Client and User name who a reading is billed to: the application key
+	// vvaves signed for, and that application's own user. Both are optional,
+	// and an empty one leaves the signature as it was without it.
+	Client string
+	User   string
 }
 
 var (
@@ -38,16 +43,18 @@ const (
 	QueryIssuer    = "iss"
 	QueryExpires   = "exp"
 	QuerySignature = "sig"
+	QueryClient    = "cl"
+	QueryUser      = "usr"
 )
 
-// MaxFieldLen bounds scope and id, which travel in every signed request body.
+// MaxFieldLen bounds scope, id, client and user, which travel in every signed request body.
 const MaxFieldLen = 256
 
-// Validate refuses a scope or id the canonical form could not tell apart from
+// Validate refuses a field the canonical form could not tell apart from
 // another: the signed string joins fields with a newline, so a value carrying
 // one could be re-split into different fields under the same MAC.
 func (p Params) Validate() error {
-	for _, v := range []string{p.Scope, p.ID} {
+	for _, v := range []string{p.Scope, p.ID, p.Client, p.User} {
 		if len(v) > MaxFieldLen {
 			return fmt.Errorf("%w: longer than %d bytes", ErrInvalidField, MaxFieldLen)
 		}
@@ -68,6 +75,12 @@ func Sign(issuer, key string, p Params) (url.Values, error) {
 	q.Set(QueryIssuer, issuer)
 	q.Set(QueryExpires, strconv.FormatInt(p.Expires.Unix(), 10))
 	q.Set(QuerySignature, sign(signingKey(key), p))
+	if p.Client != "" {
+		q.Set(QueryClient, p.Client)
+	}
+	if p.User != "" {
+		q.Set(QueryUser, p.User)
+	}
 	return q, nil
 }
 
@@ -101,7 +114,8 @@ func NewLookupVerifier(lookup func(issuer string) []string) *Verifier {
 }
 
 // Verify checks the signature in q against the scope, id and text taken from
-// the request body, never from the URL.
+// the request body, never from the URL. Client and user come from the URL,
+// covered by the signature like the rest.
 func (v *Verifier) Verify(q url.Values, scope, id, text string) error {
 	if v == nil {
 		return ErrNoSignature
@@ -118,7 +132,10 @@ func (v *Verifier) Verify(q url.Values, scope, id, text string) error {
 	if err != nil {
 		return ErrBadSignature
 	}
-	p := Params{Scope: scope, ID: id, TextHash: HashText(text), Expires: time.Unix(unix, 0)}
+	p := Params{
+		Scope: scope, ID: id, TextHash: HashText(text), Expires: time.Unix(unix, 0),
+		Client: q.Get(QueryClient), User: q.Get(QueryUser),
+	}
 	if p.Validate() != nil {
 		return ErrBadSignature
 	}
@@ -151,6 +168,12 @@ func sign(key []byte, p Params) string {
 		"id=" + p.ID,
 		"text=" + p.TextHash,
 		"exp=" + strconv.FormatInt(p.Expires.Unix(), 10),
+	}
+	if p.Client != "" {
+		fields = append(fields, "client="+p.Client)
+	}
+	if p.User != "" {
+		fields = append(fields, "user="+p.User)
 	}
 	sort.Strings(fields)
 	mac := hmac.New(sha256.New, key)
