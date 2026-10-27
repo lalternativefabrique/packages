@@ -66,12 +66,6 @@ scopes:
     - "pnpm-workspace.yaml"
   composition:
     - "go/composition/**"
-  retrieval:
-    - "go/retrieval/**"
-  search:
-    - "go/search/**"
-  fileguard:
-    - "go/fileguard/**"
   svcauth:
     - "go/svcauth/**"
   authz:
@@ -85,8 +79,6 @@ scopes:
   synthesis:
     - "go/synthesis/**"
     - "go/cortex/**"
-  language:
-    - "go/language/**"
   transcribe:
     - "go/transcribe/**"
   connect:
@@ -183,32 +175,8 @@ steps:
       go build ./... && go vet ./... && go test -count=1 ./...
       go vet -tags=integration ./...
 
-  - name: retrieval
-    scope: [retrieval]
-    tools: [go]
-    run: |
-      cd go/retrieval
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
 
-  - name: search
-    scope: [search]
-    tools: [go]
-    run: |
-      cd go/search
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
 
-  - name: fileguard
-    scope: [fileguard]
-    tools: [go]
-    run: |
-      cd go/fileguard
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
 
   - name: svcauth
     scope: [svcauth]
@@ -263,14 +231,6 @@ steps:
       go vet ./...
       go test -count=1 ./...
 
-  - name: language
-    scope: [language]
-    tools: [go]
-    run: |
-      cd go/language
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
 
   # The ffmpeg-backed tests skip themselves when the binary is absent; the
   # orchestration is tested with fake binaries either way.

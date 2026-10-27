@@ -1,6 +1,6 @@
 // Package sdk is the Go client for the tornad API.
 //
-// It exists because every consumer was writing this by hand. packages/go/search
+// It exists because every consumer was writing this by hand. searchkit/search
 // carried a tornade client covering /search alone; lalter's cortex built its
 // own /fetch request beside it. Each re-derived the same auth header, the same
 // status handling and the same request shape, from reading tornad's source —
