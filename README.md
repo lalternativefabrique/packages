@@ -23,13 +23,11 @@ workspace), each versioned with a path-prefixed tag (e.g. `go/fileguard/v0.5.0`)
 
 | Package | Description |
 | --- | --- |
-| `fileguard` | Admission checks on bytes and URLs a service did not choose — SSRF guard that dials the address it validated, magic-byte sniffing that rejects rather than guesses, size limits that fail rather than truncate. Standard library only. `go get github.com/lalternative/packages/go/fileguard@go/fileguard/v0.1.0` |
-| `language` | ISO 639-1 language of a text — `Normalize`, offline statistical `Detect`, `Or`. `go get github.com/lalternative/packages/go/language@go/language/v0.1.0` |
 | `busevents` | The shared bus contract — subjects each product publishes under `events.<product>.>` and their payloads, for producers and consumers alike. `go get github.com/lalternative/packages/go/busevents@go/busevents/v0.1.0` |
 | `meet` | Server side of a LiveKit video call — role-scoped tokens, stage pinned in room metadata, webhooks, screen-share limits. UI in `meet/` (`@lalternative/meet`). `go get github.com/lalternative/packages/go/meet@go/meet/v0.1.0` |
 | `transcribe` | Speech-to-text pipeline — ffmpeg chunking, parallel transcription with retry and Retry-After, duration and size gates, OpenAI/Groq/whisper.cpp providers. Needs ffmpeg and ffprobe on the host. `go get github.com/lalternative/packages/go/transcribe@go/transcribe/v0.1.0` |
 
-The event-driven toolkit moved to its own repository: [eventkit](https://github.com/lalternativefabrique/eventkit).
+The event-driven toolkit moved to [eventkit](https://github.com/lalternativefabrique/eventkit); search, fileguard, retrieval and language moved to [searchkit](https://github.com/lalternativefabrique/searchkit).
 
 ## spore/
 
