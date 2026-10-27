@@ -89,6 +89,8 @@ scopes:
     - "go/cortex/**"
   language:
     - "go/language/**"
+  transcribe:
+    - "go/transcribe/**"
   connect:
     - "go/connect/**"
   membership:
@@ -281,6 +283,17 @@ steps:
     tools: [go]
     run: |
       cd go/language
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  # The ffmpeg-backed tests skip themselves when the binary is absent; the
+  # orchestration is tested with fake binaries either way.
+  - name: transcribe
+    scope: [transcribe]
+    tools: [go]
+    run: |
+      cd go/transcribe
       go build ./...
       go vet ./...
       go test -count=1 ./...
