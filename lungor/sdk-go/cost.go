@@ -35,6 +35,10 @@ type CostLine struct {
 	IdempotencyKey string
 	ExternalUserID string
 	RunKey         string
+	// AgentID labels the line with the app's agent that made the call, a
+	// breakdown of the same client's spend: who pays stays ExternalUserID.
+	// Name it once with Lungor's PUT /metering/agents/{agent_id}.
+	AgentID string
 	// AppID records the line against another Lungor app of the same tenant,
 	// on its behalf; empty means the calling app. That app must have delegated
 	// cost declaration to the caller, and Code, the price and ExternalUserID
@@ -179,6 +183,10 @@ func costRequest(lines []CostLine) (wire.CosttrackingRecordCostsRequest, error) 
 		if l.RunKey != "" {
 			r := l.RunKey
 			w.RunKey = &r
+		}
+		if l.AgentID != "" {
+			a := l.AgentID
+			w.AgentId = &a
 		}
 		if l.AppID != "" {
 			a := l.AppID

@@ -639,6 +639,58 @@
                 }
             }
         },
+        "/metering/agents/{agent_id}": {
+            "put": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Registers or renames an agent of the calling app: the name is shown next to the `agent_id` its cost lines and usage debits carry. One registration per agent, whoever uses it; an agent is a breakdown of a client's spend, never who pays. Idempotent; a revoked agent keeps its history.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "Name one of the app's agents",
+                "operationId": "registerCostAgent",
+                "parameters": [
+                    {
+                        "description": "The agent's stable id, as sent on cost lines",
+                        "name": "agent_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.registerAgentRequest"
+                            }
+                        }
+                    },
+                    "description": "Agent",
+                    "required": true
+                },
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/clients/{external_user_id}": {
             "put": {
                 "security": [
@@ -768,7 +820,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Sums the app's recorded costs over [from, to), grouped by `item`, `end_user`, `day` or `month`, and by currency.",
+                "description": "Sums the app's recorded costs over [from, to), grouped by `item`, `end_user`, `agent`, `day` or `month`, and by currency. `agent_id` keeps one agent's costs only, so `group_by=end_user&agent_id=…` reads a user × agent breakdown.",
                 "tags": [
                     "costs"
                 ],
@@ -776,10 +828,18 @@
                 "operationId": "getAppCostReport",
                 "parameters": [
                     {
-                        "description": "item | end_user | day | month",
+                        "description": "item | end_user | agent | day | month",
                         "name": "group_by",
                         "in": "query",
                         "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Only this agent",
+                        "name": "agent_id",
+                        "in": "query",
                         "schema": {
                             "type": "string"
                         }
@@ -1490,7 +1550,7 @@
         },
         "/public/costs/{slug}": {
             "get": {
-                "description": "Aggregated monthly costs (catalog + LLM + paid staff, staff listed by role only) per app and per catalog element (LLM costs as one \"IA (LLM)\" element per app), for a tenant that chose to publish them. No client-level data is ever included. An unknown slug and a private report both answer 404.",
+                "description": "Aggregated monthly costs (catalog + LLM + paid staff, staff listed by role only), plus donated volunteer work valued at the tenant's day rate and kept out of every total, per app and per catalog element (LLM costs as one \"IA (LLM)\" element per app), for a tenant that chose to publish them. No client-level data is ever included. An unknown slug and a private report both answer 404.",
                 "tags": [
                     "costs"
                 ],
@@ -6191,7 +6251,7 @@
                         }
                     },
                     {
-                        "description": "app | declared_by | item | end_user | day | month",
+                        "description": "app | declared_by | item | end_user | agent | day | month",
                         "name": "group_by",
                         "in": "query",
                         "required": true,
@@ -6202,6 +6262,14 @@
                     {
                         "description": "Only this app",
                         "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Only this agent",
+                        "name": "agent_id",
                         "in": "query",
                         "schema": {
                             "type": "string"
@@ -6290,7 +6358,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "When public, monthly totals per app are readable by anyone at /public/costs/{slug}.",
+                "description": "When public, monthly totals per app are readable by anyone at /public/costs/{slug}. public_llm (unchanged when omitted) controls whether metered LLM spend is included.",
                 "tags": [
                     "costs"
                 ],
@@ -6333,6 +6401,265 @@
                         "description": "Bad Request",
                         "content": {
                             "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/volunteer": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Donated work recorded for one month",
+                "operationId": "listVolunteerWork",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "YYYY-MM",
+                        "name": "month",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.volunteerWorkView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "days is a positive multiple of 0.5; role is trimmed, 1 to 80 characters.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Record donated work for a month",
+                "operationId": "createVolunteerWork",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.createVolunteerWorkRequest"
+                            }
+                        }
+                    },
+                    "description": "Donated work",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.volunteerWorkView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/volunteer/rate": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Day rate valuing the tenant's donated work",
+                "operationId": "getVolunteerRate",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.volunteerRateView"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "A null day_rate_cents clears it, which hides donated work from the public report.",
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Set the day rate valuing the tenant's donated work",
+                "operationId": "setVolunteerRate",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.volunteerRateView"
+                            }
+                        }
+                    },
+                    "description": "Day rate",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.volunteerRateView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/volunteer/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "costs"
+                ],
+                "summary": "Delete a donated work entry",
+                "operationId": "deleteVolunteerWork",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Entry ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -9654,6 +9981,11 @@
             "costtracking.costLineRequest": {
                 "type": "object",
                 "properties": {
+                    "agent_id": {
+                        "description": "AgentID is the app's agent that made the call, a breakdown of the same\nclient's spend: who pays stays external_user_id. Name it with PUT /metering/agents/{agent_id}.",
+                        "type": "string",
+                        "example": "3f8c2a1e-5b4e-4f6a-9c8d-1e2f3a4b5c6d"
+                    },
                     "app_id": {
                         "description": "AppID records the line against another app of the same tenant, on its\nbehalf: that app must have delegated cost declaration to the caller, and\ncode, price and external_user_id are then read in that app.",
                         "type": "string",
@@ -9773,6 +10105,11 @@
                         "type": "string",
                         "example": "deepseek-v4.input"
                     },
+                    "name": {
+                        "description": "Name is the agent's registered name when grouping by agent.",
+                        "type": "string",
+                        "example": "station"
+                    },
                     "quantity": {
                         "type": "integer",
                         "example": 128000
@@ -9890,6 +10227,9 @@
                     "public": {
                         "type": "boolean"
                     },
+                    "public_llm": {
+                        "type": "boolean"
+                    },
                     "slug": {
                         "type": "string",
                         "example": "lalter"
@@ -9994,6 +10334,23 @@
                     "supplier": {
                         "type": "string",
                         "example": "ovh"
+                    }
+                }
+            },
+            "costtracking.createVolunteerWorkRequest": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "number",
+                        "example": 2.5
+                    },
+                    "month": {
+                        "type": "string",
+                        "example": "2026-10"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "Développement"
                     }
                 }
             },
@@ -10470,6 +10827,11 @@
                             "$ref": "#/components/schemas/costtracking.publicItemCostView"
                         }
                     },
+                    "llm_public": {
+                        "description": "LLMPublic is false when the tenant withholds its metered LLM spend: llm_cents are then 0 by omission, not by absence of spend.",
+                        "type": "boolean",
+                        "example": true
+                    },
                     "month": {
                         "type": "string",
                         "example": "2026-10"
@@ -10489,6 +10851,14 @@
                     },
                     "totals": {
                         "$ref": "#/components/schemas/costtracking.publicCostAmountsView"
+                    },
+                    "volunteer": {
+                        "description": "Volunteer is donated work, never part of totals; absent when the month has none or no day rate is set.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/costtracking.publicVolunteerView"
+                            }
+                        ]
                     }
                 }
             },
@@ -10535,6 +10905,42 @@
                     "total_cents": {
                         "type": "integer",
                         "example": 30000
+                    }
+                }
+            },
+            "costtracking.publicVolunteerRoleView": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "number",
+                        "example": 6
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Développement"
+                    }
+                }
+            },
+            "costtracking.publicVolunteerView": {
+                "type": "object",
+                "properties": {
+                    "day_rate_cents": {
+                        "type": "integer",
+                        "example": 50000
+                    },
+                    "days": {
+                        "type": "number",
+                        "example": 9.5
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.publicVolunteerRoleView"
+                        }
+                    },
+                    "value_cents": {
+                        "type": "integer",
+                        "example": 475000
                     }
                 }
             },
@@ -10751,6 +11157,20 @@
                     }
                 }
             },
+            "costtracking.registerAgentRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "station"
+                    },
+                    "revoked_at": {
+                        "description": "RevokedAt marks the agent as gone; omit it, or send null, for an active one.",
+                        "type": "string",
+                        "example": "2026-10-28T17:00:00Z"
+                    }
+                }
+            },
             "costtracking.registerClientRequest": {
                 "type": "object",
                 "properties": {
@@ -10780,6 +11200,10 @@
                 "type": "object",
                 "properties": {
                     "public": {
+                        "type": "boolean"
+                    },
+                    "public_llm": {
+                        "description": "PublicLLM is left unchanged when omitted.",
                         "type": "boolean"
                     }
                 }
@@ -10993,6 +11417,36 @@
                     "provider": {
                         "type": "string",
                         "example": "anthropic"
+                    }
+                }
+            },
+            "costtracking.volunteerRateView": {
+                "type": "object",
+                "properties": {
+                    "day_rate_cents": {
+                        "description": "DayRateCents is null when no day rate is set.",
+                        "type": "integer",
+                        "example": 50000
+                    }
+                }
+            },
+            "costtracking.volunteerWorkView": {
+                "type": "object",
+                "properties": {
+                    "days": {
+                        "type": "number",
+                        "example": 2.5
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "month": {
+                        "type": "string",
+                        "example": "2026-10"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "Développement"
                     }
                 }
             },
@@ -12096,6 +12550,9 @@
                     "legal_id_scheme": {
                         "type": "string"
                     },
+                    "livemode": {
+                        "type": "boolean"
+                    },
                     "name": {
                         "type": "string"
                     },
@@ -12155,6 +12612,9 @@
                     },
                     "lifetime_amount": {
                         "type": "integer"
+                    },
+                    "livemode": {
+                        "type": "boolean"
                     },
                     "name": {
                         "type": "string"
@@ -13261,6 +13721,11 @@
             "metering.consumeRequest": {
                 "type": "object",
                 "properties": {
+                    "agent_id": {
+                        "description": "AgentID labels the debit with the app's agent that made the call, a\nbreakdown of the same user's consumption: the cap stays per user.",
+                        "type": "string",
+                        "example": "3f8c2a1e-5b4e-4f6a-9c8d-1e2f3a4b5c6d"
+                    },
                     "external_user_id": {
                         "type": "string",
                         "example": "user-42"
