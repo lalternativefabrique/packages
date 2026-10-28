@@ -335,6 +335,10 @@ type CosttrackingCostItemView struct {
 
 // CosttrackingCostLineRequest defines model for costtracking.costLineRequest.
 type CosttrackingCostLineRequest struct {
+	// AgentId AgentID is the app's agent that made the call, a breakdown of the same
+	// client's spend: who pays stays external_user_id. Name it with PUT /metering/agents/{agent_id}.
+	AgentId *string `json:"agent_id,omitempty"`
+
 	// AppId AppID records the line against another app of the same tenant, on its
 	// behalf: that app must have delegated cost declaration to the caller, and
 	// code, price and external_user_id are then read in that app.
@@ -378,6 +382,9 @@ type CosttrackingCostReportRowView struct {
 	// ItemName ItemName, Supplier and Category are set when grouping by item; Category only on a free-amount item.
 	ItemName *string `json:"item_name,omitempty"`
 	Key      *string `json:"key,omitempty"`
+
+	// Name Name is the agent's registered name when grouping by agent.
+	Name     *string `json:"name,omitempty"`
 	Quantity *int    `json:"quantity,omitempty"`
 	Records  *int    `json:"records,omitempty"`
 	Supplier *string `json:"supplier,omitempty"`
@@ -423,8 +430,9 @@ type CosttrackingCostSummaryResponse struct {
 
 // CosttrackingCostVisibilityView defines model for costtracking.costVisibilityView.
 type CosttrackingCostVisibilityView struct {
-	Public *bool   `json:"public,omitempty"`
-	Slug   *string `json:"slug,omitempty"`
+	Public    *bool   `json:"public,omitempty"`
+	PublicLlm *bool   `json:"public_llm,omitempty"`
+	Slug      *string `json:"slug,omitempty"`
 }
 
 // CosttrackingCreateRecurringCostRequest defines model for costtracking.createRecurringCostRequest.
@@ -452,6 +460,13 @@ type CosttrackingCreateRecurringCostRequestCategory string
 
 // CosttrackingCreateRecurringCostRequestInterval defines model for CosttrackingCreateRecurringCostRequest.Interval.
 type CosttrackingCreateRecurringCostRequestInterval string
+
+// CosttrackingCreateVolunteerWorkRequest defines model for costtracking.createVolunteerWorkRequest.
+type CosttrackingCreateVolunteerWorkRequest struct {
+	Days  *float32 `json:"days,omitempty"`
+	Month *string  `json:"month,omitempty"`
+	Role  *string  `json:"role,omitempty"`
+}
 
 // CosttrackingCurrencyTotalResponse defines model for costtracking.currencyTotalResponse.
 type CosttrackingCurrencyTotalResponse struct {
@@ -625,13 +640,19 @@ type CosttrackingPublicCostAmountsView struct {
 
 // CosttrackingPublicCostReportView defines model for costtracking.publicCostReportView.
 type CosttrackingPublicCostReportView struct {
-	Apps     *[]CosttrackingPublicAppCostView   `json:"apps,omitempty"`
-	Currency *string                            `json:"currency,omitempty"`
-	Items    *[]CosttrackingPublicItemCostView  `json:"items,omitempty"`
-	Month    *string                            `json:"month,omitempty"`
-	Months   *[]string                          `json:"months,omitempty"`
-	Tenant   *CosttrackingPublicCostTenantView  `json:"tenant,omitempty"`
-	Totals   *CosttrackingPublicCostAmountsView `json:"totals,omitempty"`
+	Apps     *[]CosttrackingPublicAppCostView  `json:"apps,omitempty"`
+	Currency *string                           `json:"currency,omitempty"`
+	Items    *[]CosttrackingPublicItemCostView `json:"items,omitempty"`
+
+	// LlmPublic LLMPublic is false when the tenant withholds its metered LLM spend: llm_cents are then 0 by omission, not by absence of spend.
+	LlmPublic *bool                              `json:"llm_public,omitempty"`
+	Month     *string                            `json:"month,omitempty"`
+	Months    *[]string                          `json:"months,omitempty"`
+	Tenant    *CosttrackingPublicCostTenantView  `json:"tenant,omitempty"`
+	Totals    *CosttrackingPublicCostAmountsView `json:"totals,omitempty"`
+
+	// Volunteer Volunteer is donated work, never part of totals; absent when the month has none or no day rate is set.
+	Volunteer *CosttrackingPublicVolunteerView `json:"volunteer,omitempty"`
 }
 
 // CosttrackingPublicCostTenantView defines model for costtracking.publicCostTenantView.
@@ -649,6 +670,20 @@ type CosttrackingPublicItemCostView struct {
 	Name         *string `json:"name,omitempty"`
 	StaffCents   *int    `json:"staff_cents,omitempty"`
 	TotalCents   *int    `json:"total_cents,omitempty"`
+}
+
+// CosttrackingPublicVolunteerRoleView defines model for costtracking.publicVolunteerRoleView.
+type CosttrackingPublicVolunteerRoleView struct {
+	Days *float32 `json:"days,omitempty"`
+	Name *string  `json:"name,omitempty"`
+}
+
+// CosttrackingPublicVolunteerView defines model for costtracking.publicVolunteerView.
+type CosttrackingPublicVolunteerView struct {
+	DayRateCents *int                                   `json:"day_rate_cents,omitempty"`
+	Days         *float32                               `json:"days,omitempty"`
+	Roles        *[]CosttrackingPublicVolunteerRoleView `json:"roles,omitempty"`
+	ValueCents   *int                                   `json:"value_cents,omitempty"`
 }
 
 // CosttrackingRecordCostsRequest defines model for costtracking.recordCostsRequest.
@@ -745,6 +780,14 @@ type CosttrackingRecurringCostViewCategory string
 // CosttrackingRecurringCostViewInterval defines model for CosttrackingRecurringCostView.Interval.
 type CosttrackingRecurringCostViewInterval string
 
+// CosttrackingRegisterAgentRequest defines model for costtracking.registerAgentRequest.
+type CosttrackingRegisterAgentRequest struct {
+	Name *string `json:"name,omitempty"`
+
+	// RevokedAt RevokedAt marks the agent as gone; omit it, or send null, for an active one.
+	RevokedAt *string `json:"revoked_at,omitempty"`
+}
+
 // CosttrackingRegisterClientRequest defines model for costtracking.registerClientRequest.
 type CosttrackingRegisterClientRequest struct {
 	Name *string `json:"name,omitempty"`
@@ -761,6 +804,9 @@ type CosttrackingReplaceSkillNeedsRequest struct {
 // CosttrackingSetCostVisibilityRequest defines model for costtracking.setCostVisibilityRequest.
 type CosttrackingSetCostVisibilityRequest struct {
 	Public *bool `json:"public,omitempty"`
+
+	// PublicLlm PublicLLM is left unchanged when omitted.
+	PublicLlm *bool `json:"public_llm,omitempty"`
 }
 
 // CosttrackingSetPriceSourceRequest defines model for costtracking.setPriceSourceRequest.
@@ -809,6 +855,20 @@ type CosttrackingUpdateRecurringCostRequest struct {
 	Label    *string `json:"label,omitempty"`
 	Note     *string `json:"note,omitempty"`
 	Supplier *string `json:"supplier,omitempty"`
+}
+
+// CosttrackingVolunteerRateView defines model for costtracking.volunteerRateView.
+type CosttrackingVolunteerRateView struct {
+	// DayRateCents DayRateCents is null when no day rate is set.
+	DayRateCents *int `json:"day_rate_cents,omitempty"`
+}
+
+// CosttrackingVolunteerWorkView defines model for costtracking.volunteerWorkView.
+type CosttrackingVolunteerWorkView struct {
+	Days  *float32 `json:"days,omitempty"`
+	Id    *string  `json:"id,omitempty"`
+	Month *string  `json:"month,omitempty"`
+	Role  *string  `json:"role,omitempty"`
 }
 
 // CreateEndpointCreateEndpointRequest defines model for create_endpoint.CreateEndpointRequest.
@@ -1221,6 +1281,9 @@ type MeteringBulkDeleteUnitsResponse struct {
 
 // MeteringConsumeRequest defines model for metering.consumeRequest.
 type MeteringConsumeRequest struct {
+	// AgentId AgentID labels the debit with the app's agent that made the call, a
+	// breakdown of the same user's consumption: the cap stays per user.
+	AgentId        *string `json:"agent_id,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
 
 	// IdempotencyKey IdempotencyKey dedupes retries of the SAME logical debit. Derive it from
@@ -1406,8 +1469,11 @@ type ListCheckoutMethodsParams struct {
 
 // GetAppCostReportParams defines parameters for GetAppCostReport.
 type GetAppCostReportParams struct {
-	// GroupBy item | end_user | day | month
+	// GroupBy item | end_user | agent | day | month
 	GroupBy string `form:"group_by" json:"group_by"`
+
+	// AgentId Only this agent
+	AgentId *string `form:"agent_id,omitempty" json:"agent_id,omitempty"`
 
 	// From Start (RFC3339). Defaults to the 1st of the current month.
 	From *string `form:"from,omitempty" json:"from,omitempty"`
@@ -1542,6 +1608,12 @@ type ReadInvoiceMultipartBody struct {
 	File openapi_types.File `json:"file"`
 }
 
+// ListVolunteerWorkParams defines parameters for ListVolunteerWork.
+type ListVolunteerWorkParams struct {
+	// Month YYYY-MM
+	Month string `form:"month" json:"month"`
+}
+
 // AddCostAttachmentMultipartBody defines parameters for AddCostAttachment.
 type AddCostAttachmentMultipartBody struct {
 	// File The invoice
@@ -1583,6 +1655,9 @@ type AppRegisterCustomerJSONRequestBody = FinanceAppRegisterCustomerRequest
 
 // CheckoutJSONRequestBody defines body for Checkout for application/json ContentType.
 type CheckoutJSONRequestBody = FinanceCheckoutRequest
+
+// RegisterCostAgentJSONRequestBody defines body for RegisterCostAgent for application/json ContentType.
+type RegisterCostAgentJSONRequestBody = CosttrackingRegisterAgentRequest
 
 // RegisterCostClientJSONRequestBody defines body for RegisterCostClient for application/json ContentType.
 type RegisterCostClientJSONRequestBody = CosttrackingRegisterClientRequest
@@ -1643,6 +1718,12 @@ type ReadInvoiceMultipartRequestBody ReadInvoiceMultipartBody
 
 // SetCostVisibilityJSONRequestBody defines body for SetCostVisibility for application/json ContentType.
 type SetCostVisibilityJSONRequestBody = CosttrackingSetCostVisibilityRequest
+
+// CreateVolunteerWorkJSONRequestBody defines body for CreateVolunteerWork for application/json ContentType.
+type CreateVolunteerWorkJSONRequestBody = CosttrackingCreateVolunteerWorkRequest
+
+// SetVolunteerRateJSONRequestBody defines body for SetVolunteerRate for application/json ContentType.
+type SetVolunteerRateJSONRequestBody = CosttrackingVolunteerRateView
 
 // UpdateCommonCostJSONRequestBody defines body for UpdateCommonCost for application/json ContentType.
 type UpdateCommonCostJSONRequestBody = CosttrackingUpdateCommonCostRequest
@@ -1773,6 +1854,11 @@ type ClientInterface interface {
 
 	// MollieWebhook request
 	MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegisterCostAgentWithBody request with any body
+	RegisterCostAgentWithBody(ctx context.Context, agentId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RegisterCostAgent(ctx context.Context, agentId string, body RegisterCostAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RegisterCostClientWithBody request with any body
 	RegisterCostClientWithBody(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1949,6 +2035,25 @@ type ClientInterface interface {
 	SetCostVisibilityWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	SetCostVisibility(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListVolunteerWork request
+	ListVolunteerWork(ctx context.Context, tenantId string, params *ListVolunteerWorkParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateVolunteerWorkWithBody request with any body
+	CreateVolunteerWorkWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateVolunteerWork(ctx context.Context, tenantId string, body CreateVolunteerWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetVolunteerRate request
+	GetVolunteerRate(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SetVolunteerRateWithBody request with any body
+	SetVolunteerRateWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	SetVolunteerRate(ctx context.Context, tenantId string, body SetVolunteerRateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteVolunteerWork request
+	DeleteVolunteerWork(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteCommonCost request
 	DeleteCommonCost(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2156,6 +2261,30 @@ func (c *Client) GetCheckoutSession(ctx context.Context, sessionId string, reqEd
 
 func (c *Client) MollieWebhook(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewMollieWebhookRequest(c.Server, credId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterCostAgentWithBody(ctx context.Context, agentId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterCostAgentRequestWithBody(c.Server, agentId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterCostAgent(ctx context.Context, agentId string, body RegisterCostAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterCostAgentRequest(c.Server, agentId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2946,6 +3075,90 @@ func (c *Client) SetCostVisibility(ctx context.Context, tenantId string, body Se
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListVolunteerWork(ctx context.Context, tenantId string, params *ListVolunteerWorkParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListVolunteerWorkRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateVolunteerWorkWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateVolunteerWorkRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateVolunteerWork(ctx context.Context, tenantId string, body CreateVolunteerWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateVolunteerWorkRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetVolunteerRate(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetVolunteerRateRequest(c.Server, tenantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetVolunteerRateWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetVolunteerRateRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SetVolunteerRate(ctx context.Context, tenantId string, body SetVolunteerRateJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSetVolunteerRateRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteVolunteerWork(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteVolunteerWorkRequest(c.Server, tenantId, id)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) DeleteCommonCost(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteCommonCostRequest(c.Server, tenantId, recordId)
 	if err != nil {
@@ -3638,6 +3851,53 @@ func NewMollieWebhookRequest(server string, credId string) (*http.Request, error
 	return req, nil
 }
 
+// NewRegisterCostAgentRequest calls the generic RegisterCostAgent builder with application/json body
+func NewRegisterCostAgentRequest(server string, agentId string, body RegisterCostAgentJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegisterCostAgentRequestWithBody(server, agentId, "application/json", bodyReader)
+}
+
+// NewRegisterCostAgentRequestWithBody generates requests for RegisterCostAgent with any type of body
+func NewRegisterCostAgentRequestWithBody(server string, agentId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agent_id", runtime.ParamLocationPath, agentId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/agents/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewRegisterCostClientRequest calls the generic RegisterCostClient builder with application/json body
 func NewRegisterCostClientRequest(server string, externalUserId string, body RegisterCostClientJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3757,6 +4017,22 @@ func NewGetAppCostReportRequest(server string, params *GetAppCostReportParams) (
 					queryValues.Add(k, v2)
 				}
 			}
+		}
+
+		if params.AgentId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "agent_id", runtime.ParamLocationQuery, *params.AgentId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
 		}
 
 		if params.From != nil {
@@ -6033,6 +6309,227 @@ func NewSetCostVisibilityRequestWithBody(server string, tenantId string, content
 	return req, nil
 }
 
+// NewListVolunteerWorkRequest generates requests for ListVolunteerWork
+func NewListVolunteerWorkRequest(server string, tenantId string, params *ListVolunteerWorkParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/volunteer", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "month", runtime.ParamLocationQuery, params.Month); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateVolunteerWorkRequest calls the generic CreateVolunteerWork builder with application/json body
+func NewCreateVolunteerWorkRequest(server string, tenantId string, body CreateVolunteerWorkJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateVolunteerWorkRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewCreateVolunteerWorkRequestWithBody generates requests for CreateVolunteerWork with any type of body
+func NewCreateVolunteerWorkRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/volunteer", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetVolunteerRateRequest generates requests for GetVolunteerRate
+func NewGetVolunteerRateRequest(server string, tenantId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/volunteer/rate", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSetVolunteerRateRequest calls the generic SetVolunteerRate builder with application/json body
+func NewSetVolunteerRateRequest(server string, tenantId string, body SetVolunteerRateJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewSetVolunteerRateRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewSetVolunteerRateRequestWithBody generates requests for SetVolunteerRate with any type of body
+func NewSetVolunteerRateRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/volunteer/rate", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteVolunteerWorkRequest generates requests for DeleteVolunteerWork
+func NewDeleteVolunteerWorkRequest(server string, tenantId string, id string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "id", runtime.ParamLocationPath, id)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/volunteer/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewDeleteCommonCostRequest generates requests for DeleteCommonCost
 func NewDeleteCommonCostRequest(server string, tenantId string, recordId string) (*http.Request, error) {
 	var err error
@@ -7015,6 +7512,11 @@ type ClientWithResponsesInterface interface {
 	// MollieWebhookWithResponse request
 	MollieWebhookWithResponse(ctx context.Context, credId string, reqEditors ...RequestEditorFn) (*MollieWebhookResponse, error)
 
+	// RegisterCostAgentWithBodyWithResponse request with any body
+	RegisterCostAgentWithBodyWithResponse(ctx context.Context, agentId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterCostAgentResponse, error)
+
+	RegisterCostAgentWithResponse(ctx context.Context, agentId string, body RegisterCostAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterCostAgentResponse, error)
+
 	// RegisterCostClientWithBodyWithResponse request with any body
 	RegisterCostClientWithBodyWithResponse(ctx context.Context, externalUserId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterCostClientResponse, error)
 
@@ -7190,6 +7692,25 @@ type ClientWithResponsesInterface interface {
 	SetCostVisibilityWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
 
 	SetCostVisibilityWithResponse(ctx context.Context, tenantId string, body SetCostVisibilityJSONRequestBody, reqEditors ...RequestEditorFn) (*SetCostVisibilityResponse, error)
+
+	// ListVolunteerWorkWithResponse request
+	ListVolunteerWorkWithResponse(ctx context.Context, tenantId string, params *ListVolunteerWorkParams, reqEditors ...RequestEditorFn) (*ListVolunteerWorkResponse, error)
+
+	// CreateVolunteerWorkWithBodyWithResponse request with any body
+	CreateVolunteerWorkWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateVolunteerWorkResponse, error)
+
+	CreateVolunteerWorkWithResponse(ctx context.Context, tenantId string, body CreateVolunteerWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVolunteerWorkResponse, error)
+
+	// GetVolunteerRateWithResponse request
+	GetVolunteerRateWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetVolunteerRateResponse, error)
+
+	// SetVolunteerRateWithBodyWithResponse request with any body
+	SetVolunteerRateWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetVolunteerRateResponse, error)
+
+	SetVolunteerRateWithResponse(ctx context.Context, tenantId string, body SetVolunteerRateJSONRequestBody, reqEditors ...RequestEditorFn) (*SetVolunteerRateResponse, error)
+
+	// DeleteVolunteerWorkWithResponse request
+	DeleteVolunteerWorkWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*DeleteVolunteerWorkResponse, error)
 
 	// DeleteCommonCostWithResponse request
 	DeleteCommonCostWithResponse(ctx context.Context, tenantId string, recordId string, reqEditors ...RequestEditorFn) (*DeleteCommonCostResponse, error)
@@ -7477,6 +7998,27 @@ func (r MollieWebhookResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r MollieWebhookResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RegisterCostAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RegisterCostAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RegisterCostAgentResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -8559,6 +9101,118 @@ func (r SetCostVisibilityResponse) StatusCode() int {
 	return 0
 }
 
+type ListVolunteerWorkResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingVolunteerWorkView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListVolunteerWorkResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListVolunteerWorkResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateVolunteerWorkResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *CosttrackingVolunteerWorkView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateVolunteerWorkResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateVolunteerWorkResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetVolunteerRateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingVolunteerRateView
+}
+
+// Status returns HTTPResponse.Status
+func (r GetVolunteerRateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetVolunteerRateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SetVolunteerRateResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingVolunteerRateView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r SetVolunteerRateResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SetVolunteerRateResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteVolunteerWorkResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteVolunteerWorkResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteVolunteerWorkResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type DeleteCommonCostResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9109,6 +9763,23 @@ func (c *ClientWithResponses) MollieWebhookWithResponse(ctx context.Context, cre
 		return nil, err
 	}
 	return ParseMollieWebhookResponse(rsp)
+}
+
+// RegisterCostAgentWithBodyWithResponse request with arbitrary body returning *RegisterCostAgentResponse
+func (c *ClientWithResponses) RegisterCostAgentWithBodyWithResponse(ctx context.Context, agentId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterCostAgentResponse, error) {
+	rsp, err := c.RegisterCostAgentWithBody(ctx, agentId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterCostAgentResponse(rsp)
+}
+
+func (c *ClientWithResponses) RegisterCostAgentWithResponse(ctx context.Context, agentId string, body RegisterCostAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterCostAgentResponse, error) {
+	rsp, err := c.RegisterCostAgent(ctx, agentId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterCostAgentResponse(rsp)
 }
 
 // RegisterCostClientWithBodyWithResponse request with arbitrary body returning *RegisterCostClientResponse
@@ -9675,6 +10346,67 @@ func (c *ClientWithResponses) SetCostVisibilityWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseSetCostVisibilityResponse(rsp)
+}
+
+// ListVolunteerWorkWithResponse request returning *ListVolunteerWorkResponse
+func (c *ClientWithResponses) ListVolunteerWorkWithResponse(ctx context.Context, tenantId string, params *ListVolunteerWorkParams, reqEditors ...RequestEditorFn) (*ListVolunteerWorkResponse, error) {
+	rsp, err := c.ListVolunteerWork(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListVolunteerWorkResponse(rsp)
+}
+
+// CreateVolunteerWorkWithBodyWithResponse request with arbitrary body returning *CreateVolunteerWorkResponse
+func (c *ClientWithResponses) CreateVolunteerWorkWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateVolunteerWorkResponse, error) {
+	rsp, err := c.CreateVolunteerWorkWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateVolunteerWorkResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateVolunteerWorkWithResponse(ctx context.Context, tenantId string, body CreateVolunteerWorkJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVolunteerWorkResponse, error) {
+	rsp, err := c.CreateVolunteerWork(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateVolunteerWorkResponse(rsp)
+}
+
+// GetVolunteerRateWithResponse request returning *GetVolunteerRateResponse
+func (c *ClientWithResponses) GetVolunteerRateWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*GetVolunteerRateResponse, error) {
+	rsp, err := c.GetVolunteerRate(ctx, tenantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetVolunteerRateResponse(rsp)
+}
+
+// SetVolunteerRateWithBodyWithResponse request with arbitrary body returning *SetVolunteerRateResponse
+func (c *ClientWithResponses) SetVolunteerRateWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetVolunteerRateResponse, error) {
+	rsp, err := c.SetVolunteerRateWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetVolunteerRateResponse(rsp)
+}
+
+func (c *ClientWithResponses) SetVolunteerRateWithResponse(ctx context.Context, tenantId string, body SetVolunteerRateJSONRequestBody, reqEditors ...RequestEditorFn) (*SetVolunteerRateResponse, error) {
+	rsp, err := c.SetVolunteerRate(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSetVolunteerRateResponse(rsp)
+}
+
+// DeleteVolunteerWorkWithResponse request returning *DeleteVolunteerWorkResponse
+func (c *ClientWithResponses) DeleteVolunteerWorkWithResponse(ctx context.Context, tenantId string, id string, reqEditors ...RequestEditorFn) (*DeleteVolunteerWorkResponse, error) {
+	rsp, err := c.DeleteVolunteerWork(ctx, tenantId, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteVolunteerWorkResponse(rsp)
 }
 
 // DeleteCommonCostWithResponse request returning *DeleteCommonCostResponse
@@ -10282,6 +11014,22 @@ func ParseMollieWebhookResponse(rsp *http.Response) (*MollieWebhookResponse, err
 	}
 
 	response := &MollieWebhookResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseRegisterCostAgentResponse parses an HTTP response from a RegisterCostAgentWithResponse call
+func ParseRegisterCostAgentResponse(rsp *http.Response) (*RegisterCostAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RegisterCostAgentResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -11904,6 +12652,147 @@ func ParseSetCostVisibilityResponse(rsp *http.Response) (*SetCostVisibilityRespo
 		}
 		response.JSON400 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListVolunteerWorkResponse parses an HTTP response from a ListVolunteerWorkWithResponse call
+func ParseListVolunteerWorkResponse(rsp *http.Response) (*ListVolunteerWorkResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListVolunteerWorkResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingVolunteerWorkView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateVolunteerWorkResponse parses an HTTP response from a CreateVolunteerWorkWithResponse call
+func ParseCreateVolunteerWorkResponse(rsp *http.Response) (*CreateVolunteerWorkResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateVolunteerWorkResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CosttrackingVolunteerWorkView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetVolunteerRateResponse parses an HTTP response from a GetVolunteerRateWithResponse call
+func ParseGetVolunteerRateResponse(rsp *http.Response) (*GetVolunteerRateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetVolunteerRateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingVolunteerRateView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSetVolunteerRateResponse parses an HTTP response from a SetVolunteerRateWithResponse call
+func ParseSetVolunteerRateResponse(rsp *http.Response) (*SetVolunteerRateResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SetVolunteerRateResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingVolunteerRateView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteVolunteerWorkResponse parses an HTTP response from a DeleteVolunteerWorkWithResponse call
+func ParseDeleteVolunteerWorkResponse(rsp *http.Response) (*DeleteVolunteerWorkResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteVolunteerWorkResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

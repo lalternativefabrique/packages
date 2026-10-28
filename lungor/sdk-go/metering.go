@@ -53,6 +53,9 @@ type Usage struct {
 	// ReleasesKey, on Release of a METERED unit, names the consumption whose
 	// surplus is handed back. Required there, ignored on Consume.
 	ReleasesKey string
+	// AgentID labels the debit with the app's agent that made the call, a
+	// breakdown of the same user's consumption: the cap stays per user.
+	AgentID string
 }
 
 // Decision is what Lungor answered about a consumption.
@@ -580,6 +583,10 @@ func (u Usage) request() (wire.MeteringConsumeRequest, error) {
 	if !u.OccurredAt.IsZero() {
 		at := u.OccurredAt.UTC().Format(time.RFC3339Nano)
 		req.OccurredAt = &at
+	}
+	if u.AgentID != "" {
+		a := u.AgentID
+		req.AgentId = &a
 	}
 	if u.Settled {
 		req.Settled = &u.Settled
