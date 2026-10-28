@@ -221,7 +221,6 @@ func changePlanFrom(w wire.FinanceAppChangePlanResponse) ChangePlanResult {
 	return out
 }
 
-
 // CancelResult reports the state the subscription was left in.
 type CancelResult struct {
 	Status string
