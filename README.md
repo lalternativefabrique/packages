@@ -31,33 +31,4 @@ The event-driven toolkit moved to [eventkit](https://github.com/lalternativefabr
 
 ## spore/
 
-SDKs for the [Spore](https://sporee.fr) transactional email API. The generated
-clients share the checked-in OpenAPI 3 contract at `spore/openapi.json`.
-
-| Package | Runtime / registry |
-| --- | --- |
-| `sdk-node` | Node.js and Bun — `@lalternative/spore-sdk` |
-| `sdk-python` | Python — `spore-email` |
-| `sdk-php` | PHP and Laravel — `lalternative/spore` |
-| `sdk-ruby` | Ruby and Rails — `spore-email` |
-| `sdk-rust` | Rust — `spore-email` |
-| `sdk-go` | Go — `github.com/lalternative/packages/spore/sdk-go` |
-
-Spore publishes the contract without authentication at `/openapi.json`.
-Refresh it from production, or from a local Spore instance, and regenerate all
-generated clients with:
-
-```bash
-./spore/refresh-contract.sh
-./spore/refresh-contract.sh http://localhost:4110
-```
-
-To regenerate without fetching the network, use
-`pnpm --filter @lalternative/spore-codegen generate`. The Go client is
-maintained by hand and tested against the same HTTP contract separately.
-
-Publish from a clean `main`: `npm publish` in `spore/sdk-node`,
-`./spore/publish.sh python` (needs `UV_PUBLISH_TOKEN`) for PyPI, and
-`./spore/publish.sh php` for Packagist, which pushes the `spore/sdk-php`
-subtree and a `v<version>` tag to `lalternativefabrique/spore-php`, the
-repository Packagist reads.
+The Spore SDKs moved to [spore-sdk](https://github.com/lalternativefabrique/spore-sdk).

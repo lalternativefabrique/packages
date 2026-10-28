@@ -105,8 +105,6 @@ scopes:
     - "skalpai/sdk-go/**"
   nakoda-sdk-go:
     - "nakoda/sdk-go/**"
-  spore-sdk:
-    - "spore/**"
     - "pnpm-lock.yaml"
     - "pnpm-workspace.yaml"
   lalter-sdk-go:
@@ -480,23 +478,3 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native typecheck
       npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native build
 
-  - name: spore-sdk
-    scope: [spore-sdk]
-    tools: [go, node, rust]
-    run: |
-      cd spore/sdk-go
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
-      cd ../..
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/spore-codegen test
-      npx -y pnpm@11.3.0 --filter @lalternative/spore-sdk build
-      npx -y pnpm@11.3.0 --filter @lalternative/spore-sdk typecheck
-      python3 -m compileall -q spore/sdk-python/spore_email
-      find spore/sdk-php/lib -type f -name '*.php' -exec sh -c \
-        'for file do php -l "$file" >/dev/null || exit 1; done' sh {} +
-      find spore/sdk-ruby/lib -type f -name '*.rb' -exec sh -c \
-        'for file do ruby -c "$file" >/dev/null || exit 1; done' sh {} +
-      cargo check --manifest-path spore/sdk-rust/Cargo.toml
-      cargo test --manifest-path spore/sdk-rust/Cargo.toml
