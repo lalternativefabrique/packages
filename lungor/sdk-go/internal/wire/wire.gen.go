@@ -959,7 +959,10 @@ type FinanceAppChangePlanResponse struct {
 	ConsentRequired       *bool   `json:"consent_required,omitempty"`
 	EffectiveAt           *string `json:"effective_at,omitempty"`
 	Kind                  *string `json:"kind,omitempty"`
-	ProratedCents         *int    `json:"prorated_cents,omitempty"`
+
+	// PaymentMethod PaymentMethod is what the consented charge will be taken from.
+	PaymentMethod *FinanceAppPaymentMethodView `json:"payment_method,omitempty"`
+	ProratedCents *int                         `json:"prorated_cents,omitempty"`
 }
 
 // FinanceAppGrantRequest defines model for finance.appGrantRequest.
@@ -978,6 +981,14 @@ type FinanceAppGrantResponse struct {
 	SubscriptionId *string `json:"subscription_id,omitempty"`
 }
 
+// FinanceAppPaymentMethodView defines model for finance.appPaymentMethodView.
+type FinanceAppPaymentMethodView struct {
+	Brand     *string `json:"brand,omitempty"`
+	ExpiresAt *string `json:"expires_at,omitempty"`
+	Kind      *string `json:"kind,omitempty"`
+	Last4     *string `json:"last4,omitempty"`
+}
+
 // FinanceAppRegisterCustomerRequest defines model for finance.appRegisterCustomerRequest.
 type FinanceAppRegisterCustomerRequest struct {
 	Country        *string `json:"country,omitempty"`
@@ -994,6 +1005,16 @@ type FinanceAppRegisterCustomerResponse struct {
 	CustomerId *string `json:"customer_id,omitempty"`
 }
 
+// FinanceAppResumeRequest defines model for finance.appResumeRequest.
+type FinanceAppResumeRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+}
+
+// FinanceAppResumeResponse defines model for finance.appResumeResponse.
+type FinanceAppResumeResponse struct {
+	Resumed *bool `json:"resumed,omitempty"`
+}
+
 // FinanceAppWithdrawPendingRequest defines model for finance.appWithdrawPendingRequest.
 type FinanceAppWithdrawPendingRequest struct {
 	ExternalUserId *string `json:"external_user_id,omitempty"`
@@ -1003,6 +1024,13 @@ type FinanceAppWithdrawPendingRequest struct {
 type FinanceAppWithdrawPendingResponse struct {
 	PlanCode  *string `json:"plan_code,omitempty"`
 	Withdrawn *bool   `json:"withdrawn,omitempty"`
+}
+
+// FinanceCheckoutAlreadySubscribedResponse defines model for finance.checkoutAlreadySubscribedResponse.
+type FinanceCheckoutAlreadySubscribedResponse struct {
+	CurrentPlanCode *string `json:"current_plan_code,omitempty"`
+	Error           *string `json:"error,omitempty"`
+	SubscriptionId  *string `json:"subscription_id,omitempty"`
 }
 
 // FinanceCheckoutConsentResponse defines model for finance.checkoutConsentResponse.
@@ -1686,6 +1714,9 @@ type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
 // AppGrantSubscriptionJSONRequestBody defines body for AppGrantSubscription for application/json ContentType.
 type AppGrantSubscriptionJSONRequestBody = FinanceAppGrantRequest
 
+// AppResumeSubscriptionJSONRequestBody defines body for AppResumeSubscription for application/json ContentType.
+type AppResumeSubscriptionJSONRequestBody = FinanceAppResumeRequest
+
 // AppWithdrawPendingPlanJSONRequestBody defines body for AppWithdrawPendingPlan for application/json ContentType.
 type AppWithdrawPendingPlanJSONRequestBody = FinanceAppWithdrawPendingRequest
 
@@ -1931,6 +1962,11 @@ type ClientInterface interface {
 	AppGrantSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	AppGrantSubscription(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AppResumeSubscriptionWithBody request with any body
+	AppResumeSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AppResumeSubscription(ctx context.Context, body AppResumeSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AppWithdrawPendingPlanWithBody request with any body
 	AppWithdrawPendingPlanWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2609,6 +2645,30 @@ func (c *Client) AppGrantSubscriptionWithBody(ctx context.Context, contentType s
 
 func (c *Client) AppGrantSubscription(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppGrantSubscriptionRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppResumeSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppResumeSubscriptionRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppResumeSubscription(ctx context.Context, body AppResumeSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppResumeSubscriptionRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4823,6 +4883,46 @@ func NewAppGrantSubscriptionRequestWithBody(server string, contentType string, b
 	}
 
 	operationPath := fmt.Sprintf("/subscriptions/grant")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewAppResumeSubscriptionRequest calls the generic AppResumeSubscription builder with application/json body
+func NewAppResumeSubscriptionRequest(server string, body AppResumeSubscriptionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAppResumeSubscriptionRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAppResumeSubscriptionRequestWithBody generates requests for AppResumeSubscription with any type of body
+func NewAppResumeSubscriptionRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/subscriptions/resume")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -7589,6 +7689,11 @@ type ClientWithResponsesInterface interface {
 
 	AppGrantSubscriptionWithResponse(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error)
 
+	// AppResumeSubscriptionWithBodyWithResponse request with any body
+	AppResumeSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error)
+
+	AppResumeSubscriptionWithResponse(ctx context.Context, body AppResumeSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error)
+
 	// AppWithdrawPendingPlanWithBodyWithResponse request with any body
 	AppWithdrawPendingPlanWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error)
 
@@ -7912,6 +8017,7 @@ type CheckoutResponse struct {
 	JSON401      *EchoHTTPError
 	JSON403      *EchoHTTPError
 	JSON404      *EchoHTTPError
+	JSON409      *FinanceCheckoutAlreadySubscribedResponse
 	JSON422      *FinanceCheckoutConsentResponse
 	JSON500      *EchoHTTPError
 	JSON502      *FinanceCheckoutProviderResponse
@@ -8455,6 +8561,30 @@ func (r AppGrantSubscriptionResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AppGrantSubscriptionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AppResumeSubscriptionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceAppResumeResponse
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppResumeSubscriptionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppResumeSubscriptionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -10016,6 +10146,23 @@ func (c *ClientWithResponses) AppGrantSubscriptionWithResponse(ctx context.Conte
 	return ParseAppGrantSubscriptionResponse(rsp)
 }
 
+// AppResumeSubscriptionWithBodyWithResponse request with arbitrary body returning *AppResumeSubscriptionResponse
+func (c *ClientWithResponses) AppResumeSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error) {
+	rsp, err := c.AppResumeSubscriptionWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppResumeSubscriptionResponse(rsp)
+}
+
+func (c *ClientWithResponses) AppResumeSubscriptionWithResponse(ctx context.Context, body AppResumeSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error) {
+	rsp, err := c.AppResumeSubscription(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppResumeSubscriptionResponse(rsp)
+}
+
 // AppWithdrawPendingPlanWithBodyWithResponse request with arbitrary body returning *AppWithdrawPendingPlanResponse
 func (c *ClientWithResponses) AppWithdrawPendingPlanWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppWithdrawPendingPlanResponse, error) {
 	rsp, err := c.AppWithdrawPendingPlanWithBody(ctx, contentType, body, reqEditors...)
@@ -10884,6 +11031,13 @@ func ParseCheckoutResponse(rsp *http.Response) (*CheckoutResponse, error) {
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest FinanceCheckoutAlreadySubscribedResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
 		var dest FinanceCheckoutConsentResponse
@@ -11776,6 +11930,46 @@ func ParseAppGrantSubscriptionResponse(rsp *http.Response) (*AppGrantSubscriptio
 			return nil, err
 		}
 		response.JSON409 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAppResumeSubscriptionResponse parses an HTTP response from a AppResumeSubscriptionWithResponse call
+func ParseAppResumeSubscriptionResponse(rsp *http.Response) (*AppResumeSubscriptionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppResumeSubscriptionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceAppResumeResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	}
 
