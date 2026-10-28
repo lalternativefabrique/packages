@@ -52,6 +52,18 @@ type ChangePlanResult struct {
 	ConsentRequired  bool
 	ConsentAmount    int64
 	ConsentRecurring int64
+	// PaymentMethod is what the consented charge will be taken from, to show
+	// beside the amounts. Nil when Lungor holds no saved method.
+	PaymentMethod *PaymentMethod
+}
+
+// PaymentMethod describes a saved method without disclosing it: the brand and
+// last four digits are all a provider reveals.
+type PaymentMethod struct {
+	Kind      string
+	Brand     string
+	Last4     string
+	ExpiresAt time.Time
 }
 
 // ErrConsentRequired is returned when an upgrade needs the customer's explicit
@@ -198,8 +210,17 @@ func changePlanFrom(w wire.FinanceAppChangePlanResponse) ChangePlanResult {
 			out.EffectiveAt = t
 		}
 	}
+	if pm := w.PaymentMethod; pm != nil {
+		out.PaymentMethod = &PaymentMethod{Kind: deref(pm.Kind), Brand: deref(pm.Brand), Last4: deref(pm.Last4)}
+		if pm.ExpiresAt != nil {
+			if t, err := time.Parse(time.RFC3339, *pm.ExpiresAt); err == nil {
+				out.PaymentMethod.ExpiresAt = t
+			}
+		}
+	}
 	return out
 }
+
 
 // CancelResult reports the state the subscription was left in.
 type CancelResult struct {
@@ -269,4 +290,24 @@ func (c *Client) WithdrawPendingPlan(ctx context.Context, externalUserID string)
 		planCode = *body.PlanCode
 	}
 	return withdrawn, planCode, nil
+}
+
+// Resume withdraws a cancellation scheduled for the end of the period, while
+// that period is still running. It reports false when nothing was scheduled.
+// Once the period has ended the subscription is over: ErrBadRequest, and
+// coming back is a new checkout.
+func (c *Client) Resume(ctx context.Context, externalUserID string) (bool, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return false, ErrNotConfigured
+	}
+	if externalUserID == "" {
+		return false, fmt.Errorf("%w: empty external user id", ErrBadRequest)
+	}
+	var body wire.FinanceAppResumeResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppResumeSubscription(ctx, wire.FinanceAppResumeRequest{ExternalUserId: &externalUserID})
+	}); err != nil {
+		return false, err
+	}
+	return body.Resumed != nil && *body.Resumed, nil
 }

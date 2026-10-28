@@ -384,6 +384,16 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "The customer already pays for a subscription on this app: nothing was created or charged, change the plan with POST /subscriptions/change-plan",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.checkoutAlreadySubscribedResponse"
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "description": "The tenant requires an express withdrawal waiver: resend with the withdrawal_waiver consent. A body {error: business_buyers_not_accepted, message} means the buyer declared itself a business and the offer is for consumers only",
                         "content": {
@@ -1853,6 +1863,64 @@
                     },
                     "409": {
                         "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/subscriptions/resume": {
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Keeps the caller's user subscribed when a cancellation was scheduled for the end of the period and that period is still running. Succeeds with resumed=false when nothing was scheduled.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Withdraw a scheduled cancellation (app key)",
+                "operationId": "appResumeSubscription",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appResumeRequest"
+                            }
+                        }
+                    },
+                    "description": "User",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appResumeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -11646,6 +11714,14 @@
                     "kind": {
                         "type": "string"
                     },
+                    "payment_method": {
+                        "description": "PaymentMethod is what the consented charge will be taken from.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/finance.appPaymentMethodView"
+                            }
+                        ]
+                    },
                     "prorated_cents": {
                         "type": "integer"
                     }
@@ -11732,6 +11808,26 @@
                     }
                 }
             },
+            "finance.appPaymentMethodView": {
+                "type": "object",
+                "properties": {
+                    "brand": {
+                        "type": "string",
+                        "example": "visa"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "example": "card"
+                    },
+                    "last4": {
+                        "type": "string",
+                        "example": "3201"
+                    }
+                }
+            },
             "finance.appRegisterCustomerRequest": {
                 "type": "object",
                 "properties": {
@@ -11763,6 +11859,22 @@
                     },
                     "customer_id": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.appResumeRequest": {
+                "type": "object",
+                "properties": {
+                    "external_user_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appResumeResponse": {
+                "type": "object",
+                "properties": {
+                    "resumed": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -11961,6 +12073,21 @@
                     },
                     "proration_tx_id": {
                         "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.checkoutAlreadySubscribedResponse": {
+                "type": "object",
+                "properties": {
+                    "current_plan_code": {
+                        "type": "string"
+                    },
+                    "error": {
+                        "type": "string",
+                        "example": "already_subscribed"
                     },
                     "subscription_id": {
                         "type": "string"
@@ -12442,6 +12569,10 @@
                         "type": "string"
                     },
                     "livemode": {
+                        "type": "boolean"
+                    },
+                    "paid_but_inactive": {
+                        "description": "PaidButInactive is an incomplete subscription holding a captured,\nunrefunded payment: the customer already held the app's slot, so it never\nactivated. It must be refunded, not removed as an abandoned checkout.",
                         "type": "boolean"
                     },
                     "pending_plan_code": {

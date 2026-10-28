@@ -292,3 +292,34 @@ func TestSubscriptionOps_RefuseWhenUnconfigured(t *testing.T) {
 		t.Errorf("withdraw: %v", err)
 	}
 }
+
+func TestChangePlan_ConsentNamesTheCardCharged(t *testing.T) {
+	required := true
+	amount := 579
+	kind, brand, last4, exp := "card", "visa", "3201", "2028-08-31T00:00:00Z"
+	srv, _ := server(t, http.StatusPaymentRequired, wire.FinanceAppChangePlanResponse{
+		ConsentRequired: &required, ConsentAmountCents: &amount,
+		PaymentMethod: &wire.FinanceAppPaymentMethodView{Kind: &kind, Brand: &brand, Last4: &last4, ExpiresAt: &exp},
+	})
+
+	out, _ := New(srv.URL, "k").ChangePlan(ctx(), ChangePlanInput{ExternalUserID: "u1", PlanCode: "max"})
+
+	pm := out.PaymentMethod
+	if pm == nil || pm.Brand != "visa" || pm.Last4 != "3201" || pm.ExpiresAt.Format("2006-01") != "2028-08" {
+		t.Fatalf("payment method = %+v, want visa 3201 expiring 2028-08", pm)
+	}
+}
+
+func TestResume_SendsTheUserAndReportsTheOutcome(t *testing.T) {
+	resumed := true
+	srv, rec := server(t, http.StatusOK, wire.FinanceAppResumeResponse{Resumed: &resumed})
+
+	got, err := New(srv.URL, "k").Resume(ctx(), "u1")
+
+	if err != nil || !got {
+		t.Fatalf("Resume = %v, %v; want true, nil", got, err)
+	}
+	if rec.body["external_user_id"] != "u1" {
+		t.Fatalf("external_user_id = %v, want u1", rec.body["external_user_id"])
+	}
+}
