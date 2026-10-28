@@ -61,6 +61,7 @@ func (c *Client) Sign(ctx context.Context, r Reading) (SignedURL, error) {
 	expires := time.Now().Add(ttl)
 	q, err := signed.Sign(c.signing.issuer, c.key, signed.Params{
 		Scope: deref(b.Scope), ID: deref(b.Id), TextHash: signed.HashText(r.Text), Expires: expires,
+		User: endUserFrom(ctx),
 	})
 	if err != nil {
 		return SignedURL{}, fmt.Errorf("%w: %w", ErrBadRequest, err)
@@ -74,7 +75,7 @@ func (c *Client) Sign(ctx context.Context, r Reading) (SignedURL, error) {
 
 func (c *Client) signRemote(ctx context.Context, r Reading) (SignedURL, error) {
 	b := c.body(r, false)
-	if err := (signed.Params{Scope: deref(b.Scope), ID: deref(b.Id)}).Validate(); err != nil {
+	if err := (signed.Params{Scope: deref(b.Scope), ID: deref(b.Id), User: endUserFrom(ctx)}).Validate(); err != nil {
 		return SignedURL{}, fmt.Errorf("%w: %w", ErrBadRequest, err)
 	}
 	res, err := c.wire.SignSpeakWithResponse(ctx, b)

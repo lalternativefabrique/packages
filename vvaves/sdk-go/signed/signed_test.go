@@ -2,6 +2,7 @@ package signed
 
 import (
 	"errors"
+	"net/url"
 	"testing"
 	"time"
 )
@@ -58,4 +59,44 @@ func TestCanonicalFormIsStable(t *testing.T) {
 	if got != want {
 		t.Errorf("signature = %s, want %s", got, want)
 	}
+}
+
+func TestClientAndUserAreSigned(t *testing.T) {
+	q, err := Sign("app", "k", Params{Scope: "s", ID: "1", TextHash: HashText("x"), Expires: time.Now().Add(time.Minute), Client: "ak_1", User: "u42"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Get(QueryClient) != "ak_1" || q.Get(QueryUser) != "u42" {
+		t.Fatalf("query = %v", q)
+	}
+	if err := verifier("k").Verify(q, "s", "1", "x"); err != nil {
+		t.Fatalf("Verify: %v", err)
+	}
+	for field, forged := range map[string]string{QueryUser: "u43", QueryClient: "ak_2"} {
+		f := cloneValues(q)
+		f.Set(field, forged)
+		if err := verifier("k").Verify(f, "s", "1", "x"); !errors.Is(err, ErrBadSignature) {
+			t.Errorf("forged %s: %v, want ErrBadSignature", field, err)
+		}
+		f.Del(field)
+		if err := verifier("k").Verify(f, "s", "1", "x"); !errors.Is(err, ErrBadSignature) {
+			t.Errorf("dropped %s: %v, want ErrBadSignature", field, err)
+		}
+	}
+}
+
+func TestUserCannotBeAddedToAnUnattributedURL(t *testing.T) {
+	q, _ := Sign("app", "k", Params{Scope: "s", ID: "1", TextHash: HashText("x"), Expires: time.Now().Add(time.Minute)})
+	q.Set(QueryUser, "u42")
+	if err := verifier("k").Verify(q, "s", "1", "x"); !errors.Is(err, ErrBadSignature) {
+		t.Errorf("added user: %v, want ErrBadSignature", err)
+	}
+}
+
+func cloneValues(q url.Values) url.Values {
+	out := url.Values{}
+	for k, v := range q {
+		out[k] = append([]string(nil), v...)
+	}
+	return out
 }

@@ -174,3 +174,32 @@ func TestCustomerKeySignatureOverPlainHTTPIsRefused(t *testing.T) {
 		t.Errorf("err = %v, want ErrInsecureBaseURL", err)
 	}
 }
+
+func TestEndUserTravelsOnEveryCallAndInLocalSignatures(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.Header.Get(EndUserHeader); got != "u42" {
+			t.Errorf("%s = %q, want u42", EndUserHeader, got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"ready":true}`))
+	}))
+	defer srv.Close()
+	ctx := ForEndUser(context.Background(), "u42")
+	if _, err := New(srv.URL, "app-key").Exists(ctx, Reading{Text: "x", ID: "1"}); err != nil {
+		t.Fatal(err)
+	}
+
+	c := New("http://vvaves.internal", "app-key", WithScope("s"), WithSigning("synthiz", "", time.Minute))
+	su, err := c.Sign(ctx, Reading{Text: "hello", ID: "1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(su.URL)
+	if u.Query().Get(signed.QueryUser) != "u42" {
+		t.Errorf("url = %s, want the user", su.URL)
+	}
+	v := signed.NewLookupVerifier(func(string) []string { return []string{"app-key"} })
+	if err := v.Verify(u.Query(), "s", "1", "hello"); err != nil {
+		t.Errorf("Verify: %v", err)
+	}
+}

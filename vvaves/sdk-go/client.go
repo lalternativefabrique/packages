@@ -104,7 +104,10 @@ func New(baseURL, key string, opts ...Option) *Client {
 func (c *Client) ready() error { return c.err }
 
 func (c *Client) authEditor() wire.RequestEditorFn {
-	return func(_ context.Context, req *http.Request) error {
+	return func(ctx context.Context, req *http.Request) error {
+		if user := endUserFrom(ctx); user != "" {
+			req.Header.Set(EndUserHeader, user)
+		}
 		switch {
 		case c.authorize != nil:
 			return c.authorize(req)
