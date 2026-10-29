@@ -16,7 +16,18 @@ export interface PlanChangeQuote {
   card?: BillingCard;
 }
 
-export type BillingActionFailure = 'change' | 'cancel' | 'resume' | 'withdraw' | 'card';
+export type BillingAction = 'change' | 'cancel' | 'resume' | 'withdraw' | 'card';
+
+/**
+ * Why an action failed. `refused` is Lungor saying no to this request (a
+ * declined card, a period already over); `unavailable` is worth retrying.
+ */
+export type BillingFailureReason = 'refused' | 'no_subscription' | 'unavailable';
+
+export interface BillingActionFailure {
+  action: BillingAction;
+  reason: BillingFailureReason;
+}
 
 /** The subscription-management state and actions BillingPage renders. */
 export interface BillingActions {
@@ -46,6 +57,29 @@ export interface UseBillingActionsOptions {
   fetch?: typeof fetch;
   /** Called after a change Lungor applied: refresh the subscription. */
   onChanged?: () => void;
+  /** False skips reading the card, for a user with nothing paid. Defaults to true. */
+  enabled?: boolean;
+  /**
+   * Sends the user to the provider's card page. Defaults to replacing the
+   * current page; a desktop shell opens it in the system browser instead.
+   */
+  redirect?: (url: string) => void;
+}
+
+class ActionError extends Error {
+  constructor(readonly reason: BillingFailureReason) {
+    super(reason);
+  }
+}
+
+function failureOf(res: Response): BillingFailureReason {
+  if (res.status === 404) return 'no_subscription';
+  if (res.status === 400 || res.status === 409 || res.status === 422) return 'refused';
+  return 'unavailable';
+}
+
+function expectOk(res: Response): void {
+  if (!res.ok) throw new ActionError(failureOf(res));
 }
 
 interface ChangePlanResponse {
@@ -71,6 +105,8 @@ export function useBillingActions({
   basePath,
   fetch: send = sameOriginFetch,
   onChanged,
+  enabled = true,
+  redirect = (url) => window.location.assign(url),
 }: UseBillingActionsOptions): BillingActions {
   const base = basePath.replace(/\/$/, '');
   const [card, setCard] = useState<BillingCard>();
@@ -80,32 +116,38 @@ export function useBillingActions({
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const loadCard = useCallback(async () => {
+    if (!enabled) {
+      setCard(undefined);
+      return;
+    }
     try {
       const res = await send(`${base}/payment-method`);
       setCard(res.ok ? toCard(await res.json()) : undefined);
     } catch {
       setCard(undefined);
     }
-  }, [base, send]);
+  }, [base, send, enabled]);
 
   useEffect(() => {
     void loadCard();
   }, [loadCard]);
 
-  const run = useCallback(
-    async (kind: BillingActionFailure, call: () => Promise<boolean>) => {
-      setBusy(true);
-      setFailure(undefined);
-      try {
-        if (!(await call())) setFailure(kind);
-      } catch {
-        setFailure(kind);
-      } finally {
-        setBusy(false);
-      }
-    },
-    [],
-  );
+  const run = useCallback(async (action: BillingAction, call: () => Promise<void>) => {
+    setBusy(true);
+    setFailure(undefined);
+    try {
+      await call();
+    } catch (err) {
+      setFailure({ action, reason: err instanceof ActionError ? err.reason : 'unavailable' });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const applied = useCallback(() => {
+    onChanged?.();
+    void loadCard();
+  }, [onChanged, loadCard]);
 
   const post = useCallback(
     (path: string, body?: unknown) =>
@@ -125,7 +167,7 @@ export function useBillingActions({
           agreed: agreedCents !== undefined,
           agreed_amount_cents: agreedCents,
         });
-        if (!res.ok) return false;
+        expectOk(res);
         const out = (await res.json()) as ChangePlanResponse;
         if (out.consent_required) {
           setQuote({
@@ -134,25 +176,22 @@ export function useBillingActions({
             recurringCents: out.consent_recurring_cents ?? plan.amount,
             card: toCard(out.card),
           });
-          return true;
+          return;
         }
         setQuote(undefined);
-        onChanged?.();
-        return true;
+        applied();
       }),
-    [run, post, onChanged],
+    [run, post, applied],
   );
 
   const simple = useCallback(
-    (kind: BillingActionFailure, path: string, after?: () => void) =>
-      run(kind, async () => {
-        const res = await post(path);
-        if (!res.ok) return false;
+    (action: BillingAction, path: string, after?: () => void) =>
+      run(action, async () => {
+        expectOk(await post(path));
         after?.();
-        onChanged?.();
-        return true;
+        applied();
       }),
-    [run, post, onChanged],
+    [run, post, applied],
   );
 
   return {
@@ -172,11 +211,10 @@ export function useBillingActions({
     replaceCard: () =>
       void run('card', async () => {
         const res = await post('/payment-method');
-        if (!res.ok) return false;
+        expectOk(res);
         const { redirect_url: url } = (await res.json()) as { redirect_url?: string };
-        if (!url) return false;
-        window.location.href = url;
-        return true;
+        if (!url) throw new ActionError('unavailable');
+        redirect(url);
       }),
   };
 }
