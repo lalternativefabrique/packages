@@ -28,3 +28,12 @@ export {
 export type { BuyerKind, CheckoutRefusalLabels, CheckoutSession, CheckoutStatus } from './checkout.js';
 export { BillingPage, BILLING_PATH, REQUESTED_PLAN_PARAM } from './BillingPage.js';
 export type { BillingPageProps, BillingPageLabels, BillingSubscription } from './BillingPage.js';
+export { cardLabel } from './BillingPage.js';
+export { useBillingActions } from './useBillingActions.js';
+export type {
+  BillingActions,
+  BillingActionFailure,
+  BillingCard,
+  PlanChangeQuote,
+  UseBillingActionsOptions,
+} from './useBillingActions.js';
