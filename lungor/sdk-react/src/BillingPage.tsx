@@ -9,6 +9,7 @@ import {
   type PricingPlan,
 } from './plans.js';
 import { PricingTable, type PricingIntent, type PricingTableLabels } from './PricingTable.js';
+import type { BillingActionFailure, BillingActions, BillingCard } from './useBillingActions.js';
 
 /**
  * The route every app mounts its billing page on, and the one a checkout
@@ -59,6 +60,24 @@ export interface BillingPageLabels {
   pastDue?: string;
   remaining?: string;
   plansHeading?: string;
+  paymentMethod?: string;
+  /** `{month}` and `{year}` are substituted. */
+  cardExpires?: string;
+  replaceCard?: string;
+  /** `{plan}` is substituted. */
+  quoteTitle?: string;
+  /** `{now}` and `{recurring}` are substituted. */
+  quoteBody?: string;
+  /** `{card}` is substituted. */
+  quoteCard?: string;
+  quoteSavedCard?: string;
+  confirm?: string;
+  dismiss?: string;
+  cancelTitle?: string;
+  /** `{date}` is substituted. */
+  cancelBody?: string;
+  keepSubscription?: string;
+  failures?: Partial<Record<BillingActionFailure, string>>;
 }
 
 const DEFAULT_LABELS: Required<BillingPageLabels> = {
@@ -77,6 +96,25 @@ const DEFAULT_LABELS: Required<BillingPageLabels> = {
   pastDue: 'Le dernier paiement a échoué. Mettez à jour votre moyen de paiement pour conserver votre offre.',
   remaining: 'Il vous reste',
   plansHeading: 'Changer d’offre',
+  paymentMethod: 'Moyen de paiement',
+  cardExpires: 'expire {month}/{year}',
+  replaceCard: 'Changer de carte',
+  quoteTitle: 'Passer à {plan}',
+  quoteBody: '{now} à payer maintenant pour les jours restants de votre période, puis {recurring} par mois.',
+  quoteCard: 'Prélevés sur votre carte {card}, sans nouvelle saisie.',
+  quoteSavedCard: 'Prélevés sur votre carte enregistrée, sans nouvelle saisie.',
+  confirm: 'Confirmer',
+  dismiss: 'Annuler',
+  cancelTitle: 'Résilier votre abonnement ?',
+  cancelBody: 'Vous gardez votre offre jusqu’au {date}, puis plus rien n’est prélevé. Vous pouvez revenir sur votre décision d’ici là.',
+  keepSubscription: 'Garder mon abonnement',
+  failures: {
+    change: 'Le changement d’offre a échoué. Réessayez dans un instant.',
+    cancel: 'La résiliation a échoué. Réessayez dans un instant.',
+    resume: 'La reprise a échoué. Réessayez dans un instant.',
+    withdraw: 'L’annulation du changement a échoué. Réessayez dans un instant.',
+    card: 'Le changement de carte n’a pas pu être ouvert. Réessayez dans un instant.',
+  },
 };
 
 export interface BillingPageProps {
@@ -121,6 +159,13 @@ export interface BillingPageProps {
   pricingLabels?: PricingTableLabels;
   /** Shown in the current plan's card under its balances, e.g. the app's own usage meter. */
   currentPlanExtra?: ReactNode;
+  /**
+   * From useBillingActions. Given, the page changes plan with a quote naming
+   * the card, confirms a cancellation, resumes, and shows the card on file
+   * with a way to replace it; the onChangePlan/onCancel/onResume/
+   * onWithdrawPendingPlan props are then ignored.
+   */
+  actions?: BillingActions;
   className?: string;
 }
 
@@ -138,6 +183,58 @@ function formatDate(value: string | Date | undefined, locale?: string): string {
     return d.toISOString().slice(0, 10);
   }
 }
+
+export function cardLabel(card: BillingCard): string {
+  const brand = card.brand ? card.brand.charAt(0).toUpperCase() + card.brand.slice(1) : 'Carte';
+  return `${brand} •••• ${card.last4}`;
+}
+
+function cardExpiry(card: BillingCard, template: string): string {
+  if (!card.expiresAt) return '';
+  const d = new Date(card.expiresAt);
+  if (Number.isNaN(d.getTime())) return '';
+  return fill(template, {
+    month: String(d.getUTCMonth() + 1).padStart(2, '0'),
+    year: String(d.getUTCFullYear()).slice(2),
+  });
+}
+
+function Dialog({
+  title,
+  children,
+  onDismiss,
+  actions,
+}: {
+  title: string;
+  children: ReactNode;
+  onDismiss: () => void;
+  actions: ReactNode;
+}) {
+  return (
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onDismiss}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <div className="mt-2 text-sm text-muted-foreground">{children}</div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">{actions}</div>
+      </div>
+    </div>
+  );
+}
+
+const secondaryButton =
+  'rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50';
+const primaryButton =
+  'rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50';
 
 function readRequestedPlan(): string | undefined {
   if (typeof window === 'undefined') return undefined;
@@ -171,9 +268,17 @@ export function BillingPage({
   outcomeLabels,
   pricingLabels,
   currentPlanExtra,
+  actions,
   className = '',
 }: BillingPageProps) {
-  const l = { ...DEFAULT_LABELS, ...labels };
+  const l = { ...DEFAULT_LABELS, ...labels, failures: { ...DEFAULT_LABELS.failures, ...labels?.failures } };
+  if (actions) {
+    onChangePlan = actions.changePlan;
+    onCancel = actions.askCancel;
+    onResume = actions.resume;
+    onWithdrawPendingPlan = actions.withdrawPending;
+    busy = busy || actions.busy;
+  }
   const hasSubscription = Boolean(
     subscription && subscription.status !== 'no_subscription' && subscription.planCode,
   );
@@ -280,6 +385,26 @@ export function BillingPage({
 
             {currentPlanExtra}
 
+            {actions?.card ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">{l.paymentMethod}</p>
+                  <p className="font-medium text-foreground">
+                    {cardLabel(actions.card)}
+                    {actions.card.expiresAt ? ` · ${cardExpiry(actions.card, l.cardExpires)}` : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={actions.replaceCard}
+                  className={secondaryButton}
+                >
+                  {l.replaceCard}
+                </button>
+              </div>
+            ) : null}
+
             {subscription.pendingPlanCode ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
                 <span className="text-foreground">
@@ -330,6 +455,70 @@ export function BillingPage({
           </>
         )}
       </section>
+
+      {actions?.failure ? (
+        <p role="alert" className="text-sm text-destructive">
+          {l.failures[actions.failure]}
+        </p>
+      ) : null}
+
+      {actions?.quote ? (
+        <Dialog
+          title={fill(l.quoteTitle, { plan: actions.quote.plan.name })}
+          onDismiss={actions.dismissQuote}
+          actions={
+            <>
+              <button type="button" className={secondaryButton} onClick={actions.dismissQuote}>
+                {l.dismiss}
+              </button>
+              <button
+                type="button"
+                className={primaryButton}
+                disabled={busy}
+                onClick={actions.confirmPlanChange}
+              >
+                {l.confirm}
+              </button>
+            </>
+          }
+        >
+          <p>
+            {fill(l.quoteBody, {
+              now: formatPrice(actions.quote.nowCents, actions.quote.plan.currency, locale),
+              recurring: formatPrice(actions.quote.recurringCents, actions.quote.plan.currency, locale),
+            })}
+          </p>
+          <p className="mt-2">
+            {actions.quote.card
+              ? fill(l.quoteCard, { card: cardLabel(actions.quote.card) })
+              : l.quoteSavedCard}
+          </p>
+        </Dialog>
+      ) : null}
+
+      {actions?.confirmingCancel ? (
+        <Dialog
+          title={l.cancelTitle}
+          onDismiss={actions.dismissCancel}
+          actions={
+            <>
+              <button type="button" className={secondaryButton} onClick={actions.dismissCancel}>
+                {l.keepSubscription}
+              </button>
+              <button
+                type="button"
+                className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-white hover:bg-destructive/90 disabled:opacity-50"
+                disabled={busy}
+                onClick={actions.confirmCancel}
+              >
+                {l.cancel}
+              </button>
+            </>
+          }
+        >
+          {fill(l.cancelBody, { date: periodEnd })}
+        </Dialog>
+      ) : null}
 
       <section id="lungor-plans" aria-label={l.plansHeading} className="scroll-mt-6">
         <PricingTable
