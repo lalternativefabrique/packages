@@ -323,3 +323,28 @@ func TestResume_SendsTheUserAndReportsTheOutcome(t *testing.T) {
 		t.Fatalf("external_user_id = %v, want u1", rec.body["external_user_id"])
 	}
 }
+
+func TestReplacePaymentMethod_SendsTheUserAndReturnsThePage(t *testing.T) {
+	page := "https://mollie/card"
+	srv, rec := server(t, http.StatusOK, wire.FinanceAppReplacePaymentMethodResponse{RedirectUrl: &page})
+
+	got, err := New(srv.URL, "k").ReplacePaymentMethod(ctx(), "u1", "https://app/billing")
+
+	if err != nil || got != page {
+		t.Fatalf("ReplacePaymentMethod = %q, %v; want %q", got, err, page)
+	}
+	if rec.path != "/api/v1/subscriptions/payment-method" || rec.body["return_url"] != "https://app/billing" {
+		t.Fatalf("request = %s %v", rec.path, rec.body)
+	}
+}
+
+func TestCurrentPaymentMethod_ReadsTheCard(t *testing.T) {
+	brand, last4 := "visa", "3201"
+	srv, _ := server(t, http.StatusOK, wire.FinanceAppPaymentMethodView{Brand: &brand, Last4: &last4})
+
+	got, err := New(srv.URL, "k").CurrentPaymentMethod(ctx(), "u1")
+
+	if err != nil || got.Brand != "visa" || got.Last4 != "3201" {
+		t.Fatalf("CurrentPaymentMethod = %+v, %v", got, err)
+	}
+}

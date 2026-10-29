@@ -44,6 +44,41 @@ const (
 	CosttrackingCostEntryViewSourceConsole CosttrackingCostEntryViewSource = "console"
 )
 
+// Defines values for CosttrackingCostImportOutcomeViewCode.
+const (
+	Duplicate   CosttrackingCostImportOutcomeViewCode = "duplicate"
+	Incomplete  CosttrackingCostImportOutcomeViewCode = "incomplete"
+	InvalidFile CosttrackingCostImportOutcomeViewCode = "invalid_file"
+	NotFound    CosttrackingCostImportOutcomeViewCode = "not_found"
+	NotOpen     CosttrackingCostImportOutcomeViewCode = "not_open"
+	Rejected    CosttrackingCostImportOutcomeViewCode = "rejected"
+)
+
+// Defines values for CosttrackingCostImportViewCategory.
+const (
+	CosttrackingCostImportViewCategoryApi          CosttrackingCostImportViewCategory = "api"
+	CosttrackingCostImportViewCategoryInfra        CosttrackingCostImportViewCategory = "infra"
+	CosttrackingCostImportViewCategoryOther        CosttrackingCostImportViewCategory = "other"
+	CosttrackingCostImportViewCategoryStaff        CosttrackingCostImportViewCategory = "staff"
+	CosttrackingCostImportViewCategorySubscription CosttrackingCostImportViewCategory = "subscription"
+)
+
+// Defines values for CosttrackingCostImportViewSource.
+const (
+	Drive  CosttrackingCostImportViewSource = "drive"
+	Upload CosttrackingCostImportViewSource = "upload"
+)
+
+// Defines values for CosttrackingCostImportViewStatus.
+const (
+	Confirmed  CosttrackingCostImportViewStatus = "confirmed"
+	Discarded  CosttrackingCostImportViewStatus = "discarded"
+	Pending    CosttrackingCostImportViewStatus = "pending"
+	Read       CosttrackingCostImportViewStatus = "read"
+	Reading    CosttrackingCostImportViewStatus = "reading"
+	Unreadable CosttrackingCostImportViewStatus = "unreadable"
+)
+
 // Defines values for CosttrackingCostReportRowViewCategory.
 const (
 	CosttrackingCostReportRowViewCategoryApi          CosttrackingCostReportRowViewCategory = "api"
@@ -66,6 +101,15 @@ const (
 const (
 	CosttrackingCreateRecurringCostRequestIntervalMonth CosttrackingCreateRecurringCostRequestInterval = "month"
 	CosttrackingCreateRecurringCostRequestIntervalYear  CosttrackingCreateRecurringCostRequestInterval = "year"
+)
+
+// Defines values for CosttrackingEditCostImportRequestCategory.
+const (
+	CosttrackingEditCostImportRequestCategoryApi          CosttrackingEditCostImportRequestCategory = "api"
+	CosttrackingEditCostImportRequestCategoryInfra        CosttrackingEditCostImportRequestCategory = "infra"
+	CosttrackingEditCostImportRequestCategoryOther        CosttrackingEditCostImportRequestCategory = "other"
+	CosttrackingEditCostImportRequestCategoryStaff        CosttrackingEditCostImportRequestCategory = "staff"
+	CosttrackingEditCostImportRequestCategorySubscription CosttrackingEditCostImportRequestCategory = "subscription"
 )
 
 // Defines values for CosttrackingImportLLMPriceLineViewOutcome.
@@ -229,6 +273,11 @@ type CosttrackingAppModelCostResponse struct {
 	Tokens     *int    `json:"tokens,omitempty"`
 }
 
+// CosttrackingConfirmCostImportsRequest defines model for costtracking.confirmCostImportsRequest.
+type CosttrackingConfirmCostImportsRequest struct {
+	ImportIds *[]string `json:"import_ids,omitempty"`
+}
+
 // CosttrackingCostAttachmentView defines model for costtracking.costAttachmentView.
 type CosttrackingCostAttachmentView struct {
 	ContentType *CosttrackingCostAttachmentViewContentType `json:"content_type,omitempty"`
@@ -303,6 +352,56 @@ type CosttrackingCostEntryViewCategory string
 
 // CosttrackingCostEntryViewSource defines model for CosttrackingCostEntryView.Source.
 type CosttrackingCostEntryViewSource string
+
+// CosttrackingCostImportOutcomeView defines model for costtracking.costImportOutcomeView.
+type CosttrackingCostImportOutcomeView struct {
+	Code *CosttrackingCostImportOutcomeViewCode `json:"code,omitempty"`
+
+	// Error Error is set when this file or import was refused; the others still went through.
+	Error    *string                     `json:"error,omitempty"`
+	Filename *string                     `json:"filename,omitempty"`
+	Import   *CosttrackingCostImportView `json:"import,omitempty"`
+	ImportId *string                     `json:"import_id,omitempty"`
+}
+
+// CosttrackingCostImportOutcomeViewCode defines model for CosttrackingCostImportOutcomeView.Code.
+type CosttrackingCostImportOutcomeViewCode string
+
+// CosttrackingCostImportView defines model for costtracking.costImportView.
+type CosttrackingCostImportView struct {
+	// AmountMicros AmountMicros is the amount paid (incl. tax when read), in micros of the currency.
+	AmountMicros *int                                `json:"amount_micros,omitempty"`
+	Category     *CosttrackingCostImportViewCategory `json:"category,omitempty"`
+
+	// Confirmable Confirmable is true when the draft holds everything confirm needs.
+	Confirmable *bool   `json:"confirmable,omitempty"`
+	ContentType *string `json:"content_type,omitempty"`
+	CreatedAt   *string `json:"created_at,omitempty"`
+	Currency    *string `json:"currency,omitempty"`
+	Filename    *string `json:"filename,omitempty"`
+	Id          *string `json:"id,omitempty"`
+	Label       *string `json:"label,omitempty"`
+	Note        *string `json:"note,omitempty"`
+	OccurredOn  *string `json:"occurred_on,omitempty"`
+	RawExcerpt  *string `json:"raw_excerpt,omitempty"`
+
+	// ReadError ReadError says why the file could not be read; the draft is then filled by hand.
+	ReadError *string                           `json:"read_error,omitempty"`
+	RecordId  *string                           `json:"record_id,omitempty"`
+	SizeBytes *int                              `json:"size_bytes,omitempty"`
+	Source    *CosttrackingCostImportViewSource `json:"source,omitempty"`
+	Status    *CosttrackingCostImportViewStatus `json:"status,omitempty"`
+	Supplier  *string                           `json:"supplier,omitempty"`
+}
+
+// CosttrackingCostImportViewCategory defines model for CosttrackingCostImportView.Category.
+type CosttrackingCostImportViewCategory string
+
+// CosttrackingCostImportViewSource defines model for CosttrackingCostImportView.Source.
+type CosttrackingCostImportViewSource string
+
+// CosttrackingCostImportViewStatus defines model for CosttrackingCostImportView.Status.
+type CosttrackingCostImportViewStatus string
 
 // CosttrackingCostItemView defines model for costtracking.costItemView.
 type CosttrackingCostItemView struct {
@@ -481,6 +580,20 @@ type CosttrackingDetectedAmountView struct {
 	Unit     *string `json:"unit,omitempty"`
 	Value    *string `json:"value,omitempty"`
 }
+
+// CosttrackingEditCostImportRequest defines model for costtracking.editCostImportRequest.
+type CosttrackingEditCostImportRequest struct {
+	AmountMicros *int                                       `json:"amount_micros,omitempty"`
+	Category     *CosttrackingEditCostImportRequestCategory `json:"category,omitempty"`
+	Currency     *string                                    `json:"currency,omitempty"`
+	Label        *string                                    `json:"label,omitempty"`
+	Note         *string                                    `json:"note,omitempty"`
+	OccurredOn   *string                                    `json:"occurred_on,omitempty"`
+	Supplier     *string                                    `json:"supplier,omitempty"`
+}
+
+// CosttrackingEditCostImportRequestCategory defines model for CosttrackingEditCostImportRequest.Category.
+type CosttrackingEditCostImportRequestCategory string
 
 // CosttrackingEndRecurringCostRequest defines model for costtracking.endRecurringCostRequest.
 type CosttrackingEndRecurringCostRequest struct {
@@ -1003,6 +1116,20 @@ type FinanceAppRegisterCustomerResponse struct {
 	Created    *bool   `json:"created,omitempty"`
 	CreatedAt  *string `json:"created_at,omitempty"`
 	CustomerId *string `json:"customer_id,omitempty"`
+}
+
+// FinanceAppReplacePaymentMethodRequest defines model for finance.appReplacePaymentMethodRequest.
+type FinanceAppReplacePaymentMethodRequest struct {
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+
+	// ReturnUrl ReturnURL is where the provider sends the customer back once the card is
+	// entered or the page abandoned.
+	ReturnUrl *string `json:"return_url,omitempty"`
+}
+
+// FinanceAppReplacePaymentMethodResponse defines model for finance.appReplacePaymentMethodResponse.
+type FinanceAppReplacePaymentMethodResponse struct {
+	RedirectUrl *string `json:"redirect_url,omitempty"`
 }
 
 // FinanceAppResumeRequest defines model for finance.appResumeRequest.
@@ -1573,6 +1700,12 @@ type GetPublicSkillNeedsParams struct {
 	Lang *string `form:"lang,omitempty" json:"lang,omitempty"`
 }
 
+// AppGetPaymentMethodParams defines parameters for AppGetPaymentMethod.
+type AppGetPaymentMethodParams struct {
+	// ExternalUserId User
+	ExternalUserId string `form:"external_user_id" json:"external_user_id"`
+}
+
 // HideAppCostClientParams defines parameters for HideAppCostClient.
 type HideAppCostClientParams struct {
 	// ExternalUserId Client
@@ -1628,6 +1761,12 @@ type ListCommonCostsParams struct {
 
 	// To End, exclusive (RFC3339). Defaults to now.
 	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// AddCostImportsMultipartBody defines parameters for AddCostImports.
+type AddCostImportsMultipartBody struct {
+	// Files The invoices (repeat the field)
+	Files openapi_types.File `json:"files"`
 }
 
 // ReadInvoiceMultipartBody defines parameters for ReadInvoice.
@@ -1714,6 +1853,9 @@ type AppChangePlanJSONRequestBody = FinanceAppChangePlanRequest
 // AppGrantSubscriptionJSONRequestBody defines body for AppGrantSubscription for application/json ContentType.
 type AppGrantSubscriptionJSONRequestBody = FinanceAppGrantRequest
 
+// AppReplacePaymentMethodJSONRequestBody defines body for AppReplacePaymentMethod for application/json ContentType.
+type AppReplacePaymentMethodJSONRequestBody = FinanceAppReplacePaymentMethodRequest
+
 // AppResumeSubscriptionJSONRequestBody defines body for AppResumeSubscription for application/json ContentType.
 type AppResumeSubscriptionJSONRequestBody = FinanceAppResumeRequest
 
@@ -1743,6 +1885,15 @@ type RecordCommonCostsJSONRequestBody = CosttrackingRecordCostsRequest
 
 // RecordDirectCommonCostJSONRequestBody defines body for RecordDirectCommonCost for application/json ContentType.
 type RecordDirectCommonCostJSONRequestBody = CosttrackingRecordDirectCostRequest
+
+// AddCostImportsMultipartRequestBody defines body for AddCostImports for multipart/form-data ContentType.
+type AddCostImportsMultipartRequestBody AddCostImportsMultipartBody
+
+// ConfirmCostImportsJSONRequestBody defines body for ConfirmCostImports for application/json ContentType.
+type ConfirmCostImportsJSONRequestBody = CosttrackingConfirmCostImportsRequest
+
+// EditCostImportJSONRequestBody defines body for EditCostImport for application/json ContentType.
+type EditCostImportJSONRequestBody = CosttrackingEditCostImportRequest
 
 // ReadInvoiceMultipartRequestBody defines body for ReadInvoice for multipart/form-data ContentType.
 type ReadInvoiceMultipartRequestBody ReadInvoiceMultipartBody
@@ -1963,6 +2114,14 @@ type ClientInterface interface {
 
 	AppGrantSubscription(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// AppGetPaymentMethod request
+	AppGetPaymentMethod(ctx context.Context, params *AppGetPaymentMethodParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AppReplacePaymentMethodWithBody request with any body
+	AppReplacePaymentMethodWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AppReplacePaymentMethod(ctx context.Context, body AppReplacePaymentMethodJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// AppResumeSubscriptionWithBody request with any body
 	AppResumeSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2060,6 +2219,28 @@ type ClientInterface interface {
 	RecordDirectCommonCostWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	RecordDirectCommonCost(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListCostImports request
+	ListCostImports(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddCostImportsWithBody request with any body
+	AddCostImportsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ConfirmCostImportsWithBody request with any body
+	ConfirmCostImportsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ConfirmCostImports(ctx context.Context, tenantId string, body ConfirmCostImportsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DiscardCostImport request
+	DiscardCostImport(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// EditCostImportWithBody request with any body
+	EditCostImportWithBody(ctx context.Context, tenantId string, importId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	EditCostImport(ctx context.Context, tenantId string, importId string, body EditCostImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DownloadCostImport request
+	DownloadCostImport(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ReadInvoiceWithBody request with any body
 	ReadInvoiceWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2655,6 +2836,42 @@ func (c *Client) AppGrantSubscription(ctx context.Context, body AppGrantSubscrip
 	return c.Client.Do(req)
 }
 
+func (c *Client) AppGetPaymentMethod(ctx context.Context, params *AppGetPaymentMethodParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppGetPaymentMethodRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppReplacePaymentMethodWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppReplacePaymentMethodRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AppReplacePaymentMethod(ctx context.Context, body AppReplacePaymentMethodJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAppReplacePaymentMethodRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) AppResumeSubscriptionWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAppResumeSubscriptionRequestWithBody(c.Server, contentType, body)
 	if err != nil {
@@ -3077,6 +3294,102 @@ func (c *Client) RecordDirectCommonCostWithBody(ctx context.Context, tenantId st
 
 func (c *Client) RecordDirectCommonCost(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRecordDirectCommonCostRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListCostImports(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListCostImportsRequest(c.Server, tenantId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddCostImportsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddCostImportsRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ConfirmCostImportsWithBody(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmCostImportsRequestWithBody(c.Server, tenantId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ConfirmCostImports(ctx context.Context, tenantId string, body ConfirmCostImportsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewConfirmCostImportsRequest(c.Server, tenantId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DiscardCostImport(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDiscardCostImportRequest(c.Server, tenantId, importId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EditCostImportWithBody(ctx context.Context, tenantId string, importId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEditCostImportRequestWithBody(c.Server, tenantId, importId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) EditCostImport(ctx context.Context, tenantId string, importId string, body EditCostImportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewEditCostImportRequest(c.Server, tenantId, importId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DownloadCostImport(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDownloadCostImportRequest(c.Server, tenantId, importId)
 	if err != nil {
 		return nil, err
 	}
@@ -4902,6 +5215,91 @@ func NewAppGrantSubscriptionRequestWithBody(server string, contentType string, b
 	return req, nil
 }
 
+// NewAppGetPaymentMethodRequest generates requests for AppGetPaymentMethod
+func NewAppGetPaymentMethodRequest(server string, params *AppGetPaymentMethodParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/subscriptions/payment-method")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "external_user_id", runtime.ParamLocationQuery, params.ExternalUserId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAppReplacePaymentMethodRequest calls the generic AppReplacePaymentMethod builder with application/json body
+func NewAppReplacePaymentMethodRequest(server string, body AppReplacePaymentMethodJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAppReplacePaymentMethodRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewAppReplacePaymentMethodRequestWithBody generates requests for AppReplacePaymentMethod with any type of body
+func NewAppReplacePaymentMethodRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/subscriptions/payment-method")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewAppResumeSubscriptionRequest calls the generic AppResumeSubscription builder with application/json body
 func NewAppResumeSubscriptionRequest(server string, body AppResumeSubscriptionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -6288,6 +6686,259 @@ func NewRecordDirectCommonCostRequestWithBody(server string, tenantId string, co
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListCostImportsRequest generates requests for ListCostImports
+func NewListCostImportsRequest(server string, tenantId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddCostImportsRequestWithBody generates requests for AddCostImports with any type of body
+func NewAddCostImportsRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewConfirmCostImportsRequest calls the generic ConfirmCostImports builder with application/json body
+func NewConfirmCostImportsRequest(server string, tenantId string, body ConfirmCostImportsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewConfirmCostImportsRequestWithBody(server, tenantId, "application/json", bodyReader)
+}
+
+// NewConfirmCostImportsRequestWithBody generates requests for ConfirmCostImports with any type of body
+func NewConfirmCostImportsRequestWithBody(server string, tenantId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports/confirm", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDiscardCostImportRequest generates requests for DiscardCostImport
+func NewDiscardCostImportRequest(server string, tenantId string, importId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "import_id", runtime.ParamLocationPath, importId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewEditCostImportRequest calls the generic EditCostImport builder with application/json body
+func NewEditCostImportRequest(server string, tenantId string, importId string, body EditCostImportJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewEditCostImportRequestWithBody(server, tenantId, importId, "application/json", bodyReader)
+}
+
+// NewEditCostImportRequestWithBody generates requests for EditCostImport with any type of body
+func NewEditCostImportRequestWithBody(server string, tenantId string, importId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "import_id", runtime.ParamLocationPath, importId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDownloadCostImportRequest generates requests for DownloadCostImport
+func NewDownloadCostImportRequest(server string, tenantId string, importId string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "import_id", runtime.ParamLocationPath, importId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/costs/imports/%s/file", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -7689,6 +8340,14 @@ type ClientWithResponsesInterface interface {
 
 	AppGrantSubscriptionWithResponse(ctx context.Context, body AppGrantSubscriptionJSONRequestBody, reqEditors ...RequestEditorFn) (*AppGrantSubscriptionResponse, error)
 
+	// AppGetPaymentMethodWithResponse request
+	AppGetPaymentMethodWithResponse(ctx context.Context, params *AppGetPaymentMethodParams, reqEditors ...RequestEditorFn) (*AppGetPaymentMethodResponse, error)
+
+	// AppReplacePaymentMethodWithBodyWithResponse request with any body
+	AppReplacePaymentMethodWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppReplacePaymentMethodResponse, error)
+
+	AppReplacePaymentMethodWithResponse(ctx context.Context, body AppReplacePaymentMethodJSONRequestBody, reqEditors ...RequestEditorFn) (*AppReplacePaymentMethodResponse, error)
+
 	// AppResumeSubscriptionWithBodyWithResponse request with any body
 	AppResumeSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error)
 
@@ -7786,6 +8445,28 @@ type ClientWithResponsesInterface interface {
 	RecordDirectCommonCostWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error)
 
 	RecordDirectCommonCostWithResponse(ctx context.Context, tenantId string, body RecordDirectCommonCostJSONRequestBody, reqEditors ...RequestEditorFn) (*RecordDirectCommonCostResponse, error)
+
+	// ListCostImportsWithResponse request
+	ListCostImportsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListCostImportsResponse, error)
+
+	// AddCostImportsWithBodyWithResponse request with any body
+	AddCostImportsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCostImportsResponse, error)
+
+	// ConfirmCostImportsWithBodyWithResponse request with any body
+	ConfirmCostImportsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmCostImportsResponse, error)
+
+	ConfirmCostImportsWithResponse(ctx context.Context, tenantId string, body ConfirmCostImportsJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmCostImportsResponse, error)
+
+	// DiscardCostImportWithResponse request
+	DiscardCostImportWithResponse(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*DiscardCostImportResponse, error)
+
+	// EditCostImportWithBodyWithResponse request with any body
+	EditCostImportWithBodyWithResponse(ctx context.Context, tenantId string, importId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EditCostImportResponse, error)
+
+	EditCostImportWithResponse(ctx context.Context, tenantId string, importId string, body EditCostImportJSONRequestBody, reqEditors ...RequestEditorFn) (*EditCostImportResponse, error)
+
+	// DownloadCostImportWithResponse request
+	DownloadCostImportWithResponse(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*DownloadCostImportResponse, error)
 
 	// ReadInvoiceWithBodyWithResponse request with any body
 	ReadInvoiceWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReadInvoiceResponse, error)
@@ -8567,6 +9248,54 @@ func (r AppGrantSubscriptionResponse) StatusCode() int {
 	return 0
 }
 
+type AppGetPaymentMethodResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceAppPaymentMethodView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppGetPaymentMethodResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppGetPaymentMethodResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AppReplacePaymentMethodResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *FinanceAppReplacePaymentMethodResponse
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AppReplacePaymentMethodResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AppReplacePaymentMethodResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type AppResumeSubscriptionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9152,6 +9881,144 @@ func (r RecordDirectCommonCostResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RecordDirectCommonCostResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListCostImportsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostImportView
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListCostImportsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListCostImportsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddCostImportsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostImportOutcomeView
+	JSON400      *EchoHTTPError
+	JSON413      *EchoHTTPError
+	JSON503      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r AddCostImportsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddCostImportsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ConfirmCostImportsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingCostImportOutcomeView
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ConfirmCostImportsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ConfirmCostImportsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DiscardCostImportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DiscardCostImportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DiscardCostImportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type EditCostImportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CosttrackingCostImportView
+	JSON400      *EchoHTTPError
+	JSON404      *EchoHTTPError
+	JSON409      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r EditCostImportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r EditCostImportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DownloadCostImportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DownloadCostImportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DownloadCostImportResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -10146,6 +11013,32 @@ func (c *ClientWithResponses) AppGrantSubscriptionWithResponse(ctx context.Conte
 	return ParseAppGrantSubscriptionResponse(rsp)
 }
 
+// AppGetPaymentMethodWithResponse request returning *AppGetPaymentMethodResponse
+func (c *ClientWithResponses) AppGetPaymentMethodWithResponse(ctx context.Context, params *AppGetPaymentMethodParams, reqEditors ...RequestEditorFn) (*AppGetPaymentMethodResponse, error) {
+	rsp, err := c.AppGetPaymentMethod(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppGetPaymentMethodResponse(rsp)
+}
+
+// AppReplacePaymentMethodWithBodyWithResponse request with arbitrary body returning *AppReplacePaymentMethodResponse
+func (c *ClientWithResponses) AppReplacePaymentMethodWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppReplacePaymentMethodResponse, error) {
+	rsp, err := c.AppReplacePaymentMethodWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppReplacePaymentMethodResponse(rsp)
+}
+
+func (c *ClientWithResponses) AppReplacePaymentMethodWithResponse(ctx context.Context, body AppReplacePaymentMethodJSONRequestBody, reqEditors ...RequestEditorFn) (*AppReplacePaymentMethodResponse, error) {
+	rsp, err := c.AppReplacePaymentMethod(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAppReplacePaymentMethodResponse(rsp)
+}
+
 // AppResumeSubscriptionWithBodyWithResponse request with arbitrary body returning *AppResumeSubscriptionResponse
 func (c *ClientWithResponses) AppResumeSubscriptionWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AppResumeSubscriptionResponse, error) {
 	rsp, err := c.AppResumeSubscriptionWithBody(ctx, contentType, body, reqEditors...)
@@ -10458,6 +11351,76 @@ func (c *ClientWithResponses) RecordDirectCommonCostWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseRecordDirectCommonCostResponse(rsp)
+}
+
+// ListCostImportsWithResponse request returning *ListCostImportsResponse
+func (c *ClientWithResponses) ListCostImportsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListCostImportsResponse, error) {
+	rsp, err := c.ListCostImports(ctx, tenantId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListCostImportsResponse(rsp)
+}
+
+// AddCostImportsWithBodyWithResponse request with arbitrary body returning *AddCostImportsResponse
+func (c *ClientWithResponses) AddCostImportsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddCostImportsResponse, error) {
+	rsp, err := c.AddCostImportsWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddCostImportsResponse(rsp)
+}
+
+// ConfirmCostImportsWithBodyWithResponse request with arbitrary body returning *ConfirmCostImportsResponse
+func (c *ClientWithResponses) ConfirmCostImportsWithBodyWithResponse(ctx context.Context, tenantId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ConfirmCostImportsResponse, error) {
+	rsp, err := c.ConfirmCostImportsWithBody(ctx, tenantId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmCostImportsResponse(rsp)
+}
+
+func (c *ClientWithResponses) ConfirmCostImportsWithResponse(ctx context.Context, tenantId string, body ConfirmCostImportsJSONRequestBody, reqEditors ...RequestEditorFn) (*ConfirmCostImportsResponse, error) {
+	rsp, err := c.ConfirmCostImports(ctx, tenantId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseConfirmCostImportsResponse(rsp)
+}
+
+// DiscardCostImportWithResponse request returning *DiscardCostImportResponse
+func (c *ClientWithResponses) DiscardCostImportWithResponse(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*DiscardCostImportResponse, error) {
+	rsp, err := c.DiscardCostImport(ctx, tenantId, importId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDiscardCostImportResponse(rsp)
+}
+
+// EditCostImportWithBodyWithResponse request with arbitrary body returning *EditCostImportResponse
+func (c *ClientWithResponses) EditCostImportWithBodyWithResponse(ctx context.Context, tenantId string, importId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*EditCostImportResponse, error) {
+	rsp, err := c.EditCostImportWithBody(ctx, tenantId, importId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEditCostImportResponse(rsp)
+}
+
+func (c *ClientWithResponses) EditCostImportWithResponse(ctx context.Context, tenantId string, importId string, body EditCostImportJSONRequestBody, reqEditors ...RequestEditorFn) (*EditCostImportResponse, error) {
+	rsp, err := c.EditCostImport(ctx, tenantId, importId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseEditCostImportResponse(rsp)
+}
+
+// DownloadCostImportWithResponse request returning *DownloadCostImportResponse
+func (c *ClientWithResponses) DownloadCostImportWithResponse(ctx context.Context, tenantId string, importId string, reqEditors ...RequestEditorFn) (*DownloadCostImportResponse, error) {
+	rsp, err := c.DownloadCostImport(ctx, tenantId, importId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDownloadCostImportResponse(rsp)
 }
 
 // ReadInvoiceWithBodyWithResponse request with arbitrary body returning *ReadInvoiceResponse
@@ -11936,6 +12899,86 @@ func ParseAppGrantSubscriptionResponse(rsp *http.Response) (*AppGrantSubscriptio
 	return response, nil
 }
 
+// ParseAppGetPaymentMethodResponse parses an HTTP response from a AppGetPaymentMethodWithResponse call
+func ParseAppGetPaymentMethodResponse(rsp *http.Response) (*AppGetPaymentMethodResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppGetPaymentMethodResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceAppPaymentMethodView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAppReplacePaymentMethodResponse parses an HTTP response from a AppReplacePaymentMethodWithResponse call
+func ParseAppReplacePaymentMethodResponse(rsp *http.Response) (*AppReplacePaymentMethodResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AppReplacePaymentMethodResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest FinanceAppReplacePaymentMethodResponse
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseAppResumeSubscriptionResponse parses an HTTP response from a AppResumeSubscriptionWithResponse call
 func ParseAppResumeSubscriptionResponse(rsp *http.Response) (*AppResumeSubscriptionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -12719,6 +13762,198 @@ func ParseRecordDirectCommonCostResponse(rsp *http.Response) (*RecordDirectCommo
 		}
 		response.JSON422 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseListCostImportsResponse parses an HTTP response from a ListCostImportsWithResponse call
+func ParseListCostImportsResponse(rsp *http.Response) (*ListCostImportsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListCostImportsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostImportView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddCostImportsResponse parses an HTTP response from a AddCostImportsWithResponse call
+func ParseAddCostImportsResponse(rsp *http.Response) (*AddCostImportsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddCostImportsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostImportOutcomeView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 413:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON413 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseConfirmCostImportsResponse parses an HTTP response from a ConfirmCostImportsWithResponse call
+func ParseConfirmCostImportsResponse(rsp *http.Response) (*ConfirmCostImportsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ConfirmCostImportsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingCostImportOutcomeView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDiscardCostImportResponse parses an HTTP response from a DiscardCostImportWithResponse call
+func ParseDiscardCostImportResponse(rsp *http.Response) (*DiscardCostImportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DiscardCostImportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseEditCostImportResponse parses an HTTP response from a EditCostImportWithResponse call
+func ParseEditCostImportResponse(rsp *http.Response) (*EditCostImportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &EditCostImportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CosttrackingCostImportView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDownloadCostImportResponse parses an HTTP response from a DownloadCostImportWithResponse call
+func ParseDownloadCostImportResponse(rsp *http.Response) (*DownloadCostImportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DownloadCostImportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

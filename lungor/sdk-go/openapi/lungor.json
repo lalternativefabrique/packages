@@ -1874,6 +1874,120 @@
                 }
             }
         },
+        "/subscriptions/payment-method": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Brand, last four digits and expiry only: the full number is never known to Lungor.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Read the card a subscription is charged on (app key)",
+                "operationId": "appGetPaymentMethod",
+                "parameters": [
+                    {
+                        "description": "User",
+                        "name": "external_user_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appPaymentMethodView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Opens the provider page where the user enters a new card. Nothing is charged. Once the card is saved, it becomes the only one the subscription is charged on; an abandoned page leaves the current card in place.",
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Start replacing the card a subscription is charged on (app key)",
+                "operationId": "appReplacePaymentMethod",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.appReplacePaymentMethodRequest"
+                            }
+                        }
+                    },
+                    "description": "User and return page",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appReplacePaymentMethodResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/subscriptions/resume": {
             "post": {
                 "security": [
@@ -6177,6 +6291,421 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/costs/imports": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "The imports not yet confirmed nor discarded, oldest first, with what was read from each.",
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "List the invoice inbox",
+                "operationId": "listCostImports",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costImportView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Drops up to 10 files (PDF, PNG or JPEG, 10 MiB each) in the tenant's invoice inbox. Nothing is recorded: a background reader prefills each import, then a human checks it and confirms it into a common cost. Each file is answered on its own: a file already in the inbox or already confirmed comes back with code `duplicate`, a bad file with `invalid_file`, and neither fails the others.",
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "Import supplier invoices in bulk",
+                "operationId": "addCostImports",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "files": {
+                                        "description": "The invoices (repeat the field)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "required": [
+                                    "files"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costImportOutcomeView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/imports/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Each import becomes a free-amount common cost (as POST /costs/direct) with its file attached; the cost, the attachment and the import's status commit together. Each import is answered on its own: `incomplete` when the draft misses label, category, amount or date, `not_open` when already confirmed or discarded.",
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "Confirm imports into common costs",
+                "operationId": "confirmCostImports",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.confirmCostImportsRequest"
+                            }
+                        }
+                    },
+                    "description": "Imports to confirm",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.costImportOutcomeView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/imports/{import_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Drops the file; the same file may then be imported again.",
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "Discard an import",
+                "operationId": "discardCostImport",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Import ID",
+                        "name": "import_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces the whole draft. A draft may stay incomplete; confirm refuses it until label, category, amount and date are set.",
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "Correct an import before confirming it",
+                "operationId": "editCostImport",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Import ID",
+                        "name": "import_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/costtracking.editCostImportRequest"
+                            }
+                        }
+                    },
+                    "description": "Draft",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/costtracking.costImportView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/costs/imports/{import_id}/file": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "cost-imports"
+                ],
+                "summary": "Download an imported invoice",
+                "operationId": "downloadCostImport",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Import ID",
+                        "name": "import_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/costs/read-invoice": {
             "post": {
                 "security": [
@@ -9819,6 +10348,17 @@
                     }
                 }
             },
+            "costtracking.confirmCostImportsRequest": {
+                "type": "object",
+                "properties": {
+                    "import_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "costtracking.costAttachmentView": {
                 "type": "object",
                 "properties": {
@@ -9975,6 +10515,123 @@
                     "supplier": {
                         "type": "string",
                         "example": "ovh"
+                    }
+                }
+            },
+            "costtracking.costImportOutcomeView": {
+                "type": "object",
+                "properties": {
+                    "code": {
+                        "type": "string",
+                        "enum": [
+                            "duplicate",
+                            "invalid_file",
+                            "incomplete",
+                            "not_open",
+                            "not_found",
+                            "rejected"
+                        ]
+                    },
+                    "error": {
+                        "description": "Error is set when this file or import was refused; the others still went through.",
+                        "type": "string"
+                    },
+                    "filename": {
+                        "type": "string"
+                    },
+                    "import": {
+                        "$ref": "#/components/schemas/costtracking.costImportView"
+                    },
+                    "import_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "costtracking.costImportView": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "description": "AmountMicros is the amount paid (incl. tax when read), in micros of the currency.",
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "staff",
+                            "other"
+                        ]
+                    },
+                    "confirmable": {
+                        "description": "Confirmable is true when the draft holds everything confirm needs.",
+                        "type": "boolean"
+                    },
+                    "content_type": {
+                        "type": "string",
+                        "example": "application/pdf"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "example": "facture-ovh-2026-09.pdf"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement VPS"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "occurred_on": {
+                        "type": "string",
+                        "example": "2026-09-30"
+                    },
+                    "raw_excerpt": {
+                        "type": "string"
+                    },
+                    "read_error": {
+                        "description": "ReadError says why the file could not be read; the draft is then filled by hand.",
+                        "type": "string"
+                    },
+                    "record_id": {
+                        "type": "string"
+                    },
+                    "size_bytes": {
+                        "type": "integer"
+                    },
+                    "source": {
+                        "type": "string",
+                        "enum": [
+                            "upload",
+                            "drive"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "pending",
+                            "reading",
+                            "read",
+                            "unreadable",
+                            "confirmed",
+                            "discarded"
+                        ]
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "OVH"
                     }
                 }
             },
@@ -10492,6 +11149,44 @@
                     "value": {
                         "type": "string",
                         "example": "0.30"
+                    }
+                }
+            },
+            "costtracking.editCostImportRequest": {
+                "type": "object",
+                "properties": {
+                    "amount_micros": {
+                        "type": "integer",
+                        "example": 120000000
+                    },
+                    "category": {
+                        "type": "string",
+                        "enum": [
+                            "api",
+                            "subscription",
+                            "infra",
+                            "staff",
+                            "other"
+                        ]
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "label": {
+                        "type": "string",
+                        "example": "Hébergement VPS"
+                    },
+                    "note": {
+                        "type": "string"
+                    },
+                    "occurred_on": {
+                        "type": "string",
+                        "example": "2026-09-30"
+                    },
+                    "supplier": {
+                        "type": "string",
+                        "example": "OVH"
                     }
                 }
             },
@@ -11858,6 +12553,26 @@
                         "type": "string"
                     },
                     "customer_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appReplacePaymentMethodRequest": {
+                "type": "object",
+                "properties": {
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "return_url": {
+                        "description": "ReturnURL is where the provider sends the customer back once the card is\nentered or the page abandoned.",
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.appReplacePaymentMethodResponse": {
+                "type": "object",
+                "properties": {
+                    "redirect_url": {
                         "type": "string"
                     }
                 }

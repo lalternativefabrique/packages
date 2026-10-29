@@ -310,3 +310,49 @@ func (c *Client) Resume(ctx context.Context, externalUserID string) (bool, error
 	}
 	return body.Resumed != nil && *body.Resumed, nil
 }
+
+// CurrentPaymentMethod is the card the user's subscription is charged on.
+// ErrNotFound when the user has no subscription or no saved card.
+func (c *Client) CurrentPaymentMethod(ctx context.Context, externalUserID string) (PaymentMethod, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return PaymentMethod{}, ErrNotConfigured
+	}
+	if externalUserID == "" {
+		return PaymentMethod{}, fmt.Errorf("%w: empty external user id", ErrBadRequest)
+	}
+	var body wire.FinanceAppPaymentMethodView
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppGetPaymentMethod(ctx, &wire.AppGetPaymentMethodParams{ExternalUserId: externalUserID})
+	}); err != nil {
+		return PaymentMethod{}, err
+	}
+	out := PaymentMethod{Kind: deref(body.Kind), Brand: deref(body.Brand), Last4: deref(body.Last4)}
+	if body.ExpiresAt != nil {
+		if t, err := time.Parse(time.RFC3339, *body.ExpiresAt); err == nil {
+			out.ExpiresAt = t
+		}
+	}
+	return out, nil
+}
+
+// ReplacePaymentMethod returns the provider page where the user enters a new
+// card. Nothing is charged; the new card replaces the old one once saved, and
+// an abandoned page keeps the old one. returnURL is where the page sends the
+// user back.
+func (c *Client) ReplacePaymentMethod(ctx context.Context, externalUserID, returnURL string) (string, error) {
+	if c.baseURL == "" || c.appKey == "" {
+		return "", ErrNotConfigured
+	}
+	if externalUserID == "" || returnURL == "" {
+		return "", fmt.Errorf("%w: external user id and return URL are required", ErrBadRequest)
+	}
+	var body wire.FinanceAppReplacePaymentMethodResponse
+	if err := c.send(ctx, &body, func() (*http.Response, error) {
+		return c.wire.AppReplacePaymentMethod(ctx, wire.FinanceAppReplacePaymentMethodRequest{
+			ExternalUserId: &externalUserID, ReturnUrl: &returnURL,
+		})
+	}); err != nil {
+		return "", err
+	}
+	return deref(body.RedirectUrl), nil
+}
