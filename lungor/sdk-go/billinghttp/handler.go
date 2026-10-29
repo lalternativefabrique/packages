@@ -33,10 +33,6 @@ type Config struct {
 	// OnChanged runs after Lungor applied a change (plan, cancel, resume,
 	// withdraw), for an app that caches what the user may do. Optional.
 	OnChanged func(r *http.Request, userID string)
-	// OnState runs after GET /state read the user's plan from Lungor, with
-	// the plan code that entitles the user, empty when none does. An app
-	// that caches what the user may do compares it with its cache. Optional.
-	OnState func(r *http.Request, userID string, planCode string)
 	// Logger records Lungor failures the user only sees as "try again".
 	// Defaults to slog.Default().
 	Logger *slog.Logger
@@ -44,7 +40,6 @@ type Config struct {
 
 // New returns the handler. Routes, relative to where it is mounted:
 //
-//	GET  /state              → {entitled, status, plan_code}
 //	POST /change-plan        {code, agreed?, agreed_amount_cents?} → quote or outcome
 //	POST /cancel             → {effective_at}
 //	POST /resume             → 204
@@ -57,7 +52,6 @@ func New(cfg Config) http.Handler {
 	}
 	h := &handler{cfg: cfg}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /state", h.authed(h.state))
 	mux.HandleFunc("POST /change-plan", h.authed(h.changePlan))
 	mux.HandleFunc("POST /cancel", h.authed(h.cancel))
 	mux.HandleFunc("POST /resume", h.authed(h.resume))
@@ -179,29 +173,6 @@ func (h *handler) withdrawPending(w http.ResponseWriter, r *http.Request, userID
 	}
 	h.changed(r, userID)
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// StateResponse is the user's subscription as Lungor reads it now.
-type StateResponse struct {
-	Entitled bool   `json:"entitled"`
-	Status   string `json:"status"`
-	PlanCode string `json:"plan_code,omitempty"`
-}
-
-func (h *handler) state(w http.ResponseWriter, r *http.Request, userID string) {
-	ent, err := h.cfg.Client.Entitlement(r.Context(), userID)
-	if err != nil {
-		h.fail(w, r, "state", err)
-		return
-	}
-	if h.cfg.OnState != nil {
-		plan := ""
-		if ent.Entitled {
-			plan = ent.PlanCode
-		}
-		h.cfg.OnState(r, userID, plan)
-	}
-	writeJSON(w, http.StatusOK, StateResponse{Entitled: ent.Entitled, Status: ent.Status, PlanCode: ent.PlanCode})
 }
 
 func (h *handler) card(w http.ResponseWriter, r *http.Request, userID string) {

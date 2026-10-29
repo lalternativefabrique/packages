@@ -87,14 +87,14 @@ Without an Inbox the webhook applies each delivery before answering.
 go func() { _ = gate.RunInbox(ctx, entitlement.InboxConfig{}) }()
 ```
 
-The billing page's state read keeps the snapshot honest too: wire
-`billinghttp.Config.OnState` to `gate.Observe`, which re-reads the subject only
-when Lungor's plan differs from the one held.
+When the app reads the subscription state from Lungor in its own billing
+route, it hands the plan it got to `gate.Observe`, which re-reads the subject
+only when that plan differs from the one held:
 
 ```go
-billinghttp.Config{ /* ... */ OnState: func(r *http.Request, userID, plan string) {
-    _ = gate.Observe(r.Context(), userID, plan)
-}}
+ent, err := lungor.Entitlement(ctx, userID)
+// ...
+_ = gate.Observe(ctx, userID, ent.PlanCode) // "" stands for the Fallback plan
 ```
 
 ## Metered units outside HTTP
