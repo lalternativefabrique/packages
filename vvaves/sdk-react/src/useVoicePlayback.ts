@@ -180,6 +180,9 @@ export function useVoicePlayback(resolve: () => Promise<VoiceSource>): VoicePlay
       setState('unavailable')
       return
     }
+    const { audioSession } = navigator as { audioSession?: { type: string } }
+    // iOS mutes Web Audio on the speaker under the silent switch unless the session is media playback.
+    if (audioSession) audioSession.type = 'playback'
     const context = new Ctor()
     // Still inside the gesture that called play(): a resume() issued after
     // the first await is refused on iOS, and every source then plays silent.
