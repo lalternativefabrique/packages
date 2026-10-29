@@ -26,13 +26,15 @@ export {
   readCheckoutSessionId,
 } from './checkout.js';
 export type { BuyerKind, CheckoutRefusalLabels, CheckoutSession, CheckoutStatus } from './checkout.js';
-export { BillingPage, BILLING_PATH, REQUESTED_PLAN_PARAM } from './BillingPage.js';
+export { BillingPage, BILLING_PAGE_LABELS_EN, BILLING_PATH, REQUESTED_PLAN_PARAM } from './BillingPage.js';
 export type { BillingPageProps, BillingPageLabels, BillingSubscription } from './BillingPage.js';
 export { cardLabel } from './BillingPage.js';
 export { useBillingActions } from './useBillingActions.js';
 export type {
+  BillingAction,
   BillingActions,
   BillingActionFailure,
+  BillingFailureReason,
   BillingCard,
   PlanChangeQuote,
   UseBillingActionsOptions,

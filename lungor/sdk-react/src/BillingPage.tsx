@@ -9,7 +9,7 @@ import {
   type PricingPlan,
 } from './plans.js';
 import { PricingTable, type PricingIntent, type PricingTableLabels } from './PricingTable.js';
-import type { BillingActionFailure, BillingActions, BillingCard } from './useBillingActions.js';
+import type { BillingAction, BillingActions, BillingCard } from './useBillingActions.js';
 
 /**
  * The route every app mounts its billing page on, and the one a checkout
@@ -77,7 +77,12 @@ export interface BillingPageLabels {
   /** `{date}` is substituted. */
   cancelBody?: string;
   keepSubscription?: string;
-  failures?: Partial<Record<BillingActionFailure, string>>;
+  /** Shown when the subscription is past due and no card can be read. */
+  updatePaymentMethod?: string;
+  /** Shown when an action failed for a reason worth retrying. */
+  failures?: Partial<Record<BillingAction, string>>;
+  /** Shown when Lungor refused the request itself. */
+  refusals?: Partial<Record<BillingAction, string>>;
 }
 
 const DEFAULT_LABELS: Required<BillingPageLabels> = {
@@ -100,7 +105,7 @@ const DEFAULT_LABELS: Required<BillingPageLabels> = {
   cardExpires: 'expire {month}/{year}',
   replaceCard: 'Changer de carte',
   quoteTitle: 'Passer à {plan}',
-  quoteBody: '{now} à payer maintenant pour les jours restants de votre période, puis {recurring} par mois.',
+  quoteBody: '{now} à payer maintenant pour les jours restants de votre période, puis {recurring}.',
   quoteCard: 'Prélevés sur votre carte {card}, sans nouvelle saisie.',
   quoteSavedCard: 'Prélevés sur votre carte enregistrée, sans nouvelle saisie.',
   confirm: 'Confirmer',
@@ -108,6 +113,14 @@ const DEFAULT_LABELS: Required<BillingPageLabels> = {
   cancelTitle: 'Résilier votre abonnement ?',
   cancelBody: 'Vous gardez votre offre jusqu’au {date}, puis plus rien n’est prélevé. Vous pouvez revenir sur votre décision d’ici là.',
   keepSubscription: 'Garder mon abonnement',
+  updatePaymentMethod: 'Mettre à jour le moyen de paiement',
+  refusals: {
+    change: 'Le paiement a été refusé. Vérifiez votre carte ou changez-en, puis réessayez.',
+    cancel: 'Cet abonnement ne peut plus être résilié.',
+    resume: 'La période est terminée : choisissez une offre pour vous réabonner.',
+    withdraw: 'Ce changement ne peut plus être annulé.',
+    card: 'Le changement de carte n’est pas disponible pour cet abonnement.',
+  },
   failures: {
     change: 'Le changement d’offre a échoué. Réessayez dans un instant.',
     cancel: 'La résiliation a échoué. Réessayez dans un instant.',
@@ -168,6 +181,52 @@ export interface BillingPageProps {
   actions?: BillingActions;
   className?: string;
 }
+
+/** The same labels in English, for an app that is not French. */
+export const BILLING_PAGE_LABELS_EN: Required<BillingPageLabels> = {
+  heading: 'Subscription',
+  description: 'Your plan, its renewal and the plans available.',
+  currentPlan: 'Your current plan',
+  noPlan: 'No active plan',
+  noPlanDetail: 'Pick a plan below to get started.',
+  renewsOn: 'Renews on {date}',
+  endsOn: 'Access until {date}',
+  pendingChange: 'Moves to {plan} on {date}',
+  withdrawPending: 'Cancel this change',
+  cancelScheduled: 'Cancellation scheduled: no renewal will follow.',
+  resume: 'Resume subscription',
+  cancel: 'Cancel',
+  pastDue: 'The last payment failed. Update your payment method to keep your plan.',
+  remaining: 'Remaining',
+  plansHeading: 'Change plan',
+  paymentMethod: 'Payment method',
+  cardExpires: 'expires {month}/{year}',
+  replaceCard: 'Change card',
+  quoteTitle: 'Move to {plan}',
+  quoteBody: '{now} to pay now for the rest of your period, then {recurring}.',
+  quoteCard: 'Charged to your card {card}, nothing to enter.',
+  quoteSavedCard: 'Charged to your saved card, nothing to enter.',
+  confirm: 'Confirm',
+  dismiss: 'Cancel',
+  cancelTitle: 'Cancel your subscription?',
+  cancelBody: 'You keep your plan until {date}, then nothing more is charged. You can change your mind until then.',
+  keepSubscription: 'Keep my subscription',
+  updatePaymentMethod: 'Update payment method',
+  refusals: {
+    change: 'The payment was declined. Check your card or change it, then try again.',
+    cancel: 'This subscription can no longer be cancelled.',
+    resume: 'The period has ended: pick a plan to subscribe again.',
+    withdraw: 'This change can no longer be withdrawn.',
+    card: 'Changing the card is not available for this subscription.',
+  },
+  failures: {
+    change: 'The plan change failed. Try again in a moment.',
+    cancel: 'The cancellation failed. Try again in a moment.',
+    resume: 'Resuming failed. Try again in a moment.',
+    withdraw: 'Withdrawing the change failed. Try again in a moment.',
+    card: 'The card page could not be opened. Try again in a moment.',
+  },
+};
 
 function fill(template: string, values: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? '');
@@ -271,7 +330,12 @@ export function BillingPage({
   actions,
   className = '',
 }: BillingPageProps) {
-  const l = { ...DEFAULT_LABELS, ...labels, failures: { ...DEFAULT_LABELS.failures, ...labels?.failures } };
+  const l = {
+    ...DEFAULT_LABELS,
+    ...labels,
+    failures: { ...DEFAULT_LABELS.failures, ...labels?.failures },
+    refusals: { ...DEFAULT_LABELS.refusals, ...labels?.refusals },
+  };
   if (actions) {
     onChangePlan = actions.changePlan;
     onCancel = actions.askCancel;
@@ -285,6 +349,11 @@ export function BillingPage({
   const current = useMemo(
     () => plans.find((p) => p.code === subscription?.planCode),
     [plans, subscription?.planCode],
+  );
+  // Only a paid subscription moves by change-plan: a free plan holds no card
+  // to charge, so leaving it is a checkout.
+  const paying = Boolean(
+    hasSubscription && subscription?.entitled && current && !isFreePlan(current),
   );
   const pending = useMemo(
     () => plans.find((p) => p.code === subscription?.pendingPlanCode),
@@ -300,13 +369,15 @@ export function BillingPage({
     const plan = plans.find((p) => p.code === requested);
     if (!plan || isFreePlan(plan) || plan.code === subscription.planCode) return;
     opened.current = true;
-    onCheckout(plan);
-  }, [requested, plans, subscription, onCheckout]);
+    if (paying && onChangePlan) onChangePlan(plan);
+    else onCheckout(plan);
+  }, [requested, plans, subscription, onCheckout, onChangePlan, paying]);
 
   const select = (plan: PricingPlan, intent: PricingIntent) => {
     if (intent !== 'checkout') return;
-    if (hasSubscription && subscription?.entitled && onChangePlan) onChangePlan(plan);
-    else onCheckout(plan);
+    if ((actions ? paying : hasSubscription && subscription?.entitled) && onChangePlan) {
+      onChangePlan(plan);
+    } else onCheckout(plan);
   };
 
   const periodEnd = formatDate(subscription?.currentPeriodEnd, locale);
@@ -385,14 +456,16 @@ export function BillingPage({
 
             {currentPlanExtra}
 
-            {actions?.card ? (
+            {actions && (actions.card || pastDue) ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">{l.paymentMethod}</p>
-                  <p className="font-medium text-foreground">
-                    {cardLabel(actions.card)}
-                    {actions.card.expiresAt ? ` · ${cardExpiry(actions.card, l.cardExpires)}` : ''}
-                  </p>
+                  {actions.card ? (
+                    <p className="font-medium text-foreground">
+                      {cardLabel(actions.card)}
+                      {actions.card.expiresAt ? ` · ${cardExpiry(actions.card, l.cardExpires)}` : ''}
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -400,7 +473,7 @@ export function BillingPage({
                   onClick={actions.replaceCard}
                   className={secondaryButton}
                 >
-                  {l.replaceCard}
+                  {actions.card ? l.replaceCard : l.updatePaymentMethod}
                 </button>
               </div>
             ) : null}
@@ -458,7 +531,9 @@ export function BillingPage({
 
       {actions?.failure ? (
         <p role="alert" className="text-sm text-destructive">
-          {l.failures[actions.failure]}
+          {actions.failure.reason === 'unavailable'
+            ? l.failures[actions.failure.action]
+            : l.refusals[actions.failure.action]}
         </p>
       ) : null}
 
@@ -485,7 +560,9 @@ export function BillingPage({
           <p>
             {fill(l.quoteBody, {
               now: formatPrice(actions.quote.nowCents, actions.quote.plan.currency, locale),
-              recurring: formatPrice(actions.quote.recurringCents, actions.quote.plan.currency, locale),
+              recurring:
+                formatPrice(actions.quote.recurringCents, actions.quote.plan.currency, locale) +
+                intervalSuffix(actions.quote.plan),
             })}
           </p>
           <p className="mt-2">

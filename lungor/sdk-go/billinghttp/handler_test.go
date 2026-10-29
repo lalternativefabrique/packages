@@ -18,8 +18,14 @@ type lungorCall struct {
 }
 
 func setup(t *testing.T, status int, reply string) (http.Handler, *[]lungorCall) {
+	h, calls, _ := setupWatching(t, status, reply)
+	return h, calls
+}
+
+func setupWatching(t *testing.T, status int, reply string) (http.Handler, *[]lungorCall, *[]string) {
 	t.Helper()
 	var calls []lungorCall
+	var changed []string
 	lungor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&body)
@@ -36,8 +42,9 @@ func setup(t *testing.T, status int, reply string) (http.Handler, *[]lungorCall)
 			return id, id != ""
 		},
 		ReturnURL: "https://app/billing",
+		OnChanged: func(_ *http.Request, userID string) { changed = append(changed, userID) },
 	})
-	return h, &calls
+	return h, &calls, &changed
 }
 
 func do(h http.Handler, method, path, body, user string) *httptest.ResponseRecorder {
@@ -120,5 +127,33 @@ func TestNoSubscriptionIsANotFoundNotAnOutage(t *testing.T) {
 	h, _ := setup(t, http.StatusNotFound, `{"message":"no active subscription for this user"}`)
 	if rec := do(h, http.MethodGet, "/payment-method", "", "u1"); rec.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", rec.Code)
+	}
+}
+
+func TestAnAppliedChangeIsAnnouncedButAQuoteIsNot(t *testing.T) {
+	h, _, changed := setupWatching(t, http.StatusPaymentRequired, `{"consent_required":true,"consent_amount_cents":579}`)
+	do(h, http.MethodPost, "/change-plan", `{"code":"max"}`, "u1")
+	if len(*changed) != 0 {
+		t.Fatalf("a quote announced a change: %v", *changed)
+	}
+
+	h, _, changed = setupWatching(t, 200, `{"status":"active"}`)
+	do(h, http.MethodPost, "/cancel", "", "u1")
+	if len(*changed) != 1 || (*changed)[0] != "u1" {
+		t.Fatalf("changed = %v, want u1 once", *changed)
+	}
+}
+
+func TestARefusalIsTellableFromAnOutage(t *testing.T) {
+	h, _ := setup(t, http.StatusBadRequest, `{"message":"charge proration: card declined"}`)
+	rec := do(h, http.MethodPost, "/change-plan", `{"code":"max","agreed":true,"agreed_amount_cents":579}`, "u1")
+	if rec.Code != http.StatusUnprocessableEntity || !strings.Contains(rec.Body.String(), `"refused"`) {
+		t.Fatalf("status %d body %s, want 422 refused", rec.Code, rec.Body)
+	}
+
+	h, _ = setup(t, http.StatusInternalServerError, `{}`)
+	rec = do(h, http.MethodPost, "/resume", "", "u1")
+	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), `"unavailable"`) {
+		t.Fatalf("status %d body %s, want 502 unavailable", rec.Code, rec.Body)
 	}
 }
