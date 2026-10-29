@@ -43,7 +43,7 @@ gate := entitlement.New(entitlement.Config{
     Fallback: "free",
     Subject:  func(c echo.Context) (string, error) { return auth.UserID(c) },
     Counters: map[string]entitlement.Counter{"domain": domains.CountOwned},
-    Refresh:  24 * time.Hour,
+    Inbox:    entitlement.PGInbox(pool), // optional, same Migration
 })
 
 e.HTTPErrorHandler = entitlement.ErrorHandler(e.DefaultHTTPErrorHandler)
@@ -74,6 +74,27 @@ subject is re-read; an error answers 500 so Lungor retries:
 e.POST("/webhooks/lungor", gate.Webhook(secret, entitlement.OnDelivery(
     func(ctx context.Context, d sdk.Delivery) error { return billing.Apply(ctx, d) },
 )))
+```
+
+A bad signature answers 401 and is logged at WARN. With `Config.Inbox` the
+verified delivery is stored (deduplicated on its source event id) and
+acknowledged at once; `RunInbox` applies it — hook, then re-read — retrying
+with capped backoff and marking it `failed` (logged at ERROR) after
+`MaxAttempts`. `ReplayInbox(ctx, since)` queues failed deliveries again.
+Without an Inbox the webhook applies each delivery before answering.
+
+```go
+go func() { _ = gate.RunInbox(ctx, entitlement.InboxConfig{}) }()
+```
+
+When the app reads the subscription state from Lungor in its own billing
+route, it hands the plan it got to `gate.Observe`, which re-reads the subject
+only when that plan differs from the one held:
+
+```go
+ent, err := lungor.Entitlement(ctx, userID)
+// ...
+_ = gate.Observe(ctx, userID, ent.PlanCode) // "" stands for the Fallback plan
 ```
 
 ## Metered units outside HTTP
@@ -179,8 +200,10 @@ ledger's `Entitlement` and `Balance`.
 
 Memory → `Store` → Lungor, one ledger read per subject at a time
 (singleflight), written through to the store. In steady state no request
-reaches Lungor. A snapshot older than `Refresh` is still served and re-read in
-the background. The webhook re-reads a subject on `entitlement.changed` and
+reaches Lungor. A snapshot older than `Refresh` (default 15 minutes) is still served and
+re-read in the background. A refusal from a snapshot older than `RecheckAfter`
+(default 1 minute) re-reads Lungor once and checks again; an app comparing
+`gate.Limits` itself calls `gate.Recheck(ctx, subject)` before refusing. The webhook re-reads a subject on `entitlement.changed` and
 `subscription.*`, so a plan change applies at once; a delivery naming no
 subject only clears the memory cache. The subject is read from
 `ExternalUserID` or `external_user_id`, flat or under `data`.
