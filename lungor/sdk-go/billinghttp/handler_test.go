@@ -157,3 +157,53 @@ func TestARefusalIsTellableFromAnOutage(t *testing.T) {
 		t.Fatalf("status %d body %s, want 502 unavailable", rec.Code, rec.Body)
 	}
 }
+
+func stateHandler(t *testing.T, status int, reply string) (http.Handler, *[]string) {
+	t.Helper()
+	lungor := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = io.WriteString(w, reply)
+	}))
+	t.Cleanup(lungor.Close)
+	var observed []string
+	h := billinghttp.New(billinghttp.Config{
+		Client: sdk.New(lungor.URL, "k"),
+		UserID: func(r *http.Request) (string, bool) { id := r.Header.Get("X-User"); return id, id != "" },
+		OnState: func(_ *http.Request, userID, plan string) {
+			observed = append(observed, userID+"="+plan)
+		},
+	})
+	return h, &observed
+}
+
+func TestStateReportsThePlanToOnState(t *testing.T) {
+	h, observed := stateHandler(t, 200, `{"entitled":true,"status":"active","plan_code":"max"}`)
+	rec := do(h, http.MethodGet, "/state", "", "u1")
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"plan_code":"max"`) {
+		t.Fatalf("got %d %s", rec.Code, rec.Body)
+	}
+	if len(*observed) != 1 || (*observed)[0] != "u1=max" {
+		t.Fatalf("observed = %v", *observed)
+	}
+}
+
+func TestStateReportsNoPlanWhenNotEntitled(t *testing.T) {
+	h, observed := stateHandler(t, 200, `{"entitled":false,"status":"canceled","plan_code":"max"}`)
+	if rec := do(h, http.MethodGet, "/state", "", "u1"); rec.Code != http.StatusOK {
+		t.Fatalf("got %d", rec.Code)
+	}
+	if len(*observed) != 1 || (*observed)[0] != "u1=" {
+		t.Fatalf("observed = %v", *observed)
+	}
+}
+
+func TestStateFailureSkipsOnState(t *testing.T) {
+	h, observed := stateHandler(t, 500, `{}`)
+	if rec := do(h, http.MethodGet, "/state", "", "u1"); rec.Code < 500 {
+		t.Fatalf("got %d", rec.Code)
+	}
+	if len(*observed) != 0 {
+		t.Fatalf("observed = %v", *observed)
+	}
+}

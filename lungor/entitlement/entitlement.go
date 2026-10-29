@@ -25,7 +25,11 @@ const Unlimited int64 = 1_000_000_000
 
 // DefaultRefresh is how old a snapshot may get before it is re-read in the
 // background.
-const DefaultRefresh = 24 * time.Hour
+const DefaultRefresh = 15 * time.Minute
+
+// DefaultRecheckAfter is the snapshot age past which a refusal is checked
+// against Lungor again.
+const DefaultRecheckAfter = time.Minute
 
 const ledgerTimeout = 10 * time.Second
 
@@ -108,6 +112,13 @@ type Config struct {
 	// Ledger. Optional: without it anonymous subjects get the Fallback plan
 	// and their debits go to Ledger.
 	AnonLedger Ledger
+	// Inbox makes Webhook store verified deliveries and acknowledge them,
+	// leaving RunInbox to apply them with retries. Optional: without it the
+	// webhook applies each delivery before answering.
+	Inbox Inbox
+	// RecheckAfter is how old a snapshot must be for a refusal to re-read
+	// Lungor once before answering. Default DefaultRecheckAfter.
+	RecheckAfter time.Duration
 }
 
 // Limits is a subject's plan and its per-unit allocations.
@@ -134,6 +145,9 @@ type Gate struct {
 	plans    sdk.Plans
 	plansAt  time.Time
 	open     bool
+
+	onDelivery func(ctx context.Context, d sdk.Delivery) error
+	inboxWake  chan struct{}
 }
 
 // New builds a Gate. A nil Ledger is dev mode: every check passes, nothing is
@@ -154,12 +168,16 @@ func New(cfg Config) *Gate {
 	if cfg.Refresh <= 0 {
 		cfg.Refresh = DefaultRefresh
 	}
+	if cfg.RecheckAfter <= 0 {
+		cfg.RecheckAfter = DefaultRecheckAfter
+	}
 	if cfg.EntitledStatuses == nil {
 		cfg.EntitledStatuses = DefaultEntitledStatuses
 	}
 	g := &Gate{
 		cfg: cfg, now: time.Now, open: open,
 		cache: map[string]Snapshot{}, balances: map[string]cachedBalance{}, units: map[string]struct{}{},
+		inboxWake: make(chan struct{}, 1),
 	}
 	for unit := range cfg.Counters {
 		g.track(unit)
@@ -194,6 +212,28 @@ func (g *Gate) Invalidate(ctx context.Context, subject string) error {
 		return fmt.Errorf("entitlement: invalidate %s: %w", subject, err)
 	}
 	return nil
+}
+
+// Observe re-reads the subject when planCode, its plan as Lungor just
+// reported it elsewhere, differs from the snapshot held. An empty planCode
+// stands for the Fallback plan. A subject with no snapshot is left alone.
+func (g *Gate) Observe(ctx context.Context, subject, planCode string) error {
+	if planCode == "" {
+		planCode = g.cfg.Fallback
+	}
+	g.mu.RLock()
+	s, ok := g.cache[subject]
+	g.mu.RUnlock()
+	if !ok {
+		var err error
+		if s, ok, err = g.cfg.Store.Get(ctx, subject); err != nil {
+			return fmt.Errorf("entitlement: observe %s: %w", subject, err)
+		}
+	}
+	if !ok || s.Plan == planCode {
+		return nil
+	}
+	return g.Invalidate(ctx, subject)
 }
 
 // passes reports whether the subject skips every check: dev mode, or a
@@ -251,6 +291,10 @@ func (g *Gate) Limits(ctx context.Context, subject string) (Limits, error) {
 // declared for the unit, what is already held counts against the limit.
 // A refusal is a *LimitError.
 func (g *Gate) Allow(ctx context.Context, subject, unit string, n int64) error {
+	return g.recheckOnDeny(ctx, subject, func() error { return g.allowOnce(ctx, subject, unit, n) })
+}
+
+func (g *Gate) allowOnce(ctx context.Context, subject, unit string, n int64) error {
 	if ok, err := g.passes(ctx, subject); err != nil || ok {
 		return err
 	}
@@ -275,6 +319,10 @@ func (g *Gate) Allow(ctx context.Context, subject, unit string, n int64) error {
 }
 
 func (g *Gate) allowFeature(ctx context.Context, subject, unit string) error {
+	return g.recheckOnDeny(ctx, subject, func() error { return g.allowFeatureOnce(ctx, subject, unit) })
+}
+
+func (g *Gate) allowFeatureOnce(ctx context.Context, subject, unit string) error {
 	if ok, err := g.passes(ctx, subject); err != nil || ok {
 		return err
 	}
@@ -286,6 +334,47 @@ func (g *Gate) allowFeature(ctx context.Context, subject, unit string) error {
 		return &LimitError{Unit: unit, Limit: limit, Plan: s.Plan}
 	}
 	return nil
+}
+
+// Recheck returns the subject's limits, re-read from Lungor first when the
+// snapshot is older than RecheckAfter. For apps that compare gate.Limits
+// themselves, right before refusing.
+func (g *Gate) Recheck(ctx context.Context, subject string) (Limits, error) {
+	if _, err := g.refreshIfOld(ctx, subject); err != nil {
+		return Limits{}, err
+	}
+	return g.Limits(ctx, subject)
+}
+
+func (g *Gate) recheckOnDeny(ctx context.Context, subject string, check func() error) error {
+	err := check()
+	var lerr *LimitError
+	if !errors.As(err, &lerr) {
+		return err
+	}
+	refreshed, rerr := g.refreshIfOld(ctx, subject)
+	if rerr != nil {
+		slog.Warn("entitlement: recheck before refusal failed, refusing on snapshot", "subject", subject, "err", rerr)
+		return err
+	}
+	if !refreshed {
+		return err
+	}
+	return check()
+}
+
+func (g *Gate) refreshIfOld(ctx context.Context, subject string) (bool, error) {
+	s, err := g.snapshot(ctx, subject)
+	if err != nil {
+		return false, err
+	}
+	if g.now().Sub(s.RefreshedAt) < g.cfg.RecheckAfter {
+		return false, nil
+	}
+	if err := g.Invalidate(ctx, subject); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (g *Gate) snapshot(ctx context.Context, subject string) (Snapshot, error) {

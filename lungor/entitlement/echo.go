@@ -171,44 +171,85 @@ func OnDelivery(fn func(ctx context.Context, d sdk.Delivery) error) WebhookOptio
 }
 
 // Webhook receives Lungor deliveries and re-reads the subject they name, so a
-// plan change applies without waiting for Refresh. A bad signature is 401.
+// plan change applies without waiting for Refresh. A bad signature is 401 and
+// logged. With Config.Inbox the verified delivery is stored and acknowledged,
+// and RunInbox applies it; a store failure answers 500 so Lungor retries.
 func (g *Gate) Webhook(secret string, opts ...WebhookOption) echo.HandlerFunc {
 	var o webhookOpts
 	for _, opt := range opts {
 		opt(&o)
 	}
+	g.setDeliveryHook(o.onDelivery)
 	return func(c echo.Context) error {
-		body, err := io.ReadAll(io.LimitReader(c.Request().Body, maxWebhookBody))
+		req := c.Request()
+		body, err := io.ReadAll(io.LimitReader(req.Body, maxWebhookBody))
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest).SetInternal(err)
 		}
-		d, err := sdk.VerifyWebhook(secret, c.Request().Header, body)
+		d, err := sdk.VerifyWebhook(secret, req.Header, body)
 		if err != nil {
+			slog.Warn("entitlement: webhook signature rejected",
+				"event_type", req.Header.Get(sdk.HeaderEvent), "remote_addr", c.RealIP(), "err", err)
 			return echo.NewHTTPError(http.StatusUnauthorized).SetInternal(err)
 		}
+		if g.cfg.Inbox != nil {
+			return g.enqueue(c, d)
+		}
 		if o.onDelivery != nil {
-			if err := o.onDelivery(c.Request().Context(), d); err != nil {
+			if err := o.onDelivery(req.Context(), d); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("entitlement: webhook %s: %w", d.Type, err))
 			}
 		}
-		if d.Type != sdk.EventEntitlementChanged && !strings.HasPrefix(d.Type, "subscription.") {
-			return c.NoContent(http.StatusNoContent)
-		}
-		if d.Type == sdk.EventEntitlementChanged {
-			g.forgetCatalogue()
-		}
-		subject := subjectOf(d.Payload)
-		if subject == "" {
-			g.mu.Lock()
-			clear(g.cache)
-			g.mu.Unlock()
-			return c.NoContent(http.StatusNoContent)
-		}
-		if err := g.Invalidate(c.Request().Context(), subject); err != nil {
+		if err := g.invalidateFor(req.Context(), d); err != nil {
 			return echo.NewHTTPError(http.StatusServiceUnavailable).SetInternal(err)
 		}
 		return c.NoContent(http.StatusNoContent)
 	}
+}
+
+func (g *Gate) enqueue(c echo.Context, d sdk.Delivery) error {
+	id := d.SourceEventID
+	if id == "" {
+		id = d.ID
+	}
+	if id == "" {
+		return echo.NewHTTPError(http.StatusBadRequest).SetInternal(errors.New("entitlement: delivery carries no event id"))
+	}
+	_, err := g.cfg.Inbox.Insert(c.Request().Context(), InboxEntry{
+		SourceEventID: id, DeliveryID: d.ID, Type: d.Type, Subject: subjectOf(d.Payload),
+		Payload: d.Payload, ReceivedAt: g.now(),
+	})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError).SetInternal(fmt.Errorf("entitlement: store webhook %s: %w", d.Type, err))
+	}
+	g.wakeInbox()
+	return c.NoContent(http.StatusNoContent)
+}
+
+func (g *Gate) applyDelivery(ctx context.Context, hook func(context.Context, sdk.Delivery) error, d sdk.Delivery) error {
+	if hook != nil {
+		if err := hook(ctx, d); err != nil {
+			return fmt.Errorf("entitlement: webhook %s: %w", d.Type, err)
+		}
+	}
+	return g.invalidateFor(ctx, d)
+}
+
+func (g *Gate) invalidateFor(ctx context.Context, d sdk.Delivery) error {
+	if d.Type != sdk.EventEntitlementChanged && !strings.HasPrefix(d.Type, "subscription.") {
+		return nil
+	}
+	if d.Type == sdk.EventEntitlementChanged {
+		g.forgetCatalogue()
+	}
+	subject := subjectOf(d.Payload)
+	if subject == "" {
+		g.mu.Lock()
+		clear(g.cache)
+		g.mu.Unlock()
+		return nil
+	}
+	return g.Invalidate(ctx, subject)
 }
 
 // subjectOf finds the subject in a delivery, flat or under "data". Lungor

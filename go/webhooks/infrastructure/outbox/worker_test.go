@@ -1,15 +1,18 @@
 package outbox
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 
-	"github.com/lalternativefabrique/eventkit/pkg/consumer"
 	"github.com/lalternative/packages/go/webhooks/domain/aggregate"
 	"github.com/lalternative/packages/go/webhooks/domain/events"
 	"github.com/lalternative/packages/go/webhooks/domain/providers"
 	"github.com/lalternative/packages/go/webhooks/infrastructure/memstore"
+	"github.com/lalternativefabrique/eventkit/pkg/consumer"
 	"github.com/nats-io/nats.go"
 )
 
@@ -140,4 +143,37 @@ func contains(xs []string, x string) bool {
 		}
 	}
 	return false
+}
+
+func TestWorkerLogsAbandonedDelivery(t *testing.T) {
+	store := memstore.NewEventStore()
+	id := seedEndpoint(t, store)
+	disp := memstore.NewDispatcher(providers.HTTPResult{StatusCode: 401, Err: errors.New("http 401")})
+	var buf bytes.Buffer
+	w := NewWorker(store, disp)
+	w.logger = slog.New(slog.NewTextHandler(&buf, nil))
+
+	_ = w.Handle(context.Background(), jobMsg(t, id))
+
+	out := buf.String()
+	for _, want := range []string{"level=ERROR", "endpoint_id=" + id, "tenant_id=tenant-1", "event_type=" + testCatalog, "source_event_id=src-1", "status_code=401", "attempts=1"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("log lacks %q: %s", want, out)
+		}
+	}
+}
+
+func TestWorkerDoesNotLogAbandonOnTransientFailure(t *testing.T) {
+	store := memstore.NewEventStore()
+	id := seedEndpoint(t, store)
+	disp := memstore.NewDispatcher(providers.HTTPResult{StatusCode: 503, Err: errors.New("http 503")})
+	var buf bytes.Buffer
+	w := NewWorker(store, disp)
+	w.logger = slog.New(slog.NewTextHandler(&buf, nil))
+
+	_ = w.Handle(context.Background(), jobMsg(t, id))
+
+	if buf.Len() != 0 {
+		t.Fatalf("unexpected log: %s", buf.String())
+	}
 }

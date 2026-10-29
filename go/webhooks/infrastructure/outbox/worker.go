@@ -3,6 +3,7 @@ package outbox
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nats-io/nats.go"
@@ -27,10 +28,11 @@ const (
 type Worker struct {
 	repo       repository.EndpointRepository
 	dispatcher providers.HTTPDispatcher
+	logger     *slog.Logger
 }
 
 func NewWorker(repo repository.EndpointRepository, dispatcher providers.HTTPDispatcher) *Worker {
-	return &Worker{repo: repo, dispatcher: dispatcher}
+	return &Worker{repo: repo, dispatcher: dispatcher, logger: slog.Default()}
 }
 
 // EventHandler contract ------------------------------------------------------
@@ -86,13 +88,13 @@ func (w *Worker) Handle(ctx context.Context, m *nats.Msg) error {
 
 	case aggregate.OutcomePermanent:
 		_ = w.recordAttempt(ctx, job, deliveries, res.StatusCode, outcome, errMsg, res.DurationMS)
-		_ = w.markFailed(ctx, job, deliveries, fmt.Sprintf("permanent: %s", errMsg))
+		w.abandon(ctx, job, deliveries, res.StatusCode, fmt.Sprintf("permanent: %s", errMsg))
 		return consumer.Permanent(fmt.Errorf("permanent delivery failure: %s", errMsg))
 
 	default: // aggregate.OutcomeTransient
 		_ = w.recordAttempt(ctx, job, deliveries, res.StatusCode, outcome, errMsg, res.DurationMS)
 		if deliveries >= maxDeliver {
-			_ = w.markFailed(ctx, job, deliveries, fmt.Sprintf("retries exhausted after %d attempts: %s", deliveries, errMsg))
+			w.abandon(ctx, job, deliveries, res.StatusCode, fmt.Sprintf("retries exhausted after %d attempts: %s", deliveries, errMsg))
 			// Let the consumer dead-letter it: return permanent so it Terms now
 			// rather than waiting for the (already reached) MaxDeliver.
 			return consumer.Permanent(fmt.Errorf("retries exhausted: %s", errMsg))
@@ -133,6 +135,18 @@ func (w *Worker) markSucceeded(ctx context.Context, job providers.DeliveryJob, a
 	}
 	e.MarkDeliverySucceeded(job.DeliveryID, job.EventType, job.SourceEventID, attempts)
 	return w.repo.Save(ctx, e)
+}
+
+func (w *Worker) abandon(ctx context.Context, job providers.DeliveryJob, attempts, status int, reason string) {
+	attrs := []any{
+		"endpoint_id", job.EndpointID, "tenant_id", job.TenantID, "event_type", job.EventType,
+		"source_event_id", job.SourceEventID, "delivery_id", job.DeliveryID,
+		"status_code", status, "attempts", attempts, "reason", reason,
+	}
+	if err := w.markFailed(ctx, job, attempts, reason); err != nil {
+		attrs = append(attrs, "mark_failed_err", err)
+	}
+	w.logger.ErrorContext(ctx, "webhooks: delivery abandoned", attrs...)
 }
 
 func (w *Worker) markFailed(ctx context.Context, job providers.DeliveryJob, attempts int, reason string) error {
