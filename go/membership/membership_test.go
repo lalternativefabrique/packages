@@ -415,3 +415,103 @@ func TestUnreserveLiftsAReservedIdentifier(t *testing.T) {
 		t.Fatalf("asked %v, want %v", asked, want)
 	}
 }
+
+func TestMemberWithoutIdentifierWaitsThenProvisionsTheChosenOne(t *testing.T) {
+	ctx := context.Background()
+	var provisioned []string
+	res := resourcesFunc(func(_ context.Context, m membership.Member) (json.RawMessage, error) {
+		if m.Address == "" {
+			return nil, membership.ErrNeedsIdentifier
+		}
+		provisioned = append(provisioned, m.Address)
+		return nil, nil
+	})
+	stuck := 0
+	store := membership.NewMemory()
+	svc, err := membership.New(store, membership.Product{
+		Name:       "messag",
+		Resources:  res,
+		Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test", Reserved: []string{"postmaster"}},
+	}, membership.Config{OnStuck: func(membership.Member, error) { stuck++ }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := membership.Identity{ID: "id-1", Email: "ana@gmail.test"}
+	if _, err := svc.Resolve(ctx, id); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-1", "ana"); !errors.Is(err, membership.ErrIdentifierNotExpected) {
+		t.Fatalf("before the worker ran: %v", err)
+	}
+	if _, err := svc.WorkOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	m, err := svc.Resolve(ctx, id)
+	if !errors.Is(err, membership.ErrNeedsIdentifier) || m.State != membership.StateNeedsIdentifier {
+		t.Fatalf("got %+v, %v", m, err)
+	}
+	if stuck != 0 {
+		t.Fatalf("waiting for a choice is not stuck: %d", stuck)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-1", "postmaster"); !errors.Is(err, membership.ErrReserved) {
+		t.Fatalf("reserved: %v", err)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-1", "a b"); !errors.Is(err, membership.ErrInvalidIdentifier) {
+		t.Fatalf("invalid: %v", err)
+	}
+	m, err = svc.ChooseIdentifier(ctx, "id-1", " Ana ")
+	if err != nil || m.State != membership.StateProvisioning || m.Address != "ana@messag.test" {
+		t.Fatalf("got %+v, %v", m, err)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-1", "ana"); err != nil {
+		t.Fatalf("repeated submit: %v", err)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-1", "other"); !errors.Is(err, membership.ErrIdentifierNotExpected) {
+		t.Fatalf("second name: %v", err)
+	}
+	if _, err := svc.WorkOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if m, err = svc.Resolve(ctx, id); err != nil || m.State != membership.StateReady {
+		t.Fatalf("got %+v, %v", m, err)
+	}
+	if len(provisioned) != 1 || provisioned[0] != "ana@messag.test" {
+		t.Fatalf("provisioned %v", provisioned)
+	}
+}
+
+func TestChoosingATakenIdentifierIsRefused(t *testing.T) {
+	ctx := context.Background()
+	res := resourcesFunc(func(_ context.Context, m membership.Member) (json.RawMessage, error) {
+		if m.Address == "" {
+			return nil, membership.ErrNeedsIdentifier
+		}
+		return nil, nil
+	})
+	svc, err := membership.New(membership.NewMemory(), membership.Product{
+		Name: "messag", Resources: res, Identifier: membership.IdentifierPolicy{OwnedDomain: "messag.test"},
+	}, membership.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Resolve(ctx, membership.Identity{ID: "id-1", Email: "ana@messag.test"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Resolve(ctx, membership.Identity{ID: "id-2", Email: "ana@gmail.test"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.WorkOnce(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.ChooseIdentifier(ctx, "id-2", "ana"); !errors.Is(err, membership.ErrTaken) {
+		t.Fatalf("got %v", err)
+	}
+}
+
+type resourcesFunc func(context.Context, membership.Member) (json.RawMessage, error)
+
+func (f resourcesFunc) Provision(ctx context.Context, m membership.Member) (json.RawMessage, error) {
+	return f(ctx, m)
+}
+func (resourcesFunc) Erase(context.Context, membership.Member) error { return nil }
+func (resourcesFunc) List(context.Context) ([]string, error)         { return nil, nil }

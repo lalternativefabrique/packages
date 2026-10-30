@@ -53,6 +53,9 @@ func (s *Service) MeHandler(identity func(*http.Request) (Identity, bool)) http.
 		switch r.Method {
 		case http.MethodGet:
 			m, err := s.Resolve(r.Context(), id)
+			if errors.Is(err, ErrNeedsIdentifier) {
+				err = nil
+			}
 			switch {
 			case errors.Is(err, ErrErased):
 				problem(w, http.StatusForbidden, "erased")

@@ -83,6 +83,10 @@ func (s *Service) provision(ctx context.Context, m Member) error {
 		}
 		return nil
 	}
+	if errors.Is(err, ErrNeedsIdentifier) {
+		_, terr := s.store.Transition(ctx, m.IdentityID, StateProvisioning, StateNeedsIdentifier, Patch{}, nil)
+		return terr
+	}
 	if err != nil {
 		return fmt.Errorf("provision: %w", err)
 	}

@@ -35,6 +35,7 @@ type Store interface {
 	// move out of erased, and resets Attempts and LastError on all.
 	// within runs in the same transaction once the state has moved; the
 	// LocalID, Address, State and LastError it leaves on the member are kept.
+	// An Address another member holds is ErrTaken.
 	Transition(ctx context.Context, identityID string, from, to State, patch Patch, within Within) (bool, error)
 	// ClaimDue hands out the members in provisioning or erasing whose
 	// NextAttemptAt has passed, pushing it by lease so no other worker takes
@@ -122,6 +123,11 @@ func (s *Memory) Transition(ctx context.Context, identityID string, from, to Sta
 	if within != nil {
 		if err := within(ctx, &m); err != nil {
 			return false, err
+		}
+	}
+	for id, other := range s.members {
+		if id != identityID && m.Address != "" && other.Address == m.Address {
+			return false, ErrTaken
 		}
 	}
 	s.members[identityID] = m
