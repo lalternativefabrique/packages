@@ -67,7 +67,7 @@ describe("send flow", () => {
     fireEvent.change(composer, { target: { value: "Bonjour" } });
     fireEvent.keyDown(composer, { key: "Enter" });
     expect(await screen.findByText("answer to Bonjour")).toBeTruthy();
-    expect(api.send).toHaveBeenCalledWith({ scopeId: "s1", conversationId: undefined, message: "Bonjour", attachmentIds: [], screen: readScreen() });
+    expect(api.send).toHaveBeenCalledWith({ signal: expect.any(AbortSignal), scopeId: "s1", conversationId: undefined, message: "Bonjour", attachmentIds: [], screen: readScreen() });
     fireEvent.change(composer, { target: { value: "Encore" } });
     fireEvent.keyDown(composer, { key: "Enter" });
     await screen.findByText("answer to Encore");
@@ -189,6 +189,22 @@ describe("attachments", () => {
     fireEvent.paste(composer, { clipboardData: clipboard([file("b.txt", 1, "text/plain")]) });
     await act(async () => fail({ message: "too big for the server" }));
     expect(screen.getByText("too big for the server")).toBeTruthy();
+  });
+
+  it("stops a running request and gives the message back", async () => {
+    const api = fakeApi();
+    let signal: AbortSignal | undefined;
+    api.send = (input) => {
+      signal = input.signal;
+      return new Promise(() => {});
+    };
+    const { composer } = renderPanel({ api });
+    fireEvent.change(composer, { target: { value: "bonjour" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    fireEvent.click(await screen.findByLabelText("Arrêter"));
+    expect(signal?.aborted).toBe(true);
+    expect((composer as HTMLTextAreaElement).value).toBe("bonjour");
+    expect(screen.queryByLabelText("Arrêter")).toBeNull();
   });
 
   it("disables attachments without an attach adapter", () => {

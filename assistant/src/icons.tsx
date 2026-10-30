@@ -19,6 +19,7 @@ const paths: Record<string, ReactNode> = {
   x: <path d="M18 6 6 18M6 6l12 12" />,
   maximize: <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
   minimize: <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />,
+  stop: <rect width="12" height="12" x="6" y="6" rx="2" />,
   arrowUp: <path d="m5 12 7-7 7 7M12 19V5" />,
   paperclip: (
     <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />

@@ -58,6 +58,7 @@ export interface AssistantSendInput {
   message: string;
   attachmentIds: string[];
   screen?: AssistantScreen;
+  signal?: AbortSignal;
 }
 
 export interface AssistantSendResult {
@@ -92,6 +93,7 @@ export interface AssistantLabels {
   noConversation: string;
   placeholder: string;
   send: string;
+  stop: string;
   attach: string;
   removeAttachment: string;
   close: string;

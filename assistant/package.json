@@ -1,6 +1,6 @@
 {
   "name": "@lalternative/assistant",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Shared floating AI assistant UI for L'Alternative apps (launcher, resizable drawer, history, attachments) over a host-supplied capability adapter",
   "type": "module",
   "main": "./dist/index.js",

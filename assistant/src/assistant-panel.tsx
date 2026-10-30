@@ -139,12 +139,21 @@ export function AssistantPanel({
     );
   };
 
+  const stop = useRef<() => void>(() => {});
   const canSend = !!scopeId && !pending && !attachments.uploading;
 
   const send = (message: string, shownAs: string) => {
     const ready = attachments.done;
     if (!canSend || (!message.trim() && ready.length === 0)) return false;
-    const current = generation.current;
+    const current = ++generation.current;
+    const controller = new AbortController();
+    stop.current = () => {
+      controller.abort();
+      generation.current += 1;
+      setPending(false);
+      setThread((t) => t.slice(0, -1));
+      setDraft(shownAs);
+    };
     setError(null);
     setHistoryOpen(false);
     setPending(true);
@@ -157,6 +166,7 @@ export function AssistantPanel({
         message,
         attachmentIds: ready.map((a) => a.id),
         screen: readScreen?.(),
+        signal: controller.signal,
       })
       .then(
         (res) => {
@@ -425,15 +435,21 @@ export function AssistantPanel({
               </>
             )}
             <div className="lalt-assistant-grow" />
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!canSend || (!draft.trim() && attachments.done.length === 0)}
-              aria-label={labels.send}
-              className="lalt-assistant-send"
-            >
-              <Icon name="arrowUp" />
-            </button>
+            {pending ? (
+              <button type="button" onClick={() => stop.current()} aria-label={labels.stop} className="lalt-assistant-send">
+                <Icon name="stop" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={submit}
+                disabled={!canSend || (!draft.trim() && attachments.done.length === 0)}
+                aria-label={labels.send}
+                className="lalt-assistant-send"
+              >
+                <Icon name="arrowUp" />
+              </button>
+            )}
           </div>
         </div>
       </div>
