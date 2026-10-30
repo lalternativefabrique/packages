@@ -1,6 +1,6 @@
 package synthesis
 
-import "github.com/lalternative/packages/go/cortex/skill"
+import "github.com/lalternativefabrique/cortex/skill"
 
 // Model is the model the synthesis skills run on.
 const Model = "mistral-small-3.2-24b-instruct-2506"

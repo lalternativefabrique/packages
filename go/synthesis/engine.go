@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lalternative/packages/go/cortex/client"
-	"github.com/lalternative/packages/go/cortex/host"
-	"github.com/lalternative/packages/go/cortex/skill"
+	"github.com/lalternativefabrique/cortex/client"
+	"github.com/lalternativefabrique/cortex/host"
+	"github.com/lalternativefabrique/cortex/skill"
 )
 
 const (

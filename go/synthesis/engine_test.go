@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lalternative/packages/go/cortex/client"
-	"github.com/lalternative/packages/go/cortex/skill"
+	"github.com/lalternativefabrique/cortex/client"
+	"github.com/lalternativefabrique/cortex/skill"
 )
 
 type turn struct {
