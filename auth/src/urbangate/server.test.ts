@@ -1557,6 +1557,8 @@ test("with nakoda, an opened account is reported once as signed up, with where t
   assert.equal(reported[0].key, "Bearer nakoda_key_x");
   assert.equal(reported[0].body.person_id, "8f3a");
   assert.equal(reported[0].body.event_id, "signed-up-8f3a");
+  assert.equal(reported[0].body.email, "ana@example");
+  assert.equal(typeof reported[0].body.name, "string");
   assert.equal(reported[0].body.source, "newsletter");
   assert.ok(reported[0].body.occurred_at);
 
