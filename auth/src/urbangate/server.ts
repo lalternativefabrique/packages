@@ -652,6 +652,8 @@ export function createUrbangateAuth(
           event_id: `signed-up-${user.identityId}`,
           occurred_at: new Date().toISOString(),
           person_id: user.identityId,
+          email: user.email,
+          name: user.name,
           source: signUpSource(request.headers.get("x-nakoda-source")),
         }),
         signal: AbortSignal.timeout(3000),
