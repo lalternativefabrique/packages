@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lalternative/packages/go/cortex/skill"
+	"github.com/lalternativefabrique/cortex/skill"
 )
 
 type fakeRunner struct {
