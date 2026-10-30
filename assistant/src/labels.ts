@@ -11,6 +11,7 @@ export const defaultLabels: AssistantLabels = {
   noConversation: "Aucune conversation pour l'instant.",
   placeholder: "Décrivez votre besoin…",
   send: "Envoyer",
+  stop: "Arrêter",
   attach: "Joindre un fichier",
   removeAttachment: "Retirer",
   close: "Fermer",
