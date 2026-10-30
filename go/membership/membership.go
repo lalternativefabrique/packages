@@ -25,8 +25,11 @@ const (
 	StateProvisioning State = "provisioning"
 	StateReady        State = "ready"
 	StateConflict     State = "conflict"
-	StateErasing      State = "erasing"
-	StateErased       State = "erased"
+	// StateNeedsIdentifier is a member the product cannot provision until the
+	// person chooses an identifier under the owned domain.
+	StateNeedsIdentifier State = "needs_identifier"
+	StateErasing         State = "erasing"
+	StateErased          State = "erased"
 )
 
 // Identity is what the token carries about the person. Nothing of it but ID
@@ -170,6 +173,12 @@ var (
 	// an identity whose identifier the product refuses.
 	ErrConflict = errors.New("member in conflict")
 	ErrTaken    = errors.New("identifier taken")
+	// ErrNeedsIdentifier is returned by Resources.Provision for a member with
+	// no identifier, and by Resolve for a member waiting to choose one.
+	ErrNeedsIdentifier = errors.New("member needs an identifier")
+	// ErrIdentifierNotExpected refuses ChooseIdentifier for a member that is
+	// not waiting to choose one.
+	ErrIdentifierNotExpected = errors.New("member does not expect an identifier")
 )
 
 type Service struct {
@@ -198,7 +207,8 @@ func (s *Service) Product() Product { return s.p }
 // the member, created in state provisioning when the identity is met for the
 // first time, and reopened in that state when the identity comes back past
 // Config.ReopenAfter of its erasure. ErrErased refuses a token that outlived
-// the deletion, ErrConflict a member the product could not provision.
+// the deletion, ErrConflict a member the product could not provision, and
+// ErrNeedsIdentifier, with the member, one waiting for ChooseIdentifier.
 func (s *Service) Resolve(ctx context.Context, id Identity) (Member, error) {
 	if id.ID == "" {
 		return Member{}, errors.New("membership: identity id is required")
@@ -226,6 +236,8 @@ func (s *Service) admit(m Member) error {
 		return ErrErased
 	case StateConflict:
 		return fmt.Errorf("%w: %s", ErrConflict, m.LastError)
+	case StateNeedsIdentifier:
+		return ErrNeedsIdentifier
 	}
 	return nil
 }
@@ -370,6 +382,40 @@ func (s *Service) AvailableWithClaim(ctx context.Context, local, claim string) e
 		return ErrTaken
 	}
 	return nil
+}
+
+// ChooseIdentifier gives a member in StateNeedsIdentifier the address local
+// names under the owned domain and sends it back to provisioning. It answers
+// what Available answers, ErrTaken when another member won the name meanwhile,
+// and ErrIdentifierNotExpected for a member in any other state. Choosing the
+// address the member already holds is success, so a repeated submit is safe.
+func (s *Service) ChooseIdentifier(ctx context.Context, identityID, local string) (Member, error) {
+	m, err := s.store.Get(ctx, identityID)
+	if err != nil {
+		return Member{}, err
+	}
+	local = strings.ToLower(strings.TrimSpace(local))
+	address := local + "@" + s.p.Identifier.OwnedDomain
+	if m.State != StateNeedsIdentifier {
+		if m.Address == address && m.State != StateErasing && m.State != StateErased {
+			return m, nil
+		}
+		return Member{}, ErrIdentifierNotExpected
+	}
+	if err := s.Available(ctx, local); err != nil {
+		return Member{}, err
+	}
+	moved, err := s.store.Transition(ctx, identityID, StateNeedsIdentifier, StateProvisioning, Patch{NextAttemptAt: s.cfg.Now()}, func(_ context.Context, m *Member) error {
+		m.Address = address
+		return nil
+	})
+	if err != nil {
+		return Member{}, err
+	}
+	if !moved {
+		return Member{}, ErrIdentifierNotExpected
+	}
+	return s.store.Get(ctx, identityID)
 }
 
 // RequestErase moves the member to erasing, where the worker picks it up. An

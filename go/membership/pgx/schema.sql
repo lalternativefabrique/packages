@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS members (
     identity_id     TEXT PRIMARY KEY,
     local_id        TEXT NOT NULL UNIQUE,
     address         TEXT UNIQUE,
-    state           TEXT NOT NULL CHECK (state IN ('provisioning', 'ready', 'conflict', 'erasing', 'erased')),
+    state           TEXT NOT NULL CHECK (state IN ('provisioning', 'ready', 'conflict', 'needs_identifier', 'erasing', 'erased')),
     resources       JSONB NOT NULL DEFAULT '{}',
     attempts        INTEGER NOT NULL DEFAULT 0,
     last_error      TEXT NOT NULL DEFAULT '',

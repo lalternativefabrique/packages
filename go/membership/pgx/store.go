@@ -9,6 +9,7 @@ import (
 	"time"
 
 	pgxv5 "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/lalternative/packages/go/membership"
@@ -19,6 +20,11 @@ import (
 //
 //go:embed schema.sql
 var Schema string
+
+const (
+	uniqueViolation   = "23505"
+	addressConstraint = "members_address_key"
+)
 
 type Store struct {
 	pool *pgxpool.Pool
@@ -165,6 +171,10 @@ func (s *Store) Transition(ctx context.Context, identityID string, from, to memb
 		}
 		_, err = tx.Exec(ctx, `UPDATE members SET local_id = $2, address = $3, state = $4, last_error = $5 WHERE identity_id = $1`,
 			identityID, row.LocalID, address, string(row.State), row.LastError)
+		var conflict *pgconn.PgError
+		if errors.As(err, &conflict) && conflict.Code == uniqueViolation && conflict.ConstraintName == addressConstraint {
+			return membership.ErrTaken
+		}
 		return err
 	})
 	return moved, err

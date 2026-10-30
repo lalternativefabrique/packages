@@ -200,3 +200,26 @@ func TestTransitionOutOfErasedReopensTheMember(t *testing.T) {
 		t.Fatalf("reopened %+v", m)
 	}
 }
+
+func TestTransitionToAnAddressAnotherMemberHoldsIsTaken(t *testing.T) {
+	ctx := context.Background()
+	s := mpgx.New(pool(t))
+	suffix := time.Now().Format("150405.000000")
+	holder := membership.Member{IdentityID: "holder-" + suffix, LocalID: "holder-" + suffix, Address: "ana-" + suffix + "@messag.test", State: membership.StateReady}
+	waiting := membership.Member{IdentityID: "waiting-" + suffix, LocalID: "waiting-" + suffix, State: membership.StateNeedsIdentifier}
+	for _, m := range []membership.Member{holder, waiting} {
+		if _, err := s.Insert(ctx, m, nil); err != nil {
+			t.Fatal(err)
+		}
+	}
+	_, err := s.Transition(ctx, waiting.IdentityID, membership.StateNeedsIdentifier, membership.StateProvisioning, membership.Patch{}, func(_ context.Context, m *membership.Member) error {
+		m.Address = holder.Address
+		return nil
+	})
+	if !errors.Is(err, membership.ErrTaken) {
+		t.Fatalf("got %v", err)
+	}
+	if m, err := s.Get(ctx, waiting.IdentityID); err != nil || m.State != membership.StateNeedsIdentifier {
+		t.Fatalf("got %+v, %v", m, err)
+	}
+}
