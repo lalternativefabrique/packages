@@ -47,7 +47,7 @@ export interface InvitationLandingProps extends AuthNavProps {
   email: string
   /** The app's own sign-in page, ideally prefilled with the address */
   loginUrl: string
-  /** The app's normal password recovery entry */
+  /** Creates the account: the app's recovery entry, which mails a code */
   setPasswordUrl: string
   labels?: InvitationLandingLabels
   submitClassName?: string

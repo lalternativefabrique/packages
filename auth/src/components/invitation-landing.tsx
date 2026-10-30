@@ -5,9 +5,9 @@ import { AUTH_LINK_CLASS, AuthLink } from "./auth-link"
 const DEFAULTS: Required<InvitationLandingLabels> = {
   invited: (app, email) => `Tu es invité·e sur ${app} avec ${email}`,
   subtitle:
-    "Connecte-toi si tu as déjà un mot de passe, sinon définis-en un pour cette adresse.",
-  login: "Se connecter",
-  setPassword: "Définir un mot de passe",
+    "Crée ton compte avec cette adresse : un code de confirmation t'est envoyé par e-mail.",
+  login: "J'ai déjà un compte",
+  setPassword: "Créer mon compte",
 }
 
 const PRIMARY_CLASS =
@@ -29,19 +29,15 @@ export function InvitationLanding({
       <AuthHeading title={t.invited(app, email)} subtitle={t.subtitle} />
       <div className="space-y-4 text-center">
         <AuthLink
-          to={loginUrl}
+          to={setPasswordUrl}
           as={linkComponent}
           className={submitClassName ?? PRIMARY_CLASS}
         >
-          {t.login}
+          {t.setPassword}
         </AuthLink>
         <p className="text-sm">
-          <AuthLink
-            to={setPasswordUrl}
-            as={linkComponent}
-            className={AUTH_LINK_CLASS}
-          >
-            {t.setPassword}
+          <AuthLink to={loginUrl} as={linkComponent} className={AUTH_LINK_CLASS}>
+            {t.login}
           </AuthLink>
         </p>
       </div>
