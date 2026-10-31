@@ -18,7 +18,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm install --frozen-lockfile && pnpm build",
     "test": "node --experimental-strip-types --test \"src/**/*.test.ts\""
   },
   "peerDependencies": {
