@@ -4,3 +4,4 @@ export { useReadAlong, type ReadAlong, type ReadAlongOptions } from './useReadAl
 export { sentences, type Span } from './readAlong'
 export { useVoicePlayback, type VoicePlayback, type VoicePlaybackState } from './useVoicePlayback'
 export { readingAudio, type ReadingRequest } from './readingAudio'
+export { createVoicePlayer, type VoicePlayer, type VoiceSnapshot } from './voicePlayer'
