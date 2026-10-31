@@ -8402,6 +8402,124 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/customers/{customer_id}/usage/breakdown": {
+            "get": {
+                "description": "What the customer consumed of one unit over [from, to), at most 92 days, per hour or day (UTC), grouped by the feature or agent the app labelled, or by app. An empty key is consumption declared without that label.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Break a customer's usage down over time",
+                "operationId": "getCustomerUsageBreakdown",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Unit code",
+                        "name": "unit",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start, RFC 3339",
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, RFC 3339",
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "hour or day",
+                        "name": "bucket",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "hour"
+                        }
+                    },
+                    {
+                        "description": "feature, agent or app",
+                        "name": "group_by",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "default": "feature"
+                        }
+                    },
+                    {
+                        "description": "Restrict to one app; omitted spans the tenant's apps",
+                        "name": "app_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/metering.usageBreakdownRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/dashboard": {
             "get": {
                 "tags": [
@@ -14576,6 +14694,12 @@
                         "type": "string",
                         "example": "user-42"
                     },
+                    "feature": {
+                        "description": "Feature labels the debit with the app's own function that consumed, from\na short list the app picks. It never scopes the counter.",
+                        "type": "string",
+                        "maxLength": 64,
+                        "example": "chat"
+                    },
                     "idempotency_key": {
                         "description": "IdempotencyKey dedupes retries of the SAME logical debit. Derive it from\nthe act being metered — a job id, a message id — never from a clock or a\nrandom value, both of which defeat the purpose on the retry that matters.",
                         "type": "string",
@@ -14827,6 +14951,23 @@
                         "description": "UnitAmount is the overage tariff in minor units. 0 means track-only:\nconsumption is counted and nothing is charged for it.",
                         "type": "integer",
                         "example": 0
+                    }
+                }
+            },
+            "metering.usageBreakdownRow": {
+                "type": "object",
+                "properties": {
+                    "bucket": {
+                        "type": "string",
+                        "example": "2026-10-30T14:00:00Z"
+                    },
+                    "key": {
+                        "type": "string",
+                        "example": "chat"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 18234
                     }
                 }
             },
