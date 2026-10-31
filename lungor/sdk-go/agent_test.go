@@ -47,3 +47,13 @@ func TestRecordCostSendsTheAgent(t *testing.T) {
 		t.Fatalf("agent_id = %q", *seen)
 	}
 }
+
+func TestUsageRequestCarriesTheFeature(t *testing.T) {
+	req, err := Usage{ExternalUserID: "u1", Unit: "tok", Quantity: 1, IdempotencyKey: "k1", Feature: "chat"}.request()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Feature == nil || *req.Feature != "chat" {
+		t.Fatalf("feature = %v", req.Feature)
+	}
+}

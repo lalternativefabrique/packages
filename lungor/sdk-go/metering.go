@@ -56,6 +56,9 @@ type Usage struct {
 	// AgentID labels the debit with the app's agent that made the call, a
 	// breakdown of the same user's consumption: the cap stays per user.
 	AgentID string
+	// Feature labels the debit with the app's own function that consumed, from
+	// a short list the app picks. It never scopes the counter.
+	Feature string
 }
 
 // Decision is what Lungor answered about a consumption.
@@ -587,6 +590,10 @@ func (u Usage) request() (wire.MeteringConsumeRequest, error) {
 	if u.AgentID != "" {
 		a := u.AgentID
 		req.AgentId = &a
+	}
+	if u.Feature != "" {
+		f := u.Feature
+		req.Feature = &f
 	}
 	if u.Settled {
 		req.Settled = &u.Settled

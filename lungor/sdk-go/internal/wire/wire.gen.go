@@ -1441,6 +1441,10 @@ type MeteringConsumeRequest struct {
 	AgentId        *string `json:"agent_id,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
 
+	// Feature Feature labels the debit with the app's own function that consumed, from
+	// a short list the app picks. It never scopes the counter.
+	Feature *string `json:"feature,omitempty"`
+
 	// IdempotencyKey IdempotencyKey dedupes retries of the SAME logical debit. Derive it from
 	// the act being metered — a job id, a message id — never from a clock or a
 	// random value, both of which defeat the purpose on the retry that matters.
@@ -1571,6 +1575,13 @@ type MeteringUpdateUnitRequest struct {
 	// UnitAmount UnitAmount is the overage tariff in minor units. 0 means track-only:
 	// consumption is counted and nothing is charged for it.
 	UnitAmount *int `json:"unit_amount,omitempty"`
+}
+
+// MeteringUsageBreakdownRow defines model for metering.usageBreakdownRow.
+type MeteringUsageBreakdownRow struct {
+	Bucket   *string `json:"bucket,omitempty"`
+	Key      *string `json:"key,omitempty"`
+	Quantity *int    `json:"quantity,omitempty"`
 }
 
 // RepositoryEndpointView defines model for repository.EndpointView.
@@ -1789,6 +1800,27 @@ type AddCostAttachmentMultipartBody struct {
 
 // GetCustomerUsageParams defines parameters for GetCustomerUsage.
 type GetCustomerUsageParams struct {
+	// AppId Restrict to one app; omitted spans the tenant's apps
+	AppId *string `form:"app_id,omitempty" json:"app_id,omitempty"`
+}
+
+// GetCustomerUsageBreakdownParams defines parameters for GetCustomerUsageBreakdown.
+type GetCustomerUsageBreakdownParams struct {
+	// Unit Unit code
+	Unit string `form:"unit" json:"unit"`
+
+	// From Start, RFC 3339
+	From string `form:"from" json:"from"`
+
+	// To End, RFC 3339
+	To string `form:"to" json:"to"`
+
+	// Bucket hour or day
+	Bucket *string `form:"bucket,omitempty" json:"bucket,omitempty"`
+
+	// GroupBy feature, agent or app
+	GroupBy *string `form:"group_by,omitempty" json:"group_by,omitempty"`
+
 	// AppId Restrict to one app; omitted spans the tenant's apps
 	AppId *string `form:"app_id,omitempty" json:"app_id,omitempty"`
 }
@@ -2294,6 +2326,9 @@ type ClientInterface interface {
 
 	// GetCustomerUsage request
 	GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetCustomerUsageBreakdown request
+	GetCustomerUsageBreakdown(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageBreakdownParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListRecurringCosts request
 	ListRecurringCosts(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3618,6 +3653,18 @@ func (c *Client) DownloadCostAttachment(ctx context.Context, tenantId string, re
 
 func (c *Client) GetCustomerUsage(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetCustomerUsageRequest(c.Server, tenantId, customerId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetCustomerUsageBreakdown(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageBreakdownParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetCustomerUsageBreakdownRequest(c.Server, tenantId, customerId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7619,6 +7666,137 @@ func NewGetCustomerUsageRequest(server string, tenantId string, customerId strin
 	return req, nil
 }
 
+// NewGetCustomerUsageBreakdownRequest generates requests for GetCustomerUsageBreakdown
+func NewGetCustomerUsageBreakdownRequest(server string, tenantId string, customerId string, params *GetCustomerUsageBreakdownParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "customer_id", runtime.ParamLocationPath, customerId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/customers/%s/usage/breakdown", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "unit", runtime.ParamLocationQuery, params.Unit); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, params.To); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if params.Bucket != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "bucket", runtime.ParamLocationQuery, *params.Bucket); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.GroupBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "group_by", runtime.ParamLocationQuery, *params.GroupBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.AppId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "app_id", runtime.ParamLocationQuery, *params.AppId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListRecurringCostsRequest generates requests for ListRecurringCosts
 func NewListRecurringCostsRequest(server string, tenantId string) (*http.Request, error) {
 	var err error
@@ -8520,6 +8698,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetCustomerUsageWithResponse request
 	GetCustomerUsageWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageResponse, error)
+
+	// GetCustomerUsageBreakdownWithResponse request
+	GetCustomerUsageBreakdownWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageBreakdownParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageBreakdownResponse, error)
 
 	// ListRecurringCostsWithResponse request
 	ListRecurringCostsWithResponse(ctx context.Context, tenantId string, reqEditors ...RequestEditorFn) (*ListRecurringCostsResponse, error)
@@ -10374,6 +10555,30 @@ func (r GetCustomerUsageResponse) StatusCode() int {
 	return 0
 }
 
+type GetCustomerUsageBreakdownResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]MeteringUsageBreakdownRow
+	JSON400      *EchoHTTPError
+	JSON403      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetCustomerUsageBreakdownResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetCustomerUsageBreakdownResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListRecurringCostsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11588,6 +11793,15 @@ func (c *ClientWithResponses) GetCustomerUsageWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseGetCustomerUsageResponse(rsp)
+}
+
+// GetCustomerUsageBreakdownWithResponse request returning *GetCustomerUsageBreakdownResponse
+func (c *ClientWithResponses) GetCustomerUsageBreakdownWithResponse(ctx context.Context, tenantId string, customerId string, params *GetCustomerUsageBreakdownParams, reqEditors ...RequestEditorFn) (*GetCustomerUsageBreakdownResponse, error) {
+	rsp, err := c.GetCustomerUsageBreakdown(ctx, tenantId, customerId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetCustomerUsageBreakdownResponse(rsp)
 }
 
 // ListRecurringCostsWithResponse request returning *ListRecurringCostsResponse
@@ -14446,6 +14660,46 @@ func ParseGetCustomerUsageResponse(rsp *http.Response) (*GetCustomerUsageRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest []MeteringCustomerUsageView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 403:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON403 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetCustomerUsageBreakdownResponse parses an HTTP response from a GetCustomerUsageBreakdownWithResponse call
+func ParseGetCustomerUsageBreakdownResponse(rsp *http.Response) (*GetCustomerUsageBreakdownResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetCustomerUsageBreakdownResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []MeteringUsageBreakdownRow
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
