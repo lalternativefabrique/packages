@@ -3,3 +3,4 @@ export { speakSource, type SignedReading, type VoiceGender, type VoiceSource } f
 export { useReadAlong, type ReadAlong, type ReadAlongOptions } from './useReadAlong'
 export { sentences, type Span } from './readAlong'
 export { useVoicePlayback, type VoicePlayback, type VoicePlaybackState } from './useVoicePlayback'
+export { readingAudio, type ReadingRequest } from './readingAudio'
