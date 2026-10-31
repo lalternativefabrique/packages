@@ -70,15 +70,12 @@ scopes:
     - "go/svcauth/**"
   authz:
     - "go/authz/**"
-  cortex:
-    - "go/cortex/**"
   webhooks:
     - "go/webhooks/**"
   busevents:
     - "go/busevents/**"
   synthesis:
     - "go/synthesis/**"
-    - "go/cortex/**"
   transcribe:
     - "go/transcribe/**"
   reminder:
@@ -195,19 +192,6 @@ steps:
     tools: [go]
     run: |
       cd go/authz
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
-
-  - name: cortex
-    scope: [cortex]
-    tools: [go]
-    run: |
-      cd go/cortex
-      go build ./...
-      go vet ./...
-      go test -count=1 ./...
-      cd connectors
       go build ./...
       go vet ./...
       go test -count=1 ./...
