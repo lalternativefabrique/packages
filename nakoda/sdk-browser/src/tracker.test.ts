@@ -55,3 +55,37 @@ test('a local page sends nothing, and the endpoint can be another nakoda', () =>
   createTracker({ endpoint: 'https://stats.example/' }, own.e).pageview();
   assert.equal(own.sent[0].url, 'https://stats.example/v1/hit');
 });
+
+function device() {
+  const kept = new Map<string, string>();
+  return {
+    kept,
+    store: {
+      getItem: (k: string) => kept.get(k) ?? null,
+      setItem: (k: string, v: string) => void kept.set(k, v),
+      removeItem: (k: string) => void kept.delete(k),
+    },
+  };
+}
+
+test('?nakoda=ignore stops this browser from being counted, for good', () => {
+  const d = device();
+  const { e, sent, go } = env('https://shop.fr/?nakoda=ignore');
+  const t = createTracker({}, { ...e, device: d.store });
+  t.pageview();
+  go('https://shop.fr/pricing');
+  t.pageview();
+  assert.equal(sent.length, 0);
+  const later = env('https://shop.fr/');
+  createTracker({}, { ...later.e, device: d.store }).pageview();
+  assert.equal(later.sent.length, 0);
+});
+
+test('?nakoda=count counts this browser again', () => {
+  const d = device();
+  d.store.setItem('nakoda.ignore', '1');
+  const { e, sent } = env('https://shop.fr/?nakoda=count');
+  createTracker({}, { ...e, device: d.store }).pageview();
+  assert.equal(sent.length, 1);
+  assert.equal(d.kept.size, 0);
+});

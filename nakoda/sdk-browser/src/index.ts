@@ -21,6 +21,14 @@ function storage(): Storage | undefined {
   }
 }
 
+function device(): Storage | undefined {
+  try {
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Counts the page's views with nakoda, the History API's navigations
  * included, and keeps where the visit came from. Returns what stops it.
@@ -33,6 +41,7 @@ export function init(options: NakodaOptions): () => void {
     referrer: document.referrer,
     send,
     storage: storage(),
+    device: device(),
   });
   tracker.pageview();
 
