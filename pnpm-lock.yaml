@@ -60,11 +60,11 @@ importers:
   auth:
     dependencies:
       '@lalternative/nakoda-sdk-browser':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
       '@lalternative/nakoda-sdk-react':
-        specifier: ^0.2.0
-        version: 0.2.0(react@19.2.8)
+        specifier: ^0.3.0
+        version: 0.3.0(react@19.2.8)
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.1.0
@@ -266,8 +266,8 @@ importers:
   nakoda/sdk-react:
     dependencies:
       '@lalternative/nakoda-sdk-browser':
-        specifier: ^0.2.0
-        version: 0.2.0
+        specifier: ^0.3.0
+        version: 0.3.0
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
@@ -1511,11 +1511,11 @@ packages:
     peerDependencies:
       jsep: ^0.4.0||^1.0.0
 
-  '@lalternative/nakoda-sdk-browser@0.2.0':
-    resolution: {integrity: sha512-8EstwvKiC+zZHhE8I7ZnpIFUGXIrpsd5kQts4cvXSMXlKj7EP5obyp8mJ37psI6suF+3LB2ufKLpUh+A8kRvgw==}
+  '@lalternative/nakoda-sdk-browser@0.3.0':
+    resolution: {integrity: sha512-jOhoB/5mlA7OsiQ7SwfEs9Z7G++GN2ZGwg7V82qqDBIjL6YOeq52kIliNdCsXONXwLeBLDSK8Gla3ukd4wPrmA==}
 
-  '@lalternative/nakoda-sdk-react@0.2.0':
-    resolution: {integrity: sha512-C3mT+bEbn90jFaAEsTX0ngPGvGxh+r3IJrp+/SpxGOJgXcoHF+meMJRGeWQE5m8kzZC9xRZrSg2CvUK2FXBYBw==}
+  '@lalternative/nakoda-sdk-react@0.3.0':
+    resolution: {integrity: sha512-1zlNB4kK0ExdWcfTw17EqoEZV3Bz1R02fI0wc7XQdaeuojcVsF5Pj2uAua9GTTIxARLseKosFc5h4PqF+3SqkA==}
     peerDependencies:
       react: '>=18'
 
@@ -6723,11 +6723,11 @@ snapshots:
     dependencies:
       jsep: 1.4.0
 
-  '@lalternative/nakoda-sdk-browser@0.2.0': {}
+  '@lalternative/nakoda-sdk-browser@0.3.0': {}
 
-  '@lalternative/nakoda-sdk-react@0.2.0(react@19.2.8)':
+  '@lalternative/nakoda-sdk-react@0.3.0(react@19.2.8)':
     dependencies:
-      '@lalternative/nakoda-sdk-browser': 0.2.0
+      '@lalternative/nakoda-sdk-browser': 0.3.0
       react: 19.2.8
 
   '@livekit/components-core@0.12.15(livekit-client@2.22.3(@types/dom-mediacapture-record@1.0.22))(tslib@2.8.1)':
