@@ -23,6 +23,7 @@ workspace), each versioned with a path-prefixed tag (e.g. `go/fileguard/v0.5.0`)
 
 | Package | Description |
 | --- | --- |
+| `release` | Publish build artifacts to a public S3 bucket the way the Skalpai CLIs ship: `<prefix>/<version>/` and `latest/`, one `SHA256SUMS`, public-read. Library plus `cmd/release`. `go run github.com/lalternative/packages/go/release/cmd/release@go/release/v0.1.0` |
 | `busevents` | The shared bus contract — subjects each product publishes under `events.<product>.>` and their payloads, for producers and consumers alike. `go get github.com/lalternative/packages/go/busevents@go/busevents/v0.1.0` |
 | `meet` | Server side of a LiveKit video call — role-scoped tokens, stage pinned in room metadata, webhooks, screen-share limits. UI in `meet/` (`@lalternative/meet`). `go get github.com/lalternative/packages/go/meet@go/meet/v0.1.0` |
 | `transcribe` | Speech-to-text pipeline — ffmpeg chunking, parallel transcription with retry and Retry-After, duration and size gates, OpenAI/Groq/whisper.cpp providers. Needs ffmpeg and ffprobe on the host. `go get github.com/lalternative/packages/go/transcribe@go/transcribe/v0.1.0` |
