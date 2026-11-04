@@ -17,14 +17,33 @@ export interface TrackerEnv {
   referrer: string;
   send: (url: string, body: string) => void;
   storage?: Pick<Storage, 'getItem' | 'setItem'>;
+  device?: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 }
 
 const DEFAULT_ENDPOINT = 'https://nakoda.club';
 const SOURCE_KEY = 'nakoda.source';
+const IGNORE_KEY = 'nakoda.ignore';
+const IGNORE_PARAM = 'nakoda';
 const LOCAL_HOSTS = ['localhost', '127.0.0.1', '[::1]'];
 
 export function isLocal(hostname: string): boolean {
   return LOCAL_HOSTS.includes(hostname) || hostname.endsWith('.localhost');
+}
+
+/**
+ * Whether this browser asked not to be counted. Opening a page with
+ * ?nakoda=ignore records the choice on the device, ?nakoda=count undoes it.
+ */
+export function isIgnored(href: string, device: TrackerEnv['device']): boolean {
+  try {
+    const asked = new URL(href).searchParams.get(IGNORE_PARAM);
+    if (asked === 'ignore') device?.setItem(IGNORE_KEY, '1');
+    if (asked === 'count') device?.removeItem(IGNORE_KEY);
+    if (asked === 'ignore') return true;
+    return device?.getItem(IGNORE_KEY) === '1';
+  } catch {
+    return false;
+  }
 }
 
 export function readSource(storage: TrackerEnv['storage']): VisitSource | null {
@@ -56,7 +75,7 @@ export function createTracker(options: NakodaOptions = {}, env: TrackerEnv) {
   return {
     pageview(): void {
       const href = env.href();
-      if (href === previous || isLocal(env.hostname())) return;
+      if (href === previous || isLocal(env.hostname()) || isIgnored(href, env.device)) return;
       const referrer = previous ?? env.referrer;
       previous = href;
       env.send(endpoint, JSON.stringify({ u: href, r: referrer }));
