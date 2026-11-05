@@ -277,6 +277,7 @@ export interface AssistantPanelProps {
   composerOverlay?: ReactNode;
   onComposerEscape?: () => boolean;
   singleConversation?: boolean;
+  showSources?: boolean;
   disabledReason?: string;
   bodyOverride?: ReactNode;
   renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;

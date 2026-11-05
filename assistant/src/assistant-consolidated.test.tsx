@@ -257,3 +257,12 @@ describe("workspace", () => {
     );
   });
 });
+
+describe("showSources", () => {
+  it("lets a host that cites inline hide the source cards", async () => {
+    const send = vi.fn(async () => ({ conversationId: "c1", answer: "ok", sources: [{ title: "Larousse", url: "https://larousse.fr" }] }));
+    render(<Panel api={{ send, listConversations: async () => [], getConversation: async (id) => ({ id, messages: [] }) }} showSources={false} ask={{ id: "q", text: "q" }} />);
+    await screen.findByText("ok");
+    expect(screen.queryByRole("link", { name: /Larousse/ })).toBeNull();
+  });
+});

@@ -104,6 +104,7 @@ export function AssistantPanel({
   composerOverlay,
   onComposerEscape,
   singleConversation = false,
+  showSources = true,
   disabledReason,
   renderScopePicker,
   renderMessageFooter,
@@ -628,7 +629,7 @@ export function AssistantPanel({
                   })()}
                   {m.streaming && m.step !== undefined && <p className="lalt-assistant-muted lalt-assistant-small">{labels.step(m.step)}</p>}
                   {m.stopped && <p className="lalt-assistant-muted lalt-assistant-small">{labels.stopped}</p>}
-                  {!m.streaming && m.sources && m.sources.length > 0 && <SourceCards sources={m.sources} labels={labels} />}
+                  {!m.streaming && showSources && m.sources && m.sources.length > 0 && <SourceCards sources={m.sources} labels={labels} />}
                   {!m.streaming && m.suggestions && m.suggestions.length > 0 && (
                     <div className="lalt-assistant-suggestions">
                       {m.suggestions.map((sug) => (
