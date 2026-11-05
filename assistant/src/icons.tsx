@@ -19,6 +19,7 @@ const paths: Record<string, ReactNode> = {
   x: <path d="M18 6 6 18M6 6l12 12" />,
   check: <path d="M20 6 9 17l-5-5" />,
   dash: <path d="M5 18h14" />,
+  mic: <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" />,
   detach: (
     <>
       <rect width="13" height="13" x="8" y="3" rx="2" />

@@ -56,3 +56,43 @@ describe("host inputs", () => {
     expect(api.getConversation).toHaveBeenCalledWith("c9");
   });
 });
+
+describe("host actions", () => {
+  it("merges per-question extra into the turn and gives tool cards the thread", async () => {
+    const api = fakeApi();
+    const seen: number[] = [];
+    const { rerender } = render(
+      <Panel
+        api={api}
+        sendExtra={{ page: "p" }}
+        renderToolCall={(_t, _m, turn) => {
+          seen.push(turn.thread.length);
+          return undefined;
+        }}
+      />,
+    );
+    rerender(<Panel api={api} sendExtra={{ page: "p" }} ask={{ id: "a1", text: "Confirmé.", extra: { confirmAction: "x1" } }} />);
+    await waitFor(() =>
+      expect(api.send).toHaveBeenCalledWith(expect.objectContaining({ extra: { page: "p", confirmAction: "x1" } })),
+    );
+  });
+
+  it("starts a fresh conversation before a fresh question", async () => {
+    const api = fakeApi();
+    const { rerender } = render(<Panel api={api} ask={{ id: "q1", text: "première" }} />);
+    await screen.findByText("ok première");
+    rerender(<Panel api={api} ask={{ id: "q2", text: "seconde", fresh: true }} />);
+    await screen.findByText("ok seconde");
+    expect(screen.queryByText("ok première")).toBeNull();
+    expect((api.send as ReturnType<typeof vi.fn>).mock.calls[1][0].conversationId).toBeUndefined();
+  });
+
+  it("seeds a fresh conversation from a reply", async () => {
+    const api = fakeApi();
+    const { rerender } = render(<Panel api={api} ask={{ id: "q1", text: "question" }} />);
+    await screen.findByText("ok question");
+    rerender(<Panel api={api} draftSeed={{ id: "b1", text: "> ok question\n\n", fresh: true }} />);
+    expect(screen.queryByText("ok question")).toBeNull();
+    expect((screen.getByRole("textbox", { name: "Message" }) as HTMLTextAreaElement).value).toBe("> ok question\n\n");
+  });
+});
