@@ -478,3 +478,46 @@
   background: var(--_accent);
   color: var(--_accent-text) !important;
 }
+
+.lalt-assistant-reasoning,
+.lalt-assistant-tools-done {
+  margin-bottom: 8px;
+}
+
+.lalt-assistant-reasoning summary,
+.lalt-assistant-tools-done summary {
+  cursor: pointer;
+  color: var(--_muted);
+  font-size: 0.85em;
+}
+
+.lalt-assistant-tools {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85em;
+}
+
+.lalt-assistant-tools li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lalt-assistant-tools li[data-ok="false"] {
+  color: var(--_danger, currentColor);
+}
+
+.lalt-assistant-quote {
+  margin: 0 0 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--_border);
+  color: var(--_muted);
+}
+
+.lalt-assistant-reasoning-select {
+  max-width: 11em;
+}

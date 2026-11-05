@@ -26,11 +26,48 @@ export interface AssistantAttachment {
   sizeBytes: number;
 }
 
+export type ReasoningEffort = "high" | "medium" | "low" | "none";
+
+export interface AssistantReasoning {
+  options: ReasoningEffort[];
+  default?: ReasoningEffort;
+}
+
+export interface AssistantSelection {
+  text: string;
+  before?: string;
+  after?: string;
+}
+
+export interface AssistantToolCall {
+  id: string;
+  name: string;
+  label?: string;
+  args?: unknown;
+  ok?: boolean;
+  summary?: string;
+  meta?: unknown;
+  startedAt: number;
+  endedAt?: number;
+}
+
+export type AssistantEvent =
+  | { type: "text"; delta: string }
+  | { type: "reasoning"; delta: string }
+  | { type: "tool_start"; id: string; name: string; label?: string; args?: unknown }
+  | { type: "tool_end"; id: string; ok: boolean; summary?: string; meta?: unknown }
+  | { type: "meta"; meta: unknown };
+
 export interface AssistantMessage {
   role: "user" | "assistant";
   content: string;
   attachments?: AssistantAttachment[];
   meta?: unknown;
+  reasoning?: string;
+  tools?: AssistantToolCall[];
+  selection?: AssistantSelection;
+  streaming?: boolean;
+  stopped?: boolean;
 }
 
 export interface AssistantConversationSummary {
@@ -58,6 +95,8 @@ export interface AssistantSendInput {
   message: string;
   attachmentIds: string[];
   screen?: AssistantScreen;
+  reasoningEffort?: ReasoningEffort;
+  selection?: AssistantSelection;
 }
 
 export interface AssistantSendResult {
@@ -76,6 +115,7 @@ export interface AttachmentLimits {
 
 export interface AssistantApi {
   send(input: AssistantSendInput): Promise<AssistantSendResult>;
+  stream?(input: AssistantSendInput, emit: (event: AssistantEvent) => void, signal: AbortSignal): Promise<AssistantSendResult>;
   listConversations(): Promise<AssistantConversationSummary[]>;
   getConversation(id: string): Promise<AssistantConversation>;
   attach?(file: File, scopeId: string): Promise<AssistantAttachment>;
@@ -108,6 +148,14 @@ export interface AssistantLabels {
   fileTypeRefused: (name: string) => string;
   uploadFailed: string;
   requestFailed: string;
+  reasoning: string;
+  reasoningDefault: string;
+  reasoningLevels: Record<ReasoningEffort, string>;
+  reasoningShown: string;
+  stop: string;
+  stopped: string;
+  toolsDone: (count: number, seconds: number) => string;
+  removeSelection: string;
 }
 
 export interface AssistantPanelProps {
@@ -127,4 +175,6 @@ export interface AssistantPanelProps {
   widthStorageKey?: string;
   onClose: () => void;
   initialHistory?: boolean;
+  reasoning?: AssistantReasoning;
+  initialSelection?: AssistantSelection;
 }

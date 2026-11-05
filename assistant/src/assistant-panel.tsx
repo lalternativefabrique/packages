@@ -17,8 +17,15 @@ import type {
   AssistantLabels,
   AssistantMessage,
   AssistantPanelProps,
+  AssistantEvent,
   AssistantScope,
+  AssistantSelection,
+  AssistantSendInput,
+  AssistantSendResult,
+  AssistantToolCall,
+  ReasoningEffort,
 } from "./types";
+import { applyEvent, isAbort } from "./stream";
 
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 520;
@@ -76,6 +83,8 @@ export function AssistantPanel({
   widthStorageKey = "lalt.assistant.width",
   onClose,
   initialHistory = false,
+  reasoning,
+  initialSelection,
 }: AssistantPanelProps) {
   const labels: AssistantLabels = { ...defaultLabels, ...labelOverrides };
   const scopeLabel = scopes.find((s) => s.id === scopeId)?.label ?? "";
@@ -93,6 +102,10 @@ export function AssistantPanel({
   const fileInput = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
+  const inFlight = useRef<AbortController | null>(null);
+  const [effort, setEffort] = useState<ReasoningEffort | undefined>();
+  const [selection, setSelection] = useState<AssistantSelection | undefined>(initialSelection);
+  useEffect(() => setSelection(initialSelection), [initialSelection]);
 
   const attachments = useAttachments({ attach: api.attach?.bind(api), scopeId, limits: attachmentLimits, labels });
 
@@ -106,8 +119,12 @@ export function AssistantPanel({
     endRef.current?.scrollIntoView?.({ block: "end" });
   }, [thread.length, pending]);
 
+  const stop = () => inFlight.current?.abort();
+
   const newConversation = () => {
+    stop();
     generation.current++;
+    setEffort(undefined);
     setThread([]);
     setConversationId(undefined);
     setError(null);
@@ -118,6 +135,7 @@ export function AssistantPanel({
   };
 
   const openConversation = (c: AssistantConversationSummary) => {
+    stop();
     const current = ++generation.current;
     setHistoryOpen(false);
     setMenuOpen(false);
@@ -148,30 +166,63 @@ export function AssistantPanel({
     setError(null);
     setHistoryOpen(false);
     setPending(true);
-    setThread((t) => [...t, { role: "user", content: shownAs, attachments: ready }]);
+    const quoted = selection;
+    setThread((t) => [...t, { role: "user", content: shownAs, attachments: ready, selection: quoted }]);
     attachments.clear();
-    api
-      .send({
-        scopeId,
-        conversationId,
-        message,
-        attachmentIds: ready.map((a) => a.id),
-        screen: readScreen?.(),
-      })
-      .then(
-        (res) => {
-          if (current !== generation.current) return;
-          setConversationId(res.conversationId);
-          setThread((t) => [...t, { role: "assistant", content: res.answer, meta: res.meta }]);
-          setPending(false);
-          refreshConversations();
-        },
-        (err: unknown) => {
-          if (current !== generation.current) return;
-          setError(errorMessage(err, labels.requestFailed));
-          setPending(false);
-        },
-      );
+    setSelection(undefined);
+    const input: AssistantSendInput = {
+      scopeId,
+      conversationId,
+      message,
+      attachmentIds: ready.map((a) => a.id),
+      screen: readScreen?.(),
+      reasoningEffort: effort,
+      selection: quoted,
+    };
+    const finish = (res: AssistantSendResult) => {
+      if (current !== generation.current) return;
+      setConversationId(res.conversationId);
+      setThread((t) => {
+        const last = t[t.length - 1];
+        const done: AssistantMessage = { ...(last?.streaming ? last : {}), role: "assistant", content: res.answer, meta: res.meta ?? (last?.streaming ? last.meta : undefined), streaming: false };
+        return last?.streaming ? [...t.slice(0, -1), done] : [...t, done];
+      });
+      setPending(false);
+      refreshConversations();
+    };
+    const fail = (err: unknown) => {
+      if (current !== generation.current) return;
+      if (isAbort(err)) {
+        setThread((t) => {
+          const last = t[t.length - 1];
+          return last?.streaming ? [...t.slice(0, -1), { ...last, streaming: false, stopped: true }] : t;
+        });
+      } else {
+        setThread((t) => (t[t.length - 1]?.streaming ? t.slice(0, -1) : t));
+        setError(errorMessage(err, labels.requestFailed));
+      }
+      setPending(false);
+    };
+    if (api.stream) {
+      const controller = new AbortController();
+      inFlight.current = controller;
+      setThread((t) => [...t, { role: "assistant", content: "", streaming: true }]);
+      const emit = (event: AssistantEvent) => {
+        if (current !== generation.current) return;
+        setThread((t) => {
+          const last = t[t.length - 1];
+          return last?.streaming ? [...t.slice(0, -1), applyEvent(last, event, Date.now())] : t;
+        });
+      };
+      api
+        .stream(input, emit, controller.signal)
+        .then(finish, fail)
+        .finally(() => {
+          if (inFlight.current === controller) inFlight.current = null;
+        });
+    } else {
+      api.send(input).then(finish, fail);
+    }
     return true;
   };
 
@@ -208,6 +259,7 @@ export function AssistantPanel({
     attachments.add(Array.from(e.dataTransfer?.files ?? []));
   };
 
+  const streaming = !!thread[thread.length - 1]?.streaming;
   const empty = thread.length === 0 && !pending && !loading;
   const panel = usePanelWidth(widthStorageKey);
 
@@ -343,6 +395,7 @@ export function AssistantPanel({
             {thread.map((m, i) =>
               m.role === "user" ? (
                 <div key={i} className="lalt-assistant-user">
+                  {m.selection && <blockquote className="lalt-assistant-quote">{m.selection.text}</blockquote>}
                   {m.content}
                   {m.attachments && m.attachments.length > 0 && (
                     <div className="lalt-assistant-sent-files">
@@ -356,13 +409,21 @@ export function AssistantPanel({
                   )}
                 </div>
               ) : (
-                <div key={i} className="lalt-assistant-answer">
-                  {renderMarkdown ? renderMarkdown(m.content) : <div className="lalt-assistant-plain">{m.content}</div>}
-                  {renderMessageFooter?.(m)}
+                <div key={i} className="lalt-assistant-answer" data-streaming={m.streaming || undefined}>
+                  {m.reasoning && (
+                    <details className="lalt-assistant-reasoning">
+                      <summary>{labels.reasoningShown}</summary>
+                      <div className="lalt-assistant-plain lalt-assistant-muted">{m.reasoning}</div>
+                    </details>
+                  )}
+                  {m.tools && m.tools.length > 0 && <ToolLines tools={m.tools} live={!!m.streaming} labels={labels} />}
+                  {m.content && (renderMarkdown ? renderMarkdown(m.content) : <div className="lalt-assistant-plain">{m.content}</div>)}
+                  {m.stopped && <p className="lalt-assistant-muted lalt-assistant-small">{labels.stopped}</p>}
+                  {!m.streaming && renderMessageFooter?.(m)}
                 </div>
               ),
             )}
-            {(pending || loading) && (
+            {(loading || (pending && (!streaming || isSilent(thread[thread.length - 1])))) && (
               <div className="lalt-assistant-muted lalt-assistant-small lalt-assistant-status">
                 <span className="lalt-assistant-spinner" />
                 {loading ? labels.loading : labels.thinking}
@@ -380,6 +441,16 @@ export function AssistantPanel({
 
       <div className="lalt-assistant-footer">
         <div className="lalt-assistant-composer">
+          {selection && (
+            <div className="lalt-assistant-chips">
+              <div className="lalt-assistant-chip lalt-assistant-selection">
+                <span className="lalt-assistant-chip-text lalt-assistant-truncate">« {selection.text} »</span>
+                <button type="button" onClick={() => setSelection(undefined)} aria-label={labels.removeSelection} className="lalt-assistant-chip-remove">
+                  <Icon name="x" size={12} />
+                </button>
+              </div>
+            </div>
+          )}
           {(attachments.items.length > 0 || attachments.notice) && (
             <div className="lalt-assistant-chips">
               {attachments.items.map((item) => (
@@ -424,7 +495,30 @@ export function AssistantPanel({
                 />
               </>
             )}
+            {reasoning && reasoning.options.length > 0 && (
+              <select
+                value={effort ?? ""}
+                onChange={(e) => setEffort((e.target.value || undefined) as ReasoningEffort | undefined)}
+                aria-label={labels.reasoning}
+                title={labels.reasoning}
+                className="lalt-assistant-select lalt-assistant-reasoning-select"
+              >
+                <option value="">
+                  {reasoning.default ? `${labels.reasoningDefault} · ${labels.reasoningLevels[reasoning.default]}` : labels.reasoningDefault}
+                </option>
+                {reasoning.options.map((level) => (
+                  <option key={level} value={level}>
+                    {labels.reasoningLevels[level]}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="lalt-assistant-grow" />
+            {streaming ? (
+              <button type="button" onClick={stop} aria-label={labels.stop} title={labels.stop} className="lalt-assistant-send">
+                <Icon name="square" />
+              </button>
+            ) : (
             <button
               type="button"
               onClick={submit}
@@ -434,6 +528,7 @@ export function AssistantPanel({
             >
               <Icon name="arrowUp" />
             </button>
+            )}
           </div>
         </div>
       </div>
@@ -489,5 +584,32 @@ function HistoryList({
         );
       })}
     </ul>
+  );
+}
+
+function isSilent(message: AssistantMessage | undefined): boolean {
+  return !!message?.streaming && !message.content && !message.tools?.length && !message.reasoning;
+}
+
+function ToolLines({ tools, live, labels }: { tools: AssistantToolCall[]; live: boolean; labels: AssistantLabels }) {
+  const lines = (
+    <ul className="lalt-assistant-tools">
+      {tools.map((t) => (
+        <li key={t.id} data-ok={t.ok === undefined ? undefined : String(t.ok)}>
+          {t.endedAt === undefined ? <span className="lalt-assistant-spinner" /> : <Icon name={t.ok ? "check" : "x"} size={12} />}
+          <span className="lalt-assistant-truncate">{t.label ?? t.name}</span>
+          {t.summary && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-truncate">{t.summary}</span>}
+        </li>
+      ))}
+    </ul>
+  );
+  if (live) return lines;
+  const start = Math.min(...tools.map((t) => t.startedAt));
+  const end = Math.max(...tools.map((t) => t.endedAt ?? t.startedAt));
+  return (
+    <details className="lalt-assistant-tools-done">
+      <summary className="lalt-assistant-muted lalt-assistant-small">{labels.toolsDone(tools.length, (end - start) / 1000)}</summary>
+      {lines}
+    </details>
   );
 }
