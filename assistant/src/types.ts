@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { PointerEvent, ReactNode } from "react";
 
 export interface AssistantScope {
   id: string;
@@ -122,6 +122,17 @@ export interface AssistantApi {
 }
 
 export interface AssistantLabels {
+  minimize: string;
+  minimizeAll: string;
+  restoreAll: string;
+  detach: string;
+  dock: string;
+  newAssistant: string;
+  dockRegion: string;
+  running: string;
+  ready: string;
+  untitled: string;
+  moveWindow: string;
   launcher: string;
   history: string;
   newConversation: string;
@@ -177,4 +188,11 @@ export interface AssistantPanelProps {
   initialHistory?: boolean;
   reasoning?: AssistantReasoning;
   initialSelection?: AssistantSelection;
+  embedded?: boolean;
+  initialConversationId?: string;
+  headerActions?: ReactNode;
+  onHeaderPointerDown?: (e: PointerEvent<HTMLElement>) => void;
+  onRunningChange?: (running: boolean) => void;
+  onConversationChange?: (conversationId: string, title: string) => void;
+  onAnswered?: () => void;
 }

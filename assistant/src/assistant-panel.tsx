@@ -85,6 +85,13 @@ export function AssistantPanel({
   initialHistory = false,
   reasoning,
   initialSelection,
+  embedded = false,
+  initialConversationId,
+  headerActions,
+  onHeaderPointerDown,
+  onRunningChange,
+  onConversationChange,
+  onAnswered,
 }: AssistantPanelProps) {
   const labels: AssistantLabels = { ...defaultLabels, ...labelOverrides };
   const scopeLabel = scopes.find((s) => s.id === scopeId)?.label ?? "";
@@ -119,6 +126,10 @@ export function AssistantPanel({
     endRef.current?.scrollIntoView?.({ block: "end" });
   }, [thread.length, pending]);
 
+  const runningChange = useRef(onRunningChange);
+  runningChange.current = onRunningChange;
+  useEffect(() => runningChange.current?.(pending), [pending]);
+
   const stop = () => inFlight.current?.abort();
 
   const newConversation = () => {
@@ -146,6 +157,7 @@ export function AssistantPanel({
         if (current !== generation.current) return;
         setThread(detail.messages);
         setConversationId(detail.id);
+        onConversationChange?.(detail.id, c.title);
         if (detail.scopeId && detail.scopeId !== scopeId) onScopeChange?.(detail.scopeId);
         setLoading(false);
       },
@@ -156,6 +168,13 @@ export function AssistantPanel({
       },
     );
   };
+
+  const initialConversation = useRef(initialConversationId);
+  useEffect(() => {
+    const id = initialConversation.current;
+    initialConversation.current = undefined;
+    if (id) openConversation({ id, title: "" });
+  }, []);
 
   const canSend = !!scopeId && !pending && !attachments.uploading;
 
@@ -182,6 +201,8 @@ export function AssistantPanel({
     const finish = (res: AssistantSendResult) => {
       if (current !== generation.current) return;
       setConversationId(res.conversationId);
+      onConversationChange?.(res.conversationId, shownAs.slice(0, 80));
+      onAnswered?.();
       setThread((t) => {
         const last = t[t.length - 1];
         const done: AssistantMessage = { ...(last?.streaming ? last : {}), role: "assistant", content: res.answer, meta: res.meta ?? (last?.streaming ? last.meta : undefined), streaming: false };
@@ -267,24 +288,26 @@ export function AssistantPanel({
     <aside
       role="dialog"
       aria-label={labels.launcher}
-      className="lalt-assistant lalt-assistant-panel"
-      data-expanded={panel.expanded || undefined}
-      style={{ ["--lalt-assistant-width" as string]: panel.expanded ? "min(1100px, 92vw)" : `${panel.width}px` }}
+      className={embedded ? "lalt-assistant lalt-assistant-panel lalt-assistant-embedded" : "lalt-assistant lalt-assistant-panel"}
+      data-expanded={(!embedded && panel.expanded) || undefined}
+      style={embedded ? undefined : { ["--lalt-assistant-width" as string]: panel.expanded ? "min(1100px, 92vw)" : `${panel.width}px` }}
       onDragOver={onDragOver}
       onDragLeave={(e) => {
         if (e.currentTarget === e.target) setDragging(false);
       }}
       onDrop={onDrop}
     >
-      <div
-        onPointerDown={panel.startResize}
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={labels.resize}
-        className="lalt-assistant-resize"
-      />
+      {!embedded && (
+        <div
+          onPointerDown={panel.startResize}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={labels.resize}
+          className="lalt-assistant-resize"
+        />
+      )}
       {dragging && <div className="lalt-assistant-dropzone">{labels.dropHere}</div>}
-      <header className="lalt-assistant-header">
+      <header className="lalt-assistant-header" onPointerDown={onHeaderPointerDown}>
         <div className="lalt-assistant-menu">
           <button type="button" className="lalt-assistant-title" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
             <Icon name="bot" />
@@ -355,14 +378,17 @@ export function AssistantPanel({
             ))}
           </select>
         )}
-        <button
-          type="button"
-          onClick={() => panel.setExpanded((v) => !v)}
-          aria-label={panel.expanded ? labels.collapse : labels.expand}
-          className="lalt-assistant-icon-button lalt-assistant-wide-only"
-        >
-          <Icon name={panel.expanded ? "minimize" : "maximize"} />
-        </button>
+        {!embedded && (
+          <button
+            type="button"
+            onClick={() => panel.setExpanded((v) => !v)}
+            aria-label={panel.expanded ? labels.collapse : labels.expand}
+            className="lalt-assistant-icon-button lalt-assistant-wide-only"
+          >
+            <Icon name={panel.expanded ? "minimize" : "maximize"} />
+          </button>
+        )}
+        {headerActions}
         <button type="button" onClick={onClose} aria-label={labels.close} className="lalt-assistant-icon-button">
           <Icon name="x" />
         </button>
