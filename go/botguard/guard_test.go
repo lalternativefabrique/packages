@@ -365,3 +365,16 @@ func TestClientAddrOverride(t *testing.T) {
 		t.Fatalf("other client behind the same proxy: %d", w.Code)
 	}
 }
+
+type brokenSettings struct{}
+
+func (brokenSettings) Policy(context.Context) (Policy, error) { return Policy{}, errors.New("db down") }
+
+func TestUnreadableSettingsNeverEnforce(t *testing.T) {
+	h := app(newGuard(t, func(c *Config) { c.Settings = brokenSettings{} }))
+	for i := range 50 {
+		if w := call(h, http.MethodGet, "/", "203.0.113.30:1", nil); w.Code != http.StatusOK {
+			t.Fatalf("request %d refused while settings are unreadable: %d", i, w.Code)
+		}
+	}
+}
