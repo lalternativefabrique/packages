@@ -167,6 +167,12 @@ export class Exchange {
     };
   }
 
+  /** The provisioner's own token, or null when Hydra is down or refuses it. */
+  async provisionerToken(): Promise<string | null> {
+    const token = await this.machineToken();
+    return token === "refused" ? null : token;
+  }
+
   private async machineToken(): Promise<string | "refused" | null> {
     if (
       this.machine &&

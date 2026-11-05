@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { runAccountDeletion } from "../account-deletion.ts";
 import type { AccountDeletionSteps } from "../account-deletion.ts";
 export type {
@@ -23,7 +24,15 @@ import {
 import { clearCookie, readCookie, readCookies, serializeCookie } from "./cookies.ts";
 import { Exchange, decodeToken } from "./exchange.ts";
 import type { CredentialRefusal, ExchangeConfig, PersonToken } from "./exchange.ts";
-import { KratosError, KratosFlows, codeWasSent, nodeOf } from "./kratos.ts";
+import {
+  BOTGUARD_TOKEN_HEADER,
+  KratosError,
+  KratosFlows,
+  VISITOR_IP_HEADER,
+  codeWasSent,
+  nodeOf,
+} from "./kratos.ts";
+import type { Visitor } from "./kratos.ts";
 import { Jwks } from "./jwks.ts";
 import { coreTarget, keptCookies, onCore, relayedHeaders } from "./relay.ts";
 import { ConsoleSso, decodePending, encodePending, localPath } from "./sso.ts";
@@ -92,6 +101,12 @@ export interface UrbangateAuthConfig {
    * Needs `coreUrl`. Other addresses keep the registration flow and its code.
    */
   ownedDomains?: Array<string>;
+  /**
+   * The visitor's address, for urbangate's bot shield. Defaults to the last
+   * X-Forwarded-For entry, the one the gateway in front of this server
+   * appended.
+   */
+  visitorIp?: (request: Request) => string | undefined;
 }
 
 export interface UrbangateSsoConfig {
@@ -255,8 +270,24 @@ const FAILURE_STATUS: Record<KratosFailure["status"], number> = {
   password_reused: 422,
   invalid_input: 400,
   flow_expired: 410,
+  challenge_required: 428,
+  rate_limited: 429,
   unavailable: 503,
 };
+
+const BOTGUARD_ROUTES: Record<string, string> = {
+  "GET botguard/challenge": "challenge",
+  "POST botguard/verify": "verify",
+  "GET botguard/widget.js": "widget.js",
+};
+
+export function lastForwardedFor(request: Request): string | undefined {
+  const hops = (request.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+  return hops.at(-1) ?? request.headers.get("x-real-ip") ?? undefined;
+}
 
 function json(
   status: number,
@@ -322,9 +353,14 @@ export function createUrbangateAuth(
   const brand = {
     transient_payload: { product, product_name: config.productName ?? product },
   };
-  const kratos = new KratosFlows(config.kratosUrl, config.fetch);
   const exchange = new Exchange({ ...config.urbangate, product }, config.fetch);
+  const visitors = new AsyncLocalStorage<Visitor>();
+  const kratos = new KratosFlows(config.kratosUrl, config.fetch, {
+    visitor: () => visitors.getStore(),
+    machineToken: () => exchange.provisionerToken(),
+  });
   const names = {
+    botguard: `${product}_botguard`,
     session: config.cookie?.name ?? `${product}_session`,
     token: `${product}_token`,
     flow: `${product}_flow`,
@@ -1747,14 +1783,59 @@ export function createUrbangateAuth(
       : {}),
   };
 
+  function visitorOf(request: Request): Visitor {
+    return {
+      ip: (config.visitorIp ?? lastForwardedFor)(request),
+      botguardToken:
+        request.headers.get(BOTGUARD_TOKEN_HEADER) ??
+        readCookie(request.headers, names.botguard),
+    };
+  }
+
+  async function botguard(request: Request, path: string): Promise<Response> {
+    const visitor = visitorOf(request);
+    const headers = new Headers({ accept: "application/json" });
+    const type = request.headers.get("content-type");
+    if (type) headers.set("content-type", type);
+    const machine = visitor.ip ? await exchange.provisionerToken() : null;
+    if (machine && visitor.ip) {
+      headers.set("authorization", `Bearer ${machine}`);
+      headers.set(VISITOR_IP_HEADER, visitor.ip);
+    }
+    let res: Response;
+    try {
+      res = await (config.fetch ?? fetch)(
+        new URL(`/botguard/${path}`, config.urbangate.issuerUrl),
+        {
+          method: request.method,
+          headers,
+          body: request.method === "POST" ? await request.text() : undefined,
+        },
+      );
+    } catch {
+      return failure("unavailable", 503);
+    }
+    const out = new Headers({ "cache-control": "no-store" });
+    const resType = res.headers.get("content-type");
+    if (resType) out.set("content-type", resType);
+    if (path !== "verify" || !res.ok) {
+      return new Response(res.body, { status: res.status, headers: out });
+    }
+    const solved = (await res.json()) as { token: string; expires_in: number };
+    out.append("set-cookie", cookie(names.botguard, solved.token, solved.expires_in));
+    return new Response(JSON.stringify(solved), { status: 200, headers: out });
+  }
+
   async function handler(request: Request): Promise<Response> {
     const path = new URL(request.url).pathname.replace(/\/$/, "");
     const suffix = path.slice(path.indexOf("/api/auth/") + "/api/auth/".length);
     if (suffix === "sign-in/social") return failure("not_supported", 501);
+    const relayed = BOTGUARD_ROUTES[`${request.method} ${suffix}`];
+    if (relayed) return botguard(request, relayed);
     const route = routes[`${request.method} ${suffix}`];
     if (!route) return failure("not_found", 404);
     try {
-      return await route(request);
+      return await visitors.run(visitorOf(request), () => route(request));
     } catch (error) {
       return failed(error);
     }

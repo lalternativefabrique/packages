@@ -66,6 +66,8 @@ export type KratosFailure =
   | { status: "password_reused" }
   | { status: "invalid_input"; message: string }
   | { status: "flow_expired" }
+  | { status: "challenge_required" }
+  | { status: "rate_limited" }
   | { status: "unavailable" };
 
 export class KratosError extends Error {
@@ -92,6 +94,8 @@ export function failureOf(status: number, body: unknown): KratosFailure {
     error?: { id?: string; code?: number; message?: string };
     ui?: KratosFlow["ui"];
   };
+  if (status === 428) return { status: "challenge_required" };
+  if (status === 429) return { status: "rate_limited" };
   if (status === 410 || FLOW_EXPIRED.has(b.error?.code ?? -1)) {
     return { status: "flow_expired" };
   }
@@ -144,6 +148,25 @@ export function nodeOf(flow: KratosFlow, key: string): KratosNode | undefined {
   );
 }
 
+/** The person behind a server-side call, as urbangate's bot shield counts them. */
+export interface Visitor {
+  ip?: string;
+  botguardToken?: string;
+}
+
+/**
+ * Lets urbangate count a flow against the visitor rather than this server:
+ * the visitor's address is only trusted alongside the product's machine
+ * token.
+ */
+export interface KratosRelay {
+  visitor(): Visitor | undefined;
+  machineToken(): Promise<string | null>;
+}
+
+export const VISITOR_IP_HEADER = "urbangate-visitor-ip";
+export const BOTGUARD_TOKEN_HEADER = "botguard-token";
+
 export type FlowKind =
   "login" | "registration" | "verification" | "recovery" | "settings";
 
@@ -154,10 +177,12 @@ export type FlowKind =
 export class KratosFlows {
   private readonly baseUrl: string;
   private readonly fetchImpl: Fetch;
+  private readonly relay?: KratosRelay;
 
-  constructor(baseUrl: string, fetchImpl: Fetch = fetch) {
+  constructor(baseUrl: string, fetchImpl: Fetch = fetch, relay?: KratosRelay) {
     this.baseUrl = baseUrl;
     this.fetchImpl = fetchImpl;
+    this.relay = relay;
   }
 
   async start(
@@ -241,11 +266,25 @@ export class KratosFlows {
     const headers = new Headers(init.headers);
     headers.set("accept", "application/json");
     if (sessionToken) headers.set("x-session-token", sessionToken);
+    await this.relayVisitor(headers);
     try {
       return await this.fetchImpl(url, { ...init, headers });
     } catch {
       throw new KratosError({ status: "unavailable" });
     }
+  }
+
+  private async relayVisitor(headers: Headers): Promise<void> {
+    const visitor = this.relay?.visitor();
+    if (!visitor) return;
+    if (visitor.botguardToken) {
+      headers.set(BOTGUARD_TOKEN_HEADER, visitor.botguardToken);
+    }
+    if (!visitor.ip) return;
+    const token = await this.relay!.machineToken();
+    if (!token) return;
+    headers.set("authorization", `Bearer ${token}`);
+    headers.set(VISITOR_IP_HEADER, visitor.ip);
   }
 
   private async body(res: Response): Promise<unknown> {
