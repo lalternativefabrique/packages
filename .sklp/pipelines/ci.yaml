@@ -68,6 +68,8 @@ scopes:
     - "go/composition/**"
   svcauth:
     - "go/svcauth/**"
+  botguard:
+    - "go/botguard/**"
   authz:
     - "go/authz/**"
   webhooks:
@@ -177,6 +179,15 @@ steps:
 
 
 
+
+  - name: botguard
+    scope: [botguard]
+    tools: [go]
+    run: |
+      cd go/botguard
+      test -z "$(gofmt -l .)"
+      go vet ./...
+      go test -race -count=1 ./...
 
   - name: svcauth
     scope: [svcauth]
