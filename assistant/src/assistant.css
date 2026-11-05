@@ -892,3 +892,41 @@
   inset: 8px 8px auto 8px;
   pointer-events: none;
 }
+
+.lalt-assistant-mic[data-live] {
+  background: var(--_accent);
+  color: var(--_bg);
+}
+.lalt-assistant-mic-bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.lalt-assistant-mic-bars-lines {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+.lalt-assistant-mic-bars-lines span {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--_accent);
+  animation: lalt-assistant-mic-bar 1s ease-in-out infinite;
+}
+.lalt-assistant-mic-clock {
+  color: var(--_muted);
+  font-variant-numeric: tabular-nums;
+}
+.lalt-assistant-mic-error {
+  color: var(--_accent);
+  font-size: 0.85em;
+}
+@keyframes lalt-assistant-mic-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lalt-assistant-mic-bars-lines span { animation: none; transform: scaleY(0.6); }
+}

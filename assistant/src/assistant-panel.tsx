@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAttachments, pastedFiles, type PendingAttachment } from "./attachments";
 import { errorMessage, formatSize, relativeTime } from "./format";
+import { MicBars, useDictation } from "./dictation";
 import { Icon } from "./icons";
 import { defaultLabels } from "./labels";
 import { SafeMarkdown } from "./markdown";
@@ -101,8 +102,10 @@ export function AssistantPanel({
   messageActions = [],
   onApplySuggestion,
   composerOptions = [],
-  composerOverlay,
+  composerOverlay: hostOverlay,
   onComposerEscape,
+  transcribe,
+  dictationLanguage,
   singleConversation = false,
   showSources = true,
   disabledReason,
@@ -147,6 +150,21 @@ export function AssistantPanel({
     }),
     [],
   );
+  const dictation = useDictation(
+    transcribe,
+    useCallback(
+      (text: string) => {
+        composer.insert(text);
+        composer.focus();
+      },
+      [composer],
+    ),
+    labels,
+    dictationLanguage,
+  );
+  const recording = dictation.state === "recording";
+  const composerOverlay =
+    hostOverlay ?? (recording ? <MicBars /> : dictation.error ? <span className="lalt-assistant-mic-error">{dictation.error}</span> : undefined);
   const endRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
@@ -387,7 +405,7 @@ export function AssistantPanel({
       e.preventDefault();
       submit();
     }
-    if (e.key === "Escape" && onComposerEscape?.()) e.preventDefault();
+    if (e.key === "Escape" && (onComposerEscape?.() || dictation.cancel())) e.preventDefault();
   };
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -755,6 +773,20 @@ export function AssistantPanel({
               </div>
             )}
             {renderComposerAccessory?.(composer)}
+            {dictation.supported && (
+              <button
+                type="button"
+                className="lalt-assistant-icon-button lalt-assistant-mic"
+                data-live={recording || undefined}
+                aria-label={recording ? labels.stopDictation : dictation.state === "transcribing" ? labels.transcribing : labels.dictate}
+                title={recording ? labels.stopDictation : labels.dictate}
+                aria-pressed={recording}
+                disabled={dictation.state === "transcribing" || !!disabledReason}
+                onClick={() => (recording ? dictation.stop() : void dictation.start())}
+              >
+                {dictation.state === "transcribing" ? <span className="lalt-assistant-spinner" /> : <Icon name="mic" />}
+              </button>
+            )}
             {attachments.enabled && (
               <>
                 <button

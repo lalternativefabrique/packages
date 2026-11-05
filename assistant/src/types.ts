@@ -215,6 +215,12 @@ export interface AssistantLabels {
   placeholder: string;
   send: string;
   attach: string;
+  dictate: string;
+  stopDictation: string;
+  transcribing: string;
+  micDenied: string;
+  micMissing: string;
+  transcribeFailed: string;
   removeAttachment: string;
   close: string;
   expand: string;
@@ -275,6 +281,8 @@ export interface AssistantPanelProps {
   onApplySuggestion?: (message: AssistantMessage, suggestion: string) => void;
   composerOptions?: AssistantComposerOption[];
   composerOverlay?: ReactNode;
+  transcribe?: AssistantTranscribe;
+  dictationLanguage?: string;
   onComposerEscape?: () => boolean;
   singleConversation?: boolean;
   showSources?: boolean;
@@ -296,3 +304,5 @@ export interface AssistantPanelProps {
   onConversationChange?: (conversationId: string, title: string) => void;
   onAnswered?: () => void;
 }
+
+export type AssistantTranscribe = (audio: Blob, language: string) => Promise<string | { notice: string }>;
