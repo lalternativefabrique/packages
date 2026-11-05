@@ -31,6 +31,7 @@ export type ReasoningEffort = "high" | "medium" | "low" | "none";
 export interface AssistantReasoning {
   options: ReasoningEffort[];
   default?: ReasoningEffort;
+  display?: "gauge" | "select";
 }
 
 export interface AssistantSelection {
@@ -168,6 +169,7 @@ export interface AssistantLabels {
   reasoning: string;
   reasoningDefault: string;
   reasoningLevels: Record<ReasoningEffort, string>;
+  reasoningHints: Record<ReasoningEffort, string>;
   reasoningShown: string;
   stop: string;
   stopped: string;

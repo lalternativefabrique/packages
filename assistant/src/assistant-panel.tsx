@@ -27,6 +27,7 @@ import type {
   ReasoningEffort,
 } from "./types";
 import { applyEvent, isAbort } from "./stream";
+import { ReasoningGauge } from "./reasoning-gauge";
 
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 520;
@@ -584,7 +585,16 @@ export function AssistantPanel({
                 />
               </>
             )}
-            {reasoning && reasoning.options.length > 0 && (
+            {reasoning && reasoning.options.length > 0 && reasoning.display !== "select" && (
+              <ReasoningGauge
+                options={reasoning.options}
+                fallback={reasoning.default}
+                value={effort}
+                onChange={setEffort}
+                labels={labels}
+              />
+            )}
+            {reasoning && reasoning.options.length > 0 && reasoning.display === "select" && (
               <select
                 value={effort ?? ""}
                 onChange={(e) => setEffort((e.target.value || undefined) as ReasoningEffort | undefined)}
