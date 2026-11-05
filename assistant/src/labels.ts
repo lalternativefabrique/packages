@@ -30,6 +30,12 @@ export const defaultLabels: AssistantLabels = {
   reasoning: "Réflexion",
   reasoningDefault: "Par défaut",
   reasoningLevels: { high: "Poussée", medium: "Moyenne", low: "Légère", none: "Aucune" },
+  reasoningHints: {
+    high: "plus lent, plus fouillé",
+    medium: "l'équilibre",
+    low: "rapide",
+    none: "immédiat, sans réflexion",
+  },
   reasoningShown: "Raisonnement",
   stop: "Arrêter",
   stopped: "Réponse interrompue.",

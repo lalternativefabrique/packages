@@ -693,3 +693,36 @@
     display: none;
   }
 }
+
+.lalt-assistant-gauge {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 28px;
+  padding: 0 6px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.lalt-assistant-gauge:focus-visible {
+  outline: 2px solid var(--_accent);
+  outline-offset: 1px;
+}
+
+.lalt-assistant-gauge-bar {
+  width: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 1px;
+  background: var(--_border);
+  cursor: pointer;
+}
+
+.lalt-assistant-gauge-bar[data-filled] {
+  background: var(--_accent);
+}
+
+.lalt-assistant-gauge[data-default] .lalt-assistant-gauge-bar[data-filled] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--_accent);
+}

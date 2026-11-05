@@ -212,7 +212,7 @@ describe("relativeTime", () => {
 describe("AssistantPanel streaming and reasoning", () => {
   it("sends the picked effort and the selection, then clears the selection", async () => {
     const { api, composer } = renderPanel({
-      reasoning: { options: ["high", "low"], default: "low" },
+      reasoning: { options: ["high", "low"], default: "low", display: "select" },
       initialSelection: { text: "le passage" },
     });
     expect(screen.getByText("« le passage »")).toBeTruthy();
@@ -283,5 +283,32 @@ describe("AssistantPanel streaming and reasoning", () => {
     expect(await screen.findByText("Réponse interrompue.")).toBeTruthy();
     expect(screen.getByText("Début")).toBeTruthy();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("ReasoningGauge", () => {
+  it("starts on the default, steps with the arrows and sends the level picked", async () => {
+    const { api, composer } = renderPanel({ reasoning: { options: ["none", "low", "medium", "high"], default: "medium" } });
+    const gauge = screen.getByRole("slider", { name: "Réflexion" });
+    expect(gauge.getAttribute("aria-valuetext")).toBe("Par défaut · Moyenne");
+    expect(gauge.dataset.default).toBe("true");
+    fireEvent.keyDown(gauge, { key: "ArrowRight" });
+    expect(gauge.getAttribute("aria-valuetext")).toBe("Poussée");
+    expect(gauge.title).toContain("plus lent, plus fouillé");
+    fireEvent.change(composer, { target: { value: "Go" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    await screen.findByText("answer to Go");
+    expect(vi.mocked(api.send).mock.calls[0][0].reasoningEffort).toBe("high");
+  });
+
+  it("goes back to the default on Escape and fills bars up to the level", () => {
+    renderPanel({ reasoning: { options: ["none", "low", "medium", "high"] } });
+    const gauge = screen.getByRole("slider", { name: "Réflexion" });
+    fireEvent.keyDown(gauge, { key: "Home" });
+    fireEvent.keyDown(gauge, { key: "ArrowRight" });
+    expect(gauge.getAttribute("aria-valuetext")).toBe("Légère");
+    expect(gauge.querySelectorAll("[data-filled]").length).toBe(2);
+    fireEvent.keyDown(gauge, { key: "Escape" });
+    expect(gauge.getAttribute("aria-valuetext")).toBe("Par défaut");
   });
 });
