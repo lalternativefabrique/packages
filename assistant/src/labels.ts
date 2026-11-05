@@ -27,4 +27,13 @@ export const defaultLabels: AssistantLabels = {
   fileTypeRefused: (name) => `${name} : type de fichier non accepté.`,
   uploadFailed: "L'envoi du fichier a échoué.",
   requestFailed: "La requête à l'assistant a échoué.",
+  reasoning: "Réflexion",
+  reasoningDefault: "Par défaut",
+  reasoningLevels: { high: "Poussée", medium: "Moyenne", low: "Légère", none: "Aucune" },
+  reasoningShown: "Raisonnement",
+  stop: "Arrêter",
+  stopped: "Réponse interrompue.",
+  toolsDone: (count, seconds) =>
+    `${count} outil${count > 1 ? "s" : ""} · ${seconds.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} s`,
+  removeSelection: "Retirer le passage",
 };

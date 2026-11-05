@@ -208,3 +208,80 @@ describe("relativeTime", () => {
     expect(relativeTime("2026-10-08T12:00:00Z", now)).toBe("il y a 2 jours");
   });
 });
+
+describe("AssistantPanel streaming and reasoning", () => {
+  it("sends the picked effort and the selection, then clears the selection", async () => {
+    const { api, composer } = renderPanel({
+      reasoning: { options: ["high", "low"], default: "low" },
+      initialSelection: { text: "le passage" },
+    });
+    expect(screen.getByText("« le passage »")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Réflexion"), { target: { value: "high" } });
+    fireEvent.change(composer, { target: { value: "Explique" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    await screen.findByText("answer to Explique");
+    expect(api.send).toHaveBeenCalledWith(
+      expect.objectContaining({ reasoningEffort: "high", selection: { text: "le passage" } }),
+    );
+    expect(screen.queryByText("« le passage »")).toBeNull();
+  });
+
+  it("hides the picker without a reasoning prop and sends no effort", async () => {
+    const { api, composer } = renderPanel();
+    expect(screen.queryByLabelText("Réflexion")).toBeNull();
+    fireEvent.change(composer, { target: { value: "Bonjour" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    await screen.findByText("answer to Bonjour");
+    expect(vi.mocked(api.send).mock.calls[0][0].reasoningEffort).toBeUndefined();
+  });
+
+  it("streams text and tools live, then folds the tools", async () => {
+    let emit: (e: import("./types").AssistantEvent) => void = () => {};
+    let resolve: (r: { conversationId: string; answer: string }) => void = () => {};
+    const api = fakeApi({
+      stream: vi.fn((_input, e) => {
+        emit = e;
+        return new Promise<import("./types").AssistantSendResult>((r) => (resolve = r));
+      }),
+    });
+    const { composer } = renderPanel({ api });
+    fireEvent.change(composer, { target: { value: "Cherche" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    act(() => {
+      emit({ type: "tool_start", id: "t1", name: "web_search", label: "Recherche web" });
+      emit({ type: "text", delta: "Voici" });
+    });
+    expect(screen.getByText("Recherche web")).toBeTruthy();
+    expect(screen.getByText("Voici")).toBeTruthy();
+    expect(screen.getByLabelText("Arrêter")).toBeTruthy();
+    expect(api.send).not.toHaveBeenCalled();
+    await act(async () => {
+      emit({ type: "tool_end", id: "t1", ok: true });
+      resolve({ conversationId: "c1", answer: "Voici la réponse" });
+    });
+    expect(await screen.findByText("Voici la réponse")).toBeTruthy();
+    expect(screen.getByText(/^1 outil · /)).toBeTruthy();
+    expect(screen.queryByLabelText("Arrêter")).toBeNull();
+  });
+
+  it("keeps the partial answer as stopped when Stop aborts the stream", async () => {
+    let emit: (e: import("./types").AssistantEvent) => void = () => {};
+    const api = fakeApi({
+      stream: vi.fn(
+        (_input, e, signal: AbortSignal) =>
+          new Promise<import("./types").AssistantSendResult>((_, reject) => {
+            emit = e;
+            signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          }),
+      ),
+    });
+    const { composer } = renderPanel({ api });
+    fireEvent.change(composer, { target: { value: "Long" } });
+    fireEvent.keyDown(composer, { key: "Enter" });
+    act(() => emit({ type: "text", delta: "Début" }));
+    fireEvent.click(screen.getByLabelText("Arrêter"));
+    expect(await screen.findByText("Réponse interrompue.")).toBeTruthy();
+    expect(screen.getByText("Début")).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
