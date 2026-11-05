@@ -30,6 +30,7 @@ export interface OpenAssistantOptions {
   selection?: AssistantSelection;
   mode?: "docked" | "floating";
   anchor?: WindowRect;
+  options?: Record<string, unknown>;
 }
 
 export interface AssistantWorkspaceApi {
@@ -43,6 +44,7 @@ export interface AssistantWorkspaceApi {
   restoreAll(): void;
   detach(id: string): void;
   dock(id: string): void;
+  setSelection(id: string, selection: AssistantSelection | null): void;
 }
 
 // A native shell (Orbit) shows floating sessions in its own OS windows; the
@@ -139,7 +141,9 @@ export function AssistantWorkspace({
   const labels: AssistantLabels = { ...defaultLabels, ...panelProps.labels };
   const store = useMemo(() => storeProp ?? sessionStorageStore("lalt.assistant.workspace"), [storeProp]);
   const [state, dispatch] = useReducer(workspaceReducer, undefined, () => store.load() ?? emptyWorkspace);
-  const selections = useRef(new Map<string, AssistantSelection>());
+  const selections = useRef(new Map<string, AssistantSelection | undefined>());
+  const sessionOptions = useRef(new Map<string, Record<string, unknown>>());
+  const [, bumpSelections] = useReducer((n: number) => n + 1, 0);
 
   useEffect(() => store.save(state), [store, state]);
 
@@ -179,6 +183,7 @@ export function AssistantWorkspace({
       open(options = {}) {
         const id = newId();
         if (options.selection) selections.current.set(id, options.selection);
+        if (options.options) sessionOptions.current.set(id, options.options);
         const mode = options.mode ?? "docked";
         const rect =
           mode === "floating"
@@ -204,6 +209,10 @@ export function AssistantWorkspace({
       restoreAll: () => dispatch({ type: "restoreAll" }),
       detach: (id) => dispatch({ type: "detach", id, rect: defaultRect(state.sessions.length) }),
       dock: (id) => dispatch({ type: "dock", id }),
+      setSelection: (id, selection) => {
+        selections.current.set(id, selection ?? undefined);
+        bumpSelections();
+      },
     }),
     [state.sessions, panelProps.scopeId],
   );
@@ -227,6 +236,7 @@ export function AssistantWorkspace({
       scopeId={s.scopeId}
       initialConversationId={s.conversationId}
       initialSelection={selections.current.get(s.id)}
+      sendExtra={sessionOptions.current.has(s.id) ? { ...panelProps.sendExtra, ...sessionOptions.current.get(s.id) } : panelProps.sendExtra}
       onClose={() => api.close(s.id)}
       headerActions={actions}
       onHeaderPointerDown={onHeaderPointerDown}

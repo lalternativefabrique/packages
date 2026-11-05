@@ -23,6 +23,14 @@ export function applyEvent(message: AssistantMessage, event: AssistantEvent, now
       };
     case "meta":
       return { ...message, meta: event.meta };
+    case "step":
+      return { ...message, step: event.step };
+    case "sources":
+      return { ...message, sources: event.sources };
+    case "suggestions":
+      return { ...message, suggestions: event.suggestions };
+    case "attachment":
+      return { ...message, attachments: [...(message.attachments ?? []), event.attachment] };
   }
 }
 

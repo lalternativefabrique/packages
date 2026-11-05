@@ -13,7 +13,11 @@ import { useAttachments, pastedFiles, type PendingAttachment } from "./attachmen
 import { errorMessage, formatSize, relativeTime } from "./format";
 import { Icon } from "./icons";
 import { defaultLabels } from "./labels";
+import { SafeMarkdown } from "./markdown";
 import type {
+  AssistantErrorCode,
+  AssistantAttachment,
+  AssistantSource,
   AssistantConversationSummary,
   AssistantLabels,
   AssistantMessage,
@@ -32,6 +36,8 @@ import { ReasoningGauge } from "./reasoning-gauge";
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 520;
 const PASTED_TEXT_NAME = "texte-colle.txt";
+const RESUME_ATTEMPTS = 3;
+const RESUME_DELAY_MS = 1000;
 
 function storedWidth(key: string): number {
   try {
@@ -87,6 +93,18 @@ export function AssistantPanel({
   draftSeed,
   sendExtra,
   historyRail = false,
+  renderHistory,
+  aboveComposer,
+  subtitle,
+  emptyState,
+  agentName,
+  messageActions = [],
+  onApplySuggestion,
+  composerOptions = [],
+  composerOverlay,
+  onComposerEscape,
+  singleConversation = false,
+  disabledReason,
   renderScopePicker,
   renderMessageFooter,
   readScreen,
@@ -116,6 +134,9 @@ export function AssistantPanel({
   const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [conversations, setConversations] = useState<AssistantConversationSummary[]>([]);
+  const [resumable, setResumable] = useState<string | undefined>();
+  const conversationIdRef = useRef<string | undefined>(undefined);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const composer = useMemo(
@@ -144,11 +165,18 @@ export function AssistantPanel({
     endRef.current?.scrollIntoView?.({ block: "end" });
   }, [thread.length, pending]);
 
+  conversationIdRef.current = conversationId;
   const runningChange = useRef(onRunningChange);
   runningChange.current = onRunningChange;
   useEffect(() => runningChange.current?.(pending), [pending]);
 
-  const stop = () => inFlight.current?.abort();
+  const liveConversation = useRef<string | undefined>(undefined);
+  const stop = () => {
+    if (!inFlight.current) return;
+    inFlight.current.abort();
+    const id = liveConversation.current;
+    if (id) api.stop?.(id).catch(() => undefined);
+  };
 
   const newConversation = () => {
     stop();
@@ -160,6 +188,7 @@ export function AssistantPanel({
     setHistoryOpen(false);
     setMenuOpen(false);
     setPending(false);
+    setResumable(undefined);
     attachments.clear();
   };
 
@@ -175,6 +204,7 @@ export function AssistantPanel({
         if (current !== generation.current) return;
         setThread(detail.messages);
         setConversationId(detail.id);
+        if (detail.live) resumeLive(detail.id);
         onConversationChange?.(detail.id, c.title);
         if (detail.scopeId && detail.scopeId !== scopeId) onScopeChange?.(detail.scopeId);
         setLoading(false);
@@ -191,20 +221,124 @@ export function AssistantPanel({
   useEffect(() => {
     const id = initialConversation.current;
     initialConversation.current = undefined;
-    if (id) openConversation({ id, title: "" });
+    if (id) {
+      openConversation({ id, title: "" });
+      return;
+    }
+    if (!singleConversation) return;
+    api.listConversations().then(
+      (list) => {
+        const existing = list.find((c) => !c.scopeId || c.scopeId === scopeId);
+        if (existing && !conversationIdRef.current) openConversation(existing);
+      },
+      () => undefined,
+    );
   }, []);
 
-  const canSend = !!scopeId && !pending && !attachments.uploading;
+  const canSend = !!scopeId && !pending && !attachments.uploading && !disabledReason;
 
-  const send = (message: string, shownAs: string, askExtra?: Record<string, unknown>) => {
+  const runTurn = (
+    current: number,
+    title: string,
+    start: (emit: (event: AssistantEvent) => void, signal: AbortSignal) => Promise<AssistantSendResult>,
+    knownConversation: string | undefined,
+    attempt = 0,
+  ) => {
+    setPending(true);
+    setResumable(undefined);
+    liveConversation.current = knownConversation;
+    const controller = new AbortController();
+    inFlight.current = controller;
+    setThread((t) => (t[t.length - 1]?.streaming ? t : [...t, { role: "assistant", content: "", streaming: true }]));
+    const emit = (event: AssistantEvent) => {
+      if (current !== generation.current) return;
+      setThread((t) => {
+        const last = t[t.length - 1];
+        return last?.streaming ? [...t.slice(0, -1), applyEvent(last, event, Date.now())] : t;
+      });
+    };
+    const settle = () => {
+      if (inFlight.current === controller) inFlight.current = null;
+      setPending(false);
+    };
+    start(emit, controller.signal).then(
+      (res) => {
+        if (current !== generation.current) return;
+        settle();
+        liveConversation.current = res.conversationId;
+        setConversationId(res.conversationId);
+        onConversationChange?.(res.conversationId, title.slice(0, 80));
+        onAnswered?.();
+        setThread((t) => {
+          const last = t[t.length - 1];
+          const base: AssistantMessage = last?.streaming ? last : { role: "assistant", content: "" };
+          const done: AssistantMessage = {
+            ...base,
+            role: "assistant",
+            content: res.answer,
+            meta: res.meta ?? base.meta,
+            sources: res.sources ?? base.sources,
+            suggestions: res.suggestions ?? base.suggestions,
+            attachments: res.attachments ?? base.attachments,
+            streaming: false,
+            step: undefined,
+          };
+          return last?.streaming ? [...t.slice(0, -1), done] : [...t, done];
+        });
+        refreshConversations();
+      },
+      (err: unknown) => {
+        if (current !== generation.current) return;
+        settle();
+        const code = streamErrorCode(err);
+        const live = liveConversation.current;
+        if (isAbort(err)) {
+          setThread((t) => {
+            const last = t[t.length - 1];
+            return last?.streaming ? [...t.slice(0, -1), { ...last, streaming: false, stopped: true }] : t;
+          });
+          return;
+        }
+        if (code === "nothing_to_stream") {
+          setThread((t) => (t[t.length - 1]?.streaming && !t[t.length - 1].content ? t.slice(0, -1) : t));
+          return;
+        }
+        if (code === "connection_lost" && api.resume && live && attempt < RESUME_ATTEMPTS) {
+          const resume = api.resume.bind(api);
+          setTimeout(() => {
+            if (current !== generation.current) return;
+            runTurn(current, title, (e, signal) => resume(live, e, signal), live, attempt + 1);
+          }, RESUME_DELAY_MS * (attempt + 1));
+          return;
+        }
+        setThread((t) => {
+          const last = t[t.length - 1];
+          if (!last?.streaming) return t;
+          return last.content || last.tools?.length ? [...t.slice(0, -1), { ...last, streaming: false, stopped: true }] : t.slice(0, -1);
+        });
+        if ((code === "reply_in_progress" || code === "connection_lost") && api.resume && live) setResumable(live);
+        setError(
+          code === "reply_in_progress" ? labels.replyInProgress : code === "connection_lost" ? labels.connectionLost : errorMessage(err, labels.requestFailed),
+        );
+      },
+    );
+  };
+
+  const resumeLive = (id: string) => {
+    if (!api.resume) return;
+    const resume = api.resume.bind(api);
+    setError(null);
+    runTurn(generation.current, "", (emit, signal) => resume(id, emit, signal), id);
+  };
+
+  const send = (message: string, shownAs: string, askExtra?: Record<string, unknown>, silent = false) => {
     const ready = attachments.done;
     if (!canSend || (!message.trim() && ready.length === 0)) return false;
     const current = generation.current;
     setError(null);
     setHistoryOpen(false);
-    setPending(true);
     const quoted = selection;
-    setThread((t) => [...t, { role: "user", content: shownAs, attachments: ready, selection: quoted }]);
+    if (!silent) setThread((t) => [...t, { role: "user", content: shownAs, attachments: ready, selection: quoted }]);
     attachments.clear();
     setSelection(undefined);
     const input: AssistantSendInput = {
@@ -217,52 +351,8 @@ export function AssistantPanel({
       selection: quoted,
       extra: askExtra ? { ...sendExtra, ...askExtra } : sendExtra,
     };
-    const finish = (res: AssistantSendResult) => {
-      if (current !== generation.current) return;
-      setConversationId(res.conversationId);
-      onConversationChange?.(res.conversationId, shownAs.slice(0, 80));
-      onAnswered?.();
-      setThread((t) => {
-        const last = t[t.length - 1];
-        const done: AssistantMessage = { ...(last?.streaming ? last : {}), role: "assistant", content: res.answer, meta: res.meta ?? (last?.streaming ? last.meta : undefined), streaming: false };
-        return last?.streaming ? [...t.slice(0, -1), done] : [...t, done];
-      });
-      setPending(false);
-      refreshConversations();
-    };
-    const fail = (err: unknown) => {
-      if (current !== generation.current) return;
-      if (isAbort(err)) {
-        setThread((t) => {
-          const last = t[t.length - 1];
-          return last?.streaming ? [...t.slice(0, -1), { ...last, streaming: false, stopped: true }] : t;
-        });
-      } else {
-        setThread((t) => (t[t.length - 1]?.streaming ? t.slice(0, -1) : t));
-        setError(errorMessage(err, labels.requestFailed));
-      }
-      setPending(false);
-    };
-    if (api.stream) {
-      const controller = new AbortController();
-      inFlight.current = controller;
-      setThread((t) => [...t, { role: "assistant", content: "", streaming: true }]);
-      const emit = (event: AssistantEvent) => {
-        if (current !== generation.current) return;
-        setThread((t) => {
-          const last = t[t.length - 1];
-          return last?.streaming ? [...t.slice(0, -1), applyEvent(last, event, Date.now())] : t;
-        });
-      };
-      api
-        .stream(input, emit, controller.signal)
-        .then(finish, fail)
-        .finally(() => {
-          if (inFlight.current === controller) inFlight.current = null;
-        });
-    } else {
-      api.send(input).then(finish, fail);
-    }
+    const stream = api.stream?.bind(api);
+    runTurn(current, shownAs, (emit, signal) => (stream ? stream(input, emit, signal) : api.send(input)), conversationId);
     return true;
   };
 
@@ -274,7 +364,7 @@ export function AssistantPanel({
       return;
     }
     asked.current = ask.id;
-    send(ask.text, ask.shownAs ?? ask.text, ask.extra);
+    send(ask.text, ask.shownAs ?? ask.text, ask.extra, ask.silent);
   });
 
   const seeded = useRef<string | undefined>(undefined);
@@ -296,6 +386,7 @@ export function AssistantPanel({
       e.preventDefault();
       submit();
     }
+    if (e.key === "Escape" && onComposerEscape?.()) e.preventDefault();
   };
 
   const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
@@ -319,6 +410,7 @@ export function AssistantPanel({
     attachments.add(Array.from(e.dataTransfer?.files ?? []));
   };
 
+  const historyContext = { currentId: conversationId, open: (id: string) => openConversation({ id, title: "" }), newConversation };
   const streaming = !!thread[thread.length - 1]?.streaming;
   const empty = thread.length === 0 && !pending && !loading;
   const panel = usePanelWidth(widthStorageKey);
@@ -348,12 +440,20 @@ export function AssistantPanel({
       {dragging && <div className="lalt-assistant-dropzone">{labels.dropHere}</div>}
       <header className="lalt-assistant-header" onPointerDown={onHeaderPointerDown}>
         <div className="lalt-assistant-menu">
-          <button type="button" className="lalt-assistant-title" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
-            <Icon name="bot" />
-            {labels.launcher}
-            <Icon name="chevronDown" size={14} className="lalt-assistant-muted" />
-          </button>
-          {menuOpen && (
+          {singleConversation ? (
+            <span className="lalt-assistant-title">
+              <Icon name="bot" />
+              {labels.launcher}
+            </span>
+          ) : (
+            <button type="button" className="lalt-assistant-title" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen}>
+              <Icon name="bot" />
+              {labels.launcher}
+              <Icon name="chevronDown" size={14} className="lalt-assistant-muted" />
+            </button>
+          )}
+          {subtitle && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-subtitle lalt-assistant-truncate">{subtitle}</span>}
+          {menuOpen && !singleConversation && (
             <div role="menu" className="lalt-assistant-menu-content">
               <button type="button" role="menuitem" onClick={newConversation}>
                 <Icon name="plus" />
@@ -434,21 +534,35 @@ export function AssistantPanel({
       </header>
 
       <div className="lalt-assistant-main">
-      {historyRail && !bodyOverride && (
+      {(historyRail || renderHistory) && !singleConversation && !bodyOverride && (
         <nav aria-label={labels.history} className="lalt-assistant-rail">
-          <button type="button" onClick={newConversation} className="lalt-assistant-text-button">
-            <Icon name="plus" size={14} />
-            {labels.newConversation}
-          </button>
-          <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
+          {renderHistory ? (
+            renderHistory(historyContext)
+          ) : (
+            <>
+              <button type="button" onClick={newConversation} className="lalt-assistant-text-button">
+                <Icon name="plus" size={14} />
+                {labels.newConversation}
+              </button>
+              <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
+            </>
+          )}
         </nav>
       )}
       <div className="lalt-assistant-body">
         {banner}
         {bodyOverride ? (
           bodyOverride
-        ) : historyOpen ? (
-          <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
+        ) : historyOpen && !singleConversation ? (
+          renderHistory ? (
+            renderHistory(historyContext)
+          ) : (
+            <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
+          )
+        ) : disabledReason && empty ? (
+          <p className="lalt-assistant-muted lalt-assistant-disabled">{disabledReason}</p>
+        ) : empty && emptyState ? (
+          emptyState
         ) : empty ? (
           <div>
             <h2 className="lalt-assistant-empty-title">{labels.emptyTitle}</h2>
@@ -458,7 +572,7 @@ export function AssistantPanel({
                 <button
                   key={a.id}
                   type="button"
-                  onClick={() => send(a.prompt, a.label)}
+                  onClick={() => send(a.prompt, a.label, a.options)}
                   disabled={!canSend}
                   className="lalt-assistant-action"
                 >
@@ -488,6 +602,7 @@ export function AssistantPanel({
                 </div>
               ) : (
                 <div key={i} className="lalt-assistant-answer" data-streaming={m.streaming || undefined}>
+                  {agentName && <span className="lalt-assistant-agent lalt-assistant-small">{agentName}</span>}
                   {m.reasoning && (
                     <details className="lalt-assistant-reasoning">
                       <summary>{labels.reasoningShown}</summary>
@@ -501,7 +616,8 @@ export function AssistantPanel({
                     return (
                       <>
                         {lines.length > 0 && <ToolLines tools={lines} live={!!m.streaming} labels={labels} />}
-                        {m.content && (renderMarkdown ? renderMarkdown(m.content, m) : <div className="lalt-assistant-plain">{m.content}</div>)}
+                        {m.content && (renderMarkdown ? renderMarkdown(m.content, m) : <SafeMarkdown text={m.content} />)}
+                        {m.attachments && m.attachments.length > 0 && <AnswerAttachments attachments={m.attachments} />}
                         {cards.map((c) => (
                           <div key={c.t.id} className="lalt-assistant-tool-card">
                             {c.node}
@@ -510,8 +626,30 @@ export function AssistantPanel({
                       </>
                     );
                   })()}
+                  {m.streaming && m.step !== undefined && <p className="lalt-assistant-muted lalt-assistant-small">{labels.step(m.step)}</p>}
                   {m.stopped && <p className="lalt-assistant-muted lalt-assistant-small">{labels.stopped}</p>}
+                  {!m.streaming && m.sources && m.sources.length > 0 && <SourceCards sources={m.sources} labels={labels} />}
+                  {!m.streaming && m.suggestions && m.suggestions.length > 0 && (
+                    <div className="lalt-assistant-suggestions">
+                      {m.suggestions.map((sug) => (
+                        <button key={sug} type="button" className="lalt-assistant-suggestion" disabled={!onApplySuggestion} onClick={() => onApplySuggestion?.(m, sug)}>
+                          {sug}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {!m.streaming && renderMessageFooter?.(m)}
+                  {!m.streaming && messageActions.some((a) => !a.when || a.when(m)) && (
+                    <div className="lalt-assistant-message-actions">
+                      {messageActions
+                        .filter((a) => !a.when || a.when(m))
+                        .map((a) => (
+                          <button key={a.id} type="button" onClick={() => a.onSelect(m)} aria-label={a.icon ? a.label : undefined} title={a.label} className={a.icon ? "lalt-assistant-icon-button" : "lalt-assistant-text-button"}>
+                            {a.icon ?? a.label}
+                          </button>
+                        ))}
+                    </div>
+                  )}
                 </div>
               ),
             )}
@@ -526,6 +664,11 @@ export function AssistantPanel({
         {error && (
           <p role="alert" className="lalt-assistant-error">
             {error}
+            {resumable && (
+              <button type="button" onClick={() => resumeLive(resumable)} className="lalt-assistant-text-button">
+                {labels.resume}
+              </button>
+            )}
           </p>
         )}
         <div ref={endRef} />
@@ -533,7 +676,22 @@ export function AssistantPanel({
       </div>
 
       <div className="lalt-assistant-footer">
+        {aboveComposer}
         <div className="lalt-assistant-composer">
+          {composerOptions.some((o) => o.checked) && (
+            <div className="lalt-assistant-chips">
+              {composerOptions
+                .filter((o) => o.checked)
+                .map((o) => (
+                  <div key={o.id} className="lalt-assistant-chip" title={o.hint}>
+                    <span className="lalt-assistant-chip-text lalt-assistant-truncate">{o.label}</span>
+                    <button type="button" onClick={() => o.onToggle(false)} aria-label={labels.removeOption(o.label)} className="lalt-assistant-chip-remove">
+                      <Icon name="x" size={12} />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
           {selection && (
             <div className="lalt-assistant-chips">
               <div className="lalt-assistant-chip lalt-assistant-selection">
@@ -552,18 +710,49 @@ export function AssistantPanel({
               {attachments.notice && <p className="lalt-assistant-error">{attachments.notice}</p>}
             </div>
           )}
+          {composerOverlay && <div className="lalt-assistant-composer-overlay">{composerOverlay}</div>}
           <textarea
             ref={textarea}
+            disabled={!!disabledReason}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
             rows={3}
-            placeholder={labels.placeholder}
+            placeholder={composerOverlay ? "" : labels.placeholder}
             aria-label="Message"
             className="lalt-assistant-textarea"
           />
           <div className="lalt-assistant-composer-row">
+            {composerOptions.length > 0 && (
+              <div className="lalt-assistant-options">
+                <button type="button" onClick={() => setOptionsOpen((v) => !v)} aria-expanded={optionsOpen} aria-label={labels.options} title={labels.options} className="lalt-assistant-icon-button">
+                  <Icon name="plus" />
+                </button>
+                {optionsOpen && (
+                  <div role="menu" className="lalt-assistant-menu-content lalt-assistant-options-menu">
+                    {composerOptions.map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        role="menuitemcheckbox"
+                        aria-checked={o.checked}
+                        onClick={() => {
+                          o.onToggle(!o.checked);
+                          setOptionsOpen(false);
+                        }}
+                      >
+                        <span className="lalt-assistant-grow">
+                          <span>{o.label}</span>
+                          {o.hint && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-block">{o.hint}</span>}
+                        </span>
+                        {o.checked && <Icon name="check" size={14} />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {renderComposerAccessory?.(composer)}
             {attachments.enabled && (
               <>
@@ -716,4 +905,60 @@ function ToolLines({ tools, live, labels }: { tools: AssistantToolCall[]; live: 
       {lines}
     </details>
   );
+}
+
+function SourceCards({ sources, labels }: { sources: AssistantSource[]; labels: AssistantLabels }) {
+  return (
+    <div className="lalt-assistant-sources" aria-label={labels.sources}>
+      {sources.map((src) => {
+        const href = /^https?:\/\//i.test(src.url) ? src.url : undefined;
+        return (
+          <a key={src.url} href={href} target="_blank" rel="noreferrer noopener" className="lalt-assistant-source">
+            <span className="lalt-assistant-source-title lalt-assistant-truncate">{src.title}</span>
+            {src.site && <span className="lalt-assistant-muted lalt-assistant-small">{src.site}</span>}
+            {src.excerpt && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-source-excerpt">{src.excerpt}</span>}
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
+function AnswerAttachments({ attachments }: { attachments: AssistantAttachment[] }) {
+  return (
+    <div className="lalt-assistant-answer-files">
+      {attachments.map((a) =>
+        a.url && a.mimeType.startsWith("image/") ? (
+          <figure key={a.id} className="lalt-assistant-answer-image">
+            <img src={a.url} alt={a.sourceTitle ?? a.filename} />
+            {a.sourceUrl && /^https?:\/\//i.test(a.sourceUrl) && (
+              <figcaption className="lalt-assistant-muted lalt-assistant-small">
+                <a href={a.sourceUrl} target="_blank" rel="noreferrer noopener">
+                  {a.sourceTitle ?? a.sourceUrl}
+                </a>
+              </figcaption>
+            )}
+          </figure>
+        ) : (
+          <span key={a.id} className="lalt-assistant-sent-file">
+            <Icon name="file" size={12} />
+            {a.url && /^https?:\/\//i.test(a.url) ? (
+              <a href={a.url} target="_blank" rel="noreferrer noopener">
+                {a.filename}
+              </a>
+            ) : (
+              a.filename
+            )}
+          </span>
+        ),
+      )}
+    </div>
+  );
+}
+
+const STREAM_ERROR_CODES = new Set<AssistantErrorCode>(["reply_in_progress", "connection_lost", "nothing_to_stream"]);
+
+function streamErrorCode(err: unknown): AssistantErrorCode | undefined {
+  const code = (err as { code?: unknown } | null)?.code;
+  return typeof code === "string" && STREAM_ERROR_CODES.has(code as AssistantErrorCode) ? (code as AssistantErrorCode) : undefined;
 }

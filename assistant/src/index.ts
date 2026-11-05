@@ -1,5 +1,7 @@
 export { AssistantLauncher, type AssistantLauncherProps } from "./assistant-launcher";
 export { AssistantPanel } from "./assistant-panel";
+export { SafeMarkdown } from "./markdown";
+export { AssistantStreamError } from "./types";
 export {
   AssistantWorkspace,
   useAssistantWorkspace,
@@ -25,6 +27,11 @@ export type {
   AssistantApi,
   AssistantAttachment,
   AssistantComposer,
+  AssistantComposerOption,
+  AssistantErrorCode,
+  AssistantHistoryContext,
+  AssistantMessageAction,
+  AssistantSource,
   AssistantTurnContext,
   AssistantConversation,
   AssistantConversationSummary,

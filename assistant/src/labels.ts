@@ -42,6 +42,13 @@ export const defaultLabels: AssistantLabels = {
   toolsDone: (count, seconds) =>
     `${count} outil${count > 1 ? "s" : ""} · ${seconds.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} s`,
   removeSelection: "Retirer le passage",
+  replyInProgress: "Une réponse est encore en cours d'écriture.",
+  connectionLost: "La connexion a été coupée.",
+  resume: "Reprendre",
+  step: (n) => `Étape ${n}`,
+  options: "Options",
+  removeOption: (label) => `Retirer ${label}`,
+  sources: "Sources",
   minimize: "Réduire",
   minimizeAll: "Tout réduire",
   restoreAll: "Tout rouvrir",

@@ -17,6 +17,7 @@ export interface AssistantQuickAction {
   label: string;
   hint?: string;
   prompt: string;
+  options?: Record<string, unknown>;
 }
 
 export interface AssistantAttachment {
@@ -24,6 +25,29 @@ export interface AssistantAttachment {
   filename: string;
   mimeType: string;
   sizeBytes: number;
+  url?: string;
+  sourceUrl?: string;
+  sourceTitle?: string;
+}
+
+export interface AssistantSource {
+  title: string;
+  url: string;
+  excerpt?: string;
+  site?: string;
+}
+
+export type AssistantErrorCode = "reply_in_progress" | "connection_lost" | "nothing_to_stream";
+
+// Thrown by an adapter's stream/resume so the panel can tell a reply still
+// being written, a dropped connection and an empty stream from a failure.
+export class AssistantStreamError extends Error {
+  readonly code: AssistantErrorCode;
+  constructor(code: AssistantErrorCode, message?: string) {
+    super(message ?? code);
+    this.name = "AssistantStreamError";
+    this.code = code;
+  }
 }
 
 export type ReasoningEffort = "high" | "medium" | "low" | "none";
@@ -67,7 +91,11 @@ export type AssistantEvent =
   | { type: "reasoning"; delta: string }
   | { type: "tool_start"; id: string; name: string; label?: string; args?: unknown }
   | { type: "tool_end"; id: string; ok: boolean; summary?: string; meta?: unknown }
-  | { type: "meta"; meta: unknown };
+  | { type: "meta"; meta: unknown }
+  | { type: "step"; step: number }
+  | { type: "sources"; sources: AssistantSource[] }
+  | { type: "suggestions"; suggestions: string[] }
+  | { type: "attachment"; attachment: AssistantAttachment };
 
 export interface AssistantMessage {
   role: "user" | "assistant";
@@ -79,6 +107,9 @@ export interface AssistantMessage {
   selection?: AssistantSelection;
   streaming?: boolean;
   stopped?: boolean;
+  step?: number;
+  sources?: AssistantSource[];
+  suggestions?: string[];
 }
 
 export interface AssistantConversationSummary {
@@ -92,6 +123,7 @@ export interface AssistantConversation {
   id: string;
   scopeId?: string;
   messages: AssistantMessage[];
+  live?: boolean;
 }
 
 export interface AssistantScreen {
@@ -115,6 +147,9 @@ export interface AssistantSendResult {
   conversationId: string;
   answer: string;
   meta?: unknown;
+  sources?: AssistantSource[];
+  suggestions?: string[];
+  attachments?: AssistantAttachment[];
 }
 
 export interface AttachmentLimits {
@@ -131,6 +166,30 @@ export interface AssistantApi {
   listConversations(): Promise<AssistantConversationSummary[]>;
   getConversation(id: string): Promise<AssistantConversation>;
   attach?(file: File, scopeId: string): Promise<AssistantAttachment>;
+  stop?(conversationId: string): Promise<void>;
+  resume?(conversationId: string, emit: (event: AssistantEvent) => void, signal: AbortSignal): Promise<AssistantSendResult>;
+}
+
+export interface AssistantMessageAction {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  when?: (message: AssistantMessage) => boolean;
+  onSelect: (message: AssistantMessage) => void;
+}
+
+export interface AssistantComposerOption {
+  id: string;
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onToggle: (checked: boolean) => void;
+}
+
+export interface AssistantHistoryContext {
+  currentId?: string;
+  open: (conversationId: string) => void;
+  newConversation: () => void;
 }
 
 export interface AssistantLabels {
@@ -180,6 +239,13 @@ export interface AssistantLabels {
   stopped: string;
   toolsDone: (count: number, seconds: number) => string;
   removeSelection: string;
+  replyInProgress: string;
+  connectionLost: string;
+  resume: string;
+  step: (n: number) => string;
+  options: string;
+  removeOption: (label: string) => string;
+  sources: string;
 }
 
 export interface AssistantPanelProps {
@@ -196,10 +262,22 @@ export interface AssistantPanelProps {
   renderToolCall?: (tool: AssistantToolCall, message: AssistantMessage, turn: AssistantTurnContext) => ReactNode | undefined;
   renderComposerAccessory?: (composer: AssistantComposer) => ReactNode;
   banner?: ReactNode;
-  ask?: { id: string; text: string; shownAs?: string; extra?: Record<string, unknown>; fresh?: boolean };
+  ask?: { id: string; text: string; shownAs?: string; extra?: Record<string, unknown>; fresh?: boolean; silent?: boolean };
   draftSeed?: { id: string; text: string; fresh?: boolean };
   sendExtra?: Record<string, unknown>;
   historyRail?: boolean;
+  renderHistory?: (history: AssistantHistoryContext) => ReactNode;
+  aboveComposer?: ReactNode;
+  subtitle?: ReactNode;
+  emptyState?: ReactNode;
+  agentName?: string;
+  messageActions?: AssistantMessageAction[];
+  onApplySuggestion?: (message: AssistantMessage, suggestion: string) => void;
+  composerOptions?: AssistantComposerOption[];
+  composerOverlay?: ReactNode;
+  onComposerEscape?: () => boolean;
+  singleConversation?: boolean;
+  disabledReason?: string;
   bodyOverride?: ReactNode;
   renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;
   renderMessageFooter?: (message: AssistantMessage) => ReactNode;
