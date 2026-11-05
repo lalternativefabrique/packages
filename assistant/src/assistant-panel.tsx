@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ClipboardEvent,
@@ -77,6 +78,10 @@ export function AssistantPanel({
   pasteAsFileThreshold,
   labels: labelOverrides,
   renderMarkdown,
+  renderToolCall,
+  renderComposerAccessory,
+  banner,
+  bodyOverride,
   renderScopePicker,
   renderMessageFooter,
   readScreen,
@@ -107,6 +112,14 @@ export function AssistantPanel({
   const [dragging, setDragging] = useState(false);
   const [conversations, setConversations] = useState<AssistantConversationSummary[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
+  const textarea = useRef<HTMLTextAreaElement>(null);
+  const composer = useMemo(
+    () => ({
+      insert: (text: string) => setDraft((d) => (d.trim() ? `${d.trimEnd()} ${text}` : text)),
+      focus: () => textarea.current?.focus(),
+    }),
+    [],
+  );
   const endRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
@@ -395,7 +408,10 @@ export function AssistantPanel({
       </header>
 
       <div className="lalt-assistant-body">
-        {historyOpen ? (
+        {banner}
+        {bodyOverride ? (
+          bodyOverride
+        ) : historyOpen ? (
           <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
         ) : empty ? (
           <div>
@@ -442,8 +458,22 @@ export function AssistantPanel({
                       <div className="lalt-assistant-plain lalt-assistant-muted">{m.reasoning}</div>
                     </details>
                   )}
-                  {m.tools && m.tools.length > 0 && <ToolLines tools={m.tools} live={!!m.streaming} labels={labels} />}
-                  {m.content && (renderMarkdown ? renderMarkdown(m.content) : <div className="lalt-assistant-plain">{m.content}</div>)}
+                  {(() => {
+                    const cards = (m.tools ?? []).map((t) => ({ t, node: renderToolCall?.(t, m) })).filter((c) => c.node !== undefined);
+                    const carded = new Set(cards.map((c) => c.t.id));
+                    const lines = (m.tools ?? []).filter((t) => !carded.has(t.id));
+                    return (
+                      <>
+                        {lines.length > 0 && <ToolLines tools={lines} live={!!m.streaming} labels={labels} />}
+                        {m.content && (renderMarkdown ? renderMarkdown(m.content, m) : <div className="lalt-assistant-plain">{m.content}</div>)}
+                        {cards.map((c) => (
+                          <div key={c.t.id} className="lalt-assistant-tool-card">
+                            {c.node}
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
                   {m.stopped && <p className="lalt-assistant-muted lalt-assistant-small">{labels.stopped}</p>}
                   {!m.streaming && renderMessageFooter?.(m)}
                 </div>
@@ -486,6 +516,7 @@ export function AssistantPanel({
             </div>
           )}
           <textarea
+            ref={textarea}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={onKeyDown}
@@ -496,6 +527,7 @@ export function AssistantPanel({
             className="lalt-assistant-textarea"
           />
           <div className="lalt-assistant-composer-row">
+            {renderComposerAccessory?.(composer)}
             {attachments.enabled && (
               <>
                 <button

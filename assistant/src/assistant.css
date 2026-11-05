@@ -664,3 +664,7 @@
   align-items: center;
   justify-content: center;
 }
+
+.lalt-assistant-tool-card {
+  margin-top: 8px;
+}
