@@ -28,7 +28,7 @@ type CreateReminderRequest struct {
 	In    string `json:"in,omitempty" example:"2h"`
 	// Every makes the reminder fire again after this delay instead of once,
 	// read the same way as In ("24h", "7d"). Omitted means one-shot.
-	Every    string                 `json:"every,omitempty" example:"24h"`
+	Every    string                 `json:"every,omitempty" example:"1h"`
 	Channels []domain.ChannelConfig `json:"channels,omitempty"`
 }
 
@@ -40,7 +40,7 @@ type UpdateReminderRequest struct {
 	DueAt *string `json:"due_at,omitempty" example:"2026-08-24T09:00:00Z"`
 	// Every, when present, replaces the recurrence: "" clears it back to a
 	// one-shot reminder, anything else sets the new interval.
-	Every *string `json:"every,omitempty" example:"24h"`
+	Every *string `json:"every,omitempty" example:"1h"`
 }
 
 // ReminderDTO is a reminder as an API client sees it.
@@ -79,7 +79,7 @@ func (s *Service) CreateReminder(c echo.Context) error {
 	}
 
 	if req.Every != "" {
-		every, err := parseDelay(req.Every)
+		every, err := domain.ParseEvery(req.Every)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		}
@@ -141,7 +141,7 @@ func (s *Service) UpdateReminder(c echo.Context) error {
 	if req.Every != nil {
 		var every *time.Duration
 		if *req.Every != "" {
-			d, err := parseDelay(*req.Every)
+			d, err := domain.ParseEvery(*req.Every)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 			}
@@ -232,33 +232,11 @@ func resolveDue(dueAt, in string) (time.Time, error) {
 		}
 		return t.UTC(), nil
 	}
-	d, err := parseDelay(in)
+	d, err := domain.ParseDelay(in)
 	if err != nil {
 		return time.Time{}, err
 	}
 	return time.Now().UTC().Add(d), nil
-}
-
-// parseDelay reads "2h", "in 45m", "3d". Days are handled here because
-// time.ParseDuration stops at hours, and a reminder for next week is a normal
-// thing to ask for.
-func parseDelay(s string) (time.Duration, error) {
-	s = strings.TrimSpace(strings.TrimPrefix(strings.ToLower(strings.TrimSpace(s)), "in "))
-	if days, ok := strings.CutSuffix(s, "d"); ok {
-		d, err := time.ParseDuration(days + "h")
-		if err != nil {
-			return 0, fmt.Errorf("in: %q is not a delay like 2h, 45m or 3d", s)
-		}
-		return d * 24, nil
-	}
-	d, err := time.ParseDuration(s)
-	if err != nil {
-		return 0, fmt.Errorf("in: %q is not a delay like 2h, 45m or 3d", s)
-	}
-	if d <= 0 {
-		return 0, errors.New("in: the delay must be positive")
-	}
-	return d, nil
 }
 
 const timeLayout = "2006-01-02T15:04:05Z07:00"
@@ -273,18 +251,9 @@ func toDTO(r *domain.Reminder) ReminderDTO {
 		dto.FiredAt = r.FiredAt.Format(timeLayout)
 	}
 	if r.RunEvery != nil {
-		dto.Every = formatDelay(*r.RunEvery)
+		dto.Every = domain.FormatDelay(*r.RunEvery)
 	}
 	return dto
-}
-
-// formatDelay renders a duration the way parseDelay reads it back: whole
-// days as "Nd", otherwise Go's own compact form ("24h", "45m").
-func formatDelay(d time.Duration) string {
-	if d > 0 && d%(24*time.Hour) == 0 {
-		return fmt.Sprintf("%dd", d/(24*time.Hour))
-	}
-	return d.String()
 }
 
 func (s *Service) userID(c echo.Context) string {

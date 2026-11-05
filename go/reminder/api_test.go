@@ -1,6 +1,7 @@
 package reminder
 
 import (
+	"github.com/lalternative/packages/go/reminder/domain"
 	"testing"
 	"time"
 )
@@ -17,7 +18,7 @@ func TestADelayIsReadTheWayPeopleWriteIt(t *testing.T) {
 		{"3d", 72 * time.Hour},
 		{"  1h30m  ", 90 * time.Minute},
 	} {
-		got, err := parseDelay(tc.in)
+		got, err := domain.ParseDelay(tc.in)
 		if err != nil {
 			t.Fatalf("%q: %v", tc.in, err)
 		}
@@ -29,7 +30,7 @@ func TestADelayIsReadTheWayPeopleWriteIt(t *testing.T) {
 
 func TestANonDelayIsRefusedRatherThanGuessed(t *testing.T) {
 	for _, in := range []string{"", "tomorrow", "2", "-5m", "0s", "next week"} {
-		if _, err := parseDelay(in); err == nil {
+		if _, err := domain.ParseDelay(in); err == nil {
 			t.Errorf("%q was accepted as a delay", in)
 		}
 	}
@@ -58,9 +59,9 @@ func TestAnAbsoluteTimeIsKeptAsGiven(t *testing.T) {
 
 func TestFormatDelayRoundTripsThroughParseDelay(t *testing.T) {
 	for _, d := range []time.Duration{time.Hour, 45 * time.Minute, 24 * time.Hour, 3 * 24 * time.Hour} {
-		got, err := parseDelay(formatDelay(d))
+		got, err := domain.ParseDelay(domain.FormatDelay(d))
 		if err != nil {
-			t.Fatalf("formatDelay(%v) = %q, which parseDelay rejected: %v", d, formatDelay(d), err)
+			t.Fatalf("domain.FormatDelay(%v) = %q, which ParseDelay rejected: %v", d, domain.FormatDelay(d), err)
 		}
 		if got != d {
 			t.Errorf("round trip of %v produced %v", d, got)
