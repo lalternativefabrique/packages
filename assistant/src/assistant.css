@@ -17,8 +17,8 @@
   --_font: var(--lalt-assistant-font, inherit);
   color: var(--_text);
   font-family: var(--_font);
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: var(--lalt-assistant-font-size, 16px);
+  line-height: 1.6;
 }
 
 .lalt-assistant *,
@@ -187,7 +187,7 @@
 
 .lalt-assistant-menu-label {
   padding: 6px 8px 2px;
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
   color: var(--_muted);
 }
 
@@ -213,7 +213,7 @@
 }
 
 .lalt-assistant-small {
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
 }
 
 .lalt-assistant-scope-label {
@@ -229,7 +229,7 @@
   background: var(--_bg);
   color: inherit;
   font: inherit;
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
 }
 
 .lalt-assistant-icon-button {
@@ -255,14 +255,14 @@
 
 .lalt-assistant-empty-title {
   margin: 24px 0 4px;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 500;
   text-align: center;
 }
 
 .lalt-assistant-intro {
   margin: 0 0 24px;
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
   color: var(--_muted);
   text-align: center;
 }
@@ -316,7 +316,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
   color: var(--_muted);
 }
 
@@ -350,7 +350,7 @@
 
 .lalt-assistant-error {
   margin: 8px 0 0;
-  font-size: 12px;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
   color: var(--_danger);
 }
 
@@ -520,4 +520,147 @@
 
 .lalt-assistant-reasoning-select {
   max-width: 11em;
+}
+
+.lalt-assistant-embedded {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: 100%;
+  height: 100%;
+  border-left: 0;
+  box-shadow: none;
+}
+
+.lalt-assistant-column {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  border-left: 1px solid var(--_border);
+  background: var(--_bg);
+  box-shadow: -16px 0 48px rgba(0, 0, 0, 0.18);
+}
+
+@media (min-width: 640px) {
+  .lalt-assistant-column {
+    width: var(--lalt-assistant-column, 480px);
+  }
+}
+
+.lalt-assistant-window {
+  position: fixed;
+  display: flex;
+  border: 1px solid var(--_border);
+  border-radius: var(--_radius);
+  overflow: hidden;
+  background: var(--_bg);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+}
+
+.lalt-assistant-window .lalt-assistant-header {
+  cursor: grab;
+}
+
+.lalt-assistant-window-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+}
+
+@media (max-width: 639px) {
+  .lalt-assistant-window {
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0;
+  }
+}
+
+.lalt-assistant-text-button {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--_muted);
+  font: inherit;
+  font-size: var(--lalt-assistant-font-size-small, 14px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.lalt-assistant-text-button:hover {
+  background: var(--_hover);
+  color: var(--_text);
+}
+
+.lalt-assistant-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  z-index: 70;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border: 1px solid var(--_border);
+  border-radius: calc(var(--_radius) + 2px);
+  background: var(--_surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.lalt-assistant-dock-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  max-width: 280px;
+  padding: 0 14px;
+  border: 1px solid var(--_border);
+  border-radius: 10px;
+  background: var(--_bg);
+  color: var(--_text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lalt-assistant-dock-chip[data-unread] {
+  border-color: var(--_accent);
+}
+
+.lalt-assistant-dock-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lalt-assistant-dock-title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lalt-assistant-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--_accent);
+  color: var(--_accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }

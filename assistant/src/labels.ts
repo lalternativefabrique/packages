@@ -36,4 +36,15 @@ export const defaultLabels: AssistantLabels = {
   toolsDone: (count, seconds) =>
     `${count} outil${count > 1 ? "s" : ""} · ${seconds.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} s`,
   removeSelection: "Retirer le passage",
+  minimize: "Réduire",
+  minimizeAll: "Tout réduire",
+  restoreAll: "Tout rouvrir",
+  detach: "Détacher en fenêtre",
+  dock: "Ancrer à droite",
+  newAssistant: "Assistant",
+  dockRegion: "Assistants réduits",
+  running: "en cours",
+  ready: "réponse prête",
+  untitled: "Nouvelle conversation",
+  moveWindow: "Déplacer la fenêtre",
 };

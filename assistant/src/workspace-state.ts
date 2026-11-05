@@ -125,6 +125,7 @@ export function workspaceReducer(state: WorkspaceState, action: WorkspaceAction)
     case "move":
       return update(state, action.id, (s) => ({ ...s, rect: action.rect }));
     case "status":
+      if (state.sessions.find((s) => s.id === action.id)?.status === action.status) return state;
       return update(state, action.id, (s) => ({ ...s, status: action.status }));
     case "conversation":
       return update(state, action.id, (s) => ({
