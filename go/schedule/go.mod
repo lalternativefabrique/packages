@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v4 v4.15.2
-	github.com/lalternative/packages/go/reminder v0.2.0
+	github.com/lalternative/packages/go/reminder v0.4.0
 )
 
 require (
