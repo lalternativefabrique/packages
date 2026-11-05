@@ -760,7 +760,7 @@
                         "AppKeyAuth": []
                     }
                 ],
-                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), an item the app has not attached, a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nA line with `app_id` set to another app of the same tenant is recorded against that app, on its behalf: every rule above then applies to that app (its attached and private items, its customers for `external_user_id`), and the record keeps the caller as declarer. That app must have delegated cost declaration to the caller, otherwise the whole batch is refused with 403 and `code` = `cost_delegation_denied`. `idempotency_key` stays unique per recorded app.\n\nLLM usage is declared as one line per token kind, on items coded `<provider>/<model>.input`, `.cached` and `.output` (imported prices) or `<model>.<kind>` (items created by hand), with the quantity in tokens.",
+                "description": "Records one or more cost lines against the tenant cost catalog. Lungor values each line at the price in force at `occurred_at` and freezes that price on the record: amount_micros = quantity × price_micros_per_unit / unit_size, rounded half up (1 EUR = 1 000 000 micros).\n\nThe batch is ALL OR NOTHING: an unknown code (404), a private item of another app, an inactive item or a date before the item's first price (422) rejects the whole batch, and the error names the offending line. A line whose `idempotency_key` was already recorded for this app is accepted and not inserted again.\n\nA line with `app_id` set to another app of the same tenant is recorded against that app, on its behalf: every rule above then applies to that app (its attached and private items, its customers for `external_user_id`), and the record keeps the caller as declarer. That app must have delegated cost declaration to the caller, otherwise the whole batch is refused with 403 and `code` = `cost_delegation_denied`. `idempotency_key` stays unique per recorded app.\n\nLLM usage is declared as one line per token kind, on items coded `<provider>/<model>.input`, `.cached` and `.output` (imported prices) or `<model>.<kind>` (items created by hand), with the quantity in tokens.",
                 "tags": [
                     "costs"
                 ],
@@ -8071,6 +8071,178 @@
                 }
             }
         },
+        "/tenants/{tenant_id}/customers/{customer_id}/gestures": {
+            "get": {
+                "tags": [
+                    "billing"
+                ],
+                "summary": "List what a customer was given",
+                "operationId": "listCustomerGestures",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.gesturesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "A gesture is an operator's decision to give a customer something without charging them, recorded with its reason and who made it. The customer is emailed unless `notify` is false.\n`plan` puts the customer on a staff plan of the app (`plan_code`), moved from whatever subscription they hold or granted a new one.\n`allowance` adds `amount` of `unit` to the ceiling of their live subscription for the current period only; it lapses at the renewal. The plan must already set a ceiling on that unit.\nAnswers 409 when the plan is not a staff plan, when there is no live subscription for a bonus, or when the plan does not govern the unit; 422 when the reason is missing or the amount is not positive.",
+                "tags": [
+                    "billing"
+                ],
+                "summary": "Give a customer something for free",
+                "operationId": "makeCustomerGesture",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Customer ID",
+                        "name": "customer_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.makeGestureRequest"
+                            }
+                        }
+                    },
+                    "description": "Gesture",
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.gestureView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/tenants/{tenant_id}/customers/{customer_id}/payment-link": {
             "post": {
                 "description": "Opens a checkout session for an existing customer and returns its hosted-payment URL, for the operator to send them. This is how a customer on a free plan reaches a paid one: change-plan charges a saved payment method, and a customer who never checked out has none — the card can only be collected by the customer themselves, on the gateway's own page.\nNothing is charged or granted here. The paid subscription stays incomplete until the customer pays; their current free subscription keeps running until then, and yields its slot only once the payment settles. Abandoning the link leaves the customer exactly where they were — the session expires on its own after two hours.\nRefuses a free plan with 400 — there is nothing to collect, so that move is change-plan's job.",
@@ -8404,7 +8576,7 @@
         },
         "/tenants/{tenant_id}/customers/{customer_id}/usage/breakdown": {
             "get": {
-                "description": "What the customer consumed of one unit over [from, to), at most 92 days, per hour or day (UTC), grouped by the feature or agent the app labelled, or by app. An empty key is consumption declared without that label.",
+                "description": "What the customer consumed of one unit over [from, to), at most 92 days, per hour or day (UTC), grouped by the feature, agent or end user the app labelled, or by app. An empty key is consumption declared without that label.",
                 "tags": [
                     "metering"
                 ],
@@ -8466,7 +8638,7 @@
                         }
                     },
                     {
-                        "description": "feature, agent or app",
+                        "description": "feature, agent, app or end_user",
                         "name": "group_by",
                         "in": "query",
                         "schema": {
@@ -9884,6 +10056,134 @@
                     },
                     "502": {
                         "description": "Bad Gateway",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/usage/table": {
+            "get": {
+                "description": "Every consumption the tenant's apps recorded over [from, to), at most 92 days, summed per customer, app, unit, feature and agent. An empty feature or agent is consumption declared without that label.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Lay a tenant's usage out by customer, app and feature",
+                "operationId": "getUsageTable",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start, RFC 3339",
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, RFC 3339",
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/metering.usageTableRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/usage/table/costs": {
+            "get": {
+                "description": "What the consumption laid out by the usage table cost, as the apps declared it over [from, to): summed per customer, app, agent and currency.",
+                "tags": [
+                    "metering"
+                ],
+                "summary": "Price a tenant's usage table",
+                "operationId": "getUsageTableCosts",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "Start, RFC 3339",
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "End, RFC 3339",
+                        "name": "to",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/metering.usageCostRow"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -13658,6 +13958,10 @@
                         "description": "CancelAtPeriodEnd is true once the customer asked to stop: access runs to\nCurrentPeriodEnd and no renewal follows.",
                         "type": "boolean"
                     },
+                    "complimentary": {
+                        "description": "Complimentary is true when the plan is one that is only ever given, never\nsold: what an app shows as \"offert\".",
+                        "type": "boolean"
+                    },
                     "current_period_end": {
                         "description": "CurrentPeriodEnd is when the period already paid for runs out — the date\nentitlement turns on, and the one a caller shows as \"active until\".\n\nSent so a consumer stops keeping its own copy: this date reaches an app\nthrough the subscription webhook and nowhere else, so an app that does not\npersist it cannot answer the question at all, and one that does is holding\na projection that a missed delivery leaves stale.",
                         "type": "string"
@@ -13679,11 +13983,79 @@
                     "plan_code": {
                         "type": "string"
                     },
+                    "plan_name": {
+                        "description": "PlanName is the plan's display name. Sent because a staff plan is absent\nfrom the catalogue an app can read, so the app has no other way to name it.",
+                        "type": "string"
+                    },
                     "plan_rank": {
                         "type": "integer"
                     },
                     "status": {
                         "type": "string"
+                    }
+                }
+            },
+            "finance.gestureView": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "livemode": {
+                        "type": "boolean"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "notify": {
+                        "type": "boolean"
+                    },
+                    "operator_email": {
+                        "type": "string"
+                    },
+                    "period_end": {
+                        "type": "string"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "plan_name": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "subscription_id": {
+                        "type": "string"
+                    },
+                    "unit": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.gesturesResponse": {
+                "type": "object",
+                "properties": {
+                    "gestures": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/finance.gestureView"
+                        }
                     }
                 }
             },
@@ -13738,6 +14110,35 @@
                         "type": "string"
                     },
                     "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "finance.makeGestureRequest": {
+                "type": "object",
+                "properties": {
+                    "amount": {
+                        "type": "integer"
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "notify": {
+                        "type": "boolean"
+                    },
+                    "plan_code": {
+                        "type": "string"
+                    },
+                    "reason": {
+                        "type": "string"
+                    },
+                    "unit": {
                         "type": "string"
                     }
                 }
@@ -14690,6 +15091,12 @@
                         "type": "string",
                         "example": "3f8c2a1e-5b4e-4f6a-9c8d-1e2f3a4b5c6d"
                     },
+                    "end_user_id": {
+                        "description": "EndUserID labels the debit with the customer's own user it was made for,\nwhen the customer is itself an app serving people. It never scopes the\ncounter: the customer pays, its user is a breakdown.",
+                        "type": "string",
+                        "maxLength": 128,
+                        "example": "7c1e9a52-0d3b-4f8e-a1c2-5b6d7e8f9a0b"
+                    },
                     "external_user_id": {
                         "type": "string",
                         "example": "user-42"
@@ -14968,6 +15375,74 @@
                     "quantity": {
                         "type": "integer",
                         "example": 18234
+                    }
+                }
+            },
+            "metering.usageCostRow": {
+                "type": "object",
+                "properties": {
+                    "agent_id": {
+                        "type": "string"
+                    },
+                    "amount_micros": {
+                        "type": "integer",
+                        "example": 1250000
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "example": "EUR"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "metering.usageTableRow": {
+                "type": "object",
+                "properties": {
+                    "agent_id": {
+                        "type": "string"
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "app_name": {
+                        "type": "string"
+                    },
+                    "customer_email": {
+                        "type": "string"
+                    },
+                    "customer_id": {
+                        "type": "string"
+                    },
+                    "customer_name": {
+                        "type": "string"
+                    },
+                    "debits": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "external_user_id": {
+                        "type": "string"
+                    },
+                    "feature": {
+                        "type": "string",
+                        "example": "chat"
+                    },
+                    "last_at": {
+                        "type": "string",
+                        "example": "2026-10-30T14:00:00Z"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "example": 18234
+                    },
+                    "unit": {
+                        "type": "string",
+                        "example": "tokens"
                     }
                 }
             },

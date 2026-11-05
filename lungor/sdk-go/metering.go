@@ -59,6 +59,10 @@ type Usage struct {
 	// Feature labels the debit with the app's own function that consumed, from
 	// a short list the app picks. It never scopes the counter.
 	Feature string
+	// EndUserID labels the debit with the user of ExternalUserID it served,
+	// when that customer is itself an app serving people. It never scopes the
+	// counter: the customer pays, its user is a breakdown.
+	EndUserID string
 }
 
 // Decision is what Lungor answered about a consumption.
@@ -594,6 +598,10 @@ func (u Usage) request() (wire.MeteringConsumeRequest, error) {
 	if u.Feature != "" {
 		f := u.Feature
 		req.Feature = &f
+	}
+	if u.EndUserID != "" {
+		e := u.EndUserID
+		req.EndUserId = &e
 	}
 	if u.Settled {
 		req.Settled = &u.Settled
