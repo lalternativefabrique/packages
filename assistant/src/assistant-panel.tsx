@@ -13,6 +13,21 @@ import { useAttachments, pastedFiles, type PendingAttachment } from "./attachmen
 import { errorMessage, formatSize, relativeTime } from "./format";
 import { MicBars, useDictation } from "./dictation";
 import { Icon } from "./icons";
+
+const RAIL_QUERY = "(min-width: 760px)";
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.(query).matches);
+  useEffect(() => {
+    const mq = typeof window !== "undefined" ? window.matchMedia?.(query) : undefined;
+    if (!mq) return;
+    const on = () => setMatches(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, [query]);
+  return matches;
+}
 import { defaultLabels } from "./labels";
 import { SafeMarkdown } from "./markdown";
 import type {
@@ -165,6 +180,8 @@ export function AssistantPanel({
   const recording = dictation.state === "recording";
   const composerOverlay =
     hostOverlay ?? (recording ? <MicBars /> : dictation.error ? <span className="lalt-assistant-mic-error">{dictation.error}</span> : undefined);
+  const railShown = !!(historyRail || renderHistory) && !singleConversation && !bodyOverride;
+  const railFits = useMediaQuery(RAIL_QUERY);
   const endRef = useRef<HTMLDivElement>(null);
   const generation = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
@@ -553,7 +570,7 @@ export function AssistantPanel({
       </header>
 
       <div className="lalt-assistant-main">
-      {(historyRail || renderHistory) && !singleConversation && !bodyOverride && (
+      {railShown && (
         <nav aria-label={labels.history} className="lalt-assistant-rail">
           {renderHistory ? (
             renderHistory(historyContext)
@@ -572,7 +589,7 @@ export function AssistantPanel({
         {banner}
         {bodyOverride ? (
           bodyOverride
-        ) : historyOpen && !singleConversation ? (
+        ) : historyOpen && !singleConversation && !(railShown && railFits) ? (
           renderHistory ? (
             renderHistory(historyContext)
           ) : (
