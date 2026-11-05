@@ -2316,3 +2316,66 @@ test("urbangate's refusals of a recovery code map to stable codes", async () => 
     assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
   }
 });
+
+const machineTokenStub = {
+  "POST /oauth2/token": () =>
+    Response.json({ access_token: "machine", expires_in: 3600 }),
+};
+
+test("a flow carries the visitor's address and botguard token to urbangate", async () => {
+  const { fetchImpl, calls } = kratosStub(machineTokenStub);
+  const request = post("sign-in/email", { email: "ana@example", password: "pw" });
+  request.headers.set("x-forwarded-for", "6.6.6.6, 81.2.3.4");
+  request.headers.set("cookie", "tornad_botguard=tok");
+  const res = await auth(fetchImpl).handler(request);
+  assert.equal(res.status, 200);
+  for (const key of ["GET /self-service/login/api", "POST /self-service/login?flow=L"]) {
+    const h = calls.find((c) => c.key === key)!.headers;
+    assert.equal(h.get("urbangate-visitor-ip"), "81.2.3.4");
+    assert.equal(h.get("authorization"), "Bearer machine");
+    assert.equal(h.get("botguard-token"), "tok");
+  }
+});
+
+test("without a machine token the visitor's address is not claimed", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    "POST /oauth2/token": () => new Response("{}", { status: 503 }),
+  });
+  const request = post("sign-in/email", { email: "ana@example", password: "pw" });
+  request.headers.set("x-forwarded-for", "81.2.3.4");
+  await auth(fetchImpl).handler(request);
+  const h = calls.find((c) => c.key === "GET /self-service/login/api")!.headers;
+  assert.equal(h.get("urbangate-visitor-ip"), null);
+  assert.equal(h.get("authorization"), null);
+});
+
+test("urbangate's bot shield answers surface as challenge_required and rate_limited", async () => {
+  for (const [status, code] of [[428, "challenge_required"], [429, "rate_limited"]] as const) {
+    const { fetchImpl } = kratosStub({
+      "GET /self-service/login/api": () =>
+        Response.json({ error: code }, { status }),
+    });
+    const res = await auth(fetchImpl).handler(
+      post("sign-in/email", { email: "ana@example", password: "pw" }),
+    );
+    assert.equal(res.status, status);
+    assert.equal(((await res.json()) as { error: { code: string } }).error.code, code);
+  }
+});
+
+test("a solved challenge is relayed and kept in the product's own cookie", async () => {
+  const { fetchImpl, calls } = kratosStub({
+    ...machineTokenStub,
+    "POST /botguard/verify": () =>
+      Response.json({ token: "tok", expires_in: 900 }),
+  });
+  const request = post("botguard/verify", { altcha: "abc" });
+  request.headers.set("x-forwarded-for", "81.2.3.4");
+  const res = await auth(fetchImpl).handler(request);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("set-cookie") ?? "", /^tornad_botguard=tok; Path=\/; HttpOnly/);
+  const relayed = calls.find((c) => c.key === "POST /botguard/verify")!;
+  assert.equal(relayed.body.altcha, "abc");
+  assert.equal(relayed.headers.get("urbangate-visitor-ip"), "81.2.3.4");
+  assert.equal(relayed.headers.get("authorization"), "Bearer machine");
+});
