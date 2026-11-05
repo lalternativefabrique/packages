@@ -1285,6 +1285,10 @@ type FinanceEntitlementResponse struct {
 	// CurrentPeriodEnd and no renewal follows.
 	CancelAtPeriodEnd *bool `json:"cancel_at_period_end,omitempty"`
 
+	// Complimentary Complimentary is true when the plan is one that is only ever given, never
+	// sold: what an app shows as "offert".
+	Complimentary *bool `json:"complimentary,omitempty"`
+
 	// CurrentPeriodEnd CurrentPeriodEnd is when the period already paid for runs out — the date
 	// entitlement turns on, and the one a caller shows as "active until".
 	//
@@ -1306,8 +1310,12 @@ type FinanceEntitlementResponse struct {
 	PendingPlanCode        *string `json:"pending_plan_code,omitempty"`
 	PendingPlanEffectiveAt *string `json:"pending_plan_effective_at,omitempty"`
 	PlanCode               *string `json:"plan_code,omitempty"`
-	PlanRank               *int    `json:"plan_rank,omitempty"`
-	Status                 *string `json:"status,omitempty"`
+
+	// PlanName PlanName is the plan's display name. Sent because a staff plan is absent
+	// from the catalogue an app can read, so the app has no other way to name it.
+	PlanName *string `json:"plan_name,omitempty"`
+	PlanRank *int    `json:"plan_rank,omitempty"`
+	Status   *string `json:"status,omitempty"`
 }
 
 // FinancePlanAllocationAmount defines model for finance.planAllocationAmount.
@@ -1438,7 +1446,12 @@ type MeteringBulkDeleteUnitsResponse struct {
 type MeteringConsumeRequest struct {
 	// AgentId AgentID labels the debit with the app's agent that made the call, a
 	// breakdown of the same user's consumption: the cap stays per user.
-	AgentId        *string `json:"agent_id,omitempty"`
+	AgentId *string `json:"agent_id,omitempty"`
+
+	// EndUserId EndUserID labels the debit with the customer's own user it was made for,
+	// when the customer is itself an app serving people. It never scopes the
+	// counter: the customer pays, its user is a breakdown.
+	EndUserId      *string `json:"end_user_id,omitempty"`
 	ExternalUserId *string `json:"external_user_id,omitempty"`
 
 	// Feature Feature labels the debit with the app's own function that consumed, from
@@ -1582,6 +1595,31 @@ type MeteringUsageBreakdownRow struct {
 	Bucket   *string `json:"bucket,omitempty"`
 	Key      *string `json:"key,omitempty"`
 	Quantity *int    `json:"quantity,omitempty"`
+}
+
+// MeteringUsageCostRow defines model for metering.usageCostRow.
+type MeteringUsageCostRow struct {
+	AgentId      *string `json:"agent_id,omitempty"`
+	AmountMicros *int    `json:"amount_micros,omitempty"`
+	AppId        *string `json:"app_id,omitempty"`
+	Currency     *string `json:"currency,omitempty"`
+	CustomerId   *string `json:"customer_id,omitempty"`
+}
+
+// MeteringUsageTableRow defines model for metering.usageTableRow.
+type MeteringUsageTableRow struct {
+	AgentId        *string `json:"agent_id,omitempty"`
+	AppId          *string `json:"app_id,omitempty"`
+	AppName        *string `json:"app_name,omitempty"`
+	CustomerEmail  *string `json:"customer_email,omitempty"`
+	CustomerId     *string `json:"customer_id,omitempty"`
+	CustomerName   *string `json:"customer_name,omitempty"`
+	Debits         *int    `json:"debits,omitempty"`
+	ExternalUserId *string `json:"external_user_id,omitempty"`
+	Feature        *string `json:"feature,omitempty"`
+	LastAt         *string `json:"last_at,omitempty"`
+	Quantity       *int    `json:"quantity,omitempty"`
+	Unit           *string `json:"unit,omitempty"`
 }
 
 // RepositoryEndpointView defines model for repository.EndpointView.
@@ -1818,7 +1856,7 @@ type GetCustomerUsageBreakdownParams struct {
 	// Bucket hour or day
 	Bucket *string `form:"bucket,omitempty" json:"bucket,omitempty"`
 
-	// GroupBy feature, agent or app
+	// GroupBy feature, agent, app or end_user
 	GroupBy *string `form:"group_by,omitempty" json:"group_by,omitempty"`
 
 	// AppId Restrict to one app; omitted spans the tenant's apps
@@ -1835,6 +1873,24 @@ type ListSkillNeedsParams struct {
 type ReplaceSkillNeedsParams struct {
 	// Lang fr (default) or en
 	Lang *string `form:"lang,omitempty" json:"lang,omitempty"`
+}
+
+// GetUsageTableParams defines parameters for GetUsageTable.
+type GetUsageTableParams struct {
+	// From Start, RFC 3339
+	From string `form:"from" json:"from"`
+
+	// To End, RFC 3339
+	To string `form:"to" json:"to"`
+}
+
+// GetUsageTableCostsParams defines parameters for GetUsageTableCosts.
+type GetUsageTableCostsParams struct {
+	// From Start, RFC 3339
+	From string `form:"from" json:"from"`
+
+	// To End, RFC 3339
+	To string `form:"to" json:"to"`
 }
 
 // ListWebhookEndpointsParams defines parameters for ListWebhookEndpoints.
@@ -2355,6 +2411,12 @@ type ClientInterface interface {
 	ReplaceSkillNeedsWithBody(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	ReplaceSkillNeeds(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUsageTable request
+	GetUsageTable(ctx context.Context, tenantId string, params *GetUsageTableParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUsageTableCosts request
+	GetUsageTableCosts(ctx context.Context, tenantId string, params *GetUsageTableCostsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListWebhookEndpoints request
 	ListWebhookEndpoints(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3785,6 +3847,30 @@ func (c *Client) ReplaceSkillNeedsWithBody(ctx context.Context, tenantId string,
 
 func (c *Client) ReplaceSkillNeeds(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewReplaceSkillNeedsRequest(c.Server, tenantId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetUsageTable(ctx context.Context, tenantId string, params *GetUsageTableParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUsageTableRequest(c.Server, tenantId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetUsageTableCosts(ctx context.Context, tenantId string, params *GetUsageTableCostsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUsageTableCostsRequest(c.Server, tenantId, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8111,6 +8197,134 @@ func NewReplaceSkillNeedsRequestWithBody(server string, tenantId string, params 
 	return req, nil
 }
 
+// NewGetUsageTableRequest generates requests for GetUsageTable
+func NewGetUsageTableRequest(server string, tenantId string, params *GetUsageTableParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/usage/table", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, params.To); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetUsageTableCostsRequest generates requests for GetUsageTableCosts
+func NewGetUsageTableCostsRequest(server string, tenantId string, params *GetUsageTableCostsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "tenant_id", runtime.ParamLocationPath, tenantId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/tenants/%s/usage/table/costs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "from", runtime.ParamLocationQuery, params.From); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, params.To); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListWebhookEndpointsRequest generates requests for ListWebhookEndpoints
 func NewListWebhookEndpointsRequest(server string, params *ListWebhookEndpointsParams) (*http.Request, error) {
 	var err error
@@ -8727,6 +8941,12 @@ type ClientWithResponsesInterface interface {
 	ReplaceSkillNeedsWithBodyWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error)
 
 	ReplaceSkillNeedsWithResponse(ctx context.Context, tenantId string, params *ReplaceSkillNeedsParams, body ReplaceSkillNeedsJSONRequestBody, reqEditors ...RequestEditorFn) (*ReplaceSkillNeedsResponse, error)
+
+	// GetUsageTableWithResponse request
+	GetUsageTableWithResponse(ctx context.Context, tenantId string, params *GetUsageTableParams, reqEditors ...RequestEditorFn) (*GetUsageTableResponse, error)
+
+	// GetUsageTableCostsWithResponse request
+	GetUsageTableCostsWithResponse(ctx context.Context, tenantId string, params *GetUsageTableCostsParams, reqEditors ...RequestEditorFn) (*GetUsageTableCostsResponse, error)
 
 	// ListWebhookEndpointsWithResponse request
 	ListWebhookEndpointsWithResponse(ctx context.Context, params *ListWebhookEndpointsParams, reqEditors ...RequestEditorFn) (*ListWebhookEndpointsResponse, error)
@@ -10719,6 +10939,52 @@ func (r ReplaceSkillNeedsResponse) StatusCode() int {
 	return 0
 }
 
+type GetUsageTableResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]MeteringUsageTableRow
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUsageTableResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUsageTableResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetUsageTableCostsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]MeteringUsageCostRow
+	JSON400      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUsageTableCostsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUsageTableCostsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListWebhookEndpointsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11888,6 +12154,24 @@ func (c *ClientWithResponses) ReplaceSkillNeedsWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseReplaceSkillNeedsResponse(rsp)
+}
+
+// GetUsageTableWithResponse request returning *GetUsageTableResponse
+func (c *ClientWithResponses) GetUsageTableWithResponse(ctx context.Context, tenantId string, params *GetUsageTableParams, reqEditors ...RequestEditorFn) (*GetUsageTableResponse, error) {
+	rsp, err := c.GetUsageTable(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUsageTableResponse(rsp)
+}
+
+// GetUsageTableCostsWithResponse request returning *GetUsageTableCostsResponse
+func (c *ClientWithResponses) GetUsageTableCostsWithResponse(ctx context.Context, tenantId string, params *GetUsageTableCostsParams, reqEditors ...RequestEditorFn) (*GetUsageTableCostsResponse, error) {
+	rsp, err := c.GetUsageTableCosts(ctx, tenantId, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUsageTableCostsResponse(rsp)
 }
 
 // ListWebhookEndpointsWithResponse request returning *ListWebhookEndpointsResponse
@@ -14919,6 +15203,72 @@ func ParseReplaceSkillNeedsResponse(rsp *http.Response) (*ReplaceSkillNeedsRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CosttrackingSkillNeedsView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetUsageTableResponse parses an HTTP response from a GetUsageTableWithResponse call
+func ParseGetUsageTableResponse(rsp *http.Response) (*GetUsageTableResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUsageTableResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []MeteringUsageTableRow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetUsageTableCostsResponse parses an HTTP response from a GetUsageTableCostsWithResponse call
+func ParseGetUsageTableCostsResponse(rsp *http.Response) (*GetUsageTableCostsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUsageTableCostsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []MeteringUsageCostRow
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

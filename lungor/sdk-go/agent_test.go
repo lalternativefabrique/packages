@@ -57,3 +57,20 @@ func TestUsageRequestCarriesTheFeature(t *testing.T) {
 		t.Fatalf("feature = %v", req.Feature)
 	}
 }
+
+func TestUsageRequestCarriesTheEndUser(t *testing.T) {
+	req, err := Usage{ExternalUserID: "key-1", Unit: "tok", Quantity: 1, IdempotencyKey: "k1", EndUserID: "person-7"}.request()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.EndUserId == nil || *req.EndUserId != "person-7" {
+		t.Fatalf("end_user_id = %v", req.EndUserId)
+	}
+	req, err = Usage{ExternalUserID: "key-1", Unit: "tok", Quantity: 1, IdempotencyKey: "k2"}.request()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.EndUserId != nil {
+		t.Fatalf("an unlabelled debit sent end_user_id %q", *req.EndUserId)
+	}
+}
