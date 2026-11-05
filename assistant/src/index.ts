@@ -24,6 +24,7 @@ export { formatSize, readMainScreen, relativeTime } from "./format";
 export type {
   AssistantApi,
   AssistantAttachment,
+  AssistantComposer,
   AssistantConversation,
   AssistantConversationSummary,
   AssistantEvent,

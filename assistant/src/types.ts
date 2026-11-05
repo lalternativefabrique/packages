@@ -39,6 +39,11 @@ export interface AssistantSelection {
   after?: string;
 }
 
+export interface AssistantComposer {
+  insert(text: string): void;
+  focus(): void;
+}
+
 export interface AssistantToolCall {
   id: string;
   name: string;
@@ -179,7 +184,11 @@ export interface AssistantPanelProps {
   attachmentLimits?: AttachmentLimits;
   pasteAsFileThreshold?: number;
   labels?: Partial<AssistantLabels>;
-  renderMarkdown?: (text: string) => ReactNode;
+  renderMarkdown?: (text: string, message: AssistantMessage) => ReactNode;
+  renderToolCall?: (tool: AssistantToolCall, message: AssistantMessage) => ReactNode | undefined;
+  renderComposerAccessory?: (composer: AssistantComposer) => ReactNode;
+  banner?: ReactNode;
+  bodyOverride?: ReactNode;
   renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;
   renderMessageFooter?: (message: AssistantMessage) => ReactNode;
   readScreen?: () => AssistantScreen | undefined;
