@@ -25,6 +25,7 @@ export type {
   AssistantApi,
   AssistantAttachment,
   AssistantComposer,
+  AssistantTurnContext,
   AssistantConversation,
   AssistantConversationSummary,
   AssistantEvent,

@@ -196,7 +196,7 @@ export function AssistantPanel({
 
   const canSend = !!scopeId && !pending && !attachments.uploading;
 
-  const send = (message: string, shownAs: string) => {
+  const send = (message: string, shownAs: string, askExtra?: Record<string, unknown>) => {
     const ready = attachments.done;
     if (!canSend || (!message.trim() && ready.length === 0)) return false;
     const current = generation.current;
@@ -215,7 +215,7 @@ export function AssistantPanel({
       screen: readScreen?.(),
       reasoningEffort: effort,
       selection: quoted,
-      extra: sendExtra,
+      extra: askExtra ? { ...sendExtra, ...askExtra } : sendExtra,
     };
     const finish = (res: AssistantSendResult) => {
       if (current !== generation.current) return;
@@ -269,14 +269,19 @@ export function AssistantPanel({
   const asked = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!ask || asked.current === ask.id || !canSend) return;
+    if (ask.fresh && (conversationId || thread.length > 0)) {
+      newConversation();
+      return;
+    }
     asked.current = ask.id;
-    send(ask.text, ask.shownAs ?? ask.text);
+    send(ask.text, ask.shownAs ?? ask.text, ask.extra);
   });
 
   const seeded = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!draftSeed || seeded.current === draftSeed.id) return;
     seeded.current = draftSeed.id;
+    if (draftSeed.fresh) newConversation();
     setDraft(draftSeed.text);
     textarea.current?.focus();
   }, [draftSeed]);
@@ -490,7 +495,7 @@ export function AssistantPanel({
                     </details>
                   )}
                   {(() => {
-                    const cards = (m.tools ?? []).map((t) => ({ t, node: renderToolCall?.(t, m) })).filter((c) => c.node !== undefined);
+                    const cards = (m.tools ?? []).map((t) => ({ t, node: renderToolCall?.(t, m, { thread, pending }) })).filter((c) => c.node !== undefined);
                     const carded = new Set(cards.map((c) => c.t.id));
                     const lines = (m.tools ?? []).filter((t) => !carded.has(t.id));
                     return (

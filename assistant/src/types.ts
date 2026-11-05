@@ -40,6 +40,11 @@ export interface AssistantSelection {
   after?: string;
 }
 
+export interface AssistantTurnContext {
+  thread: AssistantMessage[];
+  pending: boolean;
+}
+
 export interface AssistantComposer {
   insert(text: string): void;
   focus(): void;
@@ -188,11 +193,11 @@ export interface AssistantPanelProps {
   pasteAsFileThreshold?: number;
   labels?: Partial<AssistantLabels>;
   renderMarkdown?: (text: string, message: AssistantMessage) => ReactNode;
-  renderToolCall?: (tool: AssistantToolCall, message: AssistantMessage) => ReactNode | undefined;
+  renderToolCall?: (tool: AssistantToolCall, message: AssistantMessage, turn: AssistantTurnContext) => ReactNode | undefined;
   renderComposerAccessory?: (composer: AssistantComposer) => ReactNode;
   banner?: ReactNode;
-  ask?: { id: string; text: string; shownAs?: string };
-  draftSeed?: { id: string; text: string };
+  ask?: { id: string; text: string; shownAs?: string; extra?: Record<string, unknown>; fresh?: boolean };
+  draftSeed?: { id: string; text: string; fresh?: boolean };
   sendExtra?: Record<string, unknown>;
   historyRail?: boolean;
   bodyOverride?: ReactNode;
