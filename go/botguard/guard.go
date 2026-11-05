@@ -106,7 +106,9 @@ func (g *Guard) clientAddr(r *http.Request) netip.Addr {
 func (g *Guard) policy(ctx context.Context) (Policy, error) {
 	p, err := g.cfg.Settings.Policy(ctx)
 	if err != nil {
-		return DefaultPolicy(), err
+		p := DefaultPolicy()
+		p.Enforce = false
+		return p, err
 	}
 	return p.normalized(), nil
 }
