@@ -668,3 +668,28 @@
 .lalt-assistant-tool-card {
   margin-top: 8px;
 }
+
+.lalt-assistant-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.lalt-assistant-main > .lalt-assistant-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.lalt-assistant-rail {
+  width: 260px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 12px 8px;
+  border-right: 1px solid var(--_border);
+}
+
+@media (max-width: 759px) {
+  .lalt-assistant-rail {
+    display: none;
+  }
+}

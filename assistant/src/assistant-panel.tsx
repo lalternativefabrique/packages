@@ -82,6 +82,10 @@ export function AssistantPanel({
   renderComposerAccessory,
   banner,
   bodyOverride,
+  ask,
+  draftSeed,
+  sendExtra,
+  historyRail = false,
   renderScopePicker,
   renderMessageFooter,
   readScreen,
@@ -210,6 +214,7 @@ export function AssistantPanel({
       screen: readScreen?.(),
       reasoningEffort: effort,
       selection: quoted,
+      extra: sendExtra,
     };
     const finish = (res: AssistantSendResult) => {
       if (current !== generation.current) return;
@@ -259,6 +264,21 @@ export function AssistantPanel({
     }
     return true;
   };
+
+  const asked = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!ask || asked.current === ask.id || !canSend) return;
+    asked.current = ask.id;
+    send(ask.text, ask.shownAs ?? ask.text);
+  });
+
+  const seeded = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!draftSeed || seeded.current === draftSeed.id) return;
+    seeded.current = draftSeed.id;
+    setDraft(draftSeed.text);
+    textarea.current?.focus();
+  }, [draftSeed]);
 
   const submit = () => {
     const text = draft.trim();
@@ -407,6 +427,16 @@ export function AssistantPanel({
         </button>
       </header>
 
+      <div className="lalt-assistant-main">
+      {historyRail && !bodyOverride && (
+        <nav aria-label={labels.history} className="lalt-assistant-rail">
+          <button type="button" onClick={newConversation} className="lalt-assistant-text-button">
+            <Icon name="plus" size={14} />
+            {labels.newConversation}
+          </button>
+          <HistoryList conversations={conversations} scopes={scopes} labels={labels} onOpen={openConversation} />
+        </nav>
+      )}
       <div className="lalt-assistant-body">
         {banner}
         {bodyOverride ? (
@@ -493,6 +523,7 @@ export function AssistantPanel({
           </p>
         )}
         <div ref={endRef} />
+      </div>
       </div>
 
       <div className="lalt-assistant-footer">

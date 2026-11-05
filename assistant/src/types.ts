@@ -102,6 +102,7 @@ export interface AssistantSendInput {
   screen?: AssistantScreen;
   reasoningEffort?: ReasoningEffort;
   selection?: AssistantSelection;
+  extra?: Record<string, unknown>;
 }
 
 export interface AssistantSendResult {
@@ -188,6 +189,10 @@ export interface AssistantPanelProps {
   renderToolCall?: (tool: AssistantToolCall, message: AssistantMessage) => ReactNode | undefined;
   renderComposerAccessory?: (composer: AssistantComposer) => ReactNode;
   banner?: ReactNode;
+  ask?: { id: string; text: string; shownAs?: string };
+  draftSeed?: { id: string; text: string };
+  sendExtra?: Record<string, unknown>;
+  historyRail?: boolean;
   bodyOverride?: ReactNode;
   renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;
   renderMessageFooter?: (message: AssistantMessage) => ReactNode;
