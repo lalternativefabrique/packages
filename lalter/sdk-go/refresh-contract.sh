@@ -9,7 +9,7 @@
 # Usage: ./refresh-contract.sh [base-url]
 set -eu
 
-BASE="${1:-${LALTER_BASE_URL:-https://api.lalter.fr}}"
+BASE="${1:-${LALTER_BASE_URL:-https://api.orbitos.fr}}"
 URL="${BASE%/}/openapi.json"
 OUT="$(dirname "$0")/openapi/lalter.json"
 
