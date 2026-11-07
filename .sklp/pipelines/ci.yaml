@@ -144,30 +144,30 @@ steps:
   # whose .d.ts cannot be generated at all.
   - name: auth
     scope: [auth]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/auth test
-      npx -y pnpm@11.3.0 --filter @lalternative/auth typecheck
-      npx -y pnpm@11.3.0 --filter @lalternative/auth build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/auth test
+      pnpm --filter @lalternative/auth typecheck
+      pnpm --filter @lalternative/auth build
 
   - name: connect-react
     scope: [connect-react]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/connect test
-      npx -y pnpm@11.3.0 --filter @lalternative/connect typecheck
-      npx -y pnpm@11.3.0 --filter @lalternative/connect build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/connect test
+      pnpm --filter @lalternative/connect typecheck
+      pnpm --filter @lalternative/connect build
 
   - name: nakoda-sdk
     scope: [nakoda-sdk]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/nakoda-sdk-browser test
-      npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" typecheck
-      npx -y pnpm@11.3.0 --filter "@lalternative/nakoda-sdk-*" build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/nakoda-sdk-browser test
+      pnpm --filter "@lalternative/nakoda-sdk-*" typecheck
+      pnpm --filter "@lalternative/nakoda-sdk-*" build
 
   - name: composition
     scope: [composition]
@@ -448,28 +448,28 @@ steps:
 
   - name: vvaves-sdk-react
     scope: [vvaves-sdk-react]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react test
-      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react typecheck
-      npx -y pnpm@11.3.0 --filter @lalternative/vvaves-sdk-react build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/vvaves-sdk-react test
+      pnpm --filter @lalternative/vvaves-sdk-react typecheck
+      pnpm --filter @lalternative/vvaves-sdk-react build
 
   - name: lalter-sdk-node
     scope: [lalter-sdk-node]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk test
-      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk typecheck
-      npx -y pnpm@11.3.0 --filter @lalternative/lalter-sdk build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/lalter-sdk test
+      pnpm --filter @lalternative/lalter-sdk typecheck
+      pnpm --filter @lalternative/lalter-sdk build
 
   - name: skalpai-feedback-native
     scope: [skalpai-feedback-native]
-    tools: [node]
+    tools: [node, pnpm]
     run: |
-      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
-      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native test
-      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native typecheck
-      npx -y pnpm@11.3.0 --filter @lalternative/skalpai-feedback-native build
+      CI=true pnpm install --frozen-lockfile
+      pnpm --filter @lalternative/skalpai-feedback-native test
+      pnpm --filter @lalternative/skalpai-feedback-native typecheck
+      pnpm --filter @lalternative/skalpai-feedback-native build
 
