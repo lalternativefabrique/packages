@@ -1,4 +1,6 @@
 export interface ReviewLabels {
+  before: string;
+  after: string;
   accept: string;
   reject: string;
   rework: string;
@@ -22,6 +24,8 @@ export interface ReviewLabels {
 }
 
 export const defaultLabels: ReviewLabels = {
+  before: "Avant",
+  after: "Après",
   accept: "Accepter",
   reject: "Rejeter",
   rework: "Retravailler",

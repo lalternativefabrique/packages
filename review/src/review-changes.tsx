@@ -33,6 +33,8 @@ export interface ReviewChangesProps {
   applying?: boolean;
   labels?: Partial<ReviewLabels>;
   className?: string;
+  /** Side by side, before on the left and after on the right; or one column. */
+  layout?: "split" | "inline";
 }
 
 type Key = string;
@@ -47,10 +49,14 @@ export function ReviewChanges({
   applying,
   labels: overrides,
   className,
+  layout = "split",
 }: ReviewChangesProps) {
   const labels = { ...defaultLabels, ...overrides };
   const parsed = useMemo(
-    () => fields.map((f) => ({ field: f, segs: segments(f.before, f.after) })),
+    () =>
+      fields
+        .filter((f) => f.before !== f.after)
+        .map((f) => ({ field: f, segs: segments(f.before, f.after) })),
     [fields],
   );
   const [decisions, setDecisions] = useState<Record<Key, Decision>>({});
@@ -118,7 +124,7 @@ export function ReviewChanges({
 
   const pending = count("pending") + count("failed");
   return (
-    <div className={["lalt-review", className].filter(Boolean).join(" ")}>
+    <div className={["lalt-review", `lalt-review-${layout}`, className].filter(Boolean).join(" ")}>
       <div className="lalt-review-toolbar">
         <span className="lalt-review-counts">
           {changes.length === 0
@@ -144,13 +150,27 @@ export function ReviewChanges({
         {parsed.map(({ field, segs }) => (
           <section key={field.id} className="lalt-review-field">
             {field.label ? <h4 className="lalt-review-label">{field.label}</h4> : null}
+            {layout === "split" ? (
+              <div className="lalt-review-columns" aria-hidden>
+                <span>{labels.before}</span>
+                <span>{labels.after}</span>
+              </div>
+            ) : null}
             <div className="lalt-review-text">
               {segs.map((s, i) =>
                 s.kind === "same" ? (
-                  <span key={i}>{s.text}</span>
+                  layout === "split" ? (
+                    <div key={i} className="lalt-review-row lalt-review-same">
+                      <div>{s.text}</div>
+                      <div>{s.text}</div>
+                    </div>
+                  ) : (
+                    <span key={i}>{s.text}</span>
+                  )
                 ) : (
                   <Change
                     key={s.id}
+                    layout={layout}
                     refCb={(el) => {
                       refs.current[keyOf(field.id, s.id)] = el;
                     }}
@@ -193,6 +213,7 @@ export function ReviewChanges({
 }
 
 function Change({
+  layout,
   change,
   decision,
   proposal,
@@ -203,6 +224,7 @@ function Change({
   onRework,
   refCb,
 }: {
+  layout: "split" | "inline";
   change: Extract<Segment, { kind: "change" }>;
   decision: Decision;
   proposal: string;
@@ -218,6 +240,25 @@ function Change({
 
   if (decision.status === "accepted" || decision.status === "rejected") {
     const kept = decision.status === "accepted" ? proposal : change.before;
+    if (layout === "split") {
+      return (
+        <div className={`lalt-review-row lalt-review-decided lalt-review-decided-${decision.status}`}>
+          <div className={decision.status === "accepted" ? "lalt-review-dropped" : undefined}>{change.before}</div>
+          <div>
+            {decision.status === "accepted" ? proposal : <span className="lalt-review-dropped">{proposal}</span>}
+            <button
+              type="button"
+              className="lalt-review-undo"
+              title={labels.undo}
+              aria-label={labels.undo}
+              onClick={() => onDecide({ status: "pending" })}
+            >
+              ↺ {decision.status === "accepted" ? labels.accept : labels.reject}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <span className={`lalt-review-decided lalt-review-decided-${decision.status}`}>
         {kept}
@@ -245,11 +286,21 @@ function Change({
 
   return (
     <div ref={refCb} tabIndex={-1} className="lalt-review-change" data-status={decision.status}>
-      <div className="lalt-review-diff">
-        {change.before ? <del className="lalt-review-removed">{change.before}</del> : null}
-        {proposal ? <ins className="lalt-review-added">{proposal}</ins> : null}
-        {reworked && !reworking ? <span className="lalt-review-badge">{labels.reworked}</span> : null}
-      </div>
+      {layout === "split" ? (
+        <div className="lalt-review-row">
+          <div>{change.before ? <del className="lalt-review-removed">{change.before}</del> : null}</div>
+          <div>
+            {proposal ? <ins className="lalt-review-added">{proposal}</ins> : null}
+            {reworked && !reworking ? <span className="lalt-review-badge">{labels.reworked}</span> : null}
+          </div>
+        </div>
+      ) : (
+        <div className="lalt-review-diff">
+          {change.before ? <del className="lalt-review-removed">{change.before}</del> : null}
+          {proposal ? <ins className="lalt-review-added">{proposal}</ins> : null}
+          {reworked && !reworking ? <span className="lalt-review-badge">{labels.reworked}</span> : null}
+        </div>
+      )}
       {reworking ? (
         <div className="lalt-review-status">
           <span className="lalt-review-spinner" aria-hidden />

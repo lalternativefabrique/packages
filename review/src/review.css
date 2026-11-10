@@ -1,6 +1,5 @@
 .lalt-review {
   --lalt-review-fg: currentColor;
-  --lalt-review-on-accent: Canvas;
   --lalt-review-muted: color-mix(in srgb, var(--lalt-review-fg) 60%, transparent);
   --lalt-review-border: color-mix(in srgb, var(--lalt-review-fg) 15%, transparent);
   --lalt-review-surface: color-mix(in srgb, var(--lalt-review-fg) 4%, transparent);
@@ -197,11 +196,62 @@
   cursor: default;
 }
 .lalt-review-btn-primary {
-  background: var(--lalt-review-fg);
-  border-color: var(--lalt-review-fg);
-  color: var(--lalt-review-on-accent);
+  background: var(--lalt-review-primary-bg, var(--lalt-review-added-bg));
+  border-color: var(--lalt-review-primary-border, var(--lalt-review-added-fg));
+  color: var(--lalt-review-primary-fg, var(--lalt-review-added-fg));
+  font-weight: 600;
 }
 .lalt-review-btn-primary:hover:not(:disabled) {
-  background: var(--lalt-review-fg);
-  opacity: 0.9;
+  background: var(--lalt-review-primary-bg, var(--lalt-review-added-bg));
+  filter: brightness(1.15);
+}
+
+.lalt-review-columns,
+.lalt-review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 16px;
+}
+.lalt-review-columns {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 10px;
+  background: var(--lalt-review-bg, Canvas);
+  border-bottom: 1px solid var(--lalt-review-border);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lalt-review-muted);
+}
+.lalt-review-split .lalt-review-text {
+  white-space: normal;
+}
+.lalt-review-row > div {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.lalt-review-split .lalt-review-same {
+  padding: 2px 10px;
+  color: var(--lalt-review-muted);
+}
+.lalt-review-split .lalt-review-decided {
+  padding: 4px 10px;
+  margin: 2px 0;
+  border-radius: 6px;
+}
+.lalt-review-dropped {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+@media (max-width: 720px) {
+  .lalt-review-columns {
+    display: none;
+  }
+  .lalt-review-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 6px;
+  }
 }

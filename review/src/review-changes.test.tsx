@@ -70,4 +70,16 @@ describe("ReviewChanges", () => {
     fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
     expect(onApply).toHaveBeenCalledWith({ title: "Docker termine", body: fields[1].after });
   });
+
+  it("leaves out a field that does not change, and shows before and after side by side", () => {
+    render(
+      <ReviewChanges
+        fields={[{ id: "title", label: "Titre", before: "", after: "" }, fields[1]]}
+        onApply={() => {}}
+      />,
+    );
+    expect(screen.queryByText("Titre")).toBeNull();
+    expect(screen.getByText("Avant")).toBeTruthy();
+    expect(screen.getByText("Après")).toBeTruthy();
+  });
 });
