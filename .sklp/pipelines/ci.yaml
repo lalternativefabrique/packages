@@ -56,6 +56,10 @@ services:
 scopes:
   auth:
     - "auth/**"
+  review:
+    - "review/**"
+    - "pnpm-lock.yaml"
+    - "pnpm-workspace.yaml"
   connect-react:
     - "connect/**"
     - "pnpm-lock.yaml"
@@ -150,6 +154,15 @@ steps:
       npx -y pnpm@11.3.0 --filter @lalternative/auth test
       npx -y pnpm@11.3.0 --filter @lalternative/auth typecheck
       npx -y pnpm@11.3.0 --filter @lalternative/auth build
+
+  - name: review
+    scope: [review]
+    tools: [node]
+    run: |
+      CI=true npx -y pnpm@11.3.0 install --frozen-lockfile
+      npx -y pnpm@11.3.0 --filter @lalternative/review test
+      npx -y pnpm@11.3.0 --filter @lalternative/review typecheck
+      npx -y pnpm@11.3.0 --filter @lalternative/review build
 
   - name: connect-react
     scope: [connect-react]
