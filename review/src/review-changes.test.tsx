@@ -13,7 +13,7 @@ describe("ReviewChanges", () => {
 
   it("applies each passage as decided, the rest keeping the original", async () => {
     const onApply = vi.fn();
-    render(<ReviewChanges fields={fields} onApply={onApply} />);
+    render(<ReviewChanges fields={fields} granularity="word" onApply={onApply} />);
     expect(screen.getByText(/3 à décider/)).toBeTruthy();
 
     const accept = screen.getAllByRole("button", { name: "Accepter" });
@@ -31,7 +31,7 @@ describe("ReviewChanges", () => {
     let resolve!: (text: string) => void;
     const onRework = vi.fn(() => new Promise<string>((r) => (resolve = r)));
     const onApply = vi.fn();
-    render(<ReviewChanges fields={[fields[1]]} onRework={onRework} onApply={onApply} />);
+    render(<ReviewChanges fields={[fields[1]]} granularity="word" onRework={onRework} onApply={onApply} />);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Retravailler" })[0]);
     fireEvent.change(screen.getByPlaceholderText(/Ce qui ne va pas/), { target: { value: "plus précis" } });
@@ -81,5 +81,16 @@ describe("ReviewChanges", () => {
     expect(screen.queryByText("Titre")).toBeNull();
     expect(screen.getByText("Avant")).toBeTruthy();
     expect(screen.getByText("Après")).toBeTruthy();
+  });
+
+  it("cuts a rewrite into runs of changed lines, not scattered words", () => {
+    const before = "le nombre de tool est impressionnant\n\nun nouveau Herdr magic\n\nencore et encore mais où on va\n\nFin commune.";
+    const after = "Le nombre d'outils est impressionnant.\n\nUn nouveau chaque jour.\n\nEncore. Chacun creuse son puits.\n\nFin commune.";
+    const onApply = vi.fn();
+    render(<ReviewChanges fields={[{ id: "body", before, after }]} onApply={onApply} />);
+    expect(screen.getByText(/1 à décider/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Accepter" }));
+    fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
+    expect(onApply).toHaveBeenCalledWith({ body: after });
   });
 });

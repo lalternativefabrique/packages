@@ -58,3 +58,14 @@ describe("surroundings", () => {
     expect(surroundings(segs, (id as { id: string }).id)).toEqual({ before: "avant ", after: " après" });
   });
 });
+
+describe("segments by line", () => {
+  it("keeps whole lines and parts runs only on a shared line with words", () => {
+    const segs = segments("a\nb\nmilieu\nc\n", "A\nB\nmilieu\nC\n", "c", "line");
+    expect(segs).toEqual([
+      { kind: "change", id: "c0", before: "a\nb\n", after: "A\nB\n" },
+      { kind: "same", text: "milieu\n" },
+      { kind: "change", id: "c1", before: "c\n", after: "C\n" },
+    ]);
+  });
+});

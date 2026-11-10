@@ -2,12 +2,24 @@ export type Segment =
   | { kind: "same"; text: string }
   | { kind: "change"; id: string; before: string; after: string };
 
-type Part = { kind: "same" | "removed" | "added"; text: string };
+export type Part = { kind: "same" | "removed" | "added"; text: string };
+
+/** word: passages at word precision. line: whole changed lines, as a code review shows them. */
+export type Granularity = "word" | "line";
 
 const MAX_CELLS = 4_000_000;
 
 function tokens(text: string): string[] {
   return text.match(/\s+|[^\s]+/g) ?? [];
+}
+
+function lines(text: string): string[] {
+  return text.match(/[^\n]*\n|[^\n]+/g) ?? [];
+}
+
+/** Word-level parts of one change, to show which words moved inside its lines. */
+export function wordParts(before: string, after: string): Part[] {
+  return diffTokens(tokens(before), tokens(after));
 }
 
 function diffTokens(a: string[], b: string[]): Part[] {
@@ -62,10 +74,18 @@ function words(text: string): number {
  * Splits a rewrite into passages the author decides one by one. Unchanged text
  * stays as is; each change carries what it replaces and what it proposes. A
  * change never splits inside a word, and two changes separated by a word or
- * less of shared text are one passage.
+ * less of shared text are one passage. By line, a passage is a run of changed
+ * lines, and only blank lines between two runs are not enough to part them.
  */
-export function segments(before: string, after: string, idPrefix = "c"): Segment[] {
-  const parts = diffTokens(tokens(before), tokens(after));
+export function segments(
+  before: string,
+  after: string,
+  idPrefix = "c",
+  granularity: Granularity = "word",
+): Segment[] {
+  const split = granularity === "line" ? lines : tokens;
+  const glue = (shared: string) => (granularity === "line" ? shared.trim() === "" : words(shared) <= GLUE_WORDS);
+  const parts = diffTokens(split(before), split(after));
   const out: Segment[] = [];
   let open: { before: string; after: string } | null = null;
   let n = 0;
@@ -76,7 +96,7 @@ export function segments(before: string, after: string, idPrefix = "c"): Segment
   parts.forEach((p, idx) => {
     if (p.kind === "same") {
       const between = open !== null && idx < parts.length - 1;
-      if (between && words(p.text) <= GLUE_WORDS) {
+      if (between && glue(p.text)) {
         open!.before += p.text;
         open!.after += p.text;
         return;

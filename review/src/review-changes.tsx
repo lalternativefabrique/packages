@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 
-import { assemble, segments, surroundings } from "./diff";
-import type { Decision, Segment } from "./diff";
+import { assemble, segments, surroundings, wordParts } from "./diff";
+import type { Decision, Granularity, Segment } from "./diff";
 import { defaultLabels } from "./labels";
 import type { ReviewLabels } from "./labels";
 
@@ -35,6 +35,8 @@ export interface ReviewChangesProps {
   className?: string;
   /** Side by side, before on the left and after on the right; or one column. */
   layout?: "split" | "inline";
+  /** How finely passages are cut; by line in the split view unless told otherwise. */
+  granularity?: Granularity;
 }
 
 type Key = string;
@@ -50,14 +52,16 @@ export function ReviewChanges({
   labels: overrides,
   className,
   layout = "split",
+  granularity,
 }: ReviewChangesProps) {
+  const cut = granularity ?? (layout === "split" ? "line" : "word");
   const labels = { ...defaultLabels, ...overrides };
   const parsed = useMemo(
     () =>
       fields
         .filter((f) => f.before !== f.after)
-        .map((f) => ({ field: f, segs: segments(f.before, f.after) })),
-    [fields],
+        .map((f) => ({ field: f, segs: segments(f.before, f.after, "c", cut) })),
+    [fields, cut],
   );
   const [decisions, setDecisions] = useState<Record<Key, Decision>>({});
   const [proposals, setProposals] = useState<Record<Key, string>>({});
@@ -287,13 +291,7 @@ function Change({
   return (
     <div ref={refCb} tabIndex={-1} className="lalt-review-change" data-status={decision.status}>
       {layout === "split" ? (
-        <div className="lalt-review-row">
-          <div>{change.before ? <del className="lalt-review-removed">{change.before}</del> : null}</div>
-          <div>
-            {proposal ? <ins className="lalt-review-added">{proposal}</ins> : null}
-            {reworked && !reworking ? <span className="lalt-review-badge">{labels.reworked}</span> : null}
-          </div>
-        </div>
+        <SideBySide before={change.before} after={proposal} badge={reworked && !reworking ? labels.reworked : null} />
       ) : (
         <div className="lalt-review-diff">
           {change.before ? <del className="lalt-review-removed">{change.before}</del> : null}
@@ -353,6 +351,31 @@ function Change({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function SideBySide({ before, after, badge }: { before: string; after: string; badge: string | null }) {
+  const parts = useMemo(() => wordParts(before, after), [before, after]);
+  const side = (hide: "added" | "removed", mark: "removed" | "added") =>
+    parts
+      .filter((p) => p.kind !== hide)
+      .map((p, i) =>
+        p.kind === mark ? (
+          <mark key={i} className={`lalt-review-word-${mark}`}>
+            {p.text}
+          </mark>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      );
+  return (
+    <div className="lalt-review-row lalt-review-pair">
+      <div className={before ? "lalt-review-side-removed" : "lalt-review-side-empty"}>{before ? side("added", "removed") : null}</div>
+      <div className={after ? "lalt-review-side-added" : "lalt-review-side-empty"}>
+        {after ? side("removed", "added") : null}
+        {badge ? <span className="lalt-review-badge">{badge}</span> : null}
+      </div>
     </div>
   );
 }
