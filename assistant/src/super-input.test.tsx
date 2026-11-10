@@ -7,12 +7,13 @@ afterEach(cleanup);
 
 describe("superInputMode", () => {
   it("tells prompt, slash, command and shell apart", () => {
-    expect(superInputMode("bonjour", true)).toBe("prompt");
-    expect(superInputMode("/", true)).toBe("slash");
-    expect(superInputMode("/rev", true)).toBe("slash");
-    expect(superInputMode("/review le diff", true)).toBe("command");
-    expect(superInputMode("  ! ls", true)).toBe("shell");
-    expect(superInputMode("! ls", false)).toBe("noshell");
+    expect(superInputMode("bonjour", "shell")).toBe("prompt");
+    expect(superInputMode("/", "shell")).toBe("slash");
+    expect(superInputMode("/rev", "shell")).toBe("slash");
+    expect(superInputMode("/review le diff", "shell")).toBe("command");
+    expect(superInputMode("  ! ls", "shell")).toBe("shell");
+    expect(superInputMode("! ls", "elsewhere")).toBe("noshell");
+    expect(superInputMode("! ls", "text")).toBe("prompt");
   });
 
   it("extracts the shell command and filters commands by prefix", () => {
@@ -65,7 +66,7 @@ describe("SuperInput", () => {
 
   it("without a shell, ! shows the shell is elsewhere and sends nothing", () => {
     const onSend = vi.fn();
-    render(<SuperInput onSend={onSend} labels={{ shellUnavailable: "Le shell est dans kapal" }} />);
+    render(<SuperInput onSend={onSend} shellElsewhere labels={{ shellUnavailable: "Le shell est dans kapal" }} />);
     fireEvent.change(box(), { target: { value: "! ls" } });
     expect(screen.getByText("Le shell est dans kapal")).toBeTruthy();
     expect(screen.getByText("Shell indisponible")).toBeTruthy();

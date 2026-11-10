@@ -73,6 +73,7 @@ export interface SuperInputHandle {
   focus: () => void;
   insert: (text: string) => void;
   setValue: (text: string) => void;
+  addFiles: (files: File[]) => void;
 }
 
 export type SuperInputAttachments = ReturnType<typeof useAttachments>;
@@ -90,6 +91,7 @@ export interface SuperInputProps {
   commands?: SuperInputCommand[];
   onCommand?: (command: SuperInputCommand) => void;
   shell?: SuperInputShell;
+  shellElsewhere?: boolean;
   history?: string[];
   onHistoryChange?: (history: string[]) => void;
   reasoning?: SuperInputReasoning;
@@ -134,6 +136,7 @@ export const SuperInput = forwardRef<SuperInputHandle, SuperInputProps>(function
     commands = [],
     onCommand,
     shell,
+    shellElsewhere = false,
     history: historyProp,
     onHistoryChange,
     reasoning,
@@ -195,7 +198,6 @@ export const SuperInput = forwardRef<SuperInputHandle, SuperInputProps>(function
     [setText],
   );
 
-  useImperativeHandle(ref, () => ({ focus: () => area.current?.focus(), insert, setValue: setText }), [insert, setText]);
 
   const dictation = useDictation(
     transcribe,
@@ -212,8 +214,10 @@ export const SuperInput = forwardRef<SuperInputHandle, SuperInputProps>(function
   const recording = dictation.state === "recording";
   const own = useAttachments({ attach: attach && !attachmentsProp ? (file) => attach(file) : undefined, scopeId: "", limits: attachmentLimits, labels });
   const attachments = attachmentsProp ?? own;
+  const addFiles = attachments.add;
+  useImperativeHandle(ref, () => ({ focus: () => area.current?.focus(), insert, setValue: setText, addFiles }), [insert, setText, addFiles]);
 
-  const mode = superInputMode(text, !!shell);
+  const mode = superInputMode(text, shell ? "shell" : shellElsewhere ? "elsewhere" : "text");
   const shellRunning = !!shell?.runs.some((r) => r.running);
   const visibleRuns = (shell?.runs ?? []).filter((r) => !r.handed && !dismissed.has(r.id));
   const dark = mode === "shell" || visibleRuns.some((r) => r.running);

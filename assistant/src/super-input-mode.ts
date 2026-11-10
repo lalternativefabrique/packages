@@ -1,8 +1,10 @@
 export type SuperInputMode = "prompt" | "slash" | "command" | "shell" | "noshell";
 
-export function superInputMode(text: string, shell: boolean): SuperInputMode {
+export type SuperInputBang = "shell" | "elsewhere" | "text";
+
+export function superInputMode(text: string, bang: SuperInputBang): SuperInputMode {
   const lead = text.trimStart();
-  if (lead.startsWith("!")) return shell ? "shell" : "noshell";
+  if (lead.startsWith("!") && bang !== "text") return bang === "shell" ? "shell" : "noshell";
   if (/^\/\S*$/.test(lead)) return "slash";
   if (lead.startsWith("/")) return "command";
   return "prompt";

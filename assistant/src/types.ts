@@ -313,6 +313,7 @@ export interface AssistantPanelProps {
   commands?: { name: string; description?: string; prefill?: boolean }[];
   onCommand?: (command: { name: string; description?: string; prefill?: boolean }) => void;
   composerHistory?: string[];
+  shellElsewhere?: boolean;
   onComposerHistoryChange?: (history: string[]) => void;
   models?: { options: { id: string; label: string }[]; value: string; onChange: (id: string) => void };
   singleConversation?: boolean;

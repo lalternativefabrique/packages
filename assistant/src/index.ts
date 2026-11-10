@@ -66,4 +66,4 @@ export {
   type SuperInputShell,
   type SuperInputShellRun,
 } from "./super-input";
-export { matchCommands, pushHistory, shellCommand, stepHistory, superInputMode, type SuperInputMode } from "./super-input-mode";
+export { matchCommands, pushHistory, shellCommand, stepHistory, superInputMode, type SuperInputBang, type SuperInputMode } from "./super-input-mode";

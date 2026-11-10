@@ -119,6 +119,7 @@ export function AssistantPanel({
   onCommand,
   composerHistory,
   onComposerHistoryChange,
+  shellElsewhere,
   models,
   transcribe,
   dictationLanguage,
@@ -690,6 +691,7 @@ export function AssistantPanel({
           disabled={!!disabledReason}
           commands={commands}
           onCommand={onCommand}
+          shellElsewhere={shellElsewhere}
           history={composerHistory}
           onHistoryChange={onComposerHistoryChange}
           models={models}
