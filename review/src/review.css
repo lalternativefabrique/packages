@@ -1,0 +1,207 @@
+.lalt-review {
+  --lalt-review-fg: currentColor;
+  --lalt-review-on-accent: Canvas;
+  --lalt-review-muted: color-mix(in srgb, var(--lalt-review-fg) 60%, transparent);
+  --lalt-review-border: color-mix(in srgb, var(--lalt-review-fg) 15%, transparent);
+  --lalt-review-surface: color-mix(in srgb, var(--lalt-review-fg) 4%, transparent);
+  --lalt-review-removed-fg: #b42318;
+  --lalt-review-removed-bg: rgba(240, 68, 56, 0.12);
+  --lalt-review-added-fg: #067647;
+  --lalt-review-added-bg: rgba(18, 183, 106, 0.14);
+  --lalt-review-accent: var(--lalt-review-fg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 12px;
+  color: var(--lalt-review-fg);
+  font-size: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  .lalt-review {
+    --lalt-review-removed-fg: #fda29b;
+    --lalt-review-added-fg: #75e0a7;
+  }
+}
+.dark .lalt-review {
+  --lalt-review-removed-fg: #fda29b;
+  --lalt-review-added-fg: #75e0a7;
+}
+.lalt-review-toolbar,
+.lalt-review-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lalt-review-counts,
+.lalt-review-hint {
+  color: var(--lalt-review-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.lalt-review-toolbar-actions,
+.lalt-review-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.lalt-review-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.lalt-review-label {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--lalt-review-muted);
+}
+.lalt-review-text {
+  white-space: pre-wrap;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.lalt-review-change {
+  display: block;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--lalt-review-border);
+  border-radius: 8px;
+  background: var(--lalt-review-surface);
+  outline: none;
+}
+.lalt-review-change:focus-visible {
+  box-shadow: 0 0 0 2px var(--lalt-review-accent);
+}
+.lalt-review-change[data-status="failed"] {
+  border-color: var(--lalt-review-removed-fg);
+}
+.lalt-review-diff {
+  white-space: pre-wrap;
+}
+.lalt-review-removed {
+  color: var(--lalt-review-removed-fg);
+  background: var(--lalt-review-removed-bg);
+  text-decoration: line-through;
+  border-radius: 3px;
+}
+.lalt-review-added {
+  color: var(--lalt-review-added-fg);
+  background: var(--lalt-review-added-bg);
+  text-decoration: none;
+  border-radius: 3px;
+}
+.lalt-review-removed + .lalt-review-added {
+  margin-left: 4px;
+}
+.lalt-review-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--lalt-review-border);
+  font-size: 11px;
+  color: var(--lalt-review-muted);
+}
+.lalt-review-actions,
+.lalt-review-ask,
+.lalt-review-status,
+.lalt-review-error {
+  margin-top: 8px;
+}
+.lalt-review-actions {
+  justify-content: flex-end;
+  display: flex;
+}
+.lalt-review-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lalt-review-ask .lalt-review-toolbar-actions {
+  justify-content: flex-end;
+}
+.lalt-review-ask textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--lalt-review-border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.lalt-review-status,
+.lalt-review-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lalt-review-muted);
+  white-space: normal;
+}
+.lalt-review-error {
+  color: var(--lalt-review-removed-fg);
+}
+.lalt-review-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid var(--lalt-review-border);
+  border-top-color: var(--lalt-review-fg);
+  animation: lalt-review-spin 0.8s linear infinite;
+}
+@keyframes lalt-review-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.lalt-review-decided {
+  border-radius: 3px;
+}
+.lalt-review-decided-accepted {
+  background: var(--lalt-review-added-bg);
+}
+.lalt-review-undo {
+  margin-left: 2px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--lalt-review-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.lalt-review-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--lalt-review-border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.lalt-review-btn:hover:not(:disabled) {
+  background: var(--lalt-review-surface);
+}
+.lalt-review-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.lalt-review-btn-primary {
+  background: var(--lalt-review-fg);
+  border-color: var(--lalt-review-fg);
+  color: var(--lalt-review-on-accent);
+}
+.lalt-review-btn-primary:hover:not(:disabled) {
+  background: var(--lalt-review-fg);
+  opacity: 0.9;
+}

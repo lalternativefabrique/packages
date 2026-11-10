@@ -10,6 +10,7 @@ packages:
   - "legal"
   - "admin"
   - "assistant"
+  - "review"
   - "meet"
   - "booking"
 allowBuilds:
