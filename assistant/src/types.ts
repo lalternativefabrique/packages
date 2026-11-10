@@ -252,6 +252,32 @@ export interface AssistantLabels {
   options: string;
   removeOption: (label: string) => string;
   sources: string;
+  expandEditor: string;
+  collapseEditor: string;
+  model: string;
+  commands: string;
+  recentCommands: string;
+  modeCommand: string;
+  modeShell: string;
+  modeNoShell: string;
+  placeholderShell: string;
+  hintPrompt: string;
+  hintPromptShell: string;
+  hintSlash: string;
+  hintCommand: string;
+  hintShell: (cwd?: string) => string;
+  hintRunning: string;
+  shellUnavailable: string;
+  run: string;
+  shellRunning: string;
+  shellExit: (code: number | null, seconds?: string) => string;
+  shellKilled: string;
+  shellTruncated: string;
+  shellPending: string;
+  shellOpenTerminal: string;
+  shellCollapse: string;
+  shellExpand: string;
+  shellDismiss: string;
 }
 
 export interface AssistantPanelProps {
@@ -284,6 +310,12 @@ export interface AssistantPanelProps {
   transcribe?: AssistantTranscribe;
   dictationLanguage?: string;
   onComposerEscape?: () => boolean;
+  commands?: { name: string; description?: string; prefill?: boolean }[];
+  onCommand?: (command: { name: string; description?: string; prefill?: boolean }) => void;
+  composerHistory?: string[];
+  shellElsewhere?: boolean;
+  onComposerHistoryChange?: (history: string[]) => void;
+  models?: { options: { id: string; label: string }[]; value: string; onChange: (id: string) => void };
   singleConversation?: boolean;
   showSources?: boolean;
   disabledReason?: string;

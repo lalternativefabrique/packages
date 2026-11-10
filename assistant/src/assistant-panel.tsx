@@ -4,14 +4,11 @@ import {
   useMemo,
   useRef,
   useState,
-  type ClipboardEvent,
   type DragEvent,
-  type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
-import { useAttachments, pastedFiles, type PendingAttachment } from "./attachments";
-import { errorMessage, formatSize, relativeTime } from "./format";
-import { MicBars, useDictation } from "./dictation";
+import { useAttachments } from "./attachments";
+import { errorMessage, relativeTime } from "./format";
 import { Icon } from "./icons";
 
 const RAIL_QUERY = "(min-width: 760px)";
@@ -47,11 +44,10 @@ import type {
   ReasoningEffort,
 } from "./types";
 import { applyEvent, isAbort } from "./stream";
-import { ReasoningGauge } from "./reasoning-gauge";
+import { SuperInput, type SuperInputHandle } from "./super-input";
 
 const MIN_WIDTH = 360;
 const DEFAULT_WIDTH = 520;
-const PASTED_TEXT_NAME = "texte-colle.txt";
 const RESUME_ATTEMPTS = 3;
 const RESUME_DELAY_MS = 1000;
 
@@ -119,6 +115,12 @@ export function AssistantPanel({
   composerOptions = [],
   composerOverlay: hostOverlay,
   onComposerEscape,
+  commands,
+  onCommand,
+  composerHistory,
+  onComposerHistoryChange,
+  shellElsewhere,
+  models,
   transcribe,
   dictationLanguage,
   singleConversation = false,
@@ -157,29 +159,14 @@ export function AssistantPanel({
   const conversationIdRef = useRef<string | undefined>(undefined);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
-  const textarea = useRef<HTMLTextAreaElement>(null);
+  const input = useRef<SuperInputHandle>(null);
   const composer = useMemo(
     () => ({
-      insert: (text: string) => setDraft((d) => (d.trim() ? `${d.trimEnd()} ${text}` : text)),
-      focus: () => textarea.current?.focus(),
+      insert: (text: string) => input.current?.insert(text),
+      focus: () => input.current?.focus(),
     }),
     [],
   );
-  const dictation = useDictation(
-    transcribe,
-    useCallback(
-      (text: string) => {
-        composer.insert(text);
-        composer.focus();
-      },
-      [composer],
-    ),
-    labels,
-    dictationLanguage,
-  );
-  const recording = dictation.state === "recording";
-  const composerOverlay =
-    hostOverlay ?? (recording ? <MicBars /> : dictation.error ? <span className="lalt-assistant-mic-error">{dictation.error}</span> : undefined);
   const railShown = !!(historyRail || renderHistory) && !singleConversation && !bodyOverride;
   const railFits = useMediaQuery(RAIL_QUERY);
   const endRef = useRef<HTMLDivElement>(null);
@@ -409,29 +396,8 @@ export function AssistantPanel({
     seeded.current = draftSeed.id;
     if (draftSeed.fresh) newConversation();
     setDraft(draftSeed.text);
-    textarea.current?.focus();
+    input.current?.focus();
   }, [draftSeed]);
-
-  const submit = () => {
-    const text = draft.trim();
-    if (send(text, text)) setDraft("");
-  };
-
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submit();
-    }
-    if (e.key === "Escape" && (onComposerEscape?.() || dictation.cancel())) e.preventDefault();
-  };
-
-  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
-    if (!attachments.enabled) return;
-    const files = pastedFiles(e.clipboardData, pasteAsFileThreshold, PASTED_TEXT_NAME);
-    if (files.length === 0) return;
-    e.preventDefault();
-    attachments.add(files);
-  };
 
   const onDragOver = (e: DragEvent) => {
     if (!attachments.enabled || !Array.from(e.dataTransfer?.types ?? []).includes("Files")) return;
@@ -713,9 +679,37 @@ export function AssistantPanel({
 
       <div className="lalt-assistant-footer">
         {aboveComposer}
-        <div className="lalt-assistant-composer">
-          {composerOptions.some((o) => o.checked) && (
-            <div className="lalt-assistant-chips">
+        <SuperInput
+          ref={input}
+          className="lalt-assistant-composer"
+          value={draft}
+          onChange={setDraft}
+          onSend={(text) => send(text, text)}
+          canSend={canSend}
+          busy={streaming}
+          onStop={stop}
+          disabled={!!disabledReason}
+          commands={commands}
+          onCommand={onCommand}
+          shellElsewhere={shellElsewhere}
+          history={composerHistory}
+          onHistoryChange={onComposerHistoryChange}
+          models={models}
+          reasoning={
+            reasoning && reasoning.options.length > 0
+              ? { options: reasoning.options, default: reasoning.default, value: effort, onChange: setEffort, display: reasoning.display ?? "gauge" }
+              : undefined
+          }
+          transcribe={transcribe}
+          dictationLanguage={dictationLanguage}
+          overlay={hostOverlay}
+          attachments={attachments}
+          attachmentLimits={attachmentLimits}
+          pasteAsFileThreshold={pasteAsFileThreshold}
+          onEscape={onComposerEscape}
+          labels={labels}
+          chips={
+            <>
               {composerOptions
                 .filter((o) => o.checked)
                 .map((o) => (
@@ -726,174 +720,53 @@ export function AssistantPanel({
                     </button>
                   </div>
                 ))}
-            </div>
-          )}
-          {selection && (
-            <div className="lalt-assistant-chips">
-              <div className="lalt-assistant-chip lalt-assistant-selection">
-                <span className="lalt-assistant-chip-text lalt-assistant-truncate">« {selection.text} »</span>
-                <button type="button" onClick={() => setSelection(undefined)} aria-label={labels.removeSelection} className="lalt-assistant-chip-remove">
-                  <Icon name="x" size={12} />
-                </button>
-              </div>
-            </div>
-          )}
-          {(attachments.items.length > 0 || attachments.notice) && (
-            <div className="lalt-assistant-chips">
-              {attachments.items.map((item) => (
-                <AttachmentChip key={item.localId} item={item} labels={labels} onRemove={() => attachments.remove(item.localId)} />
-              ))}
-              {attachments.notice && <p className="lalt-assistant-error">{attachments.notice}</p>}
-            </div>
-          )}
-          {composerOverlay && <div className="lalt-assistant-composer-overlay">{composerOverlay}</div>}
-          <textarea
-            ref={textarea}
-            disabled={!!disabledReason}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={onKeyDown}
-            onPaste={onPaste}
-            rows={3}
-            placeholder={composerOverlay ? "" : labels.placeholder}
-            aria-label="Message"
-            className="lalt-assistant-textarea"
-          />
-          <div className="lalt-assistant-composer-row">
-            {composerOptions.length > 0 && (
-              <div className="lalt-assistant-options">
-                <button type="button" onClick={() => setOptionsOpen((v) => !v)} aria-expanded={optionsOpen} aria-label={labels.options} title={labels.options} className="lalt-assistant-icon-button">
-                  <Icon name="plus" />
-                </button>
-                {optionsOpen && (
-                  <div role="menu" className="lalt-assistant-menu-content lalt-assistant-options-menu">
-                    {composerOptions.map((o) => (
-                      <button
-                        key={o.id}
-                        type="button"
-                        role="menuitemcheckbox"
-                        aria-checked={o.checked}
-                        onClick={() => {
-                          o.onToggle(!o.checked);
-                          setOptionsOpen(false);
-                        }}
-                      >
-                        <span className="lalt-assistant-grow">
-                          <span>{o.label}</span>
-                          {o.hint && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-block">{o.hint}</span>}
-                        </span>
-                        {o.checked && <Icon name="check" size={14} />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {renderComposerAccessory?.(composer)}
-            {dictation.supported && (
-              <button
-                type="button"
-                className="lalt-assistant-icon-button lalt-assistant-mic"
-                data-live={recording || undefined}
-                aria-label={recording ? labels.stopDictation : dictation.state === "transcribing" ? labels.transcribing : labels.dictate}
-                title={recording ? labels.stopDictation : labels.dictate}
-                aria-pressed={recording}
-                disabled={dictation.state === "transcribing" || !!disabledReason}
-                onClick={() => (recording ? dictation.stop() : void dictation.start())}
-              >
-                {dictation.state === "transcribing" ? <span className="lalt-assistant-spinner" /> : <Icon name="mic" />}
-              </button>
-            )}
-            {attachments.enabled && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => fileInput.current?.click()}
-                  aria-label={labels.attach}
-                  title={labels.attach}
-                  className="lalt-assistant-icon-button"
-                >
-                  <Icon name="paperclip" />
-                </button>
-                <input
-                  ref={fileInput}
-                  type="file"
-                  multiple
-                  hidden
-                  data-testid="lalt-assistant-file-input"
-                  accept={attachmentLimits ? [...attachmentLimits.imageTypes, ...attachmentLimits.fileTypes].join(",") : undefined}
-                  onChange={(e) => {
-                    attachments.add(Array.from(e.target.files ?? []));
-                    e.target.value = "";
-                  }}
-                />
-              </>
-            )}
-            {reasoning && reasoning.options.length > 0 && reasoning.display !== "select" && (
-              <ReasoningGauge
-                options={reasoning.options}
-                fallback={reasoning.default}
-                value={effort}
-                onChange={setEffort}
-                labels={labels}
-              />
-            )}
-            {reasoning && reasoning.options.length > 0 && reasoning.display === "select" && (
-              <select
-                value={effort ?? ""}
-                onChange={(e) => setEffort((e.target.value || undefined) as ReasoningEffort | undefined)}
-                aria-label={labels.reasoning}
-                title={labels.reasoning}
-                className="lalt-assistant-select lalt-assistant-reasoning-select"
-              >
-                <option value="">
-                  {reasoning.default ? `${labels.reasoningDefault} · ${labels.reasoningLevels[reasoning.default]}` : labels.reasoningDefault}
-                </option>
-                {reasoning.options.map((level) => (
-                  <option key={level} value={level}>
-                    {labels.reasoningLevels[level]}
-                  </option>
-                ))}
-              </select>
-            )}
-            <div className="lalt-assistant-grow" />
-            {streaming ? (
-              <button type="button" onClick={stop} aria-label={labels.stop} title={labels.stop} className="lalt-assistant-send">
-                <Icon name="square" />
-              </button>
-            ) : (
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!canSend || (!draft.trim() && attachments.done.length === 0)}
-              aria-label={labels.send}
-              className="lalt-assistant-send"
-            >
-              <Icon name="arrowUp" />
-            </button>
-            )}
-          </div>
-        </div>
+              {selection && (
+                <div className="lalt-assistant-chip lalt-assistant-selection">
+                  <span className="lalt-assistant-chip-text lalt-assistant-truncate">« {selection.text} »</span>
+                  <button type="button" onClick={() => setSelection(undefined)} aria-label={labels.removeSelection} className="lalt-assistant-chip-remove">
+                    <Icon name="x" size={12} />
+                  </button>
+                </div>
+              )}
+            </>
+          }
+          accessory={
+            <>
+              {composerOptions.length > 0 && (
+                <div className="lalt-assistant-options">
+                  <button type="button" onClick={() => setOptionsOpen((v) => !v)} aria-expanded={optionsOpen} aria-label={labels.options} title={labels.options} className="lalt-si-tool">
+                    <Icon name="options" />
+                  </button>
+                  {optionsOpen && (
+                    <div role="menu" className="lalt-assistant-menu-content lalt-assistant-options-menu">
+                      {composerOptions.map((o) => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          role="menuitemcheckbox"
+                          aria-checked={o.checked}
+                          onClick={() => {
+                            o.onToggle(!o.checked);
+                            setOptionsOpen(false);
+                          }}
+                        >
+                          <span className="lalt-assistant-grow">
+                            <span>{o.label}</span>
+                            {o.hint && <span className="lalt-assistant-muted lalt-assistant-small lalt-assistant-block">{o.hint}</span>}
+                          </span>
+                          {o.checked && <Icon name="check" size={14} />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {renderComposerAccessory?.(composer)}
+            </>
+          }
+        />
       </div>
     </aside>
-  );
-}
-
-function AttachmentChip({ item, labels, onRemove }: { item: PendingAttachment; labels: AssistantLabels; onRemove: () => void }) {
-  return (
-    <div className="lalt-assistant-chip" data-status={item.status} title={item.error}>
-      {item.previewUrl ? <img src={item.previewUrl} alt="" className="lalt-assistant-chip-preview" /> : <Icon name="file" size={14} />}
-      <span className="lalt-assistant-chip-text">
-        <span className="lalt-assistant-truncate">{item.file.name}</span>
-        <span className="lalt-assistant-muted lalt-assistant-small">
-          {item.status === "error" ? item.error : item.status === "uploading" ? labels.uploading : formatSize(item.file.size)}
-        </span>
-      </span>
-      {item.status === "uploading" && <span className="lalt-assistant-spinner" />}
-      <button type="button" onClick={onRemove} aria-label={`${labels.removeAttachment} ${item.file.name}`} className="lalt-assistant-chip-remove">
-        <Icon name="x" size={12} />
-      </button>
-    </div>
   );
 }
 
