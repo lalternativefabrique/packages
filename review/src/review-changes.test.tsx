@@ -83,13 +83,13 @@ describe("ReviewChanges", () => {
     expect(screen.getByText("Après")).toBeTruthy();
   });
 
-  it("cuts a rewrite into runs of changed lines, not scattered words", () => {
+  it("cuts a rewrite into one block per changed paragraph, not scattered words", () => {
     const before = "le nombre de tool est impressionnant\n\nun nouveau Herdr magic\n\nencore et encore mais où on va\n\nFin commune.";
     const after = "Le nombre d'outils est impressionnant.\n\nUn nouveau chaque jour.\n\nEncore. Chacun creuse son puits.\n\nFin commune.";
     const onApply = vi.fn();
     render(<ReviewChanges fields={[{ id: "body", before, after }]} onApply={onApply} />);
-    expect(screen.getByText(/1 à décider/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Accepter" }));
+    expect(screen.getByText(/3 à décider/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tout accepter" }));
     fireEvent.click(screen.getByRole("button", { name: "Appliquer" }));
     expect(onApply).toHaveBeenCalledWith({ body: after });
   });

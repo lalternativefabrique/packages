@@ -68,4 +68,9 @@ describe("segments by line", () => {
       { kind: "change", id: "c1", before: "c\n", after: "C\n" },
     ]);
   });
+
+  it("gives each rewritten paragraph its own block", () => {
+    const segs = segments("un\n\ndeux\n\ntrois", "UN\n\nDEUX\n\nTROIS", "c", "line");
+    expect(segs.filter((s) => s.kind === "change")).toHaveLength(3);
+  });
 });
