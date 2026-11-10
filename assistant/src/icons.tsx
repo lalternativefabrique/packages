@@ -36,6 +36,10 @@ const paths: Record<string, ReactNode> = {
   maximize: <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />,
   minimize: <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7" />,
   arrowUp: <path d="m5 12 7-7 7 7M12 19V5" />,
+  options: <path d="M4 7h10M18 7h2M4 17h2M10 17h10M16 4v6M8 14v6" />,
+  play: <path d="M7 4v16l13-8z" />,
+  terminal: <path d="m4 17 6-5-6-5M12 19h8" />,
+  chevronUp: <path d="m18 15-6-6-6 6" />,
   paperclip: (
     <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
   ),

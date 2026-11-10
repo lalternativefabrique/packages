@@ -216,7 +216,8 @@ describe("AssistantPanel streaming and reasoning", () => {
       initialSelection: { text: "le passage" },
     });
     expect(screen.getByText("« le passage »")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Réflexion"), { target: { value: "high" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Réflexion :/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Poussée/ }));
     fireEvent.change(composer, { target: { value: "Explique" } });
     fireEvent.keyDown(composer, { key: "Enter" });
     await screen.findByText("answer to Explique");
@@ -228,7 +229,7 @@ describe("AssistantPanel streaming and reasoning", () => {
 
   it("hides the picker without a reasoning prop and sends no effort", async () => {
     const { api, composer } = renderPanel();
-    expect(screen.queryByLabelText("Réflexion")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Réflexion/ })).toBeNull();
     fireEvent.change(composer, { target: { value: "Bonjour" } });
     fireEvent.keyDown(composer, { key: "Enter" });
     await screen.findByText("answer to Bonjour");
