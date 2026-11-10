@@ -84,7 +84,7 @@ export function segments(
   granularity: Granularity = "word",
 ): Segment[] {
   const split = granularity === "line" ? lines : tokens;
-  const glue = (shared: string) => (granularity === "line" ? shared.trim() === "" : words(shared) <= GLUE_WORDS);
+  const glue = (shared: string) => granularity === "word" && words(shared) <= GLUE_WORDS;
   const parts = diffTokens(split(before), split(after));
   const out: Segment[] = [];
   let open: { before: string; after: string } | null = null;
