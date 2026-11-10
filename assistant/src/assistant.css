@@ -1245,8 +1245,8 @@
   border: 0;
   display: inline-grid;
   place-items: center;
-  background: var(--_accent);
-  color: var(--_accent-text);
+  background: var(--lalt-assistant-accent, #1c1c1a);
+  color: var(--lalt-assistant-accent-text, #ffffff);
 }
 
 .lalt-si-send[data-tone="run"] {
