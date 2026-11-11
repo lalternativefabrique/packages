@@ -23,6 +23,7 @@ export {
 } from "./workspace-state";
 export { defaultLabels } from "./labels";
 export { applyEvent } from "./stream";
+export { clearGuide, readScreenFields, showGuide, type GuideLabels } from "./guide";
 export { formatSize, readMainScreen, relativeTime } from "./format";
 export type {
   AssistantTranscribe,
@@ -31,6 +32,8 @@ export type {
   AssistantComposer,
   AssistantComposerOption,
   AssistantErrorCode,
+  AssistantGuideStep,
+  AssistantScreenField,
   AssistantHistoryContext,
   AssistantMessageAction,
   AssistantSource,

@@ -25,9 +25,11 @@ function useMediaQuery(query: string): boolean {
   }, [query]);
   return matches;
 }
+import { showGuide } from "./guide";
 import { defaultLabels } from "./labels";
 import { SafeMarkdown } from "./markdown";
 import type {
+  AssistantGuideStep,
   AssistantErrorCode,
   AssistantAttachment,
   AssistantSource,
@@ -129,6 +131,7 @@ export function AssistantPanel({
   renderScopePicker,
   renderMessageFooter,
   readScreen,
+  onGuide,
   widthStorageKey = "lalt.assistant.width",
   onClose,
   initialHistory = false,
@@ -143,6 +146,10 @@ export function AssistantPanel({
   onAnswered,
 }: AssistantPanelProps) {
   const labels: AssistantLabels = { ...defaultLabels, ...labelOverrides };
+  const guide = (steps: AssistantGuideStep[]) =>
+    onGuide
+      ? onGuide(steps)
+      : showGuide(steps, { title: labels.guideTitle, previous: labels.guidePrevious, next: labels.guideNext, done: labels.guideDone });
   const scopeLabel = scopes.find((s) => s.id === scopeId)?.label ?? "";
 
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -275,6 +282,7 @@ export function AssistantPanel({
     setThread((t) => (t[t.length - 1]?.streaming ? t : [...t, { role: "assistant", content: "", streaming: true }]));
     const emit = (event: AssistantEvent) => {
       if (current !== generation.current) return;
+      if (event.type === "guide") guide(event.steps);
       setThread((t) => {
         const last = t[t.length - 1];
         return last?.streaming ? [...t.slice(0, -1), applyEvent(last, event, Date.now())] : t;
@@ -639,6 +647,11 @@ export function AssistantPanel({
                         </button>
                       ))}
                     </div>
+                  )}
+                  {!m.streaming && m.guide && m.guide.length > 0 && (
+                    <button type="button" className="lalt-assistant-text-button lalt-assistant-guide-replay" onClick={() => guide(m.guide ?? [])}>
+                      {labels.guideShow}
+                    </button>
                   )}
                   {!m.streaming && renderMessageFooter?.(m)}
                   {!m.streaming && messageActions.some((a) => !a.when || a.when(m)) && (

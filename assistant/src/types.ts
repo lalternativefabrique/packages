@@ -95,7 +95,13 @@ export type AssistantEvent =
   | { type: "step"; step: number }
   | { type: "sources"; sources: AssistantSource[] }
   | { type: "suggestions"; suggestions: string[] }
-  | { type: "attachment"; attachment: AssistantAttachment };
+  | { type: "attachment"; attachment: AssistantAttachment }
+  | { type: "guide"; steps: AssistantGuideStep[] };
+
+export interface AssistantGuideStep {
+  field: string;
+  note: string;
+}
 
 export interface AssistantMessage {
   role: "user" | "assistant";
@@ -110,6 +116,7 @@ export interface AssistantMessage {
   step?: number;
   sources?: AssistantSource[];
   suggestions?: string[];
+  guide?: AssistantGuideStep[];
 }
 
 export interface AssistantConversationSummary {
@@ -126,10 +133,21 @@ export interface AssistantConversation {
   live?: boolean;
 }
 
+export interface AssistantScreenField {
+  ref: string;
+  label: string;
+  type: string;
+  value?: string;
+  required?: boolean;
+  protected?: boolean;
+  options?: string[];
+}
+
 export interface AssistantScreen {
   path: string;
   title: string;
   text: string;
+  fields?: AssistantScreenField[];
 }
 
 export interface AssistantSendInput {
@@ -278,6 +296,11 @@ export interface AssistantLabels {
   shellCollapse: string;
   shellExpand: string;
   shellDismiss: string;
+  guideShow: string;
+  guideTitle: string;
+  guidePrevious: string;
+  guideNext: string;
+  guideDone: string;
 }
 
 export interface AssistantPanelProps {
@@ -323,6 +346,7 @@ export interface AssistantPanelProps {
   renderScopePicker?: (picker: AssistantScopePicker) => ReactNode;
   renderMessageFooter?: (message: AssistantMessage) => ReactNode;
   readScreen?: () => AssistantScreen | undefined;
+  onGuide?: (steps: AssistantGuideStep[]) => void;
   widthStorageKey?: string;
   onClose: () => void;
   initialHistory?: boolean;

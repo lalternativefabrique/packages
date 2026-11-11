@@ -92,4 +92,9 @@ export const defaultLabels: AssistantLabels = {
   shellCollapse: "Réduire à la dernière ligne",
   shellExpand: "Déplier la sortie",
   shellDismiss: "Fermer la sortie",
+  guideShow: "Montrer à l'écran",
+  guideTitle: "Guide de l'assistant",
+  guidePrevious: "Précédent",
+  guideNext: "Suivant",
+  guideDone: "J'ai compris",
 };

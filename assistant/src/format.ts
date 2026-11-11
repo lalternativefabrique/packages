@@ -1,3 +1,6 @@
+import { readScreenFields } from "./guide";
+import type { AssistantScreen } from "./types";
+
 export function relativeTime(iso: string | undefined, now = Date.now()): string {
   if (!iso) return "";
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000);
@@ -17,11 +20,17 @@ export function formatSize(bytes: number): string {
 
 const SCREEN_TEXT_LIMIT = 12000;
 
-export function readMainScreen(): { path: string; title: string; text: string } | undefined {
+export function readMainScreen(): AssistantScreen | undefined {
   if (typeof document === "undefined") return undefined;
   const main = document.querySelector("main");
   const text = (main?.innerText ?? "").replace(/\n{3,}/g, "\n\n").trim().slice(0, SCREEN_TEXT_LIMIT);
-  return { path: window.location.pathname + window.location.search, title: document.title, text };
+  const fields = main ? readScreenFields(main) : [];
+  return {
+    path: window.location.pathname + window.location.search,
+    title: document.title,
+    text,
+    ...(fields.length ? { fields } : {}),
+  };
 }
 
 export function errorMessage(error: unknown, fallback: string): string {
