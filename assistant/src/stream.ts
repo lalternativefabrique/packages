@@ -31,6 +31,8 @@ export function applyEvent(message: AssistantMessage, event: AssistantEvent, now
       return { ...message, suggestions: event.suggestions };
     case "attachment":
       return { ...message, attachments: [...(message.attachments ?? []), event.attachment] };
+    case "guide":
+      return { ...message, guide: event.steps };
   }
 }
 
