@@ -100,8 +100,12 @@ export function createUrbangateNativeClient(
     session: `${config.product}_session`,
     token: `${config.product}_token`,
     flow: `${config.product}_flow`,
+    admin: `${config.product}_admin`,
+    seal: `${config.product}_seal`,
+    profile: `${config.product}_profile`,
   };
   const held = new Set<string>(Object.values(names));
+  const identifying = new Set<string>([names.session, names.admin]);
   const listeners = new Set<() => void>();
 
   async function cookieHeader(): Promise<string> {
@@ -118,7 +122,7 @@ export function createUrbangateNativeClient(
     for (const raw of setCookiesOf(headers)) {
       const cookie = parseSetCookie(raw);
       if (!held.has(cookie.name)) continue;
-      if (cookie.name === names.session) sessionChanged = true;
+      if (identifying.has(cookie.name)) sessionChanged = true;
       if (cookie.deleted) await config.storage.deleteItem(cookie.name);
       else await config.storage.setItem(cookie.name, cookie.value);
     }

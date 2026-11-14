@@ -96,6 +96,34 @@ test("a sign-in keeps the session and replays it without the OS cookie jar", asy
   assert.equal(cookieOf(second!), "lalter_session=ory_st_1");
 });
 
+test("a session signed in through the console is kept whole and replayed", async () => {
+  const storage = memoryStorage();
+  const { seen, fetchImpl } = server(({ url }) =>
+    url.endsWith("/api/desktop/exchange")
+      ? answer(200, null, [
+          "lalter_token=at_1; Path=/; HttpOnly",
+          "lalter_admin=rt_1; Path=/; HttpOnly",
+          "lalter_seal=mac_1; Path=/; HttpOnly",
+          "lalter_profile=%7B%22name%22%3A%22A%22%7D; Path=/; HttpOnly",
+        ])
+      : answer(200, null),
+  );
+  const client = createUrbangateNativeClient({
+    baseURL: "https://lalter.fr/",
+    product: "lalter",
+    storage,
+    fetch: fetchImpl,
+  });
+
+  await client.fetch("/api/desktop/exchange", { method: "POST" });
+  await client.getSession();
+
+  assert.equal(
+    cookieOf(seen[1]!),
+    "lalter_token=at_1; lalter_admin=rt_1; lalter_seal=mac_1; lalter_profile=%7B%22name%22%3A%22A%22%7D",
+  );
+});
+
 test("the flow a code was sent for comes back on the code step", async () => {
   const storage = memoryStorage();
   const { seen, fetchImpl } = server(({ url }) =>
