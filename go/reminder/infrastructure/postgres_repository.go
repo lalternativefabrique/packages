@@ -62,7 +62,7 @@ func (r *PostgresRepository) List(ctx context.Context, userID string, includeSet
 	rows, err := r.pool.Query(ctx, `
 		SELECT `+columns+` FROM reminders
 		WHERE ($1 = '' OR user_id = $1)
-		  AND ($2 OR status = 'pending')
+		  AND ($2 OR status IN ('pending', 'fired'))
 		ORDER BY due_at`, userID, includeSettled)
 	if err != nil {
 		return nil, fmt.Errorf("list reminders: %w", err)

@@ -55,6 +55,9 @@ type ReminderDTO struct {
 	// Every is the recurrence interval as it was given ("24h"). Absent means
 	// one-shot.
 	Every string `json:"every,omitempty"`
+	// Overdue is true once the due time has passed and the reminder is still
+	// neither done nor cancelled.
+	Overdue bool `json:"overdue"`
 }
 
 // ErrorResponse is what a refused request returns.
@@ -136,7 +139,9 @@ func (s *Service) UpdateReminder(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		}
-		rem.DueAt = due
+		if err := rem.Reschedule(due); err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		}
 	}
 	if req.Every != nil {
 		var every *time.Duration
@@ -245,7 +250,7 @@ func toDTO(r *domain.Reminder) ReminderDTO {
 	dto := ReminderDTO{
 		ID: r.ID, Body: r.Body, DueAt: r.DueAt.Format(timeLayout),
 		Status: string(r.Status), CreatedAt: r.CreatedAt.Format(timeLayout),
-		Channels: r.Channels,
+		Channels: r.Channels, Overdue: r.IsOverdue(time.Now().UTC()),
 	}
 	if r.FiredAt != nil {
 		dto.FiredAt = r.FiredAt.Format(timeLayout)

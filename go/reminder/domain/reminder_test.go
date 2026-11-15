@@ -98,3 +98,43 @@ func TestSetRunEveryNilClearsRecurrence(t *testing.T) {
 		t.Fatal("reminder should no longer be recurring")
 	}
 }
+
+func TestNewKeepsAPastDueTimeAsAnOverdueTask(t *testing.T) {
+	rem, err := New("u1", "call the bank", time.Now().UTC().Add(-2*time.Hour))
+	if err != nil {
+		t.Fatalf("a past due time must be accepted: %v", err)
+	}
+	if rem.Status != StatusFired {
+		t.Fatalf("status = %v, want fired so the poller does not notify it", rem.Status)
+	}
+	if !rem.IsOverdue(time.Now().UTC()) {
+		t.Fatal("a task past its due time must be overdue")
+	}
+}
+
+func TestRescheduleToTheFutureArmsTheReminderAgain(t *testing.T) {
+	rem, _ := New("u1", "call the bank", time.Now().UTC().Add(-time.Hour))
+
+	if err := rem.Reschedule(time.Now().UTC().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	if rem.Status != StatusPending || rem.FiredAt != nil {
+		t.Fatalf("status = %v fired_at = %v, want pending and unfired", rem.Status, rem.FiredAt)
+	}
+	if rem.IsOverdue(time.Now().UTC()) {
+		t.Fatal("a task moved to the future is no longer overdue")
+	}
+}
+
+func TestRescheduleRefusesASettledReminder(t *testing.T) {
+	rem, _ := New("u1", "call the bank", time.Now().UTC().Add(time.Hour))
+	rem.Done()
+
+	if err := rem.Reschedule(time.Now().UTC().Add(2 * time.Hour)); err != ErrSettled {
+		t.Fatalf("err = %v, want ErrSettled", err)
+	}
+	if rem.IsOverdue(time.Now().UTC().Add(3 * time.Hour)) {
+		t.Fatal("a done task is never overdue")
+	}
+}
