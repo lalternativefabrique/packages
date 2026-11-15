@@ -22,11 +22,14 @@ const (
 )
 
 var (
-	ErrNotFound           = errors.New("reminder not found")
-	ErrBodyMissing        = errors.New("body is required")
+	ErrNotFound    = errors.New("reminder not found")
+	ErrBodyMissing = errors.New("body is required")
+	// Deprecated: New keeps a past due time as an overdue task and never
+	// returns it. Kept so modules matching on it still compile.
 	ErrDueInPast          = errors.New("due_at is in the past")
 	ErrRunEveryOutOfRange = errors.New("every is out of range")
 	ErrNotPending         = errors.New("reminder is not pending")
+	ErrSettled            = errors.New("reminder is done or cancelled")
 )
 
 // MinRunEvery bounds how tight a recurrence may be. Anything shorter than the
@@ -67,26 +70,53 @@ type Reminder struct {
 	RunEvery *time.Duration
 }
 
-// New validates a request and returns a pending reminder.
+// New validates a request and returns a reminder still to take care of.
 //
-// A due time already past is refused rather than fired at once: someone asking
-// to be reminded yesterday made a mistake, and firing immediately hides it.
+// A due time already past is kept, as an overdue task: it is created fired so
+// the poller does not notify it, since the person writing it already knows.
 func New(userID, body string, dueAt time.Time, channels ...ChannelConfig) (*Reminder, error) {
 	if strings.TrimSpace(body) == "" {
 		return nil, ErrBodyMissing
 	}
-	if dueAt.Before(time.Now().UTC()) {
-		return nil, ErrDueInPast
-	}
-	return &Reminder{
+	rem := &Reminder{
 		ID:        uuid.NewString(),
 		UserID:    userID,
 		Body:      strings.TrimSpace(body),
-		DueAt:     dueAt.UTC(),
-		Status:    StatusPending,
 		CreatedAt: time.Now().UTC(),
 		Channels:  channels,
-	}, nil
+	}
+	rem.schedule(dueAt)
+	return rem, nil
+}
+
+// Reschedule moves a reminder that is still to take care of to a new time.
+// A future time arms it again; a past one keeps it overdue without notifying.
+func (r *Reminder) Reschedule(dueAt time.Time) error {
+	if r.IsSettled() {
+		return ErrSettled
+	}
+	r.schedule(dueAt)
+	return nil
+}
+
+func (r *Reminder) schedule(dueAt time.Time) {
+	r.DueAt = dueAt.UTC()
+	if r.DueAt.After(time.Now().UTC()) {
+		r.Status, r.FiredAt = StatusPending, nil
+		return
+	}
+	r.Status = StatusFired
+}
+
+// IsSettled reports whether nothing is left to do: the reminder is done or
+// was dropped. A fired one-shot is not settled, it is overdue.
+func (r *Reminder) IsSettled() bool {
+	return r.Status == StatusDone || r.Status == StatusCancelled
+}
+
+// IsOverdue reports whether the reminder came due and is still to take care of.
+func (r *Reminder) IsOverdue(now time.Time) bool {
+	return !r.IsSettled() && !r.DueAt.After(now)
 }
 
 // Fire marks the reminder as delivered. A recurring one stays pending with
