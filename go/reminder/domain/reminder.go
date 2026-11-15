@@ -22,8 +22,11 @@ const (
 )
 
 var (
-	ErrNotFound           = errors.New("reminder not found")
-	ErrBodyMissing        = errors.New("body is required")
+	ErrNotFound    = errors.New("reminder not found")
+	ErrBodyMissing = errors.New("body is required")
+	// Deprecated: New keeps a past due time as an overdue task and never
+	// returns it. Kept so modules matching on it still compile.
+	ErrDueInPast          = errors.New("due_at is in the past")
 	ErrRunEveryOutOfRange = errors.New("every is out of range")
 	ErrNotPending         = errors.New("reminder is not pending")
 	ErrSettled            = errors.New("reminder is done or cancelled")
