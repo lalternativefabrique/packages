@@ -1,5 +1,9 @@
 export { ReviewChanges } from "./review-changes";
 export type { ReviewChangesProps, ReviewField, ReworkRequest } from "./review-changes";
+export { ReviewCode, defaultCodeLabels } from "./review-code";
+export type { CodeComment, ReviewCodeLabels, ReviewCodeProps } from "./review-code";
+export { codeRows } from "./code";
+export type { CodeNote, CodeRow } from "./code";
 export { assemble, segments, surroundings, wordParts } from "./diff";
 export type { Decision, Granularity, Part, Segment } from "./diff";
 export { defaultLabels } from "./labels";
