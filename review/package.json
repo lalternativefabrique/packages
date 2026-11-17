@@ -1,7 +1,7 @@
 {
   "name": "@lalternative/review",
-  "version": "0.3.1",
-  "description": "Review a proposed rewrite passage by passage: accept, reject, or rework each change asynchronously, then apply the assembled text",
+  "version": "0.4.0",
+  "description": "Review a proposed rewrite passage by passage (accept, reject or rework each change, then apply the assembled text), or read a code change with line numbers, folded context, notes and a comment per change",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
