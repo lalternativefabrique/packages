@@ -79,6 +79,12 @@ const (
 	Unreadable CosttrackingCostImportViewStatus = "unreadable"
 )
 
+// Defines values for CosttrackingCostLineRequestPaidBy.
+const (
+	CosttrackingCostLineRequestPaidByApp    CosttrackingCostLineRequestPaidBy = "app"
+	CosttrackingCostLineRequestPaidByClient CosttrackingCostLineRequestPaidBy = "client"
+)
+
 // Defines values for CosttrackingCostReportRowViewCategory.
 const (
 	CosttrackingCostReportRowViewCategoryApi          CosttrackingCostReportRowViewCategory = "api"
@@ -158,6 +164,12 @@ const (
 	CosttrackingRecordDirectCostRequestCategoryOther        CosttrackingRecordDirectCostRequestCategory = "other"
 	CosttrackingRecordDirectCostRequestCategoryStaff        CosttrackingRecordDirectCostRequestCategory = "staff"
 	CosttrackingRecordDirectCostRequestCategorySubscription CosttrackingRecordDirectCostRequestCategory = "subscription"
+)
+
+// Defines values for CosttrackingRecordedCostViewPaidBy.
+const (
+	CosttrackingRecordedCostViewPaidByApp    CosttrackingRecordedCostViewPaidBy = "app"
+	CosttrackingRecordedCostViewPaidByClient CosttrackingRecordedCostViewPaidBy = "client"
 )
 
 // Defines values for CosttrackingRecurringCostViewCategory.
@@ -458,11 +470,21 @@ type CosttrackingCostLineRequest struct {
 	IdempotencyKey *string `json:"idempotency_key,omitempty"`
 	OccurredAt     *string `json:"occurred_at,omitempty"`
 
+	// PaidBy PaidBy is "client" when the client paid the provider with its own key:
+	// the line is an estimate shown in that client's usage, not a cost of the
+	// app. Empty means "app". "client" requires external_user_id.
+	PaidBy *CosttrackingCostLineRequestPaidBy `json:"paid_by,omitempty"`
+
 	// Quantity Quantity is an integer in the item's declared unit: tokens for a
 	// "1M tokens" item of unit_size 1000000, grams for a "kg" item of unit_size 1000.
 	Quantity *int    `json:"quantity,omitempty"`
 	RunKey   *string `json:"run_key,omitempty"`
 }
+
+// CosttrackingCostLineRequestPaidBy PaidBy is "client" when the client paid the provider with its own key:
+// the line is an estimate shown in that client's usage, not a cost of the
+// app. Empty means "app". "client" requires external_user_id.
+type CosttrackingCostLineRequestPaidBy string
 
 // CosttrackingCostPriceView defines model for costtracking.costPriceView.
 type CosttrackingCostPriceView struct {
@@ -679,6 +701,13 @@ type CosttrackingLinkCostClientRequest struct {
 	LinkedAppId    *string `json:"linked_app_id,omitempty"`
 }
 
+// CosttrackingLlmModelView defines model for costtracking.llmModelView.
+type CosttrackingLlmModelView struct {
+	HasCached *bool   `json:"has_cached,omitempty"`
+	Model     *string `json:"model,omitempty"`
+	Provider  *string `json:"provider,omitempty"`
+}
+
 // CosttrackingLlmUsageBatch defines model for costtracking.llmUsageBatch.
 type CosttrackingLlmUsageBatch struct {
 	// BucketStart BucketStart is the window's start, floored server-side to the aggregation
@@ -706,11 +735,14 @@ type CosttrackingLlmUsageBatch struct {
 
 // CosttrackingMyCostReportResponse defines model for costtracking.myCostReportResponse.
 type CosttrackingMyCostReportResponse struct {
-	CostMicros  *int                                 `json:"cost_micros,omitempty"`
-	Currency    *string                              `json:"currency,omitempty"`
-	PeriodEnd   *string                              `json:"period_end,omitempty"`
-	PeriodStart *string                              `json:"period_start,omitempty"`
-	Totals      *[]CosttrackingCurrencyTotalResponse `json:"totals,omitempty"`
+	// ClientPaidTotals ClientPaidTotals is the user's estimated spend paid to the provider
+	// with its own key (paid_by "client"), excluded from totals.
+	ClientPaidTotals *[]CosttrackingCurrencyTotalResponse `json:"client_paid_totals,omitempty"`
+	CostMicros       *int                                 `json:"cost_micros,omitempty"`
+	Currency         *string                              `json:"currency,omitempty"`
+	PeriodEnd        *string                              `json:"period_end,omitempty"`
+	PeriodStart      *string                              `json:"period_start,omitempty"`
+	Totals           *[]CosttrackingCurrencyTotalResponse `json:"totals,omitempty"`
 }
 
 // CosttrackingPricingReviewView defines model for costtracking.pricingReviewView.
@@ -843,14 +875,18 @@ type CosttrackingRecordedCostView struct {
 	Currency *string `json:"currency,omitempty"`
 
 	// Id ID is the record's, the one an attachment is added to.
-	Id                 *string `json:"id,omitempty"`
-	IdempotencyKey     *string `json:"idempotency_key,omitempty"`
-	Note               *string `json:"note,omitempty"`
-	PriceId            *string `json:"price_id,omitempty"`
-	PriceMicrosPerUnit *int    `json:"price_micros_per_unit,omitempty"`
-	Quantity           *int    `json:"quantity,omitempty"`
-	UnitSize           *int    `json:"unit_size,omitempty"`
+	Id                 *string                             `json:"id,omitempty"`
+	IdempotencyKey     *string                             `json:"idempotency_key,omitempty"`
+	Note               *string                             `json:"note,omitempty"`
+	PaidBy             *CosttrackingRecordedCostViewPaidBy `json:"paid_by,omitempty"`
+	PriceId            *string                             `json:"price_id,omitempty"`
+	PriceMicrosPerUnit *int                                `json:"price_micros_per_unit,omitempty"`
+	Quantity           *int                                `json:"quantity,omitempty"`
+	UnitSize           *int                                `json:"unit_size,omitempty"`
 }
+
+// CosttrackingRecordedCostViewPaidBy defines model for CosttrackingRecordedCostView.PaidBy.
+type CosttrackingRecordedCostViewPaidBy string
 
 // CosttrackingRecurringCostListView defines model for costtracking.recurringCostListView.
 type CosttrackingRecurringCostListView struct {
@@ -1305,6 +1341,12 @@ type FinanceEntitlementResponse struct {
 	CurrentPeriodStart *string `json:"current_period_start,omitempty"`
 	Entitled           *bool   `json:"entitled,omitempty"`
 
+	// IntroAmountCents IntroAmountCents is the launch price frozen on the subscription, charged
+	// while IntroPeriodsRemaining paid periods remain. Zero once the list price
+	// applies.
+	IntroAmountCents      *int `json:"intro_amount_cents,omitempty"`
+	IntroPeriodsRemaining *int `json:"intro_periods_remaining,omitempty"`
+
 	// PendingPlanCode PendingPlanCode is a smaller plan the customer scheduled, applied at
 	// PendingPlanEffectiveAt. Empty when nothing is scheduled.
 	PendingPlanCode        *string `json:"pending_plan_code,omitempty"`
@@ -1339,13 +1381,28 @@ type FinancePlanCatalogView struct {
 	Id            *string                        `json:"id,omitempty"`
 	Interval      *string                        `json:"interval,omitempty"`
 	IntervalCount *int                           `json:"interval_count,omitempty"`
-	Name          *string                        `json:"name,omitempty"`
+
+	// Intro Intro is the launch price a subscription bought now gets: Amount is
+	// charged only once Periods paid periods at Intro.AmountCents have run.
+	// Null when no intro is offered right now.
+	Intro *FinancePlanIntroView `json:"intro"`
+	Name  *string               `json:"name,omitempty"`
 
 	// Rank Rank orders the plans against each other: higher means larger. It is what
 	// tells an upgrade from a downgrade, and it is a product statement rather
 	// than a function of Amount — a promotional tier priced below a smaller one
 	// would otherwise invert the two paths.
 	Rank *int `json:"rank,omitempty"`
+}
+
+// FinancePlanIntroView defines model for finance.planIntroView.
+type FinancePlanIntroView struct {
+	AmountCents *int `json:"amount_cents,omitempty"`
+
+	// AvailableUntil AvailableUntil is when new subscriptions stop getting the intro. Null
+	// when it has no deadline.
+	AvailableUntil *string `json:"available_until"`
+	Periods        *int    `json:"periods,omitempty"`
 }
 
 // FinancePlansResponse defines model for finance.plansResponse.
@@ -1602,8 +1659,12 @@ type MeteringUsageCostRow struct {
 	AgentId      *string `json:"agent_id,omitempty"`
 	AmountMicros *int    `json:"amount_micros,omitempty"`
 	AppId        *string `json:"app_id,omitempty"`
-	Currency     *string `json:"currency,omitempty"`
-	CustomerId   *string `json:"customer_id,omitempty"`
+
+	// ClientPaidMicros ClientPaidMicros is the part of amount_micros the customer paid the
+	// provider directly with its own key: an estimate, not a cost of the app.
+	ClientPaidMicros *int    `json:"client_paid_micros,omitempty"`
+	Currency         *string `json:"currency,omitempty"`
+	CustomerId       *string `json:"customer_id,omitempty"`
 }
 
 // MeteringUsageTableRow defines model for metering.usageTableRow.
@@ -1714,6 +1775,12 @@ type GetAppLLMCostSummaryParams struct {
 
 	// To End, exclusive (RFC3339). Defaults to now.
 	To *string `form:"to,omitempty" json:"to,omitempty"`
+}
+
+// ListLLMModelsParams defines parameters for ListLLMModels.
+type ListLLMModelsParams struct {
+	// Provider Only these providers; repeatable or comma-separated
+	Provider *[]string `form:"provider,omitempty" json:"provider,omitempty"`
 }
 
 // GetUsageBalanceParams defines parameters for GetUsageBalance.
@@ -2151,6 +2218,9 @@ type ClientInterface interface {
 
 	// GetAppLLMCostSummary request
 	GetAppLLMCostSummary(ctx context.Context, params *GetAppLLMCostSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLLMModels request
+	ListLLMModels(ctx context.Context, params *ListLLMModelsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RecordLLMUsageWithBody request with any body
 	RecordLLMUsageWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2695,6 +2765,18 @@ func (c *Client) GetMyLLMCostReport(ctx context.Context, params *GetMyLLMCostRep
 
 func (c *Client) GetAppLLMCostSummary(ctx context.Context, params *GetAppLLMCostSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAppLLMCostSummaryRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListLLMModels(ctx context.Context, params *ListLLMModelsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLLMModelsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4767,6 +4849,55 @@ func NewGetAppLLMCostSummaryRequest(server string, params *GetAppLLMCostSummaryP
 		if params.To != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "to", runtime.ParamLocationQuery, *params.To); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListLLMModelsRequest generates requests for ListLLMModels
+func NewListLLMModelsRequest(server string, params *ListLLMModelsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/metering/llm-models")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Provider != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "provider", runtime.ParamLocationQuery, *params.Provider); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -8682,6 +8813,9 @@ type ClientWithResponsesInterface interface {
 	// GetAppLLMCostSummaryWithResponse request
 	GetAppLLMCostSummaryWithResponse(ctx context.Context, params *GetAppLLMCostSummaryParams, reqEditors ...RequestEditorFn) (*GetAppLLMCostSummaryResponse, error)
 
+	// ListLLMModelsWithResponse request
+	ListLLMModelsWithResponse(ctx context.Context, params *ListLLMModelsParams, reqEditors ...RequestEditorFn) (*ListLLMModelsResponse, error)
+
 	// RecordLLMUsageWithBodyWithResponse request with any body
 	RecordLLMUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error)
 
@@ -9347,6 +9481,29 @@ func (r GetAppLLMCostSummaryResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetAppLLMCostSummaryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListLLMModelsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]CosttrackingLlmModelView
+	JSON401      *EchoHTTPError
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLLMModelsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLLMModelsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -11320,6 +11477,15 @@ func (c *ClientWithResponses) GetAppLLMCostSummaryWithResponse(ctx context.Conte
 	return ParseGetAppLLMCostSummaryResponse(rsp)
 }
 
+// ListLLMModelsWithResponse request returning *ListLLMModelsResponse
+func (c *ClientWithResponses) ListLLMModelsWithResponse(ctx context.Context, params *ListLLMModelsParams, reqEditors ...RequestEditorFn) (*ListLLMModelsResponse, error) {
+	rsp, err := c.ListLLMModels(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLLMModelsResponse(rsp)
+}
+
 // RecordLLMUsageWithBodyWithResponse request with arbitrary body returning *RecordLLMUsageResponse
 func (c *ClientWithResponses) RecordLLMUsageWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RecordLLMUsageResponse, error) {
 	rsp, err := c.RecordLLMUsageWithBody(ctx, contentType, body, reqEditors...)
@@ -12855,6 +13021,39 @@ func ParseGetAppLLMCostSummaryResponse(rsp *http.Response) (*GetAppLLMCostSummar
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListLLMModelsResponse parses an HTTP response from a ListLLMModelsWithResponse call
+func ParseListLLMModelsResponse(rsp *http.Response) (*ListLLMModelsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLLMModelsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []CosttrackingLlmModelView
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest EchoHTTPError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
 
 	}
 

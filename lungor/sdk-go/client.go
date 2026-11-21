@@ -278,6 +278,11 @@ type Entitlement struct {
 	// is missed.
 	PendingPlanCode        string     `json:"pending_plan_code,omitempty"`
 	PendingPlanEffectiveAt *time.Time `json:"pending_plan_effective_at,omitempty"`
+	// IntroAmountCents is the launch price frozen on the subscription, charged
+	// while IntroPeriodsRemaining paid periods remain. Zero once the list price
+	// applies.
+	IntroAmountCents      int64 `json:"intro_amount_cents"`
+	IntroPeriodsRemaining int   `json:"intro_periods_remaining"`
 }
 
 // BillingPath is the route every app mounts its billing page on, and the one
@@ -374,6 +379,8 @@ func entitlementFrom(w wire.FinanceEntitlementResponse) Entitlement {
 		out.PendingPlanCode = *w.PendingPlanCode
 	}
 	out.PendingPlanEffectiveAt = parseTime(w.PendingPlanEffectiveAt)
+	out.IntroAmountCents = int64(derefInt(w.IntroAmountCents))
+	out.IntroPeriodsRemaining = derefInt(w.IntroPeriodsRemaining)
 	return out
 }
 

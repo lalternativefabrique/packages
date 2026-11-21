@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/lalternative/packages/lungor/sdk-go/internal/wire"
 )
@@ -39,6 +40,19 @@ type Plan struct {
 	// figures are what the ledger enforces, so a local copy is a second
 	// authority that disagrees the first time one side is edited.
 	Allocations []Allocation `json:"allocations,omitempty"`
+	// Intro is the launch price a subscription bought now gets. Nil when none
+	// is offered.
+	Intro *Intro `json:"intro"`
+}
+
+// Intro is a plan's launch price: AmountCents is charged for the first Periods
+// paid periods, then the plan's Amount.
+type Intro struct {
+	AmountCents int64 `json:"amount_cents"`
+	Periods     int   `json:"periods"`
+	// AvailableUntil is when new subscriptions stop getting the intro. Nil when
+	// it has no deadline.
+	AvailableUntil *time.Time `json:"available_until"`
 }
 
 // Allocation is one metered unit's allowance on a plan, per billing period.
@@ -145,6 +159,7 @@ func plansFrom(w wire.FinancePlansResponse) Plans {
 			IntervalCount: derefInt(p.IntervalCount),
 			Rank:          derefInt(p.Rank),
 			Allocations:   allocationsFrom(p.Allocations),
+			Intro:         introFrom(p.Intro),
 		})
 	}
 	return out
@@ -162,6 +177,17 @@ func allocationsFrom(w *[]wire.FinancePlanAllocationAmount) []Allocation {
 		out = append(out, Allocation{Unit: deref(a.Unit), Amount: int64(derefInt(a.Amount))})
 	}
 	return out
+}
+
+func introFrom(w *wire.FinancePlanIntroView) *Intro {
+	if w == nil {
+		return nil
+	}
+	return &Intro{
+		AmountCents:    int64(derefInt(w.AmountCents)),
+		Periods:        derefInt(w.Periods),
+		AvailableUntil: parseTime(w.AvailableUntil),
+	}
 }
 
 func derefInt(i *int) int {

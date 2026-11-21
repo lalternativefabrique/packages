@@ -5,10 +5,10 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +28,10 @@ const (
 	EventSubscriptionRenewed   = "subscription.renewed"
 	EventSubscriptionCanceled  = "subscription.canceled"
 	EventSubscriptionPastDue   = "subscription.past_due"
-	EventEntitlementChanged    = "entitlement.changed"
+	// EventSubscriptionIntroEnding is sent once per subscription when the
+	// period running now is the last one at the intro price.
+	EventSubscriptionIntroEnding = "subscription.intro_ending"
+	EventEntitlementChanged      = "entitlement.changed"
 )
 
 // Headers Lungor sets on every delivery. The names carry the brand; the signing
@@ -393,4 +396,67 @@ func VerifyWebhookAt(secret string, headers http.Header, body []byte, now time.T
 		Timestamp:     signedAt,
 		Payload:       body,
 	}, nil
+}
+
+// SubscriptionEvent is the data of every subscription.* delivery.
+type SubscriptionEvent struct {
+	SubscriptionID     string
+	TenantID           string
+	CustomerID         string
+	AppID              string
+	ExternalUserID     string
+	ProductCode        string
+	Status             string
+	CurrentPeriodStart *time.Time
+	CurrentPeriodEnd   *time.Time
+	// IntroAmountCents is the launch price frozen on the subscription, zero
+	// once the list price applies. IntroPeriodsRemaining counts the
+	// intro-priced periods still to be charged after the current one.
+	IntroAmountCents      int64
+	IntroPeriodsRemaining int
+	OccurredAt            time.Time
+}
+
+// SubscriptionIntroEnding is the data of a subscription.intro_ending delivery:
+// from SwitchAt the subscription is charged NextAmountCents.
+type SubscriptionIntroEnding struct {
+	SubscriptionEvent
+	NextAmountCents int64
+	Currency        string
+	SwitchAt        time.Time
+}
+
+// SubscriptionEvent decodes the data of a subscription.* delivery.
+func (d Delivery) SubscriptionEvent() (SubscriptionEvent, error) {
+	var out SubscriptionEvent
+	if !strings.HasPrefix(d.Type, "subscription.") {
+		return out, fmt.Errorf("lungor: %q delivery is not a subscription event", d.Type)
+	}
+	return out, d.decodeData(&out)
+}
+
+// SubscriptionIntroEnding decodes the data of a subscription.intro_ending
+// delivery.
+func (d Delivery) SubscriptionIntroEnding() (SubscriptionIntroEnding, error) {
+	var out SubscriptionIntroEnding
+	if d.Type != EventSubscriptionIntroEnding {
+		return out, fmt.Errorf("lungor: %q delivery is not %s", d.Type, EventSubscriptionIntroEnding)
+	}
+	return out, d.decodeData(&out)
+}
+
+func (d Delivery) decodeData(v any) error {
+	var envelope struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(d.Payload, &envelope); err != nil {
+		return fmt.Errorf("lungor: decode %s delivery: %w", d.Type, err)
+	}
+	if len(envelope.Data) == 0 {
+		return fmt.Errorf("lungor: %s delivery has no data", d.Type)
+	}
+	if err := json.Unmarshal(envelope.Data, v); err != nil {
+		return fmt.Errorf("lungor: decode %s data: %w", d.Type, err)
+	}
+	return nil
 }

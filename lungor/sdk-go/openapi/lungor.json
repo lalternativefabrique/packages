@@ -1079,6 +1079,60 @@
                 }
             }
         },
+        "/metering/llm-models": {
+            "get": {
+                "security": [
+                    {
+                        "AppKeyAuth": []
+                    }
+                ],
+                "description": "Lists the LLM models the calling app can declare costs for, read from the active cost items coded `<provider>/<model>.input`. `has_cached` is true when a `<provider>/<model>.cached` item exists. The catalog, edited in the console, is the only source: a model it does not price is not listed.",
+                "tags": [
+                    "costtracking"
+                ],
+                "summary": "Models the tenant cost catalog prices",
+                "operationId": "listLLMModels",
+                "parameters": [
+                    {
+                        "description": "Only these providers; repeatable or comma-separated",
+                        "name": "provider",
+                        "in": "query",
+                        "explode": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/costtracking.llmModelView"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/metering/llm-usage": {
             "post": {
                 "security": [
@@ -2624,7 +2678,7 @@
                 }
             },
             "patch": {
-                "description": "Changes a plan's display name, its price and whether it is on sale.\n\nThe CODE is not updatable: it is the business key subscriptions and provisioning match on, so renaming it would orphan every subscriber rather than rename their plan.\n\n`active: false` archives a plan that has subscribers — it disappears from what can be bought while every existing subscriber stays exactly where they are. DELETE destroys a plan nobody ever subscribed to.\n\nFields are optional: an omitted one keeps its current value.",
+                "description": "Changes a plan's display name, its price and whether it is on sale.\n\nThe CODE is not updatable: it is the business key subscriptions and provisioning match on, so renaming it would orphan every subscriber rather than rename their plan.\n\n`active: false` archives a plan that has subscribers — it disappears from what can be bought while every existing subscriber stays exactly where they are. DELETE destroys a plan nobody ever subscribed to.\n\nFields are optional: an omitted one keeps its current value.\n\nThe intro price (`intro_amount_cents`, `intro_periods`, `intro_available_until`) applies to subscriptions sold from now on; subscribers who already hold one keep theirs. `intro_periods: 0` removes it, `intro_available_until: \"\"` removes its deadline.",
                 "tags": [
                     "plans"
                 ],
@@ -4025,6 +4079,79 @@
                         "description": "Not Found",
                         "content": {
                             "application/zip": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tenants/{tenant_id}/apps/{app_id}/name": {
+            "patch": {
+                "description": "Changes the displayed name only. The id and slug stay fixed: apps and API keys identify the app by them.",
+                "tags": [
+                    "apps"
+                ],
+                "summary": "Rename an app",
+                "operationId": "renameApp",
+                "parameters": [
+                    {
+                        "description": "Tenant ID",
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "description": "App ID",
+                        "name": "app_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/finance.renameAppReq"
+                            }
+                        }
+                    },
+                    "description": "New name",
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/finance.appView"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/echo.HTTPError"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/echo.HTTPError"
                                 }
@@ -11161,6 +11288,15 @@
                         "type": "string",
                         "example": "2026-09-30T14:03:00Z"
                     },
+                    "paid_by": {
+                        "description": "PaidBy is \"client\" when the client paid the provider with its own key:\nthe line is an estimate shown in that client's usage, not a cost of the\napp. Empty means \"app\". \"client\" requires external_user_id.",
+                        "type": "string",
+                        "enum": [
+                            "app",
+                            "client"
+                        ],
+                        "example": "app"
+                    },
                     "quantity": {
                         "description": "Quantity is an integer in the item's declared unit: tokens for a\n\"1M tokens\" item of unit_size 1000000, grams for a \"kg\" item of unit_size 1000.",
                         "type": "integer",
@@ -11790,6 +11926,22 @@
                     }
                 }
             },
+            "costtracking.llmModelView": {
+                "type": "object",
+                "properties": {
+                    "has_cached": {
+                        "type": "boolean"
+                    },
+                    "model": {
+                        "type": "string",
+                        "example": "claude-opus-5"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "example": "anthropic"
+                    }
+                }
+            },
             "costtracking.llmUsageBatch": {
                 "type": "object",
                 "properties": {
@@ -11870,6 +12022,13 @@
             "costtracking.myCostReportResponse": {
                 "type": "object",
                 "properties": {
+                    "client_paid_totals": {
+                        "description": "ClientPaidTotals is the user's estimated spend paid to the provider\nwith its own key (paid_by \"client\"), excluded from totals.",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/costtracking.currencyTotalResponse"
+                        }
+                    },
                     "cost_micros": {
                         "type": "integer",
                         "example": 42500
@@ -12225,6 +12384,13 @@
                     },
                     "note": {
                         "type": "string"
+                    },
+                    "paid_by": {
+                        "type": "string",
+                        "enum": [
+                            "app",
+                            "client"
+                        ]
                     },
                     "price_id": {
                         "type": "string"
@@ -13529,6 +13695,20 @@
                     "interval_count": {
                         "type": "integer"
                     },
+                    "intro_amount_cents": {
+                        "description": "IntroAmountCents is charged for the first IntroPeriods paid periods of a\nnew subscription, then AmountCents. Both or neither.",
+                        "type": "integer",
+                        "example": 1900
+                    },
+                    "intro_available_until": {
+                        "description": "IntroAvailableUntil stops offering the intro to subscriptions sold after\nit; subscribers who hold it keep it.",
+                        "type": "string",
+                        "example": "2027-06-30T23:59:59Z"
+                    },
+                    "intro_periods": {
+                        "type": "integer",
+                        "example": 12
+                    },
                     "max_amount_cents": {
                         "type": "integer",
                         "example": 500000
@@ -13700,6 +13880,13 @@
                     },
                     "interval": {
                         "type": "string"
+                    },
+                    "intro_amount_cents": {
+                        "description": "IntroAmountCents is the launch price frozen on the subscription, charged\nwhile IntroPeriodsRemaining paid periods remain. Zero once the list price\napplies.",
+                        "type": "integer"
+                    },
+                    "intro_periods_remaining": {
+                        "type": "integer"
                     },
                     "livemode": {
                         "type": "boolean"
@@ -13972,6 +14159,13 @@
                     },
                     "entitled": {
                         "type": "boolean"
+                    },
+                    "intro_amount_cents": {
+                        "description": "IntroAmountCents is the launch price frozen on the subscription, charged\nwhile IntroPeriodsRemaining paid periods remain. Zero once the list price\napplies.",
+                        "type": "integer"
+                    },
+                    "intro_periods_remaining": {
+                        "type": "integer"
                     },
                     "pending_plan_code": {
                         "description": "PendingPlanCode is a smaller plan the customer scheduled, applied at\nPendingPlanEffectiveAt. Empty when nothing is scheduled.",
@@ -14249,6 +14443,15 @@
                         "type": "integer",
                         "example": 1
                     },
+                    "intro": {
+                        "description": "Intro is the launch price a subscription bought now gets: Amount is\ncharged only once Periods paid periods at Intro.AmountCents have run.\nNull when no intro is offered right now.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/finance.planIntroView"
+                            }
+                        ],
+                        "nullable": true
+                    },
                     "name": {
                         "type": "string",
                         "example": "Pro"
@@ -14278,6 +14481,24 @@
                     },
                     "references": {
                         "$ref": "#/components/schemas/finance.planReferencesView"
+                    }
+                }
+            },
+            "finance.planIntroView": {
+                "type": "object",
+                "properties": {
+                    "amount_cents": {
+                        "type": "integer",
+                        "example": 1900
+                    },
+                    "available_until": {
+                        "description": "AvailableUntil is when new subscriptions stop getting the intro. Null\nwhen it has no deadline.",
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "periods": {
+                        "type": "integer",
+                        "example": 12
                     }
                 }
             },
@@ -14360,6 +14581,15 @@
                     },
                     "interval_count": {
                         "type": "integer"
+                    },
+                    "intro": {
+                        "description": "Intro is the configured launch price, whether or not it is still\noffered. Null when the plan has none.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/finance.planIntroView"
+                            }
+                        ],
+                        "nullable": true
                     },
                     "max_amount_cents": {
                         "type": "integer"
@@ -14485,6 +14715,14 @@
                     },
                     "remaining_cents": {
                         "type": "integer"
+                    }
+                }
+            },
+            "finance.renameAppReq": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
                     }
                 }
             },
@@ -14848,6 +15086,20 @@
                     "amount_cents": {
                         "type": "integer",
                         "example": 900
+                    },
+                    "intro_amount_cents": {
+                        "description": "IntroAmountCents and IntroPeriods set the launch price. intro_periods 0\nremoves the intro altogether. Existing subscribers keep the intro frozen\non their subscription either way.",
+                        "type": "integer",
+                        "example": 1900
+                    },
+                    "intro_available_until": {
+                        "description": "IntroAvailableUntil is an RFC 3339 instant after which new subscriptions\nno longer get the intro. An empty string removes the deadline.",
+                        "type": "string",
+                        "example": "2027-06-30T23:59:59Z"
+                    },
+                    "intro_periods": {
+                        "type": "integer",
+                        "example": 12
                     },
                     "name": {
                         "type": "string",
@@ -15390,6 +15642,11 @@
                     },
                     "app_id": {
                         "type": "string"
+                    },
+                    "client_paid_micros": {
+                        "description": "ClientPaidMicros is the part of amount_micros the customer paid the\nprovider directly with its own key: an estimate, not a cost of the app.",
+                        "type": "integer",
+                        "example": 0
                     },
                     "currency": {
                         "type": "string",
