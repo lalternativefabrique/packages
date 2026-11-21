@@ -242,12 +242,15 @@ needs neither id.
 ## Webhooks
 
 Polling entitlement tells you what is true now; a webhook tells you the moment
-it changed. Lungor delivers five types, and they are constants here so a typo
+it changed. Lungor delivers six types, and they are constants here so a typo
 is a compile error rather than an endpoint that silently never fires:
 
 `EventSubscriptionActivated`, `EventSubscriptionRenewed`,
 `EventSubscriptionCanceled`, `EventSubscriptionPastDue`,
-`EventEntitlementChanged`.
+`EventSubscriptionIntroEnding`, `EventEntitlementChanged`.
+
+`EventSubscriptionIntroEnding` is sent once per subscription, when the period
+running now is the last one at the plan's intro price.
 
 ### Registering a destination
 
@@ -291,8 +294,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
     }
 
     switch d.Type {
-    case sdk.EventSubscriptionActivated:
-        // json.Unmarshal(d.Payload, &event)
+    case sdk.EventSubscriptionActivated, sdk.EventSubscriptionRenewed:
+        event, err := d.SubscriptionEvent()
+        // event.IntroAmountCents, event.IntroPeriodsRemaining, ...
+    case sdk.EventSubscriptionIntroEnding:
+        event, err := d.SubscriptionIntroEnding()
+        // event.NextAmountCents is charged from event.SwitchAt
     }
 
     w.WriteHeader(http.StatusOK)
