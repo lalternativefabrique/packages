@@ -46,8 +46,12 @@ func (l Line) Text() string {
 	return strings.Join(parts, " ")
 }
 
+// Page is one page's lines. Width and Height are its media box, in points;
+// both are zero when the PDF does not say.
 type Page struct {
 	Number int
+	Width  float64
+	Height float64
 	Lines  []Line
 }
 
@@ -95,6 +99,7 @@ func Read(data []byte) (doc *Document, err error) {
 	for n := 1; n <= reader.NumPage(); n++ {
 		page := reader.Page(n)
 		var glyphs []glyph
+		width, height := mediaBox(page.V)
 		if !page.V.IsNull() {
 			for _, t := range page.Content().Text {
 				glyphs = append(glyphs, glyph{text: t.S, x: t.X, y: t.Y, w: t.W, size: t.FontSize})
@@ -104,12 +109,24 @@ func Read(data []byte) (doc *Document, err error) {
 		for _, l := range lines {
 			words += len(l.Words)
 		}
-		doc.Pages = append(doc.Pages, Page{Number: n, Lines: lines})
+		doc.Pages = append(doc.Pages, Page{Number: n, Width: width, Height: height, Lines: lines})
 	}
 	if words == 0 {
 		return doc, ErrNoText
 	}
 	return doc, nil
+}
+
+// mediaBox reads the page's box, inherited from its page tree when the page
+// leaves it out.
+func mediaBox(v gopdf.Value) (width, height float64) {
+	for depth := 0; depth < 32 && !v.IsNull(); depth++ {
+		if box := v.Key("MediaBox"); box.Len() == 4 {
+			return math.Abs(box.Index(2).Float64() - box.Index(0).Float64()), math.Abs(box.Index(3).Float64() - box.Index(1).Float64())
+		}
+		v = v.Key("Parent")
+	}
+	return 0, 0
 }
 
 type glyph struct {

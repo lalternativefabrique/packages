@@ -83,6 +83,10 @@ scopes:
   docfacts:
     - "go/docfacts/**"
     - "go/pdftext/**"
+  redact:
+    - "go/redact/**"
+    - "go/docfacts/**"
+    - "go/pdftext/**"
   busevents:
     - "go/busevents/**"
   synthesis:
@@ -335,6 +339,15 @@ steps:
     tools: [go]
     run: |
       cd go/docfacts
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: redact
+    scope: [redact]
+    tools: [go]
+    run: |
+      cd go/redact
       go build ./...
       go vet ./...
       go test -count=1 ./...

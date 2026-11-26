@@ -3,6 +3,7 @@ package pdftext_test
 import (
 	"bytes"
 	"errors"
+	"math"
 	"strings"
 	"testing"
 
@@ -132,5 +133,15 @@ func TestReadTellsAPDFWithoutTextFromAnUnreadableOne(t *testing.T) {
 	}))
 	if !errors.Is(err, pdftext.ErrNoText) || doc == nil || len(doc.Pages) != 1 {
 		t.Errorf("doc = %+v, err = %v, want one empty page and ErrNoText", doc, err)
+	}
+}
+
+func TestReadGivesThePageSize(t *testing.T) {
+	doc, err := pdftext.Read(render(t, func(p *fpdf.Fpdf, _ func(string) string) { p.Text(40, 100, "x") }))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p := doc.Pages[0]; math.Abs(p.Width-595.28) > 0.1 || math.Abs(p.Height-841.89) > 0.1 {
+		t.Errorf("page size = %.2f x %.2f, want A4", p.Width, p.Height)
 	}
 }
