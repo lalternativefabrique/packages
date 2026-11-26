@@ -78,6 +78,11 @@ scopes:
     - "go/authz/**"
   webhooks:
     - "go/webhooks/**"
+  pdftext:
+    - "go/pdftext/**"
+  docfacts:
+    - "go/docfacts/**"
+    - "go/pdftext/**"
   busevents:
     - "go/busevents/**"
   synthesis:
@@ -315,6 +320,24 @@ steps:
     run: |
       cd go/connect
       go test -count=1 -v -tags integration ./pgstore/...
+
+  - name: pdftext
+    scope: [pdftext]
+    tools: [go]
+    run: |
+      cd go/pdftext
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
+
+  - name: docfacts
+    scope: [docfacts]
+    tools: [go]
+    run: |
+      cd go/docfacts
+      go build ./...
+      go vet ./...
+      go test -count=1 ./...
 
   - name: webhooks
     scope: [webhooks]
