@@ -517,6 +517,12 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
   private roomPolling = false;
 
   getHelpToken: (() => Promise<string | null>) | null = null;
+  /**
+   * Sends the report in place of the page's fetch: a host whose page cannot
+   * reach the endpoint with the person's session (a desktop webview on
+   * another origin) carries the request itself.
+   */
+  submitFetch: typeof fetch | null = null;
 
   /**
    * Optional user email used as the reply-to identity. Pre-filled from the
@@ -1049,7 +1055,7 @@ export class SkalpaiFeedbackElement extends HTMLElementCtor {
       for (const a of this.attachments) {
         form.append('attachments', a.blob, a.name);
       }
-      const res = await fetch(url, {
+      const res = await (this.submitFetch ?? fetch)(url, {
         method: 'POST',
         headers: this.apiKey ? { 'x-api-key': this.apiKey } : {},
         body: form,
